@@ -236,6 +236,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     const data = Object.fromEntries(new FormData(this));
     data.cart = cart;
+    data.itemsText = Object.values(cart).map(item => `${item.name} x${item.qty}`).join(', ');
     // 發送至 GAS
     const r = await fetch(ORDER_API, {
       method: 'POST',
