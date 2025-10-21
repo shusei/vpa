@@ -1,11 +1,8 @@
-// assets/app.js  —  SAFE v3 (ESM). 需要在 index.html 以 <script type="module" src="assets/app.js?v=..."></script> 載入。
+// assets/app.js — GH Pages 版（不跑 ONNX；直接呼叫 Hugging Face Inference API）
+// 建議用 <script src="assets/app.js?v=20251021hf"></script> 以避免快取。
+// 介面：大錄音鍵＋右下角上傳；結果顯示 female / male 百分比。
 
-import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0/dist/transformers.min.js";
-
-// ONNXRuntime Web WASM 路徑（給 ONNX 後端用）
-env.backends.onnx.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.0/dist/";
-
-// ---- DOM ----
+// ========== DOM ==========
 const recordBtn = document.getElementById("recordBtn");
 const fileInput = document.getElementById("fileInput");
 const statusEl  = document.getElementById("status");
@@ -13,25 +10,22 @@ const meter     = document.getElementById("meter");
 const femaleVal = document.getElementById("femaleVal");
 const maleVal   = document.getElementById("maleVal");
 
-// ---- 狀態 ----
+// ========== 設定 ==========
+const HF_MODEL_ID = "prithivMLmods/Common-Voice-Gender-Detection";
+const HF_API_URL  = `https://api-inference.huggingface.co/models/${HF_MODEL_ID}`;
+// 若你有私用 Token，可填入（公開網站不建議）
+// const HF_TOKEN = "hf_XXXXXXXX"; // 留空就匿名呼叫（有限流量）
+
+// ========== 狀態 ==========
 let mediaRecorder = null;
 let chunks = [];
-let pipe = null; // transformers.js pipeline（lazy）
-const device = (navigator.gpu ? "webgpu" : "wasm");
-
-// 預設參數（可在 index.html 事先設 window.* 蓋掉）
-if (!("INFERENCE_MODE" in window)) window.INFERENCE_MODE = "browser"; // 或 "server"
-if (!("API_BASE_URL" in window))   window.API_BASE_URL   = "/api/classify";
-if (!("ONNX_MODEL_ID" in window))  window.ONNX_MODEL_ID  = "prithivMLmods/Common-Voice-Gender-Detection-ONNX";
-
-console.log("[app] loaded, device =", device, "| mode =", window.INFERENCE_MODE);
 
 function setStatus(text, spin=false) {
   if (!statusEl) return;
   statusEl.innerHTML = spin ? `<span class="spinner"></span> ${text}` : text;
 }
 
-// ---- 事件 ----
+// ========== 事件 ==========
 if (recordBtn) {
   recordBtn.addEventListener("click", async () => {
     try {
@@ -61,7 +55,7 @@ if (fileInput) {
   });
 }
 
-// ---- 錄音 ----
+// ========== 錄音 ==========
 function pickSupportedMime() {
   const cands = [
     "audio/webm;codecs=opus",
@@ -79,7 +73,7 @@ function pickSupportedMime() {
 
 async function startRecording() {
   if (typeof MediaRecorder === "undefined") {
-    setStatus("此瀏覽器不支援錄音，請改用右下角上傳", false);
+    setStatus("此瀏覽器不支援錄音，請改用右下角上傳");
     return;
   }
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -120,32 +114,21 @@ async function stopRecording() {
   if (box) box.classList.remove("recording");
 }
 
-// ---- 音訊處理 ----
+// ========== 音訊處理 ==========
 async function handleBlob(blob) {
   setStatus("解析與重取樣…", true);
   const { data } = await decodeAndResample(blob, 16000);
-  if (window.INFERENCE_MODE === "browser") {
-    const ok = await runInBrowser(data, 16000);
-    if (!ok) {
-      console.warn("[fallback] browser inference failed → switching to server");
-      window.INFERENCE_MODE = "server";
-      const wav = floatToWavBlob(data, 16000);
-      await runViaServer(wav);
-    }
-  } else {
-    const wav = floatToWavBlob(data, 16000);
-    await runViaServer(wav);
-  }
+  const wav = floatToWavBlob(data, 16000);
+  await runViaHF(wav);
 }
 
-// 解析 + 重取樣到 targetSR，回傳 Float32Array（單聲道）
+// 解碼＋重取樣 → Float32Array (mono, 16 kHz)
 async function decodeAndResample(blob, targetSR = 16000) {
   const arrayBuf = await blob.arrayBuffer();
   const Ctx = window.AudioContext || window.webkitAudioContext;
   const ctx = new Ctx();
   const audioBuf = await ctx.decodeAudioData(arrayBuf);
 
-  // 建離線重取樣器
   const offline = new OfflineAudioContext(1, Math.ceil(audioBuf.duration * targetSR), targetSR);
   const src = offline.createBufferSource();
 
@@ -169,47 +152,66 @@ async function decodeAndResample(blob, targetSR = 16000) {
   return { data: new Float32Array(out), sr: targetSR };
 }
 
-// ---- 推論（瀏覽器端） ----
-async function runInBrowser(float32PCM, samplingRate) {
+// ========== 推論（呼叫 Hugging Face Inference API）==========
+async function runViaHF(wavBlob) {
   try {
-    setStatus("載入模型（首次需較久）…", true);
+    setStatus("送到模型分析…", true);
     if (meter) meter.classList.remove("hidden");
-    if (!pipe) {
-      // 若 ONNX 模型不存在或載不動會 throw；外層會 fallback 到 server
-      pipe = await pipeline("audio-classification", window.ONNX_MODEL_ID, { device });
+
+    const bytes = await wavBlob.arrayBuffer();
+
+    // 最多重試 5 次（503 代表模型正在暖機）
+    const maxRetry = 5;
+    let attempt = 0;
+    let lastErr = null;
+
+    while (attempt < maxRetry) {
+      attempt++;
+      try {
+        const res = await fetch(HF_API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "audio/wav",
+            // ...(HF_TOKEN ? { Authorization: `Bearer ${HF_TOKEN}` } : {})
+          },
+          body: bytes
+        });
+
+        if (res.status === 503) {
+          // 模型在加載，等待一下再試
+          const info = await res.json().catch(() => ({}));
+          const waitSec = Math.min(3 + attempt, (info.estimated_time || 3));
+          setStatus(`模型啟動中… ${waitSec}s 後再試（第 ${attempt}/${maxRetry} 次）`, true);
+          await sleep(waitSec * 1000);
+          continue;
+        }
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`HF ${res.status}: ${text}`);
+        }
+
+        const out = await res.json();
+        const arr = Array.isArray(out) ? out : (out.results || out[0] || []);
+        renderResults(arr);
+        setStatus("完成");
+        return;
+      } catch (e) {
+        lastErr = e;
+        // 非 503 錯誤也稍等一下再試
+        await sleep(800);
+      }
     }
-    const results = await pipe(float32PCM, { sampling_rate: samplingRate, topk: 2 });
-    renderResults(results);
-    setStatus("完成");
-    return true;
+
+    throw lastErr || new Error("HF API failed");
+
   } catch (e) {
-    console.error("[browser inference error]", e);
-    setStatus("瀏覽器端推論失敗，嘗試伺服器分析…", true);
-    return false;
+    console.error("[HF inference error]", e);
+    setStatus("分析失敗，稍後再試");
   }
 }
 
-// ---- 推論（伺服器端 API）----
-async function runViaServer(wavBlob) {
-  try {
-    setStatus("上傳到伺服器分析…", true);
-    if (meter) meter.classList.remove("hidden");
-    const res = await fetch(window.API_BASE_URL, {
-      method: "POST",
-      headers: { "Content-Type": "audio/wav" },
-      body: await wavBlob.arrayBuffer()
-    });
-    if (!res.ok) throw new Error(`API ${res.status}`);
-    const json = await res.json();
-    renderResults(json.results || json);
-    setStatus("完成");
-  } catch (e) {
-    console.error("[server inference error]", e);
-    setStatus("伺服器分析失敗");
-  }
-}
-
-// ---- 畫面更新 ----
+// ========== 畫面更新 ==========
 function renderResults(arr) {
   // 期望格式：[{label:"female", score:0.98}, {label:"male", score:0.02}]
   const map = { female: 0, male: 0 };
@@ -230,32 +232,31 @@ function renderResults(arr) {
   if (maleVal)   maleVal.textContent   = `${(m * 100).toFixed(1)}%`;
 }
 
-// ---- 工具：Float32 → 16-bit PCM WAV Blob ----
+// ========== 小工具 ==========
 function floatToWavBlob(float32, sampleRate) {
   const buffer = new ArrayBuffer(44 + float32.length * 2);
   const view = new DataView(buffer);
 
-  // Helpers
   function writeStr(off, str) {
     for (let i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i));
   }
 
-  // RIFF header
+  // RIFF
   writeStr(0, "RIFF");
   view.setUint32(4, 36 + float32.length * 2, true);
   writeStr(8, "WAVE");
 
-  // fmt chunk
+  // fmt
   writeStr(12, "fmt ");
-  view.setUint32(16, 16, true);     // chunk size
+  view.setUint32(16, 16, true);
   view.setUint16(20, 1, true);      // PCM
   view.setUint16(22, 1, true);      // mono
   view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * 2, true); // byte rate (mono 16-bit)
+  view.setUint32(28, sampleRate * 2, true); // byte rate
   view.setUint16(32, 2, true);      // block align
   view.setUint16(34, 16, true);     // bits per sample
 
-  // data chunk
+  // data
   writeStr(36, "data");
   view.setUint32(40, float32.length * 2, true);
 
@@ -267,3 +268,5 @@ function floatToWavBlob(float32, sampleRate) {
   }
   return new Blob([view], { type: "audio/wav" });
 }
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
