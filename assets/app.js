@@ -1,6 +1,6 @@
 // assets/app.js — 高準確 + 高體感版（全前端 / Transformers.js + ONNX WASM）
 // 特色：短檔整段、長檔重疊切窗 + 對數勝算聚合；自動去靜音與音量校正；全程即時進度/ETA。
-// 依賴：@xenova/transformers（自動抓 ONNX），@ffmpeg/ffmpeg（僅 mp4 或解碼失敗時載入）.
+// 依賴：@xenova/transformers（自動抓 ONNX），@ffmpeg/ffmpeg（僅 mp4/mov 或解碼失敗時載入）.
 
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
 
@@ -140,13 +140,17 @@ async function handleFileOrBlob(fileOrBlob){
   }
 }
 
-// ===== 智慧解碼：WebAudio 優先；mp4 或失敗 → FFmpeg.wasm =====
+// ===== 智慧解碼：WebAudio 優先；mp4/mov 或失敗 → FFmpeg.wasm =====
 async function decodeSmartToFloat32(blobOrFile, targetSR){
   const type = (blobOrFile.type || "").toLowerCase();
   const name = (blobOrFile.name || "");
-  const isMP4 = type.includes("video/mp4") || type.includes("audio/mp4") || /\.mp4$/i.test(name);
 
-  if (!isMP4) {
+  // 這些容器直接走 FFmpeg（mp4/mov 常見）：避免 WebAudio 白試一次浪費時間
+  const needsFF = /(\.mp4|\.mov)$/i.test(name)
+    || type.includes("video/mp4") || type.includes("audio/mp4")
+    || type.includes("video/quicktime");
+
+  if (!needsFF) {
     try {
       return await decodeViaWebAudio(blobOrFile, targetSR);
     } catch (e) {
@@ -371,7 +375,7 @@ function toMap(arr){
   return m;
 }
 
-// ★★★ 這個就是你漏掉的函式：把分數畫到兩條進度條上 ★★★
+// 把分數畫到兩條進度條上
 function render(pf, pm){
   const barF = document.querySelector(".bar.female");
   const barM = document.querySelector(".bar.male");
