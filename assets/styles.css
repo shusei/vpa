@@ -1,0 +1,45 @@
+:root {
+--bg: #0b0c10;
+--card: #151922;
+--text: #e5e7eb;
+--muted: #a3a3a3;
+--accent: #6ee7b7;
+--female: #8ab4f8;
+--male: #f28b82;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+margin: 0; background: radial-gradient(1200px 600px at 50% -10%, #1f2937, #0b0c10);
+color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans TC, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+.container {
+max-width: 680px; margin: 10vh auto; padding: 32px; background: rgba(21,25,34,0.66); border: 1px solid #1f2937; border-radius: 24px; box-shadow: 0 20px 60px rgba(0,0,0,.4);
+}
+h1 { margin: 0 0 20px; font-weight: 700; letter-spacing: .2px; }
+.status { margin-top: 16px; color: var(--muted); font-size: 14px; }
+
+
+.record-btn { width: 100%; padding: 28px; font-size: 24px; border-radius: 18px; border: 1px solid #374151; background: linear-gradient(180deg, #1f2937, #0f172a); color: var(--text); cursor: pointer; transition: transform .06s ease; }
+.record-btn:hover { transform: translateY(-1px); }
+.record-btn .rec { display: none; }
+.recording .record-btn .idle { display: none; }
+.recording .record-btn .rec { display: inline; }
+
+
+.meter { margin-top: 28px; display: grid; gap: 14px; }
+.meter.hidden { display: none; }
+.bar { position: relative; height: 42px; background: #0f172a; border-radius: 12px; overflow: hidden; border: 1px solid #1f2937; }
+.bar::before { content: ""; position: absolute; inset: 0; transform: scaleX(var(--p,0)); transform-origin: left; transition: transform .35s ease; background: linear-gradient(90deg, rgba(255,255,255,.08), rgba(255,255,255,.02)); }
+.bar.female::before { background: linear-gradient(90deg, color-mix(in oklab, var(--female) 75%, #fff 5%), transparent); }
+.bar.male::before { background: linear-gradient(90deg, color-mix(in oklab, var(--male) 75%, #fff 5%), transparent); }
+.bar .label { position: absolute; left: 12px; top: 10px; font-weight: 600; letter-spacing: .5px; }
+.bar .value { position: absolute; right: 12px; top: 10px; font-variant-numeric: tabular-nums; }
+
+
+.fab { position: fixed; right: 24px; bottom: 24px; width: 56px; height: 56px; background: var(--card); color: var(--text); display: grid; place-items: center; border: 1px solid #374151; border-radius: 50%; cursor: pointer; box-shadow: 0 12px 30px rgba(0,0,0,.35); font-size: 20px; }
+.fab:hover { transform: translateY(-1px); }
+
+
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 50%; animation: spin 0.9s linear infinite; vertical-align: -2px; }
+@keyframes spin { to { transform: rotate(360deg); } }
