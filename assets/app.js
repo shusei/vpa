@@ -1,46 +1,65 @@
 // 更穩定的瀏覽器端版本：
-setStatus('上傳到伺服器分析…', true);
-meter.classList.remove('hidden');
-const res = await fetch(window.API_BASE_URL, { method: 'POST', headers: { 'Content-Type': 'audio/wav' }, body: await wavBlob.arrayBuffer() });
-if (!res.ok) throw new Error(`API ${res.status}`);
-const json = await res.json();
-renderResults(json.results || json);
-setStatus('完成');
-} catch (e) {
-console.error(e); setStatus('伺服器分析失敗');
-}
+// 1) 改用 @xenova/transformers 穩定版 CDN
+// 2) 自動偵測 MediaRecorder 可用的 mimeType
+// 3) 失敗時自動回退到 server 模式（/api/classify）
+// 4) 若 ONNX 模型不存在或載入失敗，會切回 server 模式
+
+
+import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0/dist/transformers.min.js";
+// ONNXRuntime Web 的 WASM 靜態資源位置
+env.backends.onnx.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.0/dist/";
+
+
+const recordBtn = document.getElementById('recordBtn');
+const fileInput = document.getElementById('fileInput');
+const statusEl = document.getElementById('status');
+const meter = document.getElementById('meter');
+const femaleVal = document.getElementById('femaleVal');
+const maleVal = document.getElementById('maleVal');
+
+
+let mediaRecorder; let chunks = [];
+let pipe; // transformers.js pipeline (lazy)
+const device = (navigator.gpu ? 'webgpu' : 'wasm');
+
+
+function setStatus(text, spin=false){
+statusEl.innerHTML = spin ? `<span class="spinner"></span> ${text}` : text;
 }
 
 
-function renderResults(arr){
-// Expect: [{label:"female", score:0.98}, {label:"male", score:0.02}] order arbitrary
-const map = { female: 0, male: 0 };
-for (const r of arr){ map[r.label] = r.score; }
-const f = (map.female ?? 0), m = (map.male ?? 0);
-document.querySelector('.bar.female').style.setProperty('--p', f);
-document.querySelector('.bar.male').style.setProperty('--p', m);
-femaleVal.textContent = `${(f*100).toFixed(1)}%`;
-maleVal.textContent = `${(m*100).toFixed(1)}%`;
+recordBtn.addEventListener('click', async () => {
+if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+await startRecording();
+} else {
+await stopRecording();
+}
+});
+
+
+fileInput.addEventListener('change', async (e) => {
+if (!e.target.files?.length) return;
+const file = e.target.files[0];
+await handleBlob(file);
+e.target.value = '';
+});
+
+
+function pickSupportedMime(){
+const cands = [
+'audio/webm;codecs=opus',
+'audio/webm',
+'audio/mp4',
+'audio/ogg'
+];
+for (const t of cands){ if (MediaRecorder.isTypeSupported?.(t)) return t; }
+return '';
 }
 
 
-// Helpers: make 16-bit PCM WAV blob
-function floatToWavBlob(float32, sampleRate){
-const buffer = new ArrayBuffer(44 + float32.length * 2);
-const view = new DataView(buffer);
-const writeStr = (off, str) => { for (let i=0;i<str.length;i++) view.setUint8(off+i, str.charCodeAt(i)); };
-// RIFF header
-writeStr(0, 'RIFF'); view.setUint32(4, 36 + float32.length * 2, true); writeStr(8, 'WAVE');
-// fmt chunk
-writeStr(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
-view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true); // byte rate
-view.setUint16(32, 2, true); view.setUint16(34, 16, true);
-// data chunk
-writeStr(36, 'data'); view.setUint32(40, float32.length * 2, true);
-let offset = 44;
-for (let i=0; i<float32.length; i++) {
-const s = Math.max(-1, Math.min(1, float32[i]));
-view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true); offset += 2;
-}
-return new Blob([view], { type: 'audio/wav' });
+async function startRecording(){
+try {
+const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+chunks = [];
+const mimeType = pickSupportedMime();
 }
