@@ -1,15 +1,19 @@
 // assets/app.js — 整段一次、不分段、不改音量/不去靜音（純前端 / Transformers.js + ONNX）
-// 修正：mp4/mov 先嘗試 WebAudio 解碼；ffmpeg 後備改用 jsDelivr + 動態 <script>（避免 unpkg CORS）
+// 美觀 + 播放鍵 + 記憶體防爆版
+// - 先 WebAudio 解碼；失敗才 ffmpeg.wasm（jsDelivr）→ 轉完立刻 exit() 釋放
+// - 只保留「最後一次」音檔：舊 URL revoke、不囤 blob
+// - 關閉 AudioContext、清 chunks、丟大型陣列參考，避免長玩變胖
+// - 心跳進度文字，避免以為卡住
 
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
 
-// GH Pages 無 COOP/COEP → ONNX WASM 設成單執行緒（若可用 WebGPU 會自動走 GPU）
+// GH Pages 無 COOP/COEP → ONNX WASM 單執行緒（若可用 WebGPU 會自動走 GPU）
 env.backends.onnx.wasm.numThreads = 1;
 
 // ===== 參數 =====
 const MODEL_ID  = (window.ONNX_MODEL_ID || "prithivMLmods/Common-Voice-Gender-Detection-ONNX");
-const TARGET_SR = 16000;   // 模型需求：16 kHz
-const WARN_LONG_SEC = 180; // >3 分鐘提醒（仍會照跑）
+const TARGET_SR = 16000;         // 模型需求：16 kHz
+const WARN_LONG_SEC = 180;       // >3 分鐘提醒（仍會照跑）
 const EPS = 1e-9;
 
 // ===== DOM =====
@@ -20,6 +24,13 @@ const meter     = document.getElementById("meter");
 const femaleVal = document.getElementById("femaleVal");
 const maleVal   = document.getElementById("maleVal");
 
+// ===== 播放器 UI（動態建立，無需改 HTML/CSS） =====
+let playBtn = null;
+let audioEl = null;
+let lastAudioUrl = null;
+
+ensurePlayerUI();
+
 // ===== 狀態 =====
 let mediaRecorder = null;
 let chunks = [];
@@ -27,7 +38,7 @@ let clf = null;        // transformers.js pipeline
 let busy = false;
 let heartbeatTimer = null;
 
-log("[app] single-pass (no-chunk, no-trim, no-norm) ready.");
+log("[app] single-pass (no-chunk, no-trim, no-norm) + player + GC-safe ready.");
 
 function setStatus(text, spin=false) {
   if (!statusEl) return;
@@ -82,6 +93,7 @@ async function startRecording(){
   mediaRecorder.onstop = async () => {
     try {
       const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
+      chunks.length = 0; // ★ 立刻丟掉暫存
       await handleFileOrBlob(blob);
     } catch (e) {
       console.error("[onstop]", e); setStatus("錄音處理失敗");
@@ -108,9 +120,14 @@ async function stopRecording(){
 // ===== 主流程（整段一次） =====
 async function handleFileOrBlob(fileOrBlob){
   busy = true;
+  let decoded = null;
   try {
+    // 先把原始檔綁到播放器（只保留最新一個）
+    setPlaybackSource(fileOrBlob);
+
     setStatus("解析檔案…", true);
-    const { float32, sr, durationSec } = await decodeSmartToFloat32(fileOrBlob, TARGET_SR);
+    decoded = await decodeSmartToFloat32(fileOrBlob, TARGET_SR);
+    const { float32, sr, durationSec } = decoded;
 
     if (durationSec > WARN_LONG_SEC) {
       setStatus(`提示：長度 ${fmtSec(durationSec)}，整段分析可能較久。開始推論…`, true);
@@ -122,13 +139,16 @@ async function handleFileOrBlob(fileOrBlob){
     console.error("[handleFileOrBlob]", e);
     setStatus("處理失敗");
   } finally {
+    // ★ 放掉大陣列參考（讓 GC 收）
+    if (decoded) decoded.float32 = null;
+    decoded = null;
     busy = false;
   }
 }
 
 // ===== 解碼策略 =====
-// 1) 任何檔案型別「先嘗試 WebAudio 直接解碼」→ 保留原始內容（只做單聲道混合與 16k 重採樣）
-// 2) 若 WebAudio 失敗（常見於含視訊軌的 mp4/mov）→ 才用 ffmpeg.wasm 轉成 16k/mono WAV
+// 1) 一律先嘗試 WebAudio 直接解碼 → 保留原聲（僅做單聲道 + 16k 重採樣）
+// 2) 失敗才用 ffmpeg.wasm 轉 16k/mono WAV（轉完 exit() 釋放記憶體）
 async function decodeSmartToFloat32(blobOrFile, targetSR){
   try {
     setStatus("直接解碼（WebAudio）…", true);
@@ -146,37 +166,42 @@ async function decodeViaWebAudio(blobOrFile, targetSR=16000){
   const arrayBuf = await blobOrFile.arrayBuffer();
   const Ctx = window.AudioContext || window.webkitAudioContext;
   const ctx = new Ctx();
-  const audioBuf = await ctx.decodeAudioData(arrayBuf);
+  let offline = null;
+  try {
+    const audioBuf = await ctx.decodeAudioData(arrayBuf);
 
-  // 單聲道（必要）：模型輸入是一維向量
-  const mono = new AudioBuffer({ length: audioBuf.length, numberOfChannels: 1, sampleRate: audioBuf.sampleRate });
-  const ch0 = audioBuf.getChannelData(0);
-  if (audioBuf.numberOfChannels > 1) {
-    const ch1 = audioBuf.getChannelData(1);
-    const out = mono.getChannelData(0);
-    for (let i=0;i<ch0.length;i++) out[i] = (ch0[i] + ch1[i]) / 2;
-  } else {
-    mono.copyToChannel(ch0, 0);
-  }
+    // 單聲道（必要）：模型輸入是一維向量
+    const mono = new AudioBuffer({ length: audioBuf.length, numberOfChannels: 1, sampleRate: audioBuf.sampleRate });
+    const ch0 = audioBuf.getChannelData(0);
+    if (audioBuf.numberOfChannels > 1) {
+      const ch1 = audioBuf.getChannelData(1);
+      const out = mono.getChannelData(0);
+      for (let i=0;i<ch0.length;i++) out[i] = (ch0[i] + ch1[i]) / 2;
+    } else {
+      mono.copyToChannel(ch0, 0);
+    }
 
-  // 僅為符合模型而重採樣到 16k（內容不裁、不調音量）
-  let out;
-  if (audioBuf.sampleRate === targetSR) {
-    out = mono.getChannelData(0).slice(0);
-  } else {
-    const offline = new OfflineAudioContext(1, Math.ceil(audioBuf.duration * targetSR), targetSR);
-    const src = offline.createBufferSource();
-    src.buffer = mono; src.connect(offline.destination); src.start(0);
-    const rendered = await offline.startRendering();
-    out = rendered.getChannelData(0).slice(0);
+    // 僅為符合模型而重採樣到 16k（內容不裁、不調音量）
+    let out;
+    if (audioBuf.sampleRate === targetSR) {
+      out = mono.getChannelData(0).slice(0);
+    } else {
+      offline = new OfflineAudioContext(1, Math.ceil(audioBuf.duration * targetSR), targetSR);
+      const src = offline.createBufferSource();
+      src.buffer = mono; src.connect(offline.destination); src.start(0);
+      const rendered = await offline.startRendering();
+      out = rendered.getChannelData(0).slice(0);
+    }
+    return { float32: out, sr: targetSR, durationSec: out.length / targetSR };
+  } finally {
+    try { await ctx.close(); } catch {}
+    offline = null; // 讓 GC 收
   }
-  return { float32: out, sr: targetSR, durationSec: out.length / targetSR };
 }
 
 // ---- FFmpeg 載入（只有當 WebAudio 失敗時才會用到） ----
-// 優先 ESM（jsDelivr +esm）；若失敗，動態插入 <script> 載 UMD（同樣用 jsDelivr），避免 unpkg 的 CORS。
+// 優先 ESM（jsDelivr +esm）；若失敗，動態插入 <script> UMD（同樣 jsDelivr）
 async function loadFFmpegModule(){
-  // 1) ESM
   try {
     const m = await import("https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/+esm");
     if (typeof m.createFFmpeg === "function" && typeof m.fetchFile === "function") {
@@ -185,7 +210,6 @@ async function loadFFmpegModule(){
   } catch (e) {
     log("[ffmpeg] +esm import failed:", e?.message || e);
   }
-  // 2) UMD via <script>
   await loadScriptTag("https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js");
   const FF = window.FFmpeg;
   if (!FF || typeof FF.createFFmpeg !== "function") {
@@ -202,7 +226,7 @@ function loadScriptTag(src){
     s.crossOrigin = "anonymous";
     s.referrerPolicy = "no-referrer";
     s.onload = () => resolve();
-    s.onerror = (e) => reject(new Error("script load error: " + src));
+    s.onerror = () => reject(new Error("script load error: " + src));
     document.head.appendChild(s);
   });
 }
@@ -226,9 +250,12 @@ async function transcodeToWav16kViaFFmpeg(blobOrFile){
   // -vn 去視訊；-ac 1 單聲道；-ar 16000 取樣率；輸出 PCM WAV
   await ffmpeg.run("-i", inName, "-vn", "-ac", "1", "-ar", `${TARGET_SR}`, "-f", "wav", outName);
   const out = ffmpeg.FS("readFile", outName);
-
   try { ffmpeg.FS("unlink", inName); } catch {}
   try { ffmpeg.FS("unlink", outName); } catch {}
+
+  // ★ 關鍵：退出釋放 WASM 記憶體
+  try { await ffmpeg.exit(); } catch {}
+
   return new Blob([out.buffer], { type: "audio/wav" });
 }
 
@@ -267,6 +294,87 @@ async function analyzeWhole(float32, sr, durationSec){
     setStatus("完成");
   } finally {
     stopHeartbeat();
+  }
+}
+
+// ===== 播放器：用「剛才送去分析的原檔」 =====
+function ensurePlayerUI(){
+  const container = document.querySelector(".container");
+  if (!container) return;
+
+  // 包一個小卡片，美美的
+  const wrap = document.createElement("div");
+  wrap.className = "player";
+  wrap.style.cssText = `
+    margin-top: 18px; padding: 14px; border-radius: 14px;
+    background: linear-gradient(180deg, rgba(21,25,34,0.55), rgba(21,25,34,0.35));
+    border: 1px solid #1f2937; display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  `;
+
+  const btn = document.createElement("button");
+  btn.id = "playBtn";
+  btn.type = "button";
+  btn.disabled = true;
+  btn.textContent = "▶︎ 播放剛才的聲音";
+  btn.ariaLabel = "播放剛才的聲音";
+  btn.style.cssText = `
+    padding: 10px 14px; font-size: 14px; border-radius: 999px;
+    background: linear-gradient(135deg, color-mix(in oklab, var(--accent) 85%, #fff 8%), #1f2937);
+    color: #0b0c10; font-weight: 700; letter-spacing: .2px;
+    border: none; cursor: pointer; box-shadow: 0 6px 18px rgba(110,231,183,.25);
+    transition: transform .06s ease, filter .2s ease, opacity .2s ease;
+    opacity: .92;
+  `;
+  btn.onmouseenter = () => { btn.style.transform = "translateY(-1px)"; btn.style.filter = "brightness(1.05)"; };
+  btn.onmouseleave = () => { btn.style.transform = "translateY(0)"; btn.style.filter = "none"; };
+
+  const hint = document.createElement("div");
+  hint.textContent = "想再聽一次剛才那段嗎？點這裡。";
+  hint.style.cssText = "color: var(--muted); font-size: 13px;";
+
+  const audio = document.createElement("audio");
+  audio.id = "playback";
+  audio.preload = "metadata";
+  audio.style.display = "none";
+
+  wrap.appendChild(btn);
+  wrap.appendChild(hint);
+  wrap.appendChild(audio);
+  container.appendChild(wrap);
+
+  playBtn = btn;
+  audioEl = audio;
+
+  playBtn.onclick = async () => {
+    if (!audioEl.src) return;
+    try {
+      if (audioEl.paused) {
+        await audioEl.play();
+        playBtn.textContent = "⏸ 暫停播放";
+      } else {
+        audioEl.pause();
+        playBtn.textContent = "▶︎ 播放剛才的聲音";
+      }
+    } catch (e) {
+      console.error("[audio play]", e);
+    }
+  };
+  audioEl.onended = () => { playBtn.textContent = "▶︎ 播放剛才的聲音"; };
+}
+
+function setPlaybackSource(blob){
+  try {
+    if (!audioEl || !playBtn) return;
+    // 清理舊 URL，避免記憶體洩漏
+    if (lastAudioUrl) { try { URL.revokeObjectURL(lastAudioUrl); } catch {} lastAudioUrl = null; }
+    lastAudioUrl = URL.createObjectURL(blob);
+    audioEl.src = lastAudioUrl;
+    audioEl.load();
+    playBtn.disabled = false;
+    playBtn.textContent = "▶︎ 播放剛才的聲音";
+  } catch (e) {
+    console.error("[setPlaybackSource]", e);
   }
 }
 
@@ -325,3 +433,8 @@ function wavToFloat32(arrayBuffer){
   return { float32: out, sr: fmt.sampleRate };
 }
 function str(v,s,l){ let x=""; for(let i=0;i<l;i++) x+=String.fromCharCode(v.getUint8(s+i)); return x; }
+
+// ===== 離站清理：離開頁面時釋放最後 URL =====
+window.addEventListener("beforeunload", () => {
+  if (lastAudioUrl) { try { URL.revokeObjectURL(lastAudioUrl); } catch {} }
+});
