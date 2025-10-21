@@ -12,8 +12,8 @@ const MODEL_ID       = (window.ONNX_MODEL_ID || "prithivMLmods/Common-Voice-Gend
 const TARGET_SR      = 16000; // 16k
 const DIRECT_MAX_SEC = 25;    // ≤ 這秒數「整段一次跑」
 const WINDOW_SEC     = 8;     // 長檔分段：窗長（秒）
-const HOP_SEC        = 1;     // 長檔分段：位移（秒，8s 窗、1s hop → 7/8 重疊）
-const ENERGY_GAMMA   = 2;   // 權重 = duration * (RMS^gamma)
+const HOP_SEC        = 1;     // 長檔分段：位移（秒，8/1 = 87.5% overlap）
+const ENERGY_GAMMA   = 2;     // 權重 = duration * (RMS^gamma)
 const SILENCE_FLOOR  = 1e-4;  // 最小權重下限（避免純靜音把分數拉亂）
 const TRIM_PAD_SEC   = 0.25;  // 去頭尾靜音時保留的邊界
 const TARGET_RMS     = 0.08;  // 音量校正目標 RMS（約 -22 dBFS）
@@ -118,7 +118,7 @@ async function handleFileOrBlob(fileOrBlob){
   busy = true;
   try {
     setStatus("解析檔案…", true);
-    const { float32, sr, durationSec } = await decodeSmartToFloat32(fileOrBlob, TARGET_SR);
+    const { float32, sr } = await decodeSmartToFloat32(fileOrBlob, TARGET_SR);
 
     // 去頭尾靜音（保留邊界）
     const trimmed = trimSilence(float32, sr, TRIM_PAD_SEC);
@@ -370,6 +370,17 @@ function toMap(arr){
   }
   return m;
 }
+
+// ★★★ 這個就是你漏掉的函式：把分數畫到兩條進度條上 ★★★
+function render(pf, pm){
+  const barF = document.querySelector(".bar.female");
+  const barM = document.querySelector(".bar.male");
+  if (barF) barF.style.setProperty("--p", pf ?? 0);
+  if (barM) barM.style.setProperty("--p", pm ?? 0);
+  if (femaleVal) femaleVal.textContent = `${((pf ?? 0) * 100).toFixed(1)}%`;
+  if (maleVal)   maleVal.textContent   = `${((pm ?? 0) * 100).toFixed(1)}%`;
+}
+
 function microYield(){ return new Promise(r=>setTimeout(r,0)); }
 
 // 解析 16-bit PCM WAV → Float32（單聲道）
