@@ -1,16 +1,15 @@
 // assets/app.js — 整段一次、不分段、不改音量/不去靜音（純前端 / Transformers.js + ONNX）
-// 注意：為符合模型輸入，僅做「必要」處理：單聲道混合 + 重採樣至 16kHz。
-// 其餘（靜音、音量、內容）皆不改，整段送入模型。
+// 修正：mp4/mov 先嘗試 WebAudio 解碼；ffmpeg 後備改用 jsDelivr + 動態 <script>（避免 unpkg CORS）
 
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
 
-// GH Pages 沒有 COOP/COEP → ONNX WASM 設成單執行緒，WebGPU 可用時會自動走 GPU
+// GH Pages 無 COOP/COEP → ONNX WASM 設成單執行緒（若可用 WebGPU 會自動走 GPU）
 env.backends.onnx.wasm.numThreads = 1;
 
-// ===== 參數（你可視需要微調） =====
+// ===== 參數 =====
 const MODEL_ID  = (window.ONNX_MODEL_ID || "prithivMLmods/Common-Voice-Gender-Detection-ONNX");
 const TARGET_SR = 16000;   // 模型需求：16 kHz
-const WARN_LONG_SEC = 180; // 超過 3 分鐘提醒（仍會照跑，但瀏覽器可能較吃力）
+const WARN_LONG_SEC = 180; // >3 分鐘提醒（仍會照跑）
 const EPS = 1e-9;
 
 // ===== DOM =====
@@ -114,7 +113,7 @@ async function handleFileOrBlob(fileOrBlob){
     const { float32, sr, durationSec } = await decodeSmartToFloat32(fileOrBlob, TARGET_SR);
 
     if (durationSec > WARN_LONG_SEC) {
-      setStatus(`提示：長度 ${fmtSec(durationSec)}，直接整段分析可能較久。開始推論…`, true);
+      setStatus(`提示：長度 ${fmtSec(durationSec)}，整段分析可能較久。開始推論…`, true);
       await microYield();
     }
 
@@ -127,24 +126,16 @@ async function handleFileOrBlob(fileOrBlob){
   }
 }
 
-// ===== 解碼：音訊先 WebAudio；影片或失敗 → FFmpeg.wasm（仍「不分段、不修音」，僅重採樣到 16k & 單聲道） =====
+// ===== 解碼策略 =====
+// 1) 任何檔案型別「先嘗試 WebAudio 直接解碼」→ 保留原始內容（只做單聲道混合與 16k 重採樣）
+// 2) 若 WebAudio 失敗（常見於含視訊軌的 mp4/mov）→ 才用 ffmpeg.wasm 轉成 16k/mono WAV
 async function decodeSmartToFloat32(blobOrFile, targetSR){
-  const type = (blobOrFile.type || "").toLowerCase();
-  const name = (blobOrFile.name || "");
-  const maybeVideo =
-    type.startsWith("video/") ||
-    /(\.mp4|\.mov|\.m4v)$/i.test(name) ||
-    type.includes("video/quicktime");
-
-  if (!maybeVideo) {
-    try {
-      setStatus("直接解碼（WebAudio）…", true);
-      return await decodeViaWebAudio(blobOrFile, targetSR);
-    } catch (e) {
-      log("[decode] WebAudio failed, fallback to ffmpeg:", e?.message || e);
-    }
+  try {
+    setStatus("直接解碼（WebAudio）…", true);
+    return await decodeViaWebAudio(blobOrFile, targetSR);
+  } catch (e) {
+    log("[decode] WebAudio failed, fallback to ffmpeg:", e?.message || e);
   }
-
   setStatus("轉檔（ffmpeg）準備中…", true);
   const wavBlob = await transcodeToWav16kViaFFmpeg(blobOrFile);
   const { float32, sr } = wavToFloat32(await wavBlob.arrayBuffer()); // 已是 16k/mono
@@ -182,19 +173,40 @@ async function decodeViaWebAudio(blobOrFile, targetSR=16000){
   return { float32: out, sr: targetSR, durationSec: out.length / targetSR };
 }
 
-// ---- FFmpeg 載入（影片容器才會用到） ----
+// ---- FFmpeg 載入（只有當 WebAudio 失敗時才會用到） ----
+// 優先 ESM（jsDelivr +esm）；若失敗，動態插入 <script> 載 UMD（同樣用 jsDelivr），避免 unpkg 的 CORS。
 async function loadFFmpegModule(){
+  // 1) ESM
   try {
     const m = await import("https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/+esm");
     if (typeof m.createFFmpeg === "function" && typeof m.fetchFile === "function") {
       return { createFFmpeg: m.createFFmpeg, fetchFile: m.fetchFile, mode: "esm" };
     }
-  } catch (e) { log("[ffmpeg] +esm import failed:", e?.message || e); }
-  const g = await import("https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js");
-  const FF = (window.FFmpeg || g.FFmpeg);
-  if (!FF || typeof FF.createFFmpeg !== "function") throw new Error("FFmpeg loader unavailable");
-  return { createFFmpeg: FF.createFFmpeg, fetchFile: FF.fetchFile, mode: "global" };
+  } catch (e) {
+    log("[ffmpeg] +esm import failed:", e?.message || e);
+  }
+  // 2) UMD via <script>
+  await loadScriptTag("https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js");
+  const FF = window.FFmpeg;
+  if (!FF || typeof FF.createFFmpeg !== "function") {
+    throw new Error("FFmpeg UMD load failed");
+  }
+  return { createFFmpeg: FF.createFFmpeg, fetchFile: FF.fetchFile, mode: "umd" };
 }
+
+function loadScriptTag(src){
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src;
+    s.async = true;
+    s.crossOrigin = "anonymous";
+    s.referrerPolicy = "no-referrer";
+    s.onload = () => resolve();
+    s.onerror = (e) => reject(new Error("script load error: " + src));
+    document.head.appendChild(s);
+  });
+}
+
 async function transcodeToWav16kViaFFmpeg(blobOrFile){
   const { createFFmpeg, fetchFile, mode } = await loadFFmpegModule();
   log(`[ffmpeg] loader mode = ${mode}`);
@@ -211,6 +223,7 @@ async function transcodeToWav16kViaFFmpeg(blobOrFile){
 
   const inName = "in.bin", outName = "out.wav";
   ffmpeg.FS("writeFile", inName, await fetchFile(blobOrFile));
+  // -vn 去視訊；-ac 1 單聲道；-ar 16000 取樣率；輸出 PCM WAV
   await ffmpeg.run("-i", inName, "-vn", "-ac", "1", "-ar", `${TARGET_SR}`, "-f", "wav", outName);
   const out = ffmpeg.FS("readFile", outName);
 
