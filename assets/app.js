@@ -1,8 +1,17 @@
-// assets/app.js — GH Pages 版（不跑 ONNX；直接呼叫 Hugging Face Inference API）
-// 建議用 <script src="assets/app.js?v=20251021hf"></script> 以避免快取。
-// 介面：大錄音鍵＋右下角上傳；結果顯示 female / male 百分比。
+// assets/app.js — 全前端、無伺服器、在瀏覽器用 Transformers.js + ONNXRuntime(WASM) 跑推論
+// 重點：不呼叫任何外部 API（除了從 Hugging Face 下載模型檔），錄音/上傳 → 16k 重取樣 → 直接在瀏覽器做 audio-classification
 
-// ========== DOM ==========
+import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
+
+// ---- ONNXRuntime Web 設定（避免 crossOriginIsolation 需求，強制單執行緒）----
+env.backends.onnx.wasm.numThreads = 1;          // 無多執行緒 → 不需 COOP/COEP
+// 不指定 wasmPaths，讓 transformers.js 自己配對對應版本的 .wasm（避免你遇到的 1.19 檔名差異）
+// env.allowRemoteModels 預設為 true（會從 Hugging Face Hub 載模型）
+
+// ---- 模型ID（Hugging Face）----
+const MODEL_ID = "prithivMLmods/Common-Voice-Gender-Detection-ONNX";
+
+// ---- DOM ----
 const recordBtn = document.getElementById("recordBtn");
 const fileInput = document.getElementById("fileInput");
 const statusEl  = document.getElementById("status");
@@ -10,22 +19,19 @@ const meter     = document.getElementById("meter");
 const femaleVal = document.getElementById("femaleVal");
 const maleVal   = document.getElementById("maleVal");
 
-// ========== 設定 ==========
-const HF_MODEL_ID = "prithivMLmods/Common-Voice-Gender-Detection";
-const HF_API_URL  = `https://api-inference.huggingface.co/models/${HF_MODEL_ID}`;
-// 若你有私用 Token，可填入（公開網站不建議）
-// const HF_TOKEN = "hf_XXXXXXXX"; // 留空就匿名呼叫（有限流量）
-
-// ========== 狀態 ==========
+// ---- 狀態 ----
 let mediaRecorder = null;
 let chunks = [];
+let clf = null; // transformers.js pipeline（lazy）
 
 function setStatus(text, spin=false) {
   if (!statusEl) return;
   statusEl.innerHTML = spin ? `<span class="spinner"></span> ${text}` : text;
 }
 
-// ========== 事件 ==========
+console.log("[app] loaded | mode=browser-only");
+
+// ---- 事件 ----
 if (recordBtn) {
   recordBtn.addEventListener("click", async () => {
     try {
@@ -55,7 +61,7 @@ if (fileInput) {
   });
 }
 
-// ========== 錄音 ==========
+// ---- 錄音 ----
 function pickSupportedMime() {
   const cands = [
     "audio/webm;codecs=opus",
@@ -114,25 +120,30 @@ async function stopRecording() {
   if (box) box.classList.remove("recording");
 }
 
-// ========== 音訊處理 ==========
+// ---- 音訊處理 → 16k 單聲道 → 推論 ----
 async function handleBlob(blob) {
-  setStatus("解析與重取樣…", true);
-  const { data } = await decodeAndResample(blob, 16000);
-  const wav = floatToWavBlob(data, 16000);
-  await runViaHF(wav);
+  try {
+    setStatus("解析與重取樣…", true);
+    const { data } = await decodeAndResample(blob, 16000);
+    await runInBrowser(data, 16000);
+  } catch (e) {
+    console.error("[handleBlob]", e);
+    setStatus("處理失敗");
+  }
 }
 
-// 解碼＋重取樣 → Float32Array (mono, 16 kHz)
+// 解碼＋重取樣 → Float32Array (mono, targetSR)
 async function decodeAndResample(blob, targetSR = 16000) {
   const arrayBuf = await blob.arrayBuffer();
   const Ctx = window.AudioContext || window.webkitAudioContext;
   const ctx = new Ctx();
   const audioBuf = await ctx.decodeAudioData(arrayBuf);
 
+  // 使用 OfflineAudioContext 重取樣
   const offline = new OfflineAudioContext(1, Math.ceil(audioBuf.duration * targetSR), targetSR);
   const src = offline.createBufferSource();
 
-  // 先做單聲道
+  // 先轉單聲道
   const mono = new AudioBuffer({ length: audioBuf.length, numberOfChannels: 1, sampleRate: audioBuf.sampleRate });
   const ch0 = audioBuf.getChannelData(0);
   if (audioBuf.numberOfChannels > 1) {
@@ -152,66 +163,35 @@ async function decodeAndResample(blob, targetSR = 16000) {
   return { data: new Float32Array(out), sr: targetSR };
 }
 
-// ========== 推論（呼叫 Hugging Face Inference API）==========
-async function runViaHF(wavBlob) {
+// ---- 瀏覽器端推論（Transformers.js + ONNXRuntime WASM）----
+async function runInBrowser(float32PCM, samplingRate) {
   try {
-    setStatus("送到模型分析…", true);
-    if (meter) meter.classList.remove("hidden");
-
-    const bytes = await wavBlob.arrayBuffer();
-
-    // 最多重試 5 次（503 代表模型正在暖機）
-    const maxRetry = 5;
-    let attempt = 0;
-    let lastErr = null;
-
-    while (attempt < maxRetry) {
-      attempt++;
-      try {
-        const res = await fetch(HF_API_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "audio/wav",
-            // ...(HF_TOKEN ? { Authorization: `Bearer ${HF_TOKEN}` } : {})
-          },
-          body: bytes
-        });
-
-        if (res.status === 503) {
-          // 模型在加載，等待一下再試
-          const info = await res.json().catch(() => ({}));
-          const waitSec = Math.min(3 + attempt, (info.estimated_time || 3));
-          setStatus(`模型啟動中… ${waitSec}s 後再試（第 ${attempt}/${maxRetry} 次）`, true);
-          await sleep(waitSec * 1000);
-          continue;
+    if (!clf) {
+      setStatus("下載模型中…（首次會久一點）", true);
+      // 進度顯示（可選）
+      const progress_callback = (p) => {
+        if (p?.status === "progress" && typeof p.progress === "number") {
+          setStatus(`下載模型 ${Math.round(p.progress * 100)}% …`, true);
+        } else if (p?.status) {
+          setStatus(`${p.status}…`, true);
         }
-
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(`HF ${res.status}: ${text}`);
-        }
-
-        const out = await res.json();
-        const arr = Array.isArray(out) ? out : (out.results || out[0] || []);
-        renderResults(arr);
-        setStatus("完成");
-        return;
-      } catch (e) {
-        lastErr = e;
-        // 非 503 錯誤也稍等一下再試
-        await sleep(800);
-      }
+      };
+      clf = await pipeline("audio-classification", MODEL_ID, { progress_callback });
+      setStatus("模型就緒");
     }
 
-    throw lastErr || new Error("HF API failed");
-
+    setStatus("分析中…", true);
+    if (meter) meter.classList.remove("hidden");
+    const results = await clf(float32PCM, { sampling_rate: samplingRate, topk: 2 });
+    renderResults(results);
+    setStatus("完成");
   } catch (e) {
-    console.error("[HF inference error]", e);
-    setStatus("分析失敗，稍後再試");
+    console.error("[browser inference error]", e);
+    setStatus("瀏覽器推論失敗");
   }
 }
 
-// ========== 畫面更新 ==========
+// ---- 畫面更新 ----
 function renderResults(arr) {
   // 期望格式：[{label:"female", score:0.98}, {label:"male", score:0.02}]
   const map = { female: 0, male: 0 };
@@ -231,42 +211,3 @@ function renderResults(arr) {
   if (femaleVal) femaleVal.textContent = `${(f * 100).toFixed(1)}%`;
   if (maleVal)   maleVal.textContent   = `${(m * 100).toFixed(1)}%`;
 }
-
-// ========== 小工具 ==========
-function floatToWavBlob(float32, sampleRate) {
-  const buffer = new ArrayBuffer(44 + float32.length * 2);
-  const view = new DataView(buffer);
-
-  function writeStr(off, str) {
-    for (let i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i));
-  }
-
-  // RIFF
-  writeStr(0, "RIFF");
-  view.setUint32(4, 36 + float32.length * 2, true);
-  writeStr(8, "WAVE");
-
-  // fmt
-  writeStr(12, "fmt ");
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);      // PCM
-  view.setUint16(22, 1, true);      // mono
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * 2, true); // byte rate
-  view.setUint16(32, 2, true);      // block align
-  view.setUint16(34, 16, true);     // bits per sample
-
-  // data
-  writeStr(36, "data");
-  view.setUint32(40, float32.length * 2, true);
-
-  let offset = 44;
-  for (let i = 0; i < float32.length; i++) {
-    const s = Math.max(-1, Math.min(1, float32[i]));
-    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
-    offset += 2;
-  }
-  return new Blob([view], { type: "audio/wav" });
-}
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
