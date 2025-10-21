@@ -1,259 +1,56 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <title>現代化極簡購物網站 DEMO</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Voice Gender Detector</title>
+<link rel="stylesheet" href="assets/styles.css" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://huggingface.co" crossorigin>
+<script>
+// Switch inference mode here:
+// 'browser' = 100% 客端 (Transformers.js + ONNX) – GH Pages 直接可用
+// 'server' = 走 Cloudflare Pages Functions /api/classify 代理呼叫 HF Inference API
+window.INFERENCE_MODE = 'browser'; // 'browser' | 'server'
+window.API_BASE_URL = '/api/classify'; // 若放 GH Pages，改成你的 Worker URL
+// ONNX 模型 (與 HF 上一致)
+window.ONNX_MODEL_ID = 'prithivMLmods/Common-Voice-Gender-Detection-ONNX';
+</script>
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-violet-100 min-h-screen flex flex-col">
+<body>
+<main class="container">
+<h1>Voice Gender Detector</h1>
 
-  <!-- Header -->
-  <header class="bg-white shadow-md py-4 px-6 flex justify-between items-center">
-    <h1 class="text-2xl font-bold text-violet-700 tracking-wide">MyGO 聖弦樂府</h1>
-    <button id="cartBtn" class="relative">
-      <svg class="w-8 h-8 text-violet-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path d="M3 3h2l.4 2M7 13h10l4-8H5.4" />
-        <circle cx="9" cy="21" r="1" />
-        <circle cx="20" cy="21" r="1" />
-      </svg>
-      <span id="cartCount" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full"></span>
-    </button>
-  </header>
 
-  <!-- Main 商品區 -->
-  <main class="flex-1 container mx-auto px-4 py-8" id="productList">
-    <!-- 商品卡片自動插入 -->
-    <div class="flex justify-center items-center h-80 text-xl text-violet-400 font-medium" id="loadingMsg">
-      載入商品中...
-    </div>
-  </main>
+<button id="recordBtn" class="record-btn" aria-pressed="false">
+<span class="idle">● 開始錄音</span>
+<span class="rec">■ 停止錄音</span>
+</button>
 
-  <!-- 購物車側欄 -->
-  <div id="cartSidebar" class="fixed top-0 right-0 w-full max-w-sm bg-white shadow-2xl h-full z-40 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
-    <div class="p-4 border-b flex justify-between items-center">
-      <span class="text-lg font-semibold text-violet-600">購物車</span>
-      <button id="closeCart" class="text-gray-400 hover:text-violet-500 text-xl">&times;</button>
-    </div>
-    <div class="flex-1 overflow-y-auto p-4" id="cartItems"></div>
-    <div class="p-4 border-t">
-      <div class="flex justify-between items-center mb-3">
-        <span class="font-medium">總金額：</span>
-        <span id="cartTotal" class="text-xl text-violet-700 font-bold"></span>
-      </div>
-      <button id="checkoutBtn" class="w-full bg-violet-600 text-white py-2 rounded-xl shadow-md font-bold hover:bg-violet-700 transition">
-        結帳
-      </button>
-    </div>
-  </div>
-  <!-- 遮罩 -->
-  <div id="cartMask" class="hidden fixed inset-0 bg-black bg-opacity-30 z-30"></div>
 
-  <!-- 結帳成功訊息 -->
-  <div id="successMsg" class="hidden fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white border border-violet-300 shadow-lg rounded-2xl px-8 py-6 text-center z-50">
-    <h2 class="text-2xl font-bold text-violet-700 mb-4">已完成結帳！</h2>
-    <p class="mb-2">感謝您的購買，請至 Line 官方帳號與店主聯繫付款/取貨。</p>
-    <button class="mt-2 px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-800" onclick="location.reload()">關閉</button>
-  </div>
-
-<!-- 下單表單 -->
-<div id="orderModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
-  <div class="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl relative">
-    <button id="closeOrderForm" class="absolute top-2 right-3 text-gray-400 hover:text-violet-600 text-2xl font-bold">&times;</button>
-    <h2 class="text-xl font-bold text-violet-700 mb-5">請填寫收件資訊</h2>
-    <form id="orderForm" class="space-y-4">
-      <input name="name" class="w-full px-3 py-2 rounded border focus:outline-violet-600" placeholder="姓名" required>
-      <input name="phone" class="w-full px-3 py-2 rounded border focus:outline-violet-600" placeholder="手機" required>
-      <input name="email" type="email" class="w-full px-3 py-2 rounded border focus:outline-violet-600" placeholder="Email" required>
-      <input name="address" class="w-full px-3 py-2 rounded border focus:outline-violet-600" placeholder="收件地址" required>
-      <button type="submit" class="w-full bg-violet-600 text-white py-2 rounded-xl shadow font-bold hover:bg-violet-800 transition">送出訂單</button>
-    </form>
-  </div>
+<div id="meter" class="meter hidden">
+<div class="bar female">
+<span class="label">female</span>
+<span class="value" id="femaleVal">—</span>
+</div>
+<div class="bar male">
+<span class="label">male</span>
+<span class="value" id="maleVal">—</span>
+</div>
 </div>
 
 
-  <!-- JS 部分 -->
-  <script>
-// ==== 1. 基本設定 ====
-// 商品資料來源（Google Sheets）
-const SHEET_ID = '1ePu1dQOKxCS_UzZMSzeANUzBffdRe8JsLIK65CxO48A';
-const SHEET_NAME = 'Sheet1';
-const API_KEY = 'AIzaSyCUadQ2SN7cvhDCX6oARqEsrvRJ0iwWOjY';
-const SHEET_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}?alt=json&key=${API_KEY}`;
-// 訂單寫入 API（Google Apps Script Web App URL）
-const ORDER_API = 'https://script.google.com/macros/s/AKfycbyXM_e51HnBBNkaFz_13Wh6BBd3RFE0CqnIhbpKaH8ragfA1oU1j3RhwfEdPSszh8ZM7Q/exec';
+<div id="status" class="status">準備就緒</div>
+</main>
 
-// ==== 2. 商品資料讀取 ====
-async function loadProducts() {
-  const res = await fetch(SHEET_URL);
-  const json = await res.json();
-  const [headers, ...rows] = json.values;
-  return rows.map(row =>
-    Object.fromEntries(headers.map((h, i) => [h, row[i] || '']))
-  );
-}
 
-// ==== 3. 商品展示卡片 ====
-function renderProducts(products) {
-  const main = document.getElementById('productList');
-  main.innerHTML = `
-    <div class="grid gap-7 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-      ${products.map(p => `
-        <div class="bg-white shadow-xl rounded-2xl p-5 flex flex-col items-center hover:scale-105 transition-all">
-          <img src="${p.image}" alt="${p.name}" class="h-40 w-auto object-contain mb-3 rounded-xl shadow-inner">
-          <div class="text-lg font-bold text-violet-700 mb-1">${p.name}</div>
-          <div class="text-gray-500 mb-2">${p.desc}</div>
-          <div class="mb-3 text-xl font-bold text-violet-600">$${p.price}</div>
-          <button class="addCart bg-gradient-to-r from-violet-500 to-blue-400 text-white px-6 py-2 rounded-xl shadow hover:from-violet-700 hover:to-blue-600 transition font-bold" data-id="${p.id}">
-            加入購物車
-          </button>
-        </div>
-      `).join('')}
-    </div>
-  `;
-  // 加掛按鈕事件
-  document.querySelectorAll('.addCart').forEach(btn => {
-    btn.onclick = () => addToCart(btn.dataset.id, products);
-  });
-  // 移除 loading
-  const loadingMsg = document.getElementById('loadingMsg');
-  if (loadingMsg) loadingMsg.remove();
-}
+<!-- 浮動上傳按鈕 -->
+<label class="fab" title="上傳音檔">
+⬆︎
+<input id="fileInput" type="file" accept="audio/*" hidden />
+</label>
 
-// ==== 4. 購物車功能 ====
-function getCart() {
-  return JSON.parse(localStorage.getItem('cart') || '{}');
-}
-function setCart(cart) {
-  localStorage.setItem('cart', JSON.stringify(cart));
-  updateCartCount();
-}
-function addToCart(id, products) {
-  const cart = getCart();
-  if (!cart[id]) {
-    const prod = products.find(p => p.id === id);
-    cart[id] = { ...prod, qty: 1 };
-  } else {
-    cart[id].qty += 1;
-  }
-  setCart(cart);
-  showCart();
-}
-function updateCartCount() {
-  const cart = getCart();
-  const n = Object.values(cart).reduce((t, i) => t + i.qty, 0);
-  document.getElementById('cartCount').textContent = n || '';
-}
 
-// ==== 5. 購物車側欄渲染 ====
-function getPrice(item) {
-  // 支援千分位
-  return Number((item.price || '').replace(/,/g, ''));
-}
-function renderCart() {
-  const cart = getCart();
-  const cartItems = document.getElementById('cartItems');
-  if (Object.keys(cart).length === 0) {
-    cartItems.innerHTML = `<div class="text-gray-400 text-center my-16">尚未加入任何商品</div>`;
-  } else {
-    cartItems.innerHTML = Object.values(cart).map(item => `
-      <div class="flex items-center justify-between mb-5">
-        <img src="${item.image}" class="w-16 h-16 object-cover rounded-xl border">
-        <div class="flex-1 mx-4">
-          <div class="font-bold">${item.name}</div>
-          <div class="text-gray-400 text-sm">$${item.price} x ${item.qty}</div>
-        </div>
-        <button class="px-2 text-lg font-bold text-red-400 hover:text-red-600 removeBtn" data-id="${item.id}">&minus;</button>
-        <button class="px-2 text-lg font-bold text-green-500 hover:text-green-700 addBtn" data-id="${item.id}">&plus;</button>
-      </div>
-    `).join('');
-  }
-  document.getElementById('cartTotal').textContent =
-    `$${Object.values(cart).reduce((sum, i) => sum + getPrice(i) * i.qty, 0)}`;
-  cartItems.querySelectorAll('.removeBtn').forEach(btn => {
-    btn.onclick = () => {
-      const c = getCart();
-      if (c[btn.dataset.id]) {
-        if (c[btn.dataset.id].qty > 1) c[btn.dataset.id].qty--;
-        else delete c[btn.dataset.id];
-        setCart(c);
-        renderCart();
-      }
-    };
-  });
-  cartItems.querySelectorAll('.addBtn').forEach(btn => {
-    btn.onclick = () => {
-      const c = getCart();
-      c[btn.dataset.id].qty++;
-      setCart(c);
-      renderCart();
-    };
-  });
-}
-
-// ==== 6. 側欄控制 ====
-function showCart() {
-  document.getElementById('cartSidebar').classList.remove('translate-x-full');
-  document.getElementById('cartMask').classList.remove('hidden');
-  renderCart();
-}
-function hideCart() {
-  document.getElementById('cartSidebar').classList.add('translate-x-full');
-  document.getElementById('cartMask').classList.add('hidden');
-}
-
-// ==== 7. 結帳表單彈窗控制 ====
-function showOrderModal() {
-  document.getElementById('orderModal').classList.remove('hidden');
-}
-function hideOrderModal() {
-  document.getElementById('orderModal').classList.add('hidden');
-}
-
-// ==== 8. 主流程初始化 ====
-document.addEventListener('DOMContentLoaded', async () => {
-  updateCartCount();
-  const products = await loadProducts();
-  renderProducts(products);
-
-  // 購物車按鈕
-  document.getElementById('cartBtn').onclick = showCart;
-  document.getElementById('cartMask').onclick = hideCart;
-  document.getElementById('closeCart').onclick = hideCart;
-
-  // 結帳表單彈窗
-  document.getElementById('checkoutBtn').onclick = showOrderModal;
-  document.getElementById('closeOrderForm').onclick = hideOrderModal;
-
-  // 下單表單送出
-  document.getElementById('orderForm').onsubmit = async function (e) {
-    e.preventDefault();
-    const cart = getCart();
-    if (Object.keys(cart).length === 0) {
-      alert('購物車為空');
-      return;
-    }
-    const data = Object.fromEntries(new FormData(this));
-    data.cart = cart;
-    data.itemsText = Object.values(cart).map(item => `${item.name} x${item.qty}`).join(', ');
-    // 發送至 GAS
-    const r = await fetch(ORDER_API, {
-      method: 'POST',
-      body: JSON.stringify(data)
-    });
-    if ((await r.text()).includes('OK')) {
-      localStorage.removeItem('cart');
-      updateCartCount();
-      hideCart();
-      hideOrderModal();
-      document.getElementById('successMsg').classList.remove('hidden');
-    } else {
-      alert('下單失敗，請再試一次');
-    }
-  };
-});
-
-  </script>
+<script type="module" src="assets/app.js"></script>
 </body>
 </html>
