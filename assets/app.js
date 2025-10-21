@@ -1,65 +1,47 @@
-// 更穩定的瀏覽器端版本：
-// 1) 改用 @xenova/transformers 穩定版 CDN
-// 2) 自動偵測 MediaRecorder 可用的 mimeType
-// 3) 失敗時自動回退到 server 模式（/api/classify）
-// 4) 若 ONNX 模型不存在或載入失敗，會切回 server 模式
-
-
-import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0/dist/transformers.min.js";
-// ONNXRuntime Web 的 WASM 靜態資源位置
-env.backends.onnx.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.0/dist/";
-
-
-const recordBtn = document.getElementById('recordBtn');
-const fileInput = document.getElementById('fileInput');
-const statusEl = document.getElementById('status');
-const meter = document.getElementById('meter');
-const femaleVal = document.getElementById('femaleVal');
-const maleVal = document.getElementById('maleVal');
-
-
-let mediaRecorder; let chunks = [];
-let pipe; // transformers.js pipeline (lazy)
-const device = (navigator.gpu ? 'webgpu' : 'wasm');
-
-
-function setStatus(text, spin=false){
-statusEl.innerHTML = spin ? `<span class="spinner"></span> ${text}` : text;
+// SAFE v3 — syntax‑clean, with strict try/catch blocks and early console banner.
+}
 }
 
 
-recordBtn.addEventListener('click', async () => {
-if (!mediaRecorder || mediaRecorder.state === 'inactive') {
-await startRecording();
+// Decode the audio, resample to target SR, return Float32Array
+async function decodeAndResample(blob, targetSR=16000){
+const arrayBuf = await blob.arrayBuffer();
+const ctx = new (window.AudioContext || window.webkitAudioContext)();
+const audioBuf = await ctx.decodeAudioData(arrayBuf);
+const offline = new OfflineAudioContext(1, Math.ceil(audioBuf.duration * targetSR), targetSR);
+const src = offline.createBufferSource();
+// Convert to mono buffer at original SR
+const mono = new AudioBuffer({ length: audioBuf.length, numberOfChannels: 1, sampleRate: audioBuf.sampleRate });
+const ch0 = audioBuf.getChannelData(0);
+if (audioBuf.numberOfChannels > 1) {
+const ch1 = audioBuf.getChannelData(1);
+const out = mono.getChannelData(0);
+for (let i=0;i<ch0.length;i++){ out[i] = (ch0[i] + ch1[i]) / 2; }
 } else {
-await stopRecording();
+mono.copyToChannel(ch0, 0);
 }
-});
-
-
-fileInput.addEventListener('change', async (e) => {
-if (!e.target.files?.length) return;
-const file = e.target.files[0];
-await handleBlob(file);
-e.target.value = '';
-});
-
-
-function pickSupportedMime(){
-const cands = [
-'audio/webm;codecs=opus',
-'audio/webm',
-'audio/mp4',
-'audio/ogg'
-];
-for (const t of cands){ if (MediaRecorder.isTypeSupported?.(t)) return t; }
-return '';
+src.buffer = mono; src.connect(offline.destination); src.start(0);
+const rendered = await offline.startRendering();
+const out = rendered.getChannelData(0);
+return { data: new Float32Array(out), sr: targetSR };
 }
 
 
-async function startRecording(){
+// In-browser classification using Transformers.js + ONNX
+async function runInBrowser(float32PCM, samplingRate){
 try {
-const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-chunks = [];
-const mimeType = pickSupportedMime();
+setStatus('載入模型（首次需較久）…', true);
+meter.classList.remove('hidden');
+if (!pipe) {
+pipe = await pipeline('audio-classification', window.ONNX_MODEL_ID, { device });
+}
+const results = await pipe(float32PCM, { sampling_rate: samplingRate, topk: 2 });
+renderResults(results);
+setStatus('完成');
+return true;
+} catch (e) {
+console.error('[browser inference error]', e);
+setStatus('瀏覽器端推論失敗，嘗試伺服器分析…', true);
+return false;
+}
 }
