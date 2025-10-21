@@ -1,22 +1,4 @@
-// ➊ Imports for client-side inference
-try {
-setStatus('載入模型（首次需較久）…', true);
-meter.classList.remove('hidden');
-if (!pipe) {
-pipe = await pipeline('audio-classification', window.ONNX_MODEL_ID, { dtype: 'q8', device });
-}
-const results = await pipe(float32PCM, { sampling_rate: samplingRate, topk: 2 });
-renderResults(results);
-setStatus('完成');
-} catch (e) {
-console.error(e); setStatus('模型載入或推論失敗');
-}
-}
-
-
-// Server route – send WAV to your Pages Function / API
-async function runViaServer(wavBlob){
-try {
+// 更穩定的瀏覽器端版本：
 setStatus('上傳到伺服器分析…', true);
 meter.classList.remove('hidden');
 const res = await fetch(window.API_BASE_URL, { method: 'POST', headers: { 'Content-Type': 'audio/wav' }, body: await wavBlob.arrayBuffer() });
