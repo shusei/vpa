@@ -5,7 +5,7 @@
 // - 整段跑 OOM → 自動切串流分段；分段也 OOM → 降載窗口長度
 // - 全程進度＋ETA，避免以為卡住
 // - 聚合使用「對數勝算」，盡量貼近整段一次結果
-// - 人次計數：CountAPI 失敗時自動退回 hits.seeyoufarm 徽章（同裝置每日只+1）
+// - 人次計數：可選 'off' | 'countapi' | 'badge'；失敗會自動隱藏
 
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
 
@@ -18,8 +18,13 @@ const TARGET_SR       = 16000;      // 模型需求：16 kHz
 const MAX_WHOLE_SEC   = 150;        // ≤150 秒走整段；>150 秒改串流分段
 const WARN_LONG_SEC   = 180;        // >3 分鐘提醒（仍會照跑）
 const STREAM_WIN_CAND = [12, 8, 6, 4]; // 串流分段長度候選（秒），遇到 OOM 逐級降載
-const STREAM_HOP_S    = 3;          // 分段位移（秒）— 適度重疊，穩一點
+const STREAM_HOP_S    = 3;          // 分段位移（秒）
 const EPS             = 1e-9;
+
+// ===== 人次計數設定（預設關閉，避免外部被擋造成報錯）=====
+const COUNTER_PROVIDER = "off"; // 'off' | 'countapi' | 'badge'
+const COUNT_API = "https://api.countapi.xyz";
+const COUNT_NS  = "shusei_github_io_vpa";
 
 // ===== DOM =====
 const recordBtn = document.getElementById("recordBtn");
@@ -160,8 +165,6 @@ async function handleFileOrBlob(fileOrBlob){
 }
 
 // ===== 解碼策略 =====
-// 1) WebAudio 直接解碼 → 保留原聲（僅混單聲道 & 16k 重採樣）
-// 2) 失敗才用 ffmpeg.wasm 轉 16k/mono WAV（轉完 exit() 釋放記憶體）
 async function decodeSmartToFloat32(blobOrFile, targetSR){
   try {
     setStatus("直接解碼（WebAudio）…", true);
@@ -183,7 +186,7 @@ async function decodeViaWebAudio(blobOrFile, targetSR=16000){
   try {
     const audioBuf = await ctx.decodeAudioData(arrayBuf);
 
-    // 單聲道（必要）：模型輸入是一維向量
+    // 單聲道（必要）
     const mono = new AudioBuffer({ length: audioBuf.length, numberOfChannels: 1, sampleRate: audioBuf.sampleRate });
     const ch0 = audioBuf.getChannelData(0);
     if (audioBuf.numberOfChannels > 1) {
@@ -194,7 +197,7 @@ async function decodeViaWebAudio(blobOrFile, targetSR=16000){
       mono.copyToChannel(ch0, 0);
     }
 
-    // 僅為符合模型而重採樣到 16k（內容不裁、不調音量）
+    // 重採樣到 16k（內容不裁、不調音量）
     let out;
     if (audioBuf.sampleRate === targetSR) {
       out = mono.getChannelData(0).slice(0);
@@ -208,7 +211,7 @@ async function decodeViaWebAudio(blobOrFile, targetSR=16000){
     return { float32: out, sr: targetSR, durationSec: out.length / targetSR };
   } finally {
     try { await ctx.close(); } catch {}
-    offline = null; // 讓 GC 收
+    offline = null;
   }
 }
 
@@ -434,7 +437,7 @@ function ensurePlayerUI(){
     transition: transform .06s ease, filter .2s ease, opacity .2s ease;
     opacity: .92;
   `;
-  btn.onmouseenter = () => { btn.style.transform = "translateY(-1px)"; btn.style.filter = "brightness(1.05)"; };
+  btn.onmouseenter = () => { btn.style.transform = "translateY(-1px)"; btn.style.filter = "brightness(1.5)"; };
   btn.onmouseleave = () => { btn.style.transform = "translateY(0)"; btn.style.filter = "none"; };
 
   const hint = document.createElement("div");
@@ -551,10 +554,7 @@ function wavToFloat32(arrayBuffer){
 }
 function str(v,s,l){ let x=""; for(let i=0;i<l;i++) x+=String.fromCharCode(v.getUint8(s+i)); return x; }
 
-// ====== 簡易人次計數（CountAPI + 每裝置每日去重；失敗→徽章備援） ======
-const COUNT_API = 'https://api.countapi.xyz';
-const COUNT_NS  = 'shusei_github_io_vpa';
-
+// ====== 人次計數（可關） ======
 function todayKey() {
   const d = new Date();
   const y = d.getFullYear();
@@ -567,50 +567,54 @@ async function updateCounter() {
   const el = document.getElementById('userCount');
   if (!el) return;
 
+  // 直接關閉 → 隱藏 chip，不產生任何網路請求
+  if (COUNTER_PROVIDER === "off") { try { el.remove(); } catch {} return; }
+
   const key = todayKey();
   const seenKey = `seen_${key}`;
   const hasSeen = !!localStorage.getItem(seenKey);
 
-  // --- 方案 A：CountAPI（可顯示文字數字）
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 2500);
-    const url = hasSeen
-      ? `${COUNT_API}/get/${COUNT_NS}/${key}`
-      : `${COUNT_API}/hit/${COUNT_NS}/${key}`;
-    const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
-    clearTimeout(timer);
-    const data = await res.json();
-    const n = (typeof data.value === 'number') ? data.value : (data.count || 0);
-    el.textContent = `👥 今日人次 ${n}`;
-    if (!hasSeen) localStorage.setItem(seenKey, '1');
-    return;
-  } catch (err) {
-    console.warn('[counter]', err);
+  if (COUNTER_PROVIDER === "countapi") {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 2500);
+      const url = hasSeen
+        ? `${COUNT_API}/get/${COUNT_NS}/${key}`
+        : `${COUNT_API}/hit/${COUNT_NS}/${key}`;
+      const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+      clearTimeout(timer);
+      const data = await res.json();
+      const n = (typeof data.value === 'number') ? data.value : (data.count || 0);
+      el.textContent = `👥 今日人次 ${n}`;
+      if (!hasSeen) localStorage.setItem(seenKey, '1');
+      return;
+    } catch {
+      try { el.remove(); } catch {}
+      return;
+    }
   }
 
-  // --- 方案 B：徽章備援（hits.seeyoufarm）— 不需跨域、以圖片顯示數字
-  try {
-    // 把「日期」塞進鍵值，做到每日一桶
-    const dayKeyUrl = encodeURIComponent(`https://shusei.github.io/vpa?d=${key}`);
-    const badgeUrl =
-      `https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=${dayKeyUrl}&title=%E4%BB%8A%E6%97%A5%E4%BA%BA%E6%AC%A1&edge_flat=false`;
-
-    // 用 <img> 取代文字 chip；同裝置每日只加一次（即使多次重整）
-    const img = document.createElement('img');
-    img.src = badgeUrl;
-    img.alt = '今日人次';
-    img.style.height = '20px';
-    img.style.verticalAlign = 'middle';
-
-    // 替換掉既有的 <span id="userCount">
-    el.replaceWith(img);
-
-    if (!hasSeen) localStorage.setItem(seenKey, '1');
-  } catch (e) {
-    // 再不行就沉默
-    el.textContent = '👥 今日人次 —';
+  if (COUNTER_PROVIDER === "badge") {
+    try {
+      const dayKeyUrl = encodeURIComponent(`https://shusei.github.io/vpa?d=${key}`);
+      const badgeUrl =
+        `https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=${dayKeyUrl}&title=%E4%BB%8A%E6%97%A5%E4%BA%BA%E6%AC%A1&edge_flat=false`;
+      const img = document.createElement('img');
+      img.src = badgeUrl;
+      img.alt = '今日人次';
+      img.style.height = '20px';
+      img.style.verticalAlign = 'middle';
+      el.replaceWith(img);
+      if (!hasSeen) localStorage.setItem(seenKey, '1');
+      return;
+    } catch {
+      try { el.remove(); } catch {}
+      return;
+    }
   }
+
+  // 不認得的 provider 就關掉
+  try { el.remove(); } catch {}
 }
 
 // DOM ready 時執行
