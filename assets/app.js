@@ -1,9 +1,9 @@
-// assets/app.js — 整段一次、不分段、不改音量/不去靜音（純前端 / Transformers.js + ONNX）
-// 美觀 + 播放鍵 + 記憶體防爆版
+// assets/app.js — 整段一次、不分段；>150s 自動改「長檔模式（內部分段）」
 // - 先 WebAudio 解碼；失敗才 ffmpeg.wasm（jsDelivr）→ 轉完立刻 exit() 釋放
 // - 只保留「最後一次」音檔：舊 URL revoke、不囤 blob
 // - 關閉 AudioContext、清 chunks、丟大型陣列參考，避免長玩變胖
 // - 心跳進度文字，避免以為卡住
+// - 監測 OOM（OrtRun/bad_alloc），自動回退到長檔模式
 
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
 
@@ -11,10 +11,13 @@ import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers
 env.backends.onnx.wasm.numThreads = 1;
 
 // ===== 參數 =====
-const MODEL_ID  = (window.ONNX_MODEL_ID || "prithivMLmods/Common-Voice-Gender-Detection-ONNX");
-const TARGET_SR = 16000;         // 模型需求：16 kHz
-const WARN_LONG_SEC = 180;       // >3 分鐘提醒（仍會照跑）
-const EPS = 1e-9;
+const MODEL_ID       = (window.ONNX_MODEL_ID || "prithivMLmods/Common-Voice-Gender-Detection-ONNX");
+const TARGET_SR      = 16000;   // 模型需求：16 kHz
+const MAX_WHOLE_SEC  = 150;     // ≤150 秒走整段；>150 秒改內建分段（避免 OOM）
+const WARN_LONG_SEC  = 180;     // >3 分鐘提醒（仍會照跑）
+const CHUNK_LEN_S    = 20;      // 長檔模式：每段秒數（模型內建）
+const STRIDE_LEN_S   = 5;       // 長檔模式：重疊秒數（模型內建）
+const EPS            = 1e-9;
 
 // ===== DOM =====
 const recordBtn = document.getElementById("recordBtn");
@@ -38,7 +41,7 @@ let clf = null;        // transformers.js pipeline
 let busy = false;
 let heartbeatTimer = null;
 
-log("[app] single-pass (no-chunk, no-trim, no-norm) + player + GC-safe ready.");
+log("[app] single-pass (≤150s) + long-audio auto-fallback + player + GC-safe ready.");
 
 function setStatus(text, spin=false) {
   if (!statusEl) return;
@@ -47,6 +50,10 @@ function setStatus(text, spin=false) {
 function log(...a){ try{ console.log(...a);}catch{} }
 function fmtSec(s){ if (!isFinite(s)) return "—"; const m=Math.floor(s/60), ss=Math.round(s%60); return m? `${m}分${ss}秒`:`${ss}秒`; }
 function clamp01(x){ return Math.min(1, Math.max(EPS, x)); }
+function isOOMError(err){
+  const msg = String(err?.message || err || "");
+  return /OrtRun|bad_alloc|out of memory|memory|alloc/i.test(msg);
+}
 
 // ===== 事件 =====
 recordBtn?.addEventListener("click", async () => {
@@ -117,7 +124,7 @@ async function stopRecording(){
   document.querySelector(".container")?.classList.remove("recording");
 }
 
-// ===== 主流程（整段一次） =====
+// ===== 主流程（先判斷長短，再選路徑） =====
 async function handleFileOrBlob(fileOrBlob){
   busy = true;
   let decoded = null;
@@ -130,11 +137,15 @@ async function handleFileOrBlob(fileOrBlob){
     const { float32, sr, durationSec } = decoded;
 
     if (durationSec > WARN_LONG_SEC) {
-      setStatus(`提示：長度 ${fmtSec(durationSec)}，整段分析可能較久。開始推論…`, true);
+      setStatus(`提示：長度 ${fmtSec(durationSec)}，整段分析可能較久。準備推論…`, true);
       await microYield();
     }
 
-    await analyzeWhole(float32, sr, durationSec);
+    if (durationSec <= MAX_WHOLE_SEC) {
+      await analyzeWhole(float32, sr, durationSec);
+    } else {
+      await analyzeLong(float32, sr, durationSec, /*reason*/"長度超過 150 秒，自動切換長檔模式");
+    }
   } catch (e) {
     console.error("[handleFileOrBlob]", e);
     setStatus("處理失敗");
@@ -291,7 +302,45 @@ async function analyzeWhole(float32, sr, durationSec){
     const res = await model(float32, { sampling_rate: sr, topk: 2 });
     const map = toMap(res);
     render(map.female||0, map.male||0);
-    setStatus("完成");
+    setStatus("完成（整段）");
+  } catch (err) {
+    // 若記憶體不足，自動回退到長檔模式（內部分段）
+    if (isOOMError(err)) {
+      console.warn("[analyzeWhole] OOM detected, switching to long mode…", err);
+      await analyzeLong(float32, sr, durationSec, "偵測到記憶體不足，改用長檔模式");
+      return;
+    }
+    console.error("[analyzeWhole]", err);
+    setStatus("分析失敗（整段）");
+  } finally {
+    stopHeartbeat();
+  }
+}
+
+// ===== 推論（長檔：使用 Transformers.js 內建 chunk/stride 聚合） =====
+async function analyzeLong(float32, sr, durationSec, reason="長檔模式"){
+  const model = await ensurePipeline();
+  meter?.classList.remove("hidden");
+
+  const started = performance.now();
+  startHeartbeat(() => {
+    const elapsed = (performance.now() - started)/1000;
+    setStatus(`分析中（長檔模式：內部分段）｜${reason}｜音檔 ${fmtSec(durationSec)}｜已用 ${fmtSec(elapsed)}`, true);
+  });
+
+  try {
+    const res = await model(float32, {
+      sampling_rate: sr,
+      topk: 2,
+      chunk_length_s: CHUNK_LEN_S,
+      stride_length_s: STRIDE_LEN_S
+    });
+    const map = toMap(res);
+    render(map.female||0, map.male||0);
+    setStatus("完成（長檔模式）");
+  } catch (e) {
+    console.error("[analyzeLong]", e);
+    setStatus("分析失敗（長檔模式）");
   } finally {
     stopHeartbeat();
   }
@@ -345,12 +394,11 @@ function ensurePlayerUI(){
   wrap.appendChild(hint);
   wrap.appendChild(audio);
 
-  // ★★ 關鍵：插在「提示（.callout）」之前 ★★
+  // 插在提示（.callout）之前
   const tipEl = container.querySelector(".callout");
   if (tipEl) {
     container.insertBefore(wrap, tipEl);
   } else {
-    // 找不到就退而求其次：放在 status 後面
     const statusEl = container.querySelector("#status");
     if (statusEl && statusEl.parentNode) {
       statusEl.parentNode.insertBefore(wrap, statusEl.nextSibling);
