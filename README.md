@@ -1,7 +1,7 @@
 # Voice Presentation Analyzer (Browser-only)
 
 > 在 **瀏覽器端** 直接推論，快速查看聲音被模型感知為 **女性化／男性化** 的傾向。**不會上傳音檔**。  
-> Demo：<https://shusei.github.io>
+> Demo：<https://shusei.github.io/vpa>
 
 - **隱私**：100% 本地推論，音檔不離開裝置  
 - **即時**：錄完立刻分析；上傳 mp3 / m4a / mp4 / mov 皆可  
@@ -37,7 +37,7 @@
 
 ## 使用者快速開始
 
-1. 打開：<https://shusei.github.io>  
+1. 打開：<https://shusei.github.io/vpa>  
 2. 按「**開始錄音**」說話 **5–10 秒**（非唱歌），再按停止；或右下角「**上傳**」選擇 mp3/m4a/mp4/mov。  
 3. 查看儀表與百分比；可按「**播放剛才的聲音**」重聽原音。
 
