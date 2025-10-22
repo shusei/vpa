@@ -5,6 +5,7 @@
 // - 整段跑 OOM → 自動切串流分段；分段也 OOM → 降載窗口長度
 // - 全程進度＋ETA，避免以為卡住
 // - 聚合使用「對數勝算」，盡量貼近整段一次結果
+// - 人次計數：CountAPI 失敗時自動退回 hits.seeyoufarm 徽章（同裝置每日只+1）
 
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
 
@@ -13,11 +14,11 @@ env.backends.onnx.wasm.numThreads = 1;
 
 // ===== 參數 =====
 const MODEL_ID        = (window.ONNX_MODEL_ID || "prithivMLmods/Common-Voice-Gender-Detection-ONNX");
-const TARGET_SR       = 16000;          // 模型需求：16 kHz
-const MAX_WHOLE_SEC   = 150;            // ≤150 秒走整段；>150 秒改串流分段
-const WARN_LONG_SEC   = 180;            // >3 分鐘提醒（仍會照跑）
-const STREAM_WIN_CAND = [12, 8, 6, 4];  // 串流分段長度候選（秒），遇到 OOM 逐級降載
-const STREAM_HOP_S    = 3;              // 分段位移（秒）— 適度重疊，穩一點
+const TARGET_SR       = 16000;      // 模型需求：16 kHz
+const MAX_WHOLE_SEC   = 150;        // ≤150 秒走整段；>150 秒改串流分段
+const WARN_LONG_SEC   = 180;        // >3 分鐘提醒（仍會照跑）
+const STREAM_WIN_CAND = [12, 8, 6, 4]; // 串流分段長度候選（秒），遇到 OOM 逐級降載
+const STREAM_HOP_S    = 3;          // 分段位移（秒）— 適度重疊，穩一點
 const EPS             = 1e-9;
 
 // ===== DOM =====
@@ -302,7 +303,7 @@ async function analyzeWhole(float32, sr, durationSec){
   }
 }
 
-// ===== 串流分段（真正逐段送模型，避免一次吃爆） =====
+// ===== 串流分段（逐段送模型，避免一次吃爆） =====
 async function analyzeStreamed(float32, sr, durationSec, reason="串流分段"){
   const model = await ensurePipeline();
   meter?.classList.remove("hidden");
@@ -373,7 +374,7 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
       const pm = clamp01(map.male   || EPS);
       const logit = Math.log(pf) - Math.log(pm);
 
-      logitSum += logit * dur; // 權重 = 該段時長
+      logitSum += logit * dur; // 權重 = 該段時長（不動原音）
       wSum     += dur;
 
       // 即時顯示當前聚合
@@ -550,16 +551,16 @@ function wavToFloat32(arrayBuffer){
 }
 function str(v,s,l){ let x=""; for(let i=0;i<l;i++) x+=String.fromCharCode(v.getUint8(s+i)); return x; }
 
-// ====== 簡易人次計數（CountAPI + 每裝置每日去重） ======
+// ====== 簡易人次計數（CountAPI + 每裝置每日去重；失敗→徽章備援） ======
 const COUNT_API = 'https://api.countapi.xyz';
-const COUNT_NS  = 'shusei_github_io_vpa'; // 建議用你的網域/專案名當命名空間，避免撞名
+const COUNT_NS  = 'shusei_github_io_vpa';
 
 function todayKey() {
   const d = new Date();
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
-  return `vpa_${y}${m}${day}`; // 例如：vpa_20251022
+  return `vpa_${y}${m}${day}`; // 例如 vpa_20251022
 }
 
 async function updateCounter() {
@@ -568,36 +569,52 @@ async function updateCounter() {
 
   const key = todayKey();
   const seenKey = `seen_${key}`;
+  const hasSeen = !!localStorage.getItem(seenKey);
 
+  // --- 方案 A：CountAPI（可顯示文字數字）
   try {
-    // 沒看過 → hit（+1）；看過 → get（只讀）
-    const url = localStorage.getItem(seenKey)
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2500);
+    const url = hasSeen
       ? `${COUNT_API}/get/${COUNT_NS}/${key}`
       : `${COUNT_API}/hit/${COUNT_NS}/${key}`;
-
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+    clearTimeout(timer);
     const data = await res.json();
     const n = (typeof data.value === 'number') ? data.value : (data.count || 0);
-
     el.textContent = `👥 今日人次 ${n}`;
+    if (!hasSeen) localStorage.setItem(seenKey, '1');
+    return;
+  } catch (err) {
+    console.warn('[counter]', err);
+  }
 
-    // 標記今天已經算過一次，避免同裝置 F5 洗數
-    if (!localStorage.getItem(seenKey)) {
-      localStorage.setItem(seenKey, '1');
-    }
+  // --- 方案 B：徽章備援（hits.seeyoufarm）— 不需跨域、以圖片顯示數字
+  try {
+    // 把「日期」塞進鍵值，做到每日一桶
+    const dayKeyUrl = encodeURIComponent(`https://shusei.github.io/vpa?d=${key}`);
+    const badgeUrl =
+      `https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=${dayKeyUrl}&title=%E4%BB%8A%E6%97%A5%E4%BA%BA%E6%AC%A1&edge_flat=false`;
+
+    // 用 <img> 取代文字 chip；同裝置每日只加一次（即使多次重整）
+    const img = document.createElement('img');
+    img.src = badgeUrl;
+    img.alt = '今日人次';
+    img.style.height = '20px';
+    img.style.verticalAlign = 'middle';
+
+    // 替換掉既有的 <span id="userCount">
+    el.replaceWith(img);
+
+    if (!hasSeen) localStorage.setItem(seenKey, '1');
   } catch (e) {
-    // 失敗就靜默，不影響主流程
+    // 再不行就沉默
     el.textContent = '👥 今日人次 —';
-    console.warn('[counter]', e);
   }
 }
 
-// DOM 已Ready就直接跑；否則掛事件
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', updateCounter);
-} else {
-  updateCounter();
-}
+// DOM ready 時執行
+document.addEventListener('DOMContentLoaded', updateCounter);
 
 // ===== 離站清理：離開頁面時釋放最後 URL =====
 window.addEventListener("beforeunload", () => {
