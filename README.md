@@ -1,4 +1,4 @@
-# Voice Gender Detector（Client-side）
+# Voice Presentation Analyzer (Browser-only)
 
 > 在 **瀏覽器端** 直接推論，快速查看聲音被模型感知為 **女性化／男性化** 的傾向。**不會上傳音檔**。  
 > Demo：<https://shusei.github.io>
