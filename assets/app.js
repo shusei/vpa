@@ -389,8 +389,14 @@ function toMap(arr){
 function render(pf, pm){
   const barF = document.querySelector(".bar.female");
   const barM = document.querySelector(".bar.male");
-  if (barF) barF.style.setProperty("--p", pf ?? 0);
-  if (barM) barM.style.setProperty("--p", pm ?? 0);
+  if (barF) {
+    barF.style.setProperty("--p", pf ?? 0);
+    barF.setAttribute("aria-valuenow", Math.round(((pf ?? 0) * 100)));
+  }
+  if (barM) {
+    barM.style.setProperty("--p", pm ?? 0);
+    barM.setAttribute("aria-valuenow", Math.round(((pm ?? 0) * 100)));
+  }
   if (femaleVal) femaleVal.textContent = `${((pf ?? 0) * 100).toFixed(1)}%`;
   if (maleVal)   maleVal.textContent   = `${((pm ?? 0) * 100).toFixed(1)}%`;
 }
