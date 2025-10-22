@@ -4,23 +4,23 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Voice Presentation Analyzer — Browser-only</title>
-<meta name="description" content="在瀏覽器端本地推論，估計聲音被模型感知為女性化／男性化的傾向；隱私優先，不上傳音檔。" />
+<meta name="description" content="在瀏覽器端本地推論，估計聲音被模型感知為女性化／男性化的傾向；≤150秒整段、不分段；更長自動串流分段。隱私優先，不上傳音檔。" />
 <link rel="stylesheet" href="assets/styles.css" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://huggingface.co" crossorigin>
 
-<!-- 修正 favicon 404：用內嵌 SVG 當站點圖示 -->
+<!-- 內嵌 SVG favicon（避免 404） -->
 <link rel="icon" type="image/svg+xml"
       href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="%236ee7b7"/><stop offset="1" stop-color="%238ab4f8"/></linearGradient></defs><rect width="96" height="96" rx="18" fill="%23151922"/><circle cx="32" cy="40" r="10" fill="url(%23g)"/><circle cx="64" cy="56" r="10" fill="url(%23g)"/><path d="M20 70c24-12 32-12 56 0" stroke="url(%23g)" stroke-width="6" fill="none" stroke-linecap="round"/></svg>' />
 
 <script>
-  // 模式切換（仍保留，但本頁採 100% 客端）
-  window.INFERENCE_MODE = 'browser'; // 'browser' | 'server'
-  window.API_BASE_URL = '/api/classify';
-  // ONNX 模型 (與 HF 上一致)
-  window.ONNX_MODEL_ID = 'prithivMLmods/Common-Voice-Gender-Detection-ONNX';
-  // 版本號（顯示在頁尾）
-  window.APP_VERSION = 'v2025-10-22';
+// 模式切換（仍保留，但本頁採 100% 客端）
+window.INFERENCE_MODE = 'browser'; // 'browser' | 'server'
+window.API_BASE_URL   = '/api/classify';
+// ONNX 模型 (與 HF 上一致)
+window.ONNX_MODEL_ID  = 'prithivMLmods/Common-Voice-Gender-Detection-ONNX';
+// 版本號（顯示於頁尾）
+window.APP_VERSION    = 'v2025-10-22';
 </script>
 </head>
 <body>
@@ -36,7 +36,7 @@
     <a class="chip link" href="https://huggingface.co/prithivMLmods/Common-Voice-Gender-Detection" target="_blank" rel="noopener">
       模型：Common-Voice-Gender-Detection（ONNX）
     </a>
-    <a class="chip link" href="https://github.com/shusei/vpa" target="_blank" rel="noopener">
+    <a class="chip link" href="https://github.com/shusei/shusei.github.io" target="_blank" rel="noopener">
       原始碼
     </a>
   </div>
@@ -66,19 +66,19 @@
   <!-- 狀態（即時進度，具可存取性） -->
   <div id="status" class="status" aria-live="polite">準備就緒</div>
 
-  <!-- 輔助提醒：40–60% 灰色帶 -->
+  <!-- 提示：灰色帶 -->
   <div class="callout soft">
     <strong>提示：</strong> 分數介於 <b>40–60%</b> 視為灰色帶，建議多錄幾段、以趨勢為準。
   </div>
 
-  <!-- 說明與免責（details 元件，無需 JS） -->
+  <!-- 說明與免責 -->
   <section class="info">
     <details open>
       <summary>如何錄比較準？</summary>
       <ul class="bullets">
         <li>錄 <b>5–10 秒「說話」</b>（非唱歌），環境安靜、避免背景樂/回音。</li>
         <li>麥克風距離約 <b>10–15 cm</b>，用平常對話的音量與語速。</li>
-        <li>若是長檔，先裁成想測的片段再丟；唱歌結果通常會偏差。</li>
+        <li>長檔請先裁成想測的片段再丟；唱歌結果通常會偏差。</li>
       </ul>
     </details>
 
@@ -93,9 +93,9 @@
     <details>
       <summary>方法簡述（專業透明）</summary>
       <ul class="bullets">
-        <li>模型：<b>Wav2Vec2</b> 架構的二分類（女性/男性），ONNX 版本於瀏覽器推論。</li>
-        <li>音訊處理：只做 <b>單聲道混合</b> 與 <b>16 kHz 重採樣</b> 以符合模型；<b>不</b>去靜音、不調音量。</li>
-        <li>結果：顯示模型對兩類的分數（機率樣），以利自我觀察。</li>
+        <li>≤ 150 秒：<b>整段一次、不分段</b>，盡量貼近官方 Python 結果。</li>
+        <li>> 150 秒：自動 <b>串流分段</b>（預設 12s 窗 / 3s 位移），若記憶體吃緊會自動降載 8 / 6 / 4 秒。</li>
+        <li>音訊處理（最小化）：只做 <b>單聲道混合</b> 與 <b>16 kHz 重採樣</b>；<b>不</b>去靜音、<b>不</b>調音量。</li>
       </ul>
       <p class="note">模型來源與授權：<a href="https://huggingface.co/prithivMLmods/Common-Voice-Gender-Detection" target="_blank" rel="noopener">Hugging Face Model Card</a>（Apache-2.0）。</p>
     </details>
@@ -118,7 +118,7 @@
       <div class="tool-row">
         <button class="btn subtle" onclick="clearModelCache()">清除模型快取</button>
         <button class="btn subtle" onclick="location.reload()">重新整理</button>
-        <span class="muted">可釋放儲存空間；清除後首次使用會重新下載模型。</span>
+        <span class="muted">清除後首次使用會重新下載模型。</span>
       </div>
     </details>
 
@@ -127,7 +127,7 @@
       <div class="kv">
         <div>版本：</div><div><code id="ver"></code></div>
         <div>授權：</div><div>模型 <code>Apache-2.0</code>；此網站程式碼以你的庫為準。</div>
-        <div>原始碼：</div><div><a href="https://github.com/shusei/vpa" target="_blank" rel="noopener">GitHub / shusei.github.io / vpa</a></div>
+        <div>原始碼：</div><div><a href="https://github.com/shusei/shusei.github.io" target="_blank" rel="noopener">GitHub / shusei.github.io</a></div>
       </div>
     </details>
   </section>
@@ -141,7 +141,7 @@
          hidden />
 </label>
 
-<!-- 主要應用腳本（不需更動） -->
+<!-- App 腳本 -->
 <script type="module" src="assets/app.js"></script>
 
 <!-- 小工具：顯示版本、清除模型快取（IndexedDB） -->
@@ -159,6 +159,3 @@
 </script>
 </body>
 </html>
-
-
-
