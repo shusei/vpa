@@ -4,54 +4,154 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Voice Gender Detector</title>
+<meta name="description" content="在瀏覽器端直接測試聲音被模型感知為女性化／男性化的傾向；全程本地推論，不上傳音檔。" />
 <link rel="stylesheet" href="assets/styles.css" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://huggingface.co" crossorigin>
+
+<!-- 修正 favicon 404：用內嵌 SVG 當站點圖示 -->
+<link rel="icon" type="image/svg+xml"
+      href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="%236ee7b7"/><stop offset="1" stop-color="%238ab4f8"/></linearGradient></defs><rect width="96" height="96" rx="18" fill="%23151922"/><circle cx="32" cy="40" r="10" fill="url(%23g)"/><circle cx="64" cy="56" r="10" fill="url(%23g)"/><path d="M20 70c24-12 32-12 56 0" stroke="url(%23g)" stroke-width="6" fill="none" stroke-linecap="round"/></svg>' />
+
 <script>
-// Switch inference mode here:
-// 'browser' = 100% 客端 (Transformers.js + ONNX) – GH Pages 直接可用
-// 'server' = 走 Cloudflare Pages Functions /api/classify 代理呼叫 HF Inference API
-window.INFERENCE_MODE = 'browser'; // 'browser' | 'server'
-window.API_BASE_URL = '/api/classify'; // 若放 GH Pages，改成你的 Worker URL
-// ONNX 模型 (與 HF 上一致)
-window.ONNX_MODEL_ID = 'prithivMLmods/Common-Voice-Gender-Detection-ONNX';
+  // 模式切換（仍保留，但本頁採 100% 客端）
+  window.INFERENCE_MODE = 'browser'; // 'browser' | 'server'
+  window.API_BASE_URL = '/api/classify';
+  // ONNX 模型 (與 HF 上一致)
+  window.ONNX_MODEL_ID = 'prithivMLmods/Common-Voice-Gender-Detection-ONNX';
+  // 版本號（顯示在頁尾）
+  window.APP_VERSION = 'v2025-10-22';
 </script>
 </head>
 <body>
 <main class="container">
-<h1>Voice Gender Detector</h1>
+  <h1 class="hero-title">
+    Voice Gender Detector
+    <span class="chip beta">練習用</span>
+  </h1>
 
+  <!-- 信任區：本地推論 / 模型來源 / 開源 -->
+  <div class="trust-row">
+    <span class="chip local">本地推論・不上傳</span>
+    <a class="chip link" href="https://huggingface.co/prithivMLmods/Common-Voice-Gender-Detection" target="_blank" rel="noopener">
+      模型：Common-Voice-Gender-Detection（ONNX）
+    </a>
+    <a class="chip link" href="https://github.com/shusei/shusei.github.io" target="_blank" rel="noopener">
+      原始碼
+    </a>
+  </div>
 
-<button id="recordBtn" class="record-btn" aria-pressed="false">
-<span class="idle">● 開始錄音</span>
-<span class="rec">■ 停止錄音</span>
-</button>
+  <!-- 錄音主按鈕 -->
+  <button id="recordBtn" class="record-btn" aria-pressed="false">
+    <span class="idle">● 開始錄音</span>
+    <span class="rec">■ 停止錄音</span>
+  </button>
 
+  <!-- 結果儀表 -->
+  <div id="meter" class="meter hidden" aria-labelledby="meterTitle">
+    <div class="bar female" role="meter" aria-label="女性化傾向" aria-valuemin="0" aria-valuemax="100">
+      <span class="label">女性化傾向</span>
+      <span class="value" id="femaleVal">—</span>
+    </div>
+    <div class="bar male" role="meter" aria-label="男性化傾向" aria-valuemin="0" aria-valuemax="100">
+      <span class="label">男性化傾向</span>
+      <span class="value" id="maleVal">—</span>
+    </div>
+  </div>
 
-<div id="meter" class="meter hidden">
-<div class="bar female">
-<span class="label">female</span>
-<span class="value" id="femaleVal">—</span>
-</div>
-<div class="bar male">
-<span class="label">male</span>
-<span class="value" id="maleVal">—</span>
-</div>
-</div>
+  <!-- 狀態（即時進度，具可存取性） -->
+  <div id="status" class="status" aria-live="polite">準備就緒</div>
 
+  <!-- 輔助提醒：40–60% 灰色帶 -->
+  <div class="callout soft">
+    <strong>提示：</strong> 分數介於 <b>40–60%</b> 視為灰色帶，建議多錄幾段、以趨勢為準。
+  </div>
 
-<div id="status" class="status">準備就緒</div>
+  <!-- 說明與免責（details 元件，無需 JS） -->
+  <section class="info">
+    <details open>
+      <summary>如何錄比較準？</summary>
+      <ul class="bullets">
+        <li>錄 <b>5–10 秒「說話」</b>（非唱歌），環境安靜、避免背景樂/回音。</li>
+        <li>麥克風距離約 <b>10–15 cm</b>，用平常對話的音量與語速。</li>
+        <li>若是長檔，先裁成想測的片段再丟；唱歌結果通常會偏差。</li>
+      </ul>
+    </details>
+
+    <details>
+      <summary>關於 / 免責</summary>
+      <p>
+        本工具顯示的是你的聲音被模型感知為「女性化／男性化」的<strong>傾向</strong>，不是你的性別認同、也不是醫療或法律判定。
+        請將本工具視作<strong>自我練習的回饋</strong>，不要用來評價他人或作為任何歧視行為的依據。
+      </p>
+    </details>
+
+    <details>
+      <summary>方法簡述（專業透明）</summary>
+      <ul class="bullets">
+        <li>模型：<b>Wav2Vec2</b> 架構的二分類（女性/男性），ONNX 版本於瀏覽器推論。</li>
+        <li>音訊處理：只做 <b>單聲道混合</b> 與 <b>16 kHz 重採樣</b> 以符合模型；<b>不</b>去靜音、不調音量。</li>
+        <li>結果：顯示模型對兩類的分數（機率樣），以利自我觀察。</li>
+      </ul>
+      <p class="note">模型來源與授權：<a href="https://huggingface.co/prithivMLmods/Common-Voice-Gender-Detection" target="_blank" rel="noopener">Hugging Face Model Card</a>（Apache-2.0）。</p>
+    </details>
+
+    <details>
+      <summary>已知侷限</summary>
+      <ul class="bullets">
+        <li>模型主要以 <b>英語朗讀</b>資料訓練，對中文/方言/唱歌/戲腔可能有落差。</li>
+        <li>大噪音、回音、鼻音重、感冒、與極度用力拉高音高，皆可能造成偏差。</li>
+        <li>分數非絕對值：請觀察多次測試的趨勢，不要單看一次結果。</li>
+      </ul>
+    </details>
+
+    <details>
+      <summary>隱私與快取</summary>
+      <ul class="bullets">
+        <li><b>全程本地推論，不上傳音檔</b>；換新檔會釋放上一段的暫存。</li>
+        <li>模型檔會快取於瀏覽器（IndexedDB），以便下次更快。</li>
+      </ul>
+      <div class="tool-row">
+        <button class="btn subtle" onclick="clearModelCache()">清除模型快取</button>
+        <button class="btn subtle" onclick="location.reload()">重新整理</button>
+        <span class="muted">可釋放儲存空間；清除後首次使用會重新下載模型。</span>
+      </div>
+    </details>
+
+    <details>
+      <summary>版本與授權</summary>
+      <div class="kv">
+        <div>版本：</div><div><code id="ver"></code></div>
+        <div>授權：</div><div>模型 <code>Apache-2.0</code>；此網站程式碼以你的庫為準。</div>
+        <div>原始碼：</div><div><a href="https://github.com/shusei/shusei.github.io" target="_blank" rel="noopener">GitHub / shusei.github.io</a></div>
+      </div>
+    </details>
+  </section>
 </main>
-
 
 <!-- 浮動上傳按鈕 -->
 <label class="fab" title="上傳音檔">
-⬆︎
-<input id="fileInput" type="file" accept="audio/*,audio/mp4,video/mp4,video/quicktime,.m4a,.mp4,.mov" hidden />
+  ⬆︎
+  <input id="fileInput" type="file"
+         accept="audio/*,audio/mp4,video/mp4,video/quicktime,.m4a,.mp4,.mov"
+         hidden />
 </label>
 
-
+<!-- 主要應用腳本（不需更動） -->
 <script type="module" src="assets/app.js"></script>
+
+<!-- 小工具：顯示版本、清除模型快取（IndexedDB） -->
+<script>
+  (function showVersion() {
+    const el = document.getElementById('ver');
+    if (el) el.textContent = window.APP_VERSION || '';
+  })();
+
+  async function clearModelCache() {
+    try { indexedDB.deleteDatabase('transformers-cache'); } catch(e) {}
+    try { indexedDB.deleteDatabase('transformers'); } catch(e) {}
+    alert('已請求清除模型快取。請重新整理頁面以完成釋放。');
+  }
+</script>
 </body>
 </html>
-
