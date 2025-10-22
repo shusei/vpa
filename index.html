@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Voice Gender Detector</title>
-<meta name="description" content="在瀏覽器端直接測試聲音被模型感知為女性化／男性化的傾向；全程本地推論，不上傳音檔。" />
+<title>Voice Presentation Analyzer — Browser-only</title>
+<meta name="description" content="在瀏覽器端本地推論，估計聲音被模型感知為女性化／男性化的傾向；隱私優先，不上傳音檔。" />
 <link rel="stylesheet" href="assets/styles.css" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://huggingface.co" crossorigin>
@@ -26,7 +26,7 @@
 <body>
 <main class="container">
   <h1 class="hero-title">
-    Voice Gender Detector
+    Voice Presentation Analyzer
     <span class="chip beta">練習用</span>
   </h1>
 
@@ -40,6 +40,10 @@
       原始碼
     </a>
   </div>
+
+  <p class="muted" style="margin:6px 0 0 0;font-size:12px;">
+    Likelihood of feminine/masculine presentation — privacy-first, runs in your browser.
+  </p>
 
   <!-- 錄音主按鈕 -->
   <button id="recordBtn" class="record-btn" aria-pressed="false">
@@ -155,3 +159,4 @@
 </script>
 </body>
 </html>
+
