@@ -1,11 +1,10 @@
 // assets/app.js — 整段一次；長檔自動切「串流分段」＋自動降載（12s→8s→6s→4s）
-// - WebAudio 解碼優先；失敗才 ffmpeg.wasm（jsDelivr），轉完立刻 exit() 釋放
+// - WebAudio 解碼優先；Safari+m4a 直接走 ffmpeg.wasm；其餘失敗再 fallback ffmpeg（jsDelivr），轉完立刻 exit() 釋放
 // - 只保留「最後一次」音檔（ObjectURL 會 revoke）
 // - 關閉 AudioContext、清 chunks、丟大型陣列參考，避免長玩變胖
 // - 整段跑 OOM → 自動切串流分段；分段也 OOM → 降載窗口長度
 // - 全程進度＋ETA，避免以為卡住
 // - 聚合使用「對數勝算」，盡量貼近整段一次結果
-// - 長檔加速：分段數若超過門檻，自動改「不重疊取樣」（步進=視窗長度）
 
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
 
@@ -18,9 +17,11 @@ const TARGET_SR       = 16000;      // 模型需求：16 kHz
 const MAX_WHOLE_SEC   = 150;        // ≤150 秒走整段；>150 秒改串流分段
 const WARN_LONG_SEC   = 180;        // >3 分鐘提醒（仍會照跑）
 const STREAM_WIN_CAND = [12, 8, 6, 4]; // 串流分段長度候選（秒），遇到 OOM 逐級降載
-const STREAM_HOP_S    = 3;          // 預設分段位移（秒）— 短檔穩一點
-const MAX_STREAM_WINDOWS = 120;     // ★ 長檔分段數上限；超過即改「不重疊取樣」
+const STREAM_HOP_S    = 3;          // 分段位移（秒）
 const EPS             = 1e-9;
+
+// Safari 偵測（for m4a/ALAC/HE-AAC 解碼相容）
+const IS_SAFARI = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 // ===== DOM =====
 const recordBtn = document.getElementById("recordBtn");
@@ -44,7 +45,7 @@ let clf = null;        // transformers.js pipeline
 let busy = false;
 let heartbeatTimer = null;
 
-log("[app] whole-pass (≤150s) + streamed long-mode + auto downshift + capped windows + player + GC-safe ready.");
+log("[app] whole-pass (≤150s) + streamed long-mode + auto downshift + Safari m4a hardening + player + GC-safe ready.");
 
 function setStatus(text, spin=false) {
   if (!statusEl) return;
@@ -132,7 +133,8 @@ async function handleFileOrBlob(fileOrBlob){
   busy = true;
   let decoded = null;
   try {
-    setPlaybackSource(fileOrBlob); // 綁到播放器（只保留最新一個）
+    // 先把原始檔綁到播放器（只保留最新一個）
+    setPlaybackSource(fileOrBlob);
 
     setStatus("解析檔案…", true);
     decoded = await decodeSmartToFloat32(fileOrBlob, TARGET_SR);
@@ -150,7 +152,7 @@ async function handleFileOrBlob(fileOrBlob){
     }
   } catch (e) {
     console.error("[handleFileOrBlob]", e);
-    setStatus("處理失敗");
+    setStatus("處理失敗：" + (e?.message || "無法解碼或分析此音檔"));
   } finally {
     // ★ 放掉大陣列參考（讓 GC 收）
     if (decoded) decoded.float32 = null;
@@ -160,7 +162,20 @@ async function handleFileOrBlob(fileOrBlob){
 }
 
 // ===== 解碼策略 =====
+// 1) Safari + m4a/mp4：直接 ffmpeg（穩）
+// 2) 其他 → 先 WebAudio（保留原聲、較快），失敗再 ffmpeg
 async function decodeSmartToFloat32(blobOrFile, targetSR){
+  const name = (blobOrFile.name || "").toLowerCase();
+  const type = (blobOrFile.type || "").toLowerCase();
+  const looksLikeM4A = /\.m4a$/i.test(name) || type.includes("audio/mp4") || type.includes("audio/x-m4a");
+
+  if (IS_SAFARI && looksLikeM4A) {
+    setStatus("轉檔（ffmpeg，Safari m4a）準備中…", true);
+    const wavBlob = await transcodeToWav16kViaFFmpeg(blobOrFile);
+    const { float32, sr } = wavToFloat32(await wavBlob.arrayBuffer());
+    return { float32, sr, durationSec: float32.length / sr };
+  }
+
   try {
     setStatus("直接解碼（WebAudio）…", true);
     return await decodeViaWebAudio(blobOrFile, targetSR);
@@ -181,21 +196,22 @@ async function decodeViaWebAudio(blobOrFile, targetSR=16000){
   try {
     const audioBuf = await ctx.decodeAudioData(arrayBuf);
 
-    // 單聲道（必要）
-    const mono = new AudioBuffer({ length: audioBuf.length, numberOfChannels: 1, sampleRate: audioBuf.sampleRate });
+    // ★ Safari 相容：不要用 new AudioBuffer({ ... })
+    const mono = ctx.createBuffer(1, audioBuf.length, audioBuf.sampleRate);
+    const outCh = mono.getChannelData(0);
     const ch0 = audioBuf.getChannelData(0);
+
     if (audioBuf.numberOfChannels > 1) {
       const ch1 = audioBuf.getChannelData(1);
-      const out = mono.getChannelData(0);
-      for (let i=0;i<ch0.length;i++) out[i] = (ch0[i] + ch1[i]) / 2;
+      for (let i=0;i<ch0.length;i++) outCh[i] = (ch0[i] + ch1[i]) / 2;
     } else {
-      mono.copyToChannel(ch0, 0);
+      outCh.set(ch0);
     }
 
-    // 重採樣到 16k（內容不裁、不調音量）
+    // 僅為符合模型而重採樣到 16k（內容不裁、不調音量）
     let out;
     if (audioBuf.sampleRate === targetSR) {
-      out = mono.getChannelData(0).slice(0);
+      out = outCh.slice(0);
     } else {
       offline = new OfflineAudioContext(1, Math.ceil(audioBuf.duration * targetSR), targetSR);
       const src = offline.createBufferSource();
@@ -206,11 +222,11 @@ async function decodeViaWebAudio(blobOrFile, targetSR=16000){
     return { float32: out, sr: targetSR, durationSec: out.length / targetSR };
   } finally {
     try { await ctx.close(); } catch {}
-    offline = null;
+    offline = null; // 讓 GC 收
   }
 }
 
-// ---- FFmpeg 載入（只有當 WebAudio 失敗時才會用到） ----
+// ---- FFmpeg 載入（只有當 WebAudio 失敗或 Safari+m4a 才會用到） ----
 async function loadFFmpegModule(){
   try {
     const m = await import("https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/+esm");
@@ -247,6 +263,7 @@ async function transcodeToWav16kViaFFmpeg(blobOrFile){
 
   const inName = "in.bin", outName = "out.wav";
   ffmpeg.FS("writeFile", inName, await fetchFile(blobOrFile));
+  // -vn 去視訊；-ac 1 單聲道；-ar 16000 取樣率；輸出 PCM WAV
   await ffmpeg.run("-i", inName, "-vn", "-ac", "1", "-ar", `${TARGET_SR}`, "-f", "wav", outName);
   const out = ffmpeg.FS("readFile", outName);
   try { ffmpeg.FS("unlink", inName); } catch {}
@@ -330,15 +347,9 @@ async function analyzeStreamed(float32, sr, durationSec, reason="串流分段"){
 
 async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP_S, reason){
   const win = Math.max(1, Math.floor(WIN_S * sr));
-  let  hop = Math.max(1, Math.floor(HOP_S * sr));
+  const hop = Math.max(1, Math.floor(HOP_S * sr));
 
-  // == ★ 自動限段數：超過上限就改「不重疊取樣」 ==
-  const estCount = Math.max(1, Math.floor((float32.length - win) / hop) + 1);
-  if (estCount > MAX_STREAM_WINDOWS) {
-    hop = win; // 步進 = 視窗長度（不重疊）
-  }
-
-  // 重新建構窗口索引（用 subarray，不複製）
+  // 構建窗口索引（用 subarray，不複製）
   const chunks = [];
   for (let s=0; s<float32.length; s+=hop){
     const e = Math.min(s + win, float32.length);
@@ -352,15 +363,14 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
   let avgMs = 0;
   let processedSec = 0;
 
-  // 對數勝算聚合（片段時長加權）
+  // 對數勝算聚合（等長加權：用片段時長當權重）
   let logitSum = 0, wSum = 0;
 
   const started = performance.now();
   startHeartbeat(() => {
     const elapsed = (performance.now() - started)/1000;
     const pct = processedSec > 0 ? Math.min(99, Math.round((processedSec/durationSec)*100)) : 0;
-    const modeNote = (hop === win) ? "；加速模式（不重疊取樣）" : "";
-    setStatus(`分析中（串流分段；win=${WIN_S}s/step=${(hop/sr).toFixed(0)}s${modeNote}）｜${reason}｜${pct}%｜已用 ${fmtSec(elapsed)}`, true);
+    setStatus(`分析中（串流分段；win=${WIN_S}s/step=${HOP_S}s）｜${reason}｜${pct}%｜已用 ${fmtSec(elapsed)}`, true);
   });
 
   try {
@@ -379,7 +389,7 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
       const pm = clamp01(map.male   || EPS);
       const logit = Math.log(pf) - Math.log(pm);
 
-      logitSum += logit * dur; // 權重 = 該段時長
+      logitSum += logit * dur; // 權重 = 該段時長（不動原音）
       wSum     += dur;
 
       // 即時顯示當前聚合
@@ -393,7 +403,7 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
       const etaSec = (remain * (avgMs/1000));
       const pct = Math.round(((i+1)/chunks.length)*100);
       setStatus(
-        `分析中（串流分段；win=${WIN_S}s/step=${(hop/sr).toFixed(0)}s${hop===win?"；加速模式（不重疊取樣）":""}）｜片段 ${i+1}/${chunks.length}｜${pct}%｜已處理 ${fmtSec(processedSec)} / ${fmtSec(durationSec)}｜預估剩餘 ~ ${fmtSec(etaSec)}`,
+        `分析中（串流分段；win=${WIN_S}s/step=${HOP_S}s）｜片段 ${i+1}/${chunks.length}｜${pct}%｜已處理 ${fmtSec(processedSec)} / ${fmtSec(durationSec)}｜預估剩餘 ~ ${fmtSec(etaSec)}`,
         true
       );
 
@@ -404,7 +414,7 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
     const pf = 1 / (1 + Math.exp(-logitAvg));
     const pm = 1 - pf;
     render(pf, pm);
-    setStatus(`完成（串流分段${(hop===win?"・加速":"")}）`);
+    setStatus("完成（串流分段）");
   } finally {
     stopHeartbeat();
   }
