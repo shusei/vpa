@@ -13,11 +13,11 @@ env.backends.onnx.wasm.numThreads = 1;
 
 // ===== 參數 =====
 const MODEL_ID        = (window.ONNX_MODEL_ID || "prithivMLmods/Common-Voice-Gender-Detection-ONNX");
-const TARGET_SR       = 16000;      // 模型需求：16 kHz
-const MAX_WHOLE_SEC   = 150;        // ≤150 秒走整段；>150 秒改串流分段
-const WARN_LONG_SEC   = 180;        // >3 分鐘提醒（仍會照跑）
-const STREAM_WIN_CAND = [12, 8, 6, 4]; // 串流分段長度候選（秒），遇到 OOM 逐級降載
-const STREAM_HOP_S    = 3;          // 分段位移（秒）— 適度重疊，穩一點
+const TARGET_SR       = 16000;          // 模型需求：16 kHz
+const MAX_WHOLE_SEC   = 150;            // ≤150 秒走整段；>150 秒改串流分段
+const WARN_LONG_SEC   = 180;            // >3 分鐘提醒（仍會照跑）
+const STREAM_WIN_CAND = [12, 8, 6, 4];  // 串流分段長度候選（秒），遇到 OOM 逐級降載
+const STREAM_HOP_S    = 3;              // 分段位移（秒）— 適度重疊，穩一點
 const EPS             = 1e-9;
 
 // ===== DOM =====
@@ -373,7 +373,7 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
       const pm = clamp01(map.male   || EPS);
       const logit = Math.log(pf) - Math.log(pm);
 
-      logitSum += logit * dur; // 權重 = 該段時長（避免靜音偏置，又不動原音）
+      logitSum += logit * dur; // 權重 = 該段時長
       wSum     += dur;
 
       // 即時顯示當前聚合
@@ -549,6 +549,55 @@ function wavToFloat32(arrayBuffer){
   return { float32: out, sr: fmt.sampleRate };
 }
 function str(v,s,l){ let x=""; for(let i=0;i<l;i++) x+=String.fromCharCode(v.getUint8(s+i)); return x; }
+
+// ====== 簡易人次計數（CountAPI + 每裝置每日去重） ======
+const COUNT_API = 'https://api.countapi.xyz';
+const COUNT_NS  = 'shusei_github_io_vpa'; // 建議用你的網域/專案名當命名空間，避免撞名
+
+function todayKey() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `vpa_${y}${m}${day}`; // 例如：vpa_20251022
+}
+
+async function updateCounter() {
+  const el = document.getElementById('userCount');
+  if (!el) return;
+
+  const key = todayKey();
+  const seenKey = `seen_${key}`;
+
+  try {
+    // 沒看過 → hit（+1）；看過 → get（只讀）
+    const url = localStorage.getItem(seenKey)
+      ? `${COUNT_API}/get/${COUNT_NS}/${key}`
+      : `${COUNT_API}/hit/${COUNT_NS}/${key}`;
+
+    const res = await fetch(url);
+    const data = await res.json();
+    const n = (typeof data.value === 'number') ? data.value : (data.count || 0);
+
+    el.textContent = `👥 今日人次 ${n}`;
+
+    // 標記今天已經算過一次，避免同裝置 F5 洗數
+    if (!localStorage.getItem(seenKey)) {
+      localStorage.setItem(seenKey, '1');
+    }
+  } catch (e) {
+    // 失敗就靜默，不影響主流程
+    el.textContent = '👥 今日人次 —';
+    console.warn('[counter]', e);
+  }
+}
+
+// DOM 已Ready就直接跑；否則掛事件
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', updateCounter);
+} else {
+  updateCounter();
+}
 
 // ===== 離站清理：離開頁面時釋放最後 URL =====
 window.addEventListener("beforeunload", () => {
