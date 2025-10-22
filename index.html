@@ -39,7 +39,6 @@
     <a class="chip link" href="https://github.com/shusei/vpa" target="_blank" rel="noopener">
       原始碼
     </a>
-    <span id="userCount" class="chip">👥 今日人次 —</span>
   </div>
 
   <p class="muted" style="margin:6px 0 0 0;font-size:12px;">
@@ -101,7 +100,7 @@
       <summary>方法簡述（專業透明）</summary>
       <ul class="bullets">
         <li>模型：<b>Wav2Vec2</b> 架構的二分類（女性/男性），ONNX 版本於瀏覽器推論。</li>
-        <li>音訊處理：只做 <b>單聲道混合</b> 與 <b>16 kHz 重採樣</b> 以符合模型；<b>不</b>去靜音、不調音量、不分段。</li>
+        <li>音訊處理：只做 <b>單聲道混合</b> 與 <b>16 kHz 重採樣</b> 以符合模型；<b>不</b>去靜音、不調音量。<b>超長檔或記憶體不足時</b>會自動改為「串流分段」（對數勝算聚合）。</li>
         <li>結果：顯示模型對兩類的分數（機率樣），以利自我觀察。</li>
       </ul>
       <p class="note">模型來源與授權：<a href="https://huggingface.co/prithivMLmods/Common-Voice-Gender-Detection" target="_blank" rel="noopener">Hugging Face Model Card</a>（Apache-2.0）。</p>
@@ -166,4 +165,5 @@
 </script>
 </body>
 </html>
+
 
