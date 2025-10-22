@@ -302,6 +302,9 @@ function ensurePlayerUI(){
   const container = document.querySelector(".container");
   if (!container) return;
 
+  // 避免重複建立
+  if (document.getElementById("playBtn")) return;
+
   // 包一個小卡片，美美的
   const wrap = document.createElement("div");
   wrap.className = "player";
@@ -341,8 +344,22 @@ function ensurePlayerUI(){
   wrap.appendChild(btn);
   wrap.appendChild(hint);
   wrap.appendChild(audio);
-  container.appendChild(wrap);
 
+  // ★★ 關鍵：插在「提示（.callout）」之前 ★★
+  const tipEl = container.querySelector(".callout");
+  if (tipEl) {
+    container.insertBefore(wrap, tipEl);
+  } else {
+    // 找不到就退而求其次：放在 status 後面
+    const statusEl = container.querySelector("#status");
+    if (statusEl && statusEl.parentNode) {
+      statusEl.parentNode.insertBefore(wrap, statusEl.nextSibling);
+    } else {
+      container.appendChild(wrap);
+    }
+  }
+
+  // 綁定控制
   playBtn = btn;
   audioEl = audio;
 
