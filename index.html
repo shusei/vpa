@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="zh-Hant" data-mode="auto">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -21,49 +21,60 @@
         </svg>
       </button>
 
-      <!-- 主題選單（擴充 26 類） -->
+      <!-- 第一次載入的一次性提示（齒輪） -->
+      <div id="themeTip" class="theme-tip" role="status" aria-live="polite" hidden>
+        <span>主題在這裡（會記住）</span>
+      </div>
+
+      <!-- 主題選單（含三切：Auto／淺色／深色） -->
       <div id="themeMenu" class="theme-menu" role="menu" aria-label="主題" hidden>
+        <div class="theme-tabs" role="tablist" aria-label="主題模式">
+          <button id="tabAuto"  class="tab" role="tab" aria-selected="true">Auto</button>
+          <button id="tabLight" class="tab" role="tab" aria-selected="false">淺色</button>
+          <button id="tabDark"  class="tab" role="tab" aria-selected="false">深色</button>
+        </div>
+
         <div class="theme-menu__title">主題</div>
 
         <!-- Neutrals -->
-        <button class="theme-item" role="menuitemradio" data-theme="day"><span class="swatch swatch--day"></span>Day</button>
-        <button class="theme-item" role="menuitemradio" data-theme="night"><span class="swatch swatch--night"></span>Night</button>
-        <button class="theme-item" role="menuitemradio" data-theme="contrast"><span class="swatch swatch--contrast"></span>Contrast</button>
-        <button class="theme-item" role="menuitemradio" data-theme="slate"><span class="swatch swatch--slate"></span>Slate</button>
-        <button class="theme-item" role="menuitemradio" data-theme="graphite"><span class="swatch swatch--graphite"></span>Graphite</button>
-        <button class="theme-item" role="menuitemradio" data-theme="sand"><span class="swatch swatch--sand"></span>Sand</button>
-        <button class="theme-item" role="menuitemradio" data-theme="latte"><span class="swatch swatch--latte"></span>Latte</button>
-        <button class="theme-item" role="menuitemradio" data-theme="clay"><span class="swatch swatch--clay"></span>Clay</button>
+        <button class="theme-item for-light" role="menuitemradio" data-theme="day" data-faction="light"><span class="swatch swatch--day"></span>Day</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="night" data-faction="dark"><span class="swatch swatch--night"></span>Night</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="contrast" data-faction="dark"><span class="swatch swatch--contrast"></span>Contrast</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="slate" data-faction="dark"><span class="swatch swatch--slate"></span>Slate</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="graphite" data-faction="dark"><span class="swatch swatch--graphite"></span>Graphite</button>
+        <button class="theme-item for-light" role="menuitemradio" data-theme="sand" data-faction="light"><span class="swatch swatch--sand"></span>Sand</button>
+        <button class="theme-item for-light" role="menuitemradio" data-theme="latte" data-faction="light"><span class="swatch swatch--latte"></span>Latte</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="clay" data-faction="dark"><span class="swatch swatch--clay"></span>Clay</button>
 
         <!-- Warm -->
-        <button class="theme-item" role="menuitemradio" data-theme="warm" aria-checked="true"><span class="swatch swatch--warm"></span>Warm</button>
-        <button class="theme-item" role="menuitemradio" data-theme="peach"><span class="swatch swatch--peach"></span>Peach</button>
-        <button class="theme-item" role="menuitemradio" data-theme="rose"><span class="swatch swatch--rose"></span>Rose</button>
-        <button class="theme-item" role="menuitemradio" data-theme="blush"><span class="swatch swatch--blush"></span>Blush</button>
-        <button class="theme-item" role="menuitemradio" data-theme="coral"><span class="swatch swatch--coral"></span>Coral</button>
-        <button class="theme-item" role="menuitemradio" data-theme="amber"><span class="swatch swatch--amber"></span>Amber</button>
-        <button class="theme-item" role="menuitemradio" data-theme="gold"><span class="swatch swatch--gold"></span>Gold</button>
-        <button class="theme-item" role="menuitemradio" data-theme="cocoa"><span class="swatch swatch--cocoa"></span>Cocoa</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="warm" aria-checked="true" data-faction="dark"><span class="swatch swatch--warm"></span>Warm</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="peach" data-faction="dark"><span class="swatch swatch--peach"></span>Peach</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="rose" data-faction="dark"><span class="swatch swatch--rose"></span>Rose</button>
+        <button class="theme-item for-light" role="menuitemradio" data-theme="blush" data-faction="light"><span class="swatch swatch--blush"></span>Blush</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="coral" data-faction="dark"><span class="swatch swatch--coral"></span>Coral</button>
+        <button class="theme-item for-light" role="menuitemradio" data-theme="amber" data-faction="light"><span class="swatch swatch--amber"></span>Amber</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="gold" data-faction="dark"><span class="swatch swatch--gold"></span>Gold</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="cocoa" data-faction="dark"><span class="swatch swatch--cocoa"></span>Cocoa</button>
 
         <!-- Cool -->
-        <button class="theme-item" role="menuitemradio" data-theme="olive"><span class="swatch swatch--olive"></span>Olive</button>
-        <button class="theme-item" role="menuitemradio" data-theme="emerald"><span class="swatch swatch--emerald"></span>Emerald</button>
-        <button class="theme-item" role="menuitemradio" data-theme="teal"><span class="swatch swatch--teal"></span>Teal</button>
-        <button class="theme-item" role="menuitemradio" data-theme="aqua"><span class="swatch swatch--aqua"></span>Aqua</button>
-        <button class="theme-item" role="menuitemradio" data-theme="cyan"><span class="swatch swatch--cyan"></span>Cyan</button>
-        <button class="theme-item" role="menuitemradio" data-theme="sky"><span class="swatch swatch--sky"></span>Sky</button>
-        <button class="theme-item" role="menuitemradio" data-theme="azure"><span class="swatch swatch--azure"></span>Azure</button>
-        <button class="theme-item" role="menuitemradio" data-theme="cobalt"><span class="swatch swatch--cobalt"></span>Cobalt</button>
-        <button class="theme-item" role="menuitemradio" data-theme="indigo"><span class="swatch swatch--indigo"></span>Indigo</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="olive" data-faction="dark"><span class="swatch swatch--olive"></span>Olive</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="emerald" data-faction="dark"><span class="swatch swatch--emerald"></span>Emerald</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="teal" data-faction="dark"><span class="swatch swatch--teal"></span>Teal</button>
+        <button class="theme-item for-light" role="menuitemradio" data-theme="aqua" data-faction="light"><span class="swatch swatch--aqua"></span>Aqua</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="cyan" data-faction="dark"><span class="swatch swatch--cyan"></span>Cyan</button>
+        <button class="theme-item for-light" role="menuitemradio" data-theme="sky" data-faction="light"><span class="swatch swatch--sky"></span>Sky</button>
+        <button class="theme-item for-light" role="menuitemradio" data-theme="azure" data-faction="light"><span class="swatch swatch--azure"></span>Azure</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="cobalt" data-faction="dark"><span class="swatch swatch--cobalt"></span>Cobalt</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="indigo" data-faction="dark"><span class="swatch swatch--indigo"></span>Indigo</button>
 
         <!-- Purple / Pink -->
-        <button class="theme-item" role="menuitemradio" data-theme="lavender"><span class="swatch swatch--lavender"></span>Lavender</button>
-        <button class="theme-item" role="menuitemradio" data-theme="violet"><span class="swatch swatch--violet"></span>Violet</button>
-        <button class="theme-item" role="menuitemradio" data-theme="grape"><span class="swatch swatch--grape"></span>Grape</button>
-        <button class="theme-item" role="menuitemradio" data-theme="plum"><span class="swatch swatch--plum"></span>Plum</button>
-        <button class="theme-item" role="menuitemradio" data-theme="magenta"><span class="swatch swatch--magenta"></span>Magenta</button>
-        <button class="theme-item" role="menuitemradio" data-theme="fuchsia"><span class="swatch swatch--fuchsia"></span>Fuchsia</button>
-        <button class="theme-item" role="menuitemradio" data-theme="ink"><span class="swatch swatch--ink"></span>Ink</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="lavender" data-faction="dark"><span class="swatch swatch--lavender"></span>Lavender</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="violet" data-faction="dark"><span class="swatch swatch--violet"></span>Violet</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="grape" data-faction="dark"><span class="swatch swatch--grape"></span>Grape</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="plum" data-faction="dark"><span class="swatch swatch--plum"></span>Plum</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="magenta" data-faction="dark"><span class="swatch swatch--magenta"></span>Magenta</button>
+        <button class="theme-item for-light" role="menuitemradio" data-theme="fuchsia" data-faction="light"><span class="swatch swatch--fuchsia"></span>Fuchsia</button>
+        <button class="theme-item for-dark" role="menuitemradio" data-theme="ink" data-faction="dark"><span class="swatch swatch--ink"></span>Ink</button>
       </div>
 
       <h1 class="hero-title">
@@ -73,6 +84,7 @@
 
       <div class="trust-row">
         <span class="chip local" title="100% 本地推論">本地推論・不上傳</span>
+        <span class="chip">可換主題</span>
         <a class="chip link" href="https://huggingface.co/prithivMLmods/Common-Voice-Gender-Detection" target="_blank" rel="noopener">
           模型：Common-Voice-Gender-Detection（ONNX）
         </a>
@@ -80,7 +92,7 @@
       </div>
 
       <p class="subline">
-        溫柔提醒：這裡顯示的是「模型對聲音表現的感知傾向」，不是性別認同的結論。請把它當作練習回饋。
+        溫柔提醒：這裡顯示的是「模型對聲音表現的感知傾向」，不是性別認同的結論。請把它當作練習回饋；右上齒輪可切換主題、會記住。
       </p>
 
       <!-- Start -->
