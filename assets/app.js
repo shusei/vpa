@@ -4,9 +4,6 @@ import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers
 /** 只用遠端（Hugging Face Hub），停用本機 /models 尋址 */
 env.allowLocalModels = false;
 env.allowRemoteModels = true;
-env.remoteHost = "https://huggingface.co";
-/** NOTE: 這版 Transformers.js 需用「單大括號」佔位字 */
-env.remotePathTemplate = "{model}/resolve/{revision}/{file}";
 
 /** 視需要可調整：WASM 執行緒數 */
 env.backends.onnx.wasm.numThreads = 1;
@@ -663,17 +660,21 @@ function percentile(arr, p){
   return a[idx];
 }
 function smoothMask(mask, k=3){
+  // 把長度 < k 的 0 洞補成 1
   let count=0;
   for (let i=0;i<=mask.length;i++){
-    if (i<mask.length && !mask[i]) count++; else {
-      if (count>0 && count<k){ for (let j=i-count;j+i;j++) mask[j]=true; }
+    if (i<mask.length && !mask[i]) count++;
+    else {
+      if (count>0 && count<k){ for (let j=i-count; j<i; j++) mask[j]=true; }
       count=0;
     }
   }
+  // 把長度 < k 的 1 島補成 0
   count=0;
   for (let i=0;i<=mask.length;i++){
-    if (i<mask.length && mask[i]) count++; else {
-      if (count>0 && count<k){ for (let j=i-count;j<i;j++) mask[j]=false; }
+    if (i<mask.length && mask[i]) count++;
+    else {
+      if (count>0 && count<k){ for (let j=i-count; j<i; j++) mask[j]=false; }
       count=0;
     }
   }
