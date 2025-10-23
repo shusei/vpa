@@ -4,7 +4,7 @@ import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers
    CONFIG（標準模式；主題記憶；清除模型；容量估算）
    =================================== */
 
-/* ★ 關鍵：禁止用本地 /models，避免抓到你網域的 404 路徑 */
+/* 禁用本地 /models，避免去你網域抓模型而 404 */
 env.allowLocalModels = false;
 
 /* onnxruntime web 設定 */
@@ -60,9 +60,10 @@ let clf = null;
 let busy = false;
 let heartbeatTimer = null;
 
-/* ===== 下載進度視覺強化（bytes / 速度 / 動態省略號） ===== */
+/* ===== 下載進度視覺（Safari 友善：沒 bytes 不顯示數字） ===== */
 const prog = {
-  active: false,
+  started: false,      // 有沒有收到任何 progress_callback
+  ticking: false,
   loaded: 0,
   total: 0,
   pct: null,
@@ -81,41 +82,46 @@ function humanBytes(n){
   return `${n.toFixed(fixed)} ${u[i]}`;
 }
 function startProgressTicker(){
-  if (prog._ticker) return;
-  prog.active = true;
+  if (prog.ticking) return;
+  prog.ticking = true;
   prog._lastT = performance.now();
   prog._lastB = prog.loaded || 0;
   prog._ticker = setInterval(() => {
-    // 動態省略號
+    // 動態省略號 & 速度估計
     prog.dot = (prog.dot + 1) % 4;
-    // 即時速度估計（即使 callback 暫停也讓 UI 活著）
     const now = performance.now();
-    const dt = Math.max(1, now - prog._lastT); // ms
+    const dt = Math.max(1, now - prog._lastT);
     const db = (prog.loaded || 0) - prog._lastB;
     const instBps = (db * 1000) / dt;
     prog.speedBps = prog.speedBps === 0 ? instBps : (prog.speedBps * 0.8 + instBps * 0.2);
     prog._lastT = now;
     prog._lastB = prog.loaded || 0;
 
-    // 組合文案
     const dots = ".".repeat(prog.dot);
-    const hasTotal = isFinite(prog.total) && prog.total > 0;
+    const hasBytes = (prog.loaded > 0) || (prog.total > 0) || (prog.pct != null);
+    const nearDone = (prog.pct != null && prog.pct >= 0.999);
+    const phase = nearDone ? "（初始化/編譯中）" : "";
+
+    // 沒 bytes → 不要顯示「0 B」
+    if (!hasBytes) {
+      setStatus(`${prog.label}… ${phase} ${dots}`, true);
+      return;
+    }
+
     const pctStr = (prog.pct != null) ? ` ${Math.min(100, Math.max(0, Math.floor(prog.pct*100)))}%` : "";
-    const bytesStr = hasTotal
+    const bytesStr = (prog.total > 0)
       ? `${humanBytes(prog.loaded)} / ${humanBytes(prog.total)}${pctStr}`
-      : `${humanBytes(prog.loaded)}`;
+      : `${humanBytes(prog.loaded)}${pctStr}`;
     const speedStr = prog.speedBps > 0 ? ` ｜${humanBytes(prog.speedBps)}/s` : "";
-    const phase = (prog.pct != null && prog.pct >= 0.999) ? "（初始化/編譯中）" : "";
+
     setStatus(`${prog.label}${phase}… ${bytesStr}${speedStr} ${dots}`, true);
   }, 400);
 }
 function stopProgressTicker(){
-  prog.active = false;
   if (prog._ticker){ clearInterval(prog._ticker); prog._ticker = null; }
+  prog.ticking = false;
   prog.dot = 0; prog.speedBps = 0;
 }
-
-log("[app] ready — standard mode, theme memory, model cache clear, storage estimate enabled.");
 
 /* ========== 版本/日期（以 app.js Last-Modified） ========== */
 (async function fillBuildMeta(){
@@ -183,7 +189,7 @@ function ensureSettingsUI(){
   const rowClear = document.createElement("div"); rowClear.className = "row";
   rowClear.innerHTML = `
     <button class="kbtn danger" id="clearModelBtn">清除模型快取</button>
-    <div class="muted">清除 transformers / ffmpeg 相關快取與索引資料庫。清除後首次推論會重新下載。</div>
+    <div class="muted">清除 transformers / ffmpeg 相關快取與索引資料庫。HTTP 快取層 Safari 可能仍保留，見下方說明。</div>
   `;
 
   panel.appendChild(rowTheme);
@@ -209,7 +215,7 @@ function ensureSettingsUI(){
   panel.querySelector("#clearModelBtn")?.addEventListener("click", async () => {
     await clearModelCaches();
     await updateStorageEstimate();
-    alert("已清除模型快取。重新整理可釋放更多瀏覽器 HTTP 快取。");
+    alert("已清除本地快取（IndexedDB / CacheStorage）。若在 Safari 仍覺得像是舊檔，請嘗試『從原始位置重新載入』或清網站資料。");
   });
 
   updateStorageEstimate(); // 首次顯示
@@ -247,10 +253,10 @@ async function clearModelCaches(){
     }catch{}
   }
 
-  // 3) transformers.js 內部快取選項（防守）
+  // 3) transformers.js 內部選項（防守）
   try { env.cacheModel = false; } catch {}
 
-  // 4) 保持遠端模式
+  // 4) 避免本地 models
   env.allowLocalModels = false;
 }
 
@@ -267,7 +273,7 @@ function isOOMError(err){
   return /OrtRun|bad_alloc|out of memory|memory|alloc/i.test(msg);
 }
 
-/* ========== ★ 新增：重置男女條 ========== */
+/* ========== ★ 重置男女條 ========== */
 function resetMeter(){
   try{
     meter?.classList.remove("hidden");
@@ -297,9 +303,9 @@ fileInput?.addEventListener("change", async (e) => {
   try {
     const f = e.target.files?.[0];
     if (!f) return;
-    resetMeter();                 // ★ 一選檔就歸零，避免殘留舊分數
+    resetMeter();                 // 一選檔就歸零
     await handleFileOrBlob(f);
-    e.target.value = "";          // ★ 不留任何檔案引用
+    e.target.value = "";          // 清 file input 引用
   } catch (err){ console.error("[fileInput]", err); setStatus("上傳處理失敗"); }
 });
 
@@ -318,7 +324,7 @@ async function startRecording(){
   if (typeof MediaRecorder === "undefined"){
     setStatus("此瀏覽器不支援錄音，請改用右下角上傳"); return;
   }
-  resetMeter();                   // ★ 一按開始錄音就歸零
+  resetMeter();
   const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
   chunks = [];
   const mimeType = pickSupportedMime();
@@ -327,7 +333,7 @@ async function startRecording(){
   mediaRecorder.onstop = async () => {
     try {
       const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
-      chunks.length = 0;          // ★ 立刻丟暫存
+      chunks.length = 0;
       await handleFileOrBlob(blob);
     } catch (e) {
       console.error("[onstop]", e); setStatus("錄音處理失敗");
@@ -356,7 +362,7 @@ async function handleFileOrBlob(fileOrBlob){
   busy = true;
   let decoded = null;
   try {
-    // 播放器總是只綁最新一個來源
+    // 播放器只綁最新來源
     setPlaybackSource(fileOrBlob);
 
     setStatus("解析檔案…", true);
@@ -368,7 +374,7 @@ async function handleFileOrBlob(fileOrBlob){
       await microYield();
     }
 
-    // 自適應 VAD（只做「選段」）
+    // 自適應 VAD（只做選段，不動原音）
     const vad = maybeApplyAdaptiveVAD(float32, sr);
     if (vad && vad.used) {
       const reducedRatio = 1 - (vad.keptSec / durationSec);
@@ -387,7 +393,7 @@ async function handleFileOrBlob(fileOrBlob){
     console.error("[handleFileOrBlob]", e);
     setStatus("處理失敗：" + (e?.message || "無法解碼或分析此音檔"));
   } finally {
-    if (decoded) decoded.float32 = null; // 放掉大陣列
+    if (decoded) decoded.float32 = null;
     decoded = null;
     busy = false;
   }
@@ -495,7 +501,7 @@ async function transcodeToWav16kViaFFmpeg(blobOrFile){
   const out = ffmpeg.FS("readFile", outName);
   try { ffmpeg.FS("unlink", inName); } catch {}
   try { ffmpeg.FS("unlink", outName); } catch {}
-  try { await ffmpeg.exit(); } catch {} // ★ 釋放 WASM 記憶體
+  try { await ffmpeg.exit(); } catch {} // 釋放 WASM 記憶體
 
   return new Blob([out.buffer], { type: "audio/wav" });
 }
@@ -504,26 +510,41 @@ async function transcodeToWav16kViaFFmpeg(blobOrFile){
 async function ensurePipeline(){
   if (clf) return clf;
 
-  // 啟動進度跑馬燈（就算 callback 暫停也會動）
-  prog.label = "下載模型中";
-  prog.loaded = 0; prog.total = 0; prog.pct = null;
-  startProgressTicker();
+  // 進入初始化階段：先給「準備中」的 spinner（不要顯示 0 B）
+  setStatus("下載/初始化模型中…", true);
+
+  // 用旗標記錄是否真的收到任何 progress 回報（Safari 走快取時通常沒有 bytes）
+  prog.started = false;
+  prog.loaded = 0; prog.total = 0; prog.pct = null; prog.label = "下載模型中";
 
   const progress_callback = (p)=>{
-    // p: { status, loadedBytes, totalBytes, progress }
     if (!p) return;
+    if (!prog.started) {
+      prog.started = true;
+      startProgressTicker(); // 第一次才啟動跑馬燈
+    }
     if (p.status) prog.label = p.status.replace(/^Downloading/i, "下載模型中");
     if (typeof p.loadedBytes === "number") prog.loaded = p.loadedBytes;
     if (typeof p.totalBytes === "number")  prog.total  = p.totalBytes;
-    if (typeof p.progress === "number" && isFinite(p.progress)) prog.pct = p.progress; // 0..1
-    // 畫面更新交給 ticker，每 400ms 會重繪
+    if (typeof p.progress === "number" && isFinite(p.progress)) prog.pct = p.progress;
   };
 
   try{
     const device = (typeof navigator !== 'undefined' && navigator.gpu) ? 'webgpu' : 'wasm';
+    const t0 = performance.now();
     clf = await pipeline("audio-classification", MODEL_ID, { progress_callback, device });
+
+    // 成功後收尾
     stopProgressTicker();
-    setStatus(`模型就緒（device: ${device}）`);
+    const took = performance.now() - t0;
+
+    // 如果完全沒啟動進度（多半是走 HTTP 快取），給清楚文案
+    if (!prog.started) {
+      const quick = took < 1500;
+      setStatus(quick ? `模型就緒（快取）` : `模型就緒`);
+    } else {
+      setStatus(`模型就緒（device: ${device}）`);
+    }
     return clf;
   } catch (err){
     stopProgressTicker();
