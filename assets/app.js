@@ -4,10 +4,10 @@ import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers
    CONFIG（標準模式；主題記憶；清除模型；容量估算）
    =================================== */
 
-/* ★ 關鍵修正：禁止用本地 /models，避免 404 到 https://你的網域/models/... */
+/* ★ 關鍵：禁止用本地 /models，避免抓到你網域的 404 路徑 */
 env.allowLocalModels = false;
 
-/* 可選：指定 onnxruntime web 的 wasm 路徑（CDN），避免本地找檔 */
+/* onnxruntime web 設定 */
 env.backends.onnx.wasm.numThreads = 1;
 
 const MODEL_ID        = (window.ONNX_MODEL_ID || "prithivMLmods/Common-Voice-Gender-Detection-ONNX");
@@ -21,7 +21,7 @@ const EPS             = 1e-9;
 const VAD_MIN_APPLY_SEC   = 20, VAD_FRAME_MS=30, VAD_HOP_MS=10, VAD_PAD_MS=60, VAD_MIN_SEG_MS=200, VAD_MIN_VOICED_SEC=2, VAD_SILENCE_RATIO_TO_APPLY=0.15;
 const IS_SAFARI = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
-/* ========== 主題常數（先宣告，避免 use-before-init） ========== */
+/* ========== 主題常數（先宣告） ========== */
 const THEMES = ["warm","lavender","peach","mint","ink","day","night","contrast"];
 
 function applyTheme(name){
@@ -195,11 +195,11 @@ async function clearModelCaches(){
   // 3) transformers.js 內部快取選項（防守）
   try { env.cacheModel = false; } catch {}
 
-  // 4) 再次保險：保持遠端模式
+  // 4) 保持遠端模式
   env.allowLocalModels = false;
 }
 
-/* ========== UI 工具 ========== */
+/* ========== UI 小工具 ========== */
 function setStatus(text, spin=false) {
   if (!statusEl) return;
   statusEl.innerHTML = spin ? `<span class="spinner"></span> ${text}` : text;
@@ -210,6 +210,19 @@ function clamp01(x){ return Math.min(1, Math.max(EPS, x)); }
 function isOOMError(err){
   const msg = String(err?.message || err || "");
   return /OrtRun|bad_alloc|out of memory|memory|alloc/i.test(msg);
+}
+
+/* ========== ★ 新增：重置男女條 ========== */
+function resetMeter(){
+  try{
+    meter?.classList.remove("hidden");
+    const barF = document.querySelector(".bar.female");
+    const barM = document.querySelector(".bar.male");
+    if (barF) barF.style.setProperty("--p", 0);
+    if (barM) barM.style.setProperty("--p", 0);
+    if (femaleVal) femaleVal.textContent = "0.0%";
+    if (maleVal)   maleVal.textContent   = "0.0%";
+  }catch{}
 }
 
 /* ========== 事件：錄音／上傳 ========== */
@@ -229,8 +242,9 @@ fileInput?.addEventListener("change", async (e) => {
   try {
     const f = e.target.files?.[0];
     if (!f) return;
+    resetMeter();                 // ★ 一選檔就歸零，避免殘留舊分數
     await handleFileOrBlob(f);
-    e.target.value = "";              // ★ 不留任何檔案引用
+    e.target.value = "";          // ★ 不留任何檔案引用
   } catch (err){ console.error("[fileInput]", err); setStatus("上傳處理失敗"); }
 });
 
@@ -249,6 +263,7 @@ async function startRecording(){
   if (typeof MediaRecorder === "undefined"){
     setStatus("此瀏覽器不支援錄音，請改用右下角上傳"); return;
   }
+  resetMeter();                   // ★ 一按開始錄音就歸零
   const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
   chunks = [];
   const mimeType = pickSupportedMime();
@@ -257,7 +272,7 @@ async function startRecording(){
   mediaRecorder.onstop = async () => {
     try {
       const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
-      chunks.length = 0;              // ★ 立刻丟暫存
+      chunks.length = 0;          // ★ 立刻丟暫存
       await handleFileOrBlob(blob);
     } catch (e) {
       console.error("[onstop]", e); setStatus("錄音處理失敗");
