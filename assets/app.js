@@ -7,6 +7,7 @@
 // - 聚合使用「對數勝算」，盡量貼近整段一次結果
 // - 追加：自適應 VAD（能跳過長靜音；只做「選段」不改動原音），WebGPU/WASM 自動選擇 device
 // - 修正：模型下載 progress 可能 >100% 的顯示 bug（無 Content-Length 時改為僅顯示狀態或 clamp 至 99%）；ffmpeg ratio 也做 clamp
+// - 新增：自動用 HEAD 讀取 app.js 的 Last-Modified，填入 #updatedAt 與 #ver（HTML 不用改）
 
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
 
@@ -57,6 +58,35 @@ let busy = false;
 let heartbeatTimer = null;
 
 log("[app] whole-pass (≤150s) + streamed long-mode + auto downshift + Safari m4a hardening + adaptive VAD + player + GC-safe ready.");
+
+// ====== 版本/日期自動填入（以 app.js Last-Modified 為準）======
+(async function fillBuildMeta(){
+  try {
+    const verEl = document.getElementById('ver');
+    const updEl = document.getElementById('updatedAt');
+    if (!verEl && !updEl) return;
+
+    const selfUrl = (import.meta && import.meta.url) ? import.meta.url : 'assets/app.js';
+    const res = await fetch(selfUrl, { method: 'HEAD', cache: 'no-store' });
+    let d = null;
+    if (res.ok) {
+      const lm = res.headers.get('last-modified');
+      if (lm) d = new Date(lm);
+    }
+    if (!d || isNaN(d.getTime())) d = new Date();
+
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mm = String(d.getMinutes()).padStart(2,'0');
+
+    if (updEl) updEl.textContent = `${y}-${m}-${day}`;
+    if (verEl) verEl.textContent = `build-${y}${m}${day}-${hh}${mm}`;
+  } catch (e) {
+    // 靜默失敗，不影響主流程
+  }
+})();
 
 function setStatus(text, spin=false) {
   if (!statusEl) return;
