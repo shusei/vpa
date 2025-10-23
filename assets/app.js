@@ -8,56 +8,186 @@ env.allowRemoteModels = true;
 /** 視需要可調整：WASM 執行緒數 */
 env.backends.onnx.wasm.numThreads = 1;
 
-// ===== Theme (完整主題清單 + 記憶) =====
-const THEME_KEY = "vpa.theme";
+// ===== Theme（三切 + 每派記憶 + 一次性提示） =====
+const MODE_KEY = "vpa.themeMode";          // 'auto' | 'light' | 'dark'
+const LAST_LIGHT_KEY = "vpa.lastLight";    // ex: 'day'
+const LAST_DARK_KEY  = "vpa.lastDark";     // ex: 'night'
+const LEGACY_KEY     = "vpa.theme";        // 舊版單一主題鍵（會自動遷移）
+const TIP_KEY        = "vpa.themeTipDone"; // 一次性齒輪提示
+
+// 26 主題（名稱需與 index.html data-theme 對齊）
 const THEMES = [
-  // Neutrals
-  "day","night","contrast","slate","graphite","sand","latte","clay",
-  // Warm
-  "warm","peach","rose","blush","coral","amber","gold","cocoa",
-  // Cool
-  "olive","emerald","teal","aqua","cyan","sky","azure","cobalt","indigo",
-  // Purple/Pink
-  "lavender","violet","grape","plum","magenta","fuchsia",
-  // Extras
-  "ink"
+  "warm","lavender","peach","ink","day","night","contrast","slate","graphite","sand","latte","clay",
+  "rose","blush","coral","amber","gold","cocoa","olive","emerald","teal","aqua","cyan","sky","azure",
+  "cobalt","indigo","violet","grape","plum","magenta","fuchsia"
 ];
 
-function getSavedTheme(){ try{ return localStorage.getItem(THEME_KEY) || "warm"; }catch{ return "warm"; } }
-function applyTheme(t){
-  if (!THEMES.includes(t)) t = "warm";
+// 兩派：背景白（light）與背景深（dark）
+// 注意：依據樣式檔的 --bg-start / --bg-end 設計而分
+const THEME_FACTION = {
+  day:"light", sand:"light", latte:"light", blush:"light", amber:"light",
+  aqua:"light", sky:"light", azure:"light", fuchsia:"light",
+
+  warm:"dark", lavender:"dark", peach:"dark", ink:"dark", night:"dark", contrast:"dark",
+  slate:"dark", graphite:"dark", clay:"dark", rose:"dark", coral:"dark", gold:"dark", cocoa:"dark",
+  olive:"dark", emerald:"dark", teal:"dark", cyan:"dark", cobalt:"dark", indigo:"dark",
+  violet:"dark", grape:"dark", plum:"dark", magenta:"dark"
+};
+
+function getSystemFaction(){
+  try {
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  } catch { return "light"; }
+}
+function getSavedMode(){
+  try{ return (localStorage.getItem(MODE_KEY) || "auto"); }catch{ return "auto"; }
+}
+function setSavedMode(m){ try{ localStorage.setItem(MODE_KEY, m); }catch{} }
+function getSavedLast(faction){
+  const key = faction === "light" ? LAST_LIGHT_KEY : LAST_DARK_KEY;
+  let val = null; try{ val = localStorage.getItem(key); }catch{}
+  if (!val || !THEMES.includes(val) || THEME_FACTION[val] !== faction){
+    // 預設各派
+    val = faction === "light" ? "day" : "night";
+  }
+  return val;
+}
+function setSavedLast(theme){
+  const faction = THEME_FACTION[theme] || "dark";
+  const key = faction === "light" ? LAST_LIGHT_KEY : LAST_DARK_KEY;
+  try{ localStorage.setItem(key, theme); }catch{}
+}
+
+function migrateLegacyTheme(){
+  try{
+    const old = localStorage.getItem(LEGACY_KEY);
+    if (!old) return;
+    const f = THEME_FACTION[old] || getSystemFaction();
+    setSavedLast(old);
+    localStorage.removeItem(LEGACY_KEY);
+  }catch{}
+}
+
+// 目前模式與派系（以 data- 屬性呈現）
+function applyMode(mode){
+  const m = (mode === "light" || mode === "dark" || mode === "auto") ? mode : "auto";
+  setSavedMode(m);
+  document.documentElement.setAttribute("data-mode", m);
+
+  const faction = (m === "auto") ? getSystemFaction() : m;
+  document.documentElement.setAttribute("data-faction", faction);
+
+  // 如果已套的主題不在該派，就切到該派最後一次主題
+  const now = document.documentElement.getAttribute("data-theme");
+  if (!now || THEME_FACTION[now] !== faction){
+    applyTheme(getSavedLast(faction), false);
+  }
+  refreshThemeChecks();
+  refreshTabUI();
+}
+function applyTheme(t, persist=true){
+  if (!THEMES.includes(t)) t = getSavedLast(getSystemFaction());
+  const faction = THEME_FACTION[t] || getSystemFaction();
   document.documentElement.setAttribute("data-theme", t);
-  try{ localStorage.setItem(THEME_KEY, t); }catch{}
+  document.documentElement.setAttribute("data-faction", faction);
+  if (persist) setSavedLast(t);
+  refreshThemeChecks();
+}
+function refreshThemeChecks(){
   document.querySelectorAll(".theme-item").forEach(btn=>{
-    btn.setAttribute("aria-checked", btn.dataset.theme === t ? "true":"false");
+    const checked = btn.dataset.theme === document.documentElement.getAttribute("data-theme");
+    btn.setAttribute("aria-checked", checked ? "true" : "false");
   });
 }
+function refreshTabUI(){
+  const mode = document.documentElement.getAttribute("data-mode") || "auto";
+  const map = { auto: "#tabAuto", light: "#tabLight", dark: "#tabDark" };
+  for (const [k, sel] of Object.entries(map)){
+    const el = document.querySelector(sel);
+    if (!el) continue;
+    el.setAttribute("aria-selected", k === mode ? "true" : "false");
+    el.classList.toggle("active", k === mode);
+  }
+}
+
 function initThemeUI(){
-  applyTheme(getSavedTheme());
+  migrateLegacyTheme();
+
+  // 初始 Mode + 主題
+  applyMode(getSavedMode());
+
   const gear = document.getElementById("settingsBtn");
   const menu = document.getElementById("themeMenu");
-  if (!gear || !menu) return;
-  gear.addEventListener("click", (e)=>{
-    e.stopPropagation();
-    const open = !menu.hasAttribute("hidden");
-    if (open){ menu.setAttribute("hidden",""); gear.setAttribute("aria-expanded","false"); }
-    else { menu.removeAttribute("hidden"); gear.setAttribute("aria-expanded","true"); }
-  });
-  document.addEventListener("click", (e)=>{
-    if (!menu.contains(e.target) && e.target !== gear && !gear.contains(e.target)){
-      if (!menu.hasAttribute("hidden")){ menu.setAttribute("hidden",""); gear.setAttribute("aria-expanded","false"); }
-    }
-  });
-  menu.querySelectorAll(".theme-item").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      applyTheme(btn.dataset.theme);
-      menu.setAttribute("hidden",""); gear.setAttribute("aria-expanded","false");
+  const tip  = document.getElementById("themeTip");
+
+  if (gear && menu){
+    gear.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      const open = !menu.hasAttribute("hidden");
+      if (open){ menu.setAttribute("hidden",""); gear.setAttribute("aria-expanded","false"); }
+      else {
+        menu.removeAttribute("hidden");
+        gear.setAttribute("aria-expanded","true");
+        // 第一次打開齒輪時，關閉一次性提示
+        if (tip && !tip.hasAttribute("hidden")){
+          tip.setAttribute("hidden","");
+          try{ localStorage.setItem(TIP_KEY, "1"); }catch{}
+        }
+      }
     });
-  });
+    document.addEventListener("click", (e)=>{
+      if (!menu.contains(e.target) && e.target !== gear && !gear.contains(e.target)){
+        if (!menu.hasAttribute("hidden")){ menu.setAttribute("hidden",""); gear.setAttribute("aria-expanded","false"); }
+      }
+      if (tip && !tip.hasAttribute("hidden")){ tip.setAttribute("hidden",""); try{ localStorage.setItem(TIP_KEY, "1"); }catch{} }
+    });
+
+    // 主題項
+    menu.querySelectorAll(".theme-item").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        applyTheme(btn.dataset.theme, true);
+        menu.setAttribute("hidden",""); gear.setAttribute("aria-expanded","false");
+      });
+    });
+
+    // 三切 Tabs
+    const modeBtns = [
+      ["auto",  document.getElementById("tabAuto")],
+      ["light", document.getElementById("tabLight")],
+      ["dark",  document.getElementById("tabDark")],
+    ];
+    for (const [name, el] of modeBtns){
+      if (!el) continue;
+      el.addEventListener("click", ()=>{
+        applyMode(name);
+      });
+    }
+
+    // Auto 監聽系統深淺變化
+    try{
+      const mq = window.matchMedia("(prefers-color-scheme: dark)");
+      mq.addEventListener?.("change", ()=>{
+        if ((localStorage.getItem(MODE_KEY)||"auto") === "auto"){
+          applyMode("auto");
+        }
+      });
+    }catch{}
+  }
+
+  // 一次性提示（齒輪）
+  try{
+    const done = localStorage.getItem(TIP_KEY) === "1";
+    if (!done && tip){
+      tip.removeAttribute("hidden");
+      // 自動收起
+      setTimeout(()=>{ try{ tip.setAttribute("hidden",""); localStorage.setItem(TIP_KEY,"1"); }catch{} }, 4000);
+    }
+  }catch{}
 }
 initThemeUI();
 
 // ===== 常量 =====
+/** 防呆：剝掉外層花括號或空白（若有） */
 const RAW_MODEL_ID = (window.ONNX_MODEL_ID || "prithivMLmods/Common-Voice-Gender-Detection-ONNX");
 const MODEL_ID     = String(RAW_MODEL_ID).trim().replace(/^\{+|\}+$/g, "");
 
@@ -77,7 +207,7 @@ const VAD_MIN_SEG_MS      = 200;
 const VAD_MIN_VOICED_SEC  = 2;
 const VAD_SILENCE_RATIO_TO_APPLY = 0.15;
 
-// Safari
+// Safari 檢測
 const IS_SAFARI = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 // ===== DOM =====
@@ -158,6 +288,7 @@ function isOOMError(err){
 recordBtn?.addEventListener("click", async () => {
   if (busy) return;
   try {
+    // 使用者按「開始」就先把結果條歸零
     if (!mediaRecorder || mediaRecorder.state === "inactive") {
       resetMeter();
       await startRecording();
@@ -172,6 +303,7 @@ fileInput?.addEventListener("change", async (e) => {
   try {
     const f = e.target.files?.[0];
     if (!f) return;
+    // 使用者選定檔案當下就歸零
     resetMeter();
     await handleFileOrBlob(f);
     e.target.value = "";
@@ -183,7 +315,7 @@ function pickSupportedMime(){
   const cands = ["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/ogg"];
   try{
     if (typeof MediaRecorder!=="undefined" && MediaRecorder.isTypeSupported) {
-      for (const t of cands) if (MediaRange.isTypeSupported?.(t) || MediaRecorder.isTypeSupported(t)) return t;
+      for (const t of cands) if (MediaRecorder.isTypeSupported(t)) return t;
     }
   }catch{}
   return "";
@@ -230,6 +362,7 @@ async function handleFileOrBlob(fileOrBlob){
   busy = true;
   let decoded = null;
   try {
+    // 先給播放器用原檔；只保留最新一個
     setPlaybackSource(fileOrBlob);
 
     setStatus("解析檔案…", true);
@@ -241,6 +374,7 @@ async function handleFileOrBlob(fileOrBlob){
       await microYield();
     }
 
+    // 自適應 VAD（只選段、不動原音）
     const vad = maybeApplyAdaptiveVAD(float32, sr);
     if (vad && vad.used) {
       const reducedRatio = 1 - (vad.keptSec / durationSec);
