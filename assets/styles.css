@@ -1,93 +1,77 @@
-:root{
-  /* WARM palette — no green */
-  --bg-start: #2b1e20;   /* plum-brown */
-  --bg-end:   #151112;   /* near-black warm */
-  --surface-r: 39; --surface-g: 29; --surface-b: 31; /* warm glass tint */
+/* =========================
+   Clean Warm UI for VPA
+   (no legacy colors; no green hue)
+   ========================= */
 
-  --surface: rgba(var(--surface-r),var(--surface-g),var(--surface-b),0.55);
-  --surface-strong: rgba(var(--surface-r),var(--surface-g),var(--surface-b),0.75);
-  --card: #1f1719;
+/* ---------- Tokens ---------- */
+:root{
+  /* Background (warm, no green) */
+  --bg-start: #2b1e20;     /* plum-brown */
+  --bg-end:   #171112;     /* near-black warm */
+
+  /* Surfaces */
+  --surface: rgba(46,33,36,0.60);
+  --surface-strong: rgba(46,33,36,0.80);
+  --panel: #fffaf7;        /* player/info light card */
+
+  /* Text */
   --text: #f7f2f4;
   --muted: #cbbec3;
+  --ink: #2c1f22;          /* dark ink on light panel */
 
-  /* Accents: rose ↔ apricot (warm) */
+  /* Accent (rose ↔ apricot) */
   --accent-1: #f6a6c1;
   --accent-2: #f6c28b;
   --accent: color-mix(in oklab, var(--accent-1) 58%, var(--accent-2) 42%);
 
-  /* Links & emphasis */
-  --link: color-mix(in oklab, #ffe7c7 55%, var(--accent) 45%);
-
-  /* Player (light card) */
-  --player-bg: #fffaf7;      /* 亮底，避免再被染深 */
-  --player-text: #2c1f22;
-  --player-hint: #2c1f22;
-  --player-hint-link: #9a3412;
-  --player-border: #eadbd5;
-
-  /* Meter colors (warm) */
-  --female: #f3accf;
-  --male:   #ffc0a8;
-
   /* Focus & borders */
   --ring: #ffd39e;
   --border: #3a2a2e;
+  --panel-border: #eadbd5;
+
+  /* Meters */
+  --female: #f3accf;       /* warm rose */
+  --male:   #ffc0a8;       /* peach coral */
+
+  /* Links */
+  --link: color-mix(in oklab, #ffe7c7 55%, var(--accent) 45%);
 }
 
-/* Light mode (warm paper) */
-@media (prefers-color-scheme: light){
-  :root{
-    --bg-start: #fffaf7;
-    --bg-end:   #fff7ef;
-    --surface: rgba(255,255,255,0.72);
-    --surface-strong: rgba(255,255,255,0.88);
-    --card: #ffffff;
-    --text: #2c1f22;
-    --muted: #7b666d;
-    --border: #f0e3df;
-    --link: #b45309;
-
-    --player-bg: #ffffff;
-    --player-text: #2c1f22;
-    --player-hint: #2c1f22;
-    --player-hint-link: #b45309;
-    --player-border: #eadbd5;
-  }
-}
-
+/* ---------- Base / Reset ---------- */
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
 body{
   margin:0;
   color:var(--text);
-  /* 直接以暖色背景覆蓋，徹底拔掉舊的綠色漸層 */
-  background: radial-gradient(1200px 600px at 50% -10%, var(--bg-start), var(--bg-end)) !important;
+  background: radial-gradient(1200px 600px at 50% -10%, var(--bg-start), var(--bg-end));
   font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Text", Segoe UI, Roboto, "Noto Sans TC", Arial, "Apple Color Emoji", "Segoe UI Emoji";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+a{ color: var(--link); text-decoration: none; }
+a:hover{ text-decoration: underline; }
+a:focus-visible{ outline: none; box-shadow: 0 0 0 3px var(--ring); border-radius: 8px; }
 
-/* Utils */
+.hidden{ display:none !important; }
 .mt-10{ margin-top:10px; }
 
-/* Glass container */
-.backdrop{
-  background: var(--surface);
-  backdrop-filter: saturate(118%) blur(14px);
-  -webkit-backdrop-filter: saturate(118%) blur(14px);
-  border: 1px solid var(--border);
-  box-shadow: 0 24px 80px rgba(0,0,0,.35);
-}
-
+/* ---------- Layout ---------- */
 .container{
   max-width: 880px;
   margin: clamp(32px, 10vh, 120px) auto;
   padding: 28px clamp(18px, 3vw, 36px);
   border-radius: 24px;
 }
-.container.backdrop{ border-radius: 24px; }
+.backdrop{
+  background: var(--surface);
+  backdrop-filter: saturate(118%) blur(14px);
+  -webkit-backdrop-filter: saturate(118%) blur(14px);
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 80px rgba(0,0,0,.35);
+  border-radius: 24px;
+}
 
-/* Title */
+/* ---------- Heading ---------- */
 .hero-title{
   margin:0 0 10px;
   font-weight: 800;
@@ -100,13 +84,9 @@ body{
   color: transparent;
   font-size: clamp(24px, 4.2vw, 36px);
 }
-.subline{
-  margin-top:6px;
-  font-size: 13px;
-  color: var(--muted);
-}
+.subline{ margin-top:6px; font-size:13px; color:var(--muted); }
 
-/* Chips */
+/* ---------- Chips ---------- */
 .trust-row{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; }
 .chip{
   display:inline-flex; align-items:center; gap:6px;
@@ -116,8 +96,7 @@ body{
   color: var(--text);
 }
 .chip.beta{
-  font-weight:700;
-  color:#221417;
+  font-weight:700; color:#231315;
   background: linear-gradient(135deg,
     color-mix(in oklab, var(--accent-1) 72%, #fff 28%),
     color-mix(in oklab, var(--accent-2) 38%, #fff 62%)
@@ -125,14 +104,13 @@ body{
   box-shadow: 0 6px 14px rgba(255,211,170,.25);
 }
 .chip.local{
-  font-weight:800; color:#221417; border:none;
-  background: linear-gradient(135deg, color-mix(in oklab, var(--accent) 85%, #fff 10%), #fdecc8);
+  font-weight:800; color:#231315; border:none;
+  background: linear-gradient(135deg, color-mix(in oklab, var(--accent) 86%, #fff 10%), #fdecc8);
   box-shadow: 0 8px 18px rgba(255, 208, 170, .28);
 }
 .chip.link{ text-decoration:none; }
-.chip.link:hover{ filter:brightness(1.06); }
 
-/* Record button — 移除任何偏藍/綠色系 */
+/* ---------- Record button ---------- */
 .record-btn{
   width:100%;
   padding: 22px;
@@ -149,72 +127,60 @@ body{
   box-shadow: 0 16px 40px rgba(0,0,0,.28);
 }
 .record-btn:hover{ transform: translateY(-1px); filter:brightness(1.06); }
-.record-btn:focus-visible{
-  outline: none;
-  box-shadow: 0 0 0 3px var(--ring);
-}
+.record-btn:focus-visible{ outline:none; box-shadow: 0 0 0 3px var(--ring); }
 .record-btn .rec{ display:none; }
 .recording .record-btn .idle{ display:none; }
 .recording .record-btn .rec{ display:inline; }
 
-/* Status */
+/* ---------- Status ---------- */
 .status{ margin-top:12px; color:var(--muted); font-size:14px; }
 
-/* Player — 亮底卡片 + 高對比提示 */
+/* ---------- Player (light card) ---------- */
 .player{
   margin-top:18px; padding: 16px; border-radius: 16px;
-  background: var(--player-bg);
-  border:1px solid var(--player-border);
-  color: var(--player-text);
+  background: var(--panel);
+  border:1px solid var(--panel-border);
+  color: var(--ink);
   display:flex; align-items:center; gap:12px;
   box-shadow: 0 10px 30px rgba(0,0,0,.15);
 }
 #playBtn{
   padding:10px 14px; border-radius:999px; border:none;
-  font-weight:700; letter-spacing:.2px;
-  cursor:pointer;
+  font-weight:700; letter-spacing:.2px; cursor:pointer;
   background: linear-gradient(135deg,
-    color-mix(in oklab, var(--accent) 88%, #fff 6%), #f7d7b9
-  );
+    color-mix(in oklab, var(--accent) 88%, #fff 6%), #f7d7b9);
   color:#261417;
-  box-shadow: 0 6px 18px rgba(255, 210, 170, .28);
+  box-shadow: 0 6px 18px rgba(255,210,170,.28);
   transition: transform .06s ease, filter .2s ease, opacity .2s ease;
   opacity:.95;
 }
 #playBtn:hover{ transform: translateY(-1px); filter:brightness(1.06); }
-.player .hint{ color: var(--player-hint); font-size:13px; }
+.player .hint{ color: var(--ink); font-size:13px; }
 .player .hint a{
-  color: var(--player-hint-link);
-  text-decoration: underline;
-  font-weight: 800;
-  padding: 0 2px; border-radius: 4px;
+  color: #9a3412; text-decoration: underline; font-weight:800;
+  padding:0 2px; border-radius:4px;
 }
 
-/* Meter */
+/* ---------- Meter ---------- */
 .meter{ margin-top:24px; display:grid; gap:14px; }
 .meter.hidden{ display:none; }
 .bar{
-  position:relative; height: 48px;
-  background: var(--surface); border-radius: 14px; overflow:hidden;
+  position:relative; height:48px;
+  background: var(--surface); border-radius:14px; overflow:hidden;
   border:1px solid var(--border);
 }
 .bar::before{
   content:""; position:absolute; inset:0;
-  transform: scaleX(var(--p,0));
-  transform-origin:left;
+  transform: scaleX(var(--p,0)); transform-origin:left;
   transition: transform .35s ease;
   background: linear-gradient(90deg, rgba(255,255,255,.10), rgba(255,255,255,.02));
 }
-.bar.female::before{
-  background: linear-gradient(90deg, color-mix(in oklab, var(--female) 80%, #fff 6%), transparent);
-}
-.bar.male::before{
-  background: linear-gradient(90deg, color-mix(in oklab, var(--male) 80%, #fff 6%), transparent);
-}
+.bar.female::before{ background: linear-gradient(90deg, color-mix(in oklab, var(--female) 80%, #fff 6%), transparent); }
+.bar.male::before  { background: linear-gradient(90deg, color-mix(in oklab, var(--male)   80%, #fff 6%), transparent); }
 .bar .label{ position:absolute; left:12px; top:10px; font-weight:700; letter-spacing:.3px; }
 .bar .value{ position:absolute; right:12px; top:10px; font-variant-numeric: tabular-nums; }
 
-/* Fab */
+/* ---------- Floating upload FAB ---------- */
 .fab{
   position:fixed; right:24px; bottom:24px;
   width:56px; height:56px; display:grid; place-items:center;
@@ -228,21 +194,13 @@ body{
 .fab:hover{ transform: translateY(-1px); filter:brightness(1.06); }
 .fab:focus-within{ box-shadow: 0 0 0 3px var(--ring); }
 
-/* Spinner */
-.spinner{
-  display:inline-block; width:14px; height:14px;
-  border:2px solid rgba(255,255,255,.35); border-top-color:#fff;
-  border-radius:50%; animation: spin .9s linear infinite; vertical-align:-2px;
-}
-@keyframes spin{ to{ transform:rotate(360deg);} }
-
-/* Info blocks */
-.info{ margin-top: 24px; }
+/* ---------- Info blocks ---------- */
+.info{ margin-top:24px; }
 details{
   background: var(--surface);
   border:1px solid var(--border);
   border-radius:14px;
-  padding: 12px 14px;
+  padding:12px 14px;
   margin-top:12px;
   box-shadow: 0 10px 30px rgba(0,0,0,.20);
 }
@@ -253,53 +211,32 @@ details > summary{
 }
 details > summary::-webkit-details-marker{ display:none; }
 details[open] > summary{ margin-bottom:6px; }
-.bullets{ margin: 6px 0 0 0; padding-left: 18px; }
+.bullets{ margin:6px 0 0 0; padding-left:18px; }
 .bullets li{ margin:6px 0; color: color-mix(in oklab, var(--text) 85%, #ffd9c7 15%); }
 
-/* Callout */
+/* Key-value grid in "模型概覽 / 版本與授權" */
+.kv{
+  display:grid;
+  grid-template-columns: max-content 1fr;
+  gap:8px 12px;
+  align-items:start;
+}
+
+/* ---------- Callout ---------- */
 .callout{
-  margin-top:12px; padding: 12px 14px; border-radius:12px;
+  margin-top:12px; padding:12px 14px; border-radius:12px;
   background: linear-gradient(180deg, rgba(48,34,36,.6), rgba(33,22,24,.45));
   border:1px dashed var(--border);
   color: color-mix(in oklab, var(--text) 96%, #fff0e1 4%);
 }
 
-/* Links */
-a{ color: var(--link); }
-a:focus-visible{ outline:none; box-shadow: 0 0 0 3px var(--ring); border-radius: 8px; }
-
-/* Reduced motion */
+/* ---------- Reduced motion ---------- */
 @media (prefers-reduced-motion: reduce){
   *{ animation: none !important; transition: none !important; }
 }
 
-/* Small screens */
+/* ---------- Small screens ---------- */
 @media (max-width: 420px){
   .bar{ height: 44px; }
   .record-btn{ padding:18px; }
 }
-
-/* Light-mode overrides */
-@media (prefers-color-scheme: light){
-  .record-btn{
-    background:
-      linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,255,255,.90)),
-      linear-gradient(135deg, color-mix(in oklab, var(--accent) 22%, #ffffff 78%), #ffffff);
-    color:#2c1f22;
-    text-shadow:none;
-    border-color:#eadbd5;
-  }
-  .chip.beta{
-    color:#2c1f22;
-    background: linear-gradient(135deg,
-      color-mix(in oklab, var(--accent-1) 40%, #fff 60%),
-      color-mix(in oklab, var(--accent-2) 24%, #fff 76%)
-    );
-  }
-  .player .hint a{ color: var(--player-hint-link); }
-}
-
-/* ---- SAFETY OVERRIDES: keep at end ---- */
-/* 防止任何殘留規則再把背景染回綠調 */
-body{ background: radial-gradient(1200px 600px at 50% -10%, var(--bg-start), var(--bg-end)) !important; }
-.backdrop{ background: var(--surface) !important; }
