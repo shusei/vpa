@@ -3,14 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#0b0c10" />
+    <meta name="theme-color" content="#151922" />
     <title>Voice Presentation Analyzer — Browser-only</title>
     <meta name="description" content="在瀏覽器端本地推論，回饋『模型感知的女性化／男性化傾向』。隱私優先，不上傳音檔，請以多次測試的趨勢為準。">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://huggingface.co" crossorigin>
     <link rel="icon" type="image/svg+xml"
-      href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="%23c084fc"/><stop offset="1" stop-color="%2322d3ee"/></linearGradient></defs><rect width="96" height="96" rx="18" fill="%23151922"/><circle cx="32" cy="40" r="10" fill="url(%23g)"/><circle cx="64" cy="56" r="10" fill="url(%23g)"/><path d="M20 70c24-12 32-12 56 0" stroke="url(%23g)" stroke-width="6" fill="none" stroke-linecap="round"/></svg>'
-    />
+      href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="%23c084fc"/><stop offset="1" stop-color="%2322d3ee"/></linearGradient></defs><rect width="96" height="96" rx="18" fill="%23151922"/><circle cx="32" cy="40" r="10" fill="url(%23g)"/><circle cx="64" cy="56" r="10" fill="url(%23g)"/><path d="M20 70c24-12 32-12 56 0" stroke="url(%23g)" stroke-width="6" fill="none" stroke-linecap="round"/></svg>' />
     <link rel="stylesheet" href="assets/styles.css" />
   </head>
   <body>
@@ -57,13 +56,12 @@
       <!-- Status -->
       <div id="status" class="status" aria-live="polite">準備就緒</div>
 
-      <!-- Player gets injected before this callout by app.js -->
+      <!-- Player 由 app.js 動態插入到這行「提示」前 -->
       <div class="callout soft">
         <strong>提示：</strong> 40–60% 是正常的灰色帶，建議多錄幾段、看趨勢而不是只看一次。
-        <!-- app.js 會把「想再聽一次…點這裡」插進 player 的 .hint -->
       </div>
 
-      <!-- Info -->
+      <!-- Info（以下 DOC-LOCK 區塊保留） -->
       <section class="info">
 
         <details open>
@@ -90,9 +88,7 @@
             <div>DOI：</div><div><a href="https://doi.org/10.57967/hf/5684" target="_blank" rel="noopener">10.57967/hf/5684</a></div>
           </div>
         </details>
-        <!-- /DOC-LOCK -->
 
-        <!-- DOC-LOCK: 準確度（請勿動） -->
         <details>
           <summary>準確度（開發者報告）</summary>
           <ul class="bullets" style="margin-top:6px;">
@@ -102,9 +98,7 @@
           </ul>
           <p class="subline">說明：上述為作者資料分佈下的離線評估；不同語言、環境、內容（如唱歌）可能與此有落差。</p>
         </details>
-        <!-- /DOC-LOCK -->
 
-        <!-- DOC-LOCK: 方法簡述（請勿動） -->
         <details>
           <summary>方法簡述（本頁實作）</summary>
           <ul class="bullets">
@@ -115,9 +109,7 @@
             <li><b>隱私：</b>100% 本地推論；音檔不離開裝置。只保留「最新一段」的回放 URL，換檔即釋放。</li>
           </ul>
         </details>
-        <!-- /DOC-LOCK -->
 
-        <!-- DOC-LOCK: 用途與倫理（請勿動） -->
         <details>
           <summary>用途定位與倫理提醒</summary>
           <ul class="bullets">
@@ -126,9 +118,7 @@
             <li>請勿：用於歧視、排除、或任何影響權益的自動決策。</li>
           </ul>
         </details>
-        <!-- /DOC-LOCK -->
 
-        <!-- DOC-LOCK: 版本與授權（請勿動） -->
         <details>
           <summary>版本與授權</summary>
           <div class="kv">
@@ -138,9 +128,7 @@
             <div>原始碼：</div><div><a href="https://github.com/shusei/vpa" target="_blank" rel="noopener">GitHub / vpa</a></div>
           </div>
         </details>
-        <!-- /DOC-LOCK -->
 
-        <!-- DOC-LOCK: 相容性與效能（請勿動） -->
         <details>
           <summary>相容性與效能</summary>
           <ul class="bullets">
@@ -149,10 +137,11 @@
             <li>備援：WebAudio 解不動時自動落到 ffmpeg.wasm，轉完即釋放記憶體。</li>
           </ul>
         </details>
-        <!-- /DOC-LOCK -->
 
       </section>
     </main>
+
+    <!-- Settings（由 app.js 動態注入到右上角） -->
 
     <!-- Floating upload -->
     <label class="fab" title="上傳音檔（mp3 / m4a / mp4 / mov）" aria-label="上傳音檔（mp3 / m4a / mp4 / mov）">
