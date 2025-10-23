@@ -1,15 +1,50 @@
+// ===== 引用 transformers（原功能保留） =====
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
 
-/* ===================================
-   CONFIG（標準模式；主題記憶；清除模型；容量估算）
-   =================================== */
-
-/* 禁用本地 /models，避免去你網域抓模型而 404 */
-env.allowLocalModels = false;
-
-/* onnxruntime web 設定 */
+// ONNX WASM 單執行緒（若可用 WebGPU 會自動走 GPU）
 env.backends.onnx.wasm.numThreads = 1;
 
+// ====== 主題：固定標準模式（記住使用者選擇）======
+const THEME_KEY = "vpa.theme";
+const THEMES = ["warm","lavender","peach","ink","day","night","contrast"];
+function getSavedTheme(){ try{ return localStorage.getItem(THEME_KEY) || "warm"; }catch{ return "warm"; } }
+function applyTheme(t){
+  if (!THEMES.includes(t)) t = "warm";
+  document.documentElement.setAttribute("data-theme", t);
+  try{ localStorage.setItem(THEME_KEY, t); }catch{}
+  // 同步 menu 狀態
+  document.querySelectorAll(".theme-item").forEach(btn=>{
+    const on = btn.dataset.theme === t;
+    btn.setAttribute("aria-checked", on ? "true":"false");
+  });
+}
+function initThemeUI(){
+  applyTheme(getSavedTheme());
+  const gear = document.getElementById("settingsBtn");
+  const menu = document.getElementById("themeMenu");
+  if (!gear || !menu) return;
+
+  gear.addEventListener("click", (e)=>{
+    e.stopPropagation();
+    const open = menu.hasAttribute("hidden") ? false : true;
+    if (open){ menu.setAttribute("hidden",""); gear.setAttribute("aria-expanded","false"); }
+    else { menu.removeAttribute("hidden"); gear.setAttribute("aria-expanded","true"); }
+  });
+  document.addEventListener("click", (e)=>{
+    if (!menu.contains(e.target) && e.target !== gear){
+      if (!menu.hasAttribute("hidden")){ menu.setAttribute("hidden",""); gear.setAttribute("aria-expanded","false"); }
+    }
+  });
+  menu.querySelectorAll(".theme-item").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      applyTheme(btn.dataset.theme);
+      menu.setAttribute("hidden",""); gear.setAttribute("aria-expanded","false");
+    });
+  });
+}
+initThemeUI();
+
+// ===== 參數 =====
 const MODEL_ID        = (window.ONNX_MODEL_ID || "prithivMLmods/Common-Voice-Gender-Detection-ONNX");
 const TARGET_SR       = 16000;
 const MAX_WHOLE_SEC   = 150;
@@ -18,24 +53,19 @@ const STREAM_WIN_CAND = [12, 8, 6, 4];
 const STREAM_HOP_S    = 3;
 const EPS             = 1e-9;
 
-const VAD_MIN_APPLY_SEC   = 20, VAD_FRAME_MS=30, VAD_HOP_MS=10, VAD_PAD_MS=60, VAD_MIN_SEG_MS=200, VAD_MIN_VOICED_SEC=2, VAD_SILENCE_RATIO_TO_APPLY=0.15;
+// VAD 參數
+const VAD_MIN_APPLY_SEC   = 20;
+const VAD_FRAME_MS        = 30;
+const VAD_HOP_MS          = 10;
+const VAD_PAD_MS          = 60;
+const VAD_MIN_SEG_MS      = 200;
+const VAD_MIN_VOICED_SEC  = 2;
+const VAD_SILENCE_RATIO_TO_APPLY = 0.15;
+
+// Safari 偵測
 const IS_SAFARI = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
-/* ========== 主題常數（先宣告） ========== */
-const THEMES = ["warm","lavender","peach","mint","ink","day","night","contrast"];
-
-function applyTheme(name){
-  document.documentElement.setAttribute("data-theme", name);
-  try { localStorage.setItem("vpa-theme", name); } catch {}
-}
-function initTheme(){
-  const urlTheme = new URL(location.href).searchParams.get("theme");
-  const saved = localStorage.getItem("vpa-theme");
-  const theme = (urlTheme && THEMES.includes(urlTheme)) ? urlTheme : (saved && THEMES.includes(saved) ? saved : "warm");
-  applyTheme(theme);
-}
-
-/* ===== DOM ===== */
+// ===== DOM =====
 const recordBtn = document.getElementById("recordBtn");
 const fileInput = document.getElementById("fileInput");
 const statusEl  = document.getElementById("status");
@@ -43,15 +73,12 @@ const meter     = document.getElementById("meter");
 const femaleVal = document.getElementById("femaleVal");
 const maleVal   = document.getElementById("maleVal");
 
-/* ===== 播放器 UI ===== */
+// ===== 播放器 UI（動態建立：只加 class，不用行內色碼） =====
 let playBtn = null;
 let audioEl = null;
 let lastAudioUrl = null;
 
-/* ===== 先套主題，再建 UI ===== */
-initTheme();
 ensurePlayerUI();
-ensureSettingsUI();   // 右上角設定齒輪
 
 // ===== 狀態 =====
 let mediaRecorder = null;
@@ -60,76 +87,14 @@ let clf = null;
 let busy = false;
 let heartbeatTimer = null;
 
-/* ===== 下載進度視覺（Safari 友善：沒 bytes 不顯示數字） ===== */
-const prog = {
-  started: false,      // 有沒有收到任何 progress_callback
-  ticking: false,
-  loaded: 0,
-  total: 0,
-  pct: null,
-  label: "下載模型中",
-  dot: 0,
-  speedBps: 0,
-  _lastT: 0,
-  _lastB: 0,
-  _ticker: null,
-};
-function humanBytes(n){
-  if (!isFinite(n) || n < 0) return "—";
-  const u = ["B","KB","MB","GB","TB"];
-  let i = 0; while (n >= 1024 && i < u.length-1){ n /= 1024; i++; }
-  const fixed = n < 10 && i > 0 ? 1 : 0;
-  return `${n.toFixed(fixed)} ${u[i]}`;
-}
-function startProgressTicker(){
-  if (prog.ticking) return;
-  prog.ticking = true;
-  prog._lastT = performance.now();
-  prog._lastB = prog.loaded || 0;
-  prog._ticker = setInterval(() => {
-    // 動態省略號 & 速度估計
-    prog.dot = (prog.dot + 1) % 4;
-    const now = performance.now();
-    const dt = Math.max(1, now - prog._lastT);
-    const db = (prog.loaded || 0) - prog._lastB;
-    const instBps = (db * 1000) / dt;
-    prog.speedBps = prog.speedBps === 0 ? instBps : (prog.speedBps * 0.8 + instBps * 0.2);
-    prog._lastT = now;
-    prog._lastB = prog.loaded || 0;
+log("[app] ready: theming + player (CSS-driven) + pipeline");
 
-    const dots = ".".repeat(prog.dot);
-    const hasBytes = (prog.loaded > 0) || (prog.total > 0) || (prog.pct != null);
-    const nearDone = (prog.pct != null && prog.pct >= 0.999);
-    const phase = nearDone ? "（初始化/編譯中）" : "";
-
-    // 沒 bytes → 不要顯示「0 B」
-    if (!hasBytes) {
-      setStatus(`${prog.label}… ${phase} ${dots}`, true);
-      return;
-    }
-
-    const pctStr = (prog.pct != null) ? ` ${Math.min(100, Math.max(0, Math.floor(prog.pct*100)))}%` : "";
-    const bytesStr = (prog.total > 0)
-      ? `${humanBytes(prog.loaded)} / ${humanBytes(prog.total)}${pctStr}`
-      : `${humanBytes(prog.loaded)}${pctStr}`;
-    const speedStr = prog.speedBps > 0 ? ` ｜${humanBytes(prog.speedBps)}/s` : "";
-
-    setStatus(`${prog.label}${phase}… ${bytesStr}${speedStr} ${dots}`, true);
-  }, 400);
-}
-function stopProgressTicker(){
-  if (prog._ticker){ clearInterval(prog._ticker); prog._ticker = null; }
-  prog.ticking = false;
-  prog.dot = 0; prog.speedBps = 0;
-}
-
-/* ========== 版本/日期（以 app.js Last-Modified） ========== */
+// ===== 版本/日期自動填入（以 app.js Last-Modified 為準）======
 (async function fillBuildMeta(){
   try {
     const verEl = document.getElementById('ver');
     const updEl = document.getElementById('updatedAt');
     if (!verEl && !updEl) return;
-
     const selfUrl = (import.meta && import.meta.url) ? import.meta.url : 'assets/app.js';
     const res = await fetch(selfUrl, { method: 'HEAD', cache: 'no-store' });
     let d = null;
@@ -138,129 +103,16 @@ function stopProgressTicker(){
       if (lm) d = new Date(lm);
     }
     if (!d || isNaN(d.getTime())) d = new Date();
-
     const y = d.getFullYear();
     const m = String(d.getMonth()+1).padStart(2,'0');
     const day = String(d.getDate()).padStart(2,'0');
     const hh = String(d.getHours()).padStart(2,'0');
     const mm = String(d.getMinutes()).padStart(2,'0');
-
     if (updEl) updEl.textContent = `${y}-${m}-${day}`;
     if (verEl) verEl.textContent = `build-${y}${m}${day}-${hh}${mm}`;
   } catch {}
 })();
 
-/* ========== 設定齒輪（主題選單 / 儲存空間 / 清除模型） ========== */
-function ensureSettingsUI(){
-  if (document.querySelector(".settings")) return;
-  const wrap = document.createElement("div");
-  wrap.className = "settings";
-
-  const btn = document.createElement("button");
-  btn.className = "btn"; btn.type = "button"; btn.title = "設定"; btn.setAttribute("aria-haspopup","true");
-  btn.innerHTML = "⚙︎";
-
-  const panel = document.createElement("div");
-  panel.className = "panel"; panel.style.display = "none";
-
-  // 主題選單
-  const rowTheme = document.createElement("div"); rowTheme.className = "row";
-  rowTheme.innerHTML = `
-    <label for="themeSelect">主題</label>
-    <select id="themeSelect">
-      ${THEMES.map(t => `<option value="${t}">${t}</option>`).join("")}
-    </select>
-  `;
-
-  // 容量
-  const rowStorage = document.createElement("div"); rowStorage.className = "row";
-  rowStorage.innerHTML = `
-    <div class="inline">
-      <div class="muted">儲存占用（browser estimate）</div>
-      <button class="kbtn" id="refreshStorage">重新檢查</button>
-    </div>
-    <div class="inline">
-      <div>已用：<b id="usageMB">—</b> MB</div>
-      <div>配額：約 <b id="quotaMB">—</b> MB</div>
-    </div>
-  `;
-
-  // 清除模型
-  const rowClear = document.createElement("div"); rowClear.className = "row";
-  rowClear.innerHTML = `
-    <button class="kbtn danger" id="clearModelBtn">清除模型快取</button>
-    <div class="muted">清除 transformers / ffmpeg 相關快取與索引資料庫。HTTP 快取層 Safari 可能仍保留，見下方說明。</div>
-  `;
-
-  panel.appendChild(rowTheme);
-  panel.appendChild(rowStorage);
-  panel.appendChild(rowClear);
-
-  wrap.appendChild(btn);
-  wrap.appendChild(panel);
-  document.body.appendChild(wrap);
-
-  const themeSelect = panel.querySelector("#themeSelect");
-  themeSelect.value = localStorage.getItem("vpa-theme") || "warm";
-  themeSelect.addEventListener("change", (e) => applyTheme(e.target.value));
-
-  btn.addEventListener("click", () => {
-    panel.style.display = (panel.style.display === "none" ? "block" : "none");
-  });
-  document.addEventListener("click", (e) => {
-    if (!wrap.contains(e.target)) panel.style.display = "none";
-  });
-
-  panel.querySelector("#refreshStorage")?.addEventListener("click", updateStorageEstimate);
-  panel.querySelector("#clearModelBtn")?.addEventListener("click", async () => {
-    await clearModelCaches();
-    await updateStorageEstimate();
-    alert("已清除本地快取（IndexedDB / CacheStorage）。若在 Safari 仍覺得像是舊檔，請嘗試『從原始位置重新載入』或清網站資料。");
-  });
-
-  updateStorageEstimate(); // 首次顯示
-}
-
-async function updateStorageEstimate(){
-  try{
-    const est = await navigator.storage?.estimate?.();
-    const used = est?.usage || 0;
-    const quota = est?.quota || 0;
-    const mb = (x)=> (x/1024/1024).toFixed(1);
-    const usageMB = document.getElementById("usageMB");
-    const quotaMB = document.getElementById("quotaMB");
-    if (usageMB) usageMB.textContent = mb(used);
-    if (quotaMB) quotaMB.textContent = quota ? mb(quota) : "—";
-  }catch{}
-}
-
-async function clearModelCaches(){
-  // 1) IndexedDB
-  const dbNames = ["transformers-cache","transformersjs","xenova-transformers","onnx-cache","model-cache","ffmpeg-cache"];
-  if (indexedDB?.databases) {
-    try{
-      const dbs = await indexedDB.databases();
-      dbs.forEach(db => { if (db?.name && dbNames.some(n => db.name.includes(n))) indexedDB.deleteDatabase(db.name); });
-    }catch{}
-  }
-  dbNames.forEach(n => { try{ indexedDB.deleteDatabase(n); }catch{} });
-
-  // 2) Cache Storage
-  if ("caches" in window) {
-    try{
-      const keys = await caches.keys();
-      for (const k of keys) await caches.delete(k);
-    }catch{}
-  }
-
-  // 3) transformers.js 內部選項（防守）
-  try { env.cacheModel = false; } catch {}
-
-  // 4) 避免本地 models
-  env.allowLocalModels = false;
-}
-
-/* ========== UI 小工具 ========== */
 function setStatus(text, spin=false) {
   if (!statusEl) return;
   statusEl.innerHTML = spin ? `<span class="spinner"></span> ${text}` : text;
@@ -273,20 +125,7 @@ function isOOMError(err){
   return /OrtRun|bad_alloc|out of memory|memory|alloc/i.test(msg);
 }
 
-/* ========== ★ 重置男女條 ========== */
-function resetMeter(){
-  try{
-    meter?.classList.remove("hidden");
-    const barF = document.querySelector(".bar.female");
-    const barM = document.querySelector(".bar.male");
-    if (barF) barF.style.setProperty("--p", 0);
-    if (barM) barM.style.setProperty("--p", 0);
-    if (femaleVal) femaleVal.textContent = "0.0%";
-    if (maleVal)   maleVal.textContent   = "0.0%";
-  }catch{}
-}
-
-/* ========== 事件：錄音／上傳 ========== */
+// ===== 事件 =====
 recordBtn?.addEventListener("click", async () => {
   if (busy) return;
   try {
@@ -303,13 +142,12 @@ fileInput?.addEventListener("change", async (e) => {
   try {
     const f = e.target.files?.[0];
     if (!f) return;
-    resetMeter();                 // 一選檔就歸零
     await handleFileOrBlob(f);
-    e.target.value = "";          // 清 file input 引用
+    e.target.value = "";
   } catch (err){ console.error("[fileInput]", err); setStatus("上傳處理失敗"); }
 });
 
-/* ========== 錄音 ========== */
+// ===== 錄音 =====
 function pickSupportedMime(){
   const cands = ["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/ogg"];
   try{
@@ -324,7 +162,6 @@ async function startRecording(){
   if (typeof MediaRecorder === "undefined"){
     setStatus("此瀏覽器不支援錄音，請改用右下角上傳"); return;
   }
-  resetMeter();
   const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
   chunks = [];
   const mimeType = pickSupportedMime();
@@ -357,12 +194,12 @@ async function stopRecording(){
   document.querySelector(".container")?.classList.remove("recording");
 }
 
-/* ========== 主流程 ========== */
+// ===== 主流程 =====
 async function handleFileOrBlob(fileOrBlob){
   busy = true;
   let decoded = null;
   try {
-    // 播放器只綁最新來源
+    // 先給播放器用原檔；只保留最新一個
     setPlaybackSource(fileOrBlob);
 
     setStatus("解析檔案…", true);
@@ -374,7 +211,7 @@ async function handleFileOrBlob(fileOrBlob){
       await microYield();
     }
 
-    // 自適應 VAD（只做選段，不動原音）
+    // 自適應 VAD（僅選段，不動原音）
     const vad = maybeApplyAdaptiveVAD(float32, sr);
     if (vad && vad.used) {
       const reducedRatio = 1 - (vad.keptSec / durationSec);
@@ -399,7 +236,7 @@ async function handleFileOrBlob(fileOrBlob){
   }
 }
 
-/* ========== 解碼策略 ========== */
+// ===== 解碼策略 =====
 async function decodeSmartToFloat32(blobOrFile, targetSR){
   const name = (blobOrFile.name || "").toLowerCase();
   const type = (blobOrFile.type || "").toLowerCase();
@@ -415,8 +252,9 @@ async function decodeSmartToFloat32(blobOrFile, targetSR){
   try {
     setStatus("直接解碼（WebAudio）…", true);
     return await decodeViaWebAudio(blobOrFile, targetSR);
-  } catch (e) { log("[decode] WebAudio failed, fallback to ffmpeg:", e?.message || e); }
-
+  } catch (e) {
+    log("[decode] WebAudio failed, fallback to ffmpeg:", e?.message || e);
+  }
   setStatus("轉檔（ffmpeg）準備中…", true);
   const wavBlob = await transcodeToWav16kViaFFmpeg(blobOrFile);
   const { float32, sr } = wavToFloat32(await wavBlob.arrayBuffer());
@@ -430,7 +268,6 @@ async function decodeViaWebAudio(blobOrFile, targetSR=16000){
   let offline = null;
   try {
     const audioBuf = await ctx.decodeAudioData(arrayBuf);
-
     const mono = ctx.createBuffer(1, audioBuf.length, audioBuf.sampleRate);
     const outCh = mono.getChannelData(0);
     const ch0 = audioBuf.getChannelData(0);
@@ -438,9 +275,7 @@ async function decodeViaWebAudio(blobOrFile, targetSR=16000){
     if (audioBuf.numberOfChannels > 1) {
       const ch1 = audioBuf.getChannelData(1);
       for (let i=0;i<ch0.length;i++) outCh[i] = (ch0[i] + ch1[i]) / 2;
-    } else {
-      outCh.set(ch0);
-    }
+    } else { outCh.set(ch0); }
 
     let out;
     if (audioBuf.sampleRate === targetSR) {
@@ -459,7 +294,7 @@ async function decodeViaWebAudio(blobOrFile, targetSR=16000){
   }
 }
 
-/* ========== FFmpeg（必要時才載） ========== */
+// ---- FFmpeg ----
 async function loadFFmpegModule(){
   try {
     const m = await import("https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/+esm");
@@ -501,60 +336,36 @@ async function transcodeToWav16kViaFFmpeg(blobOrFile){
   const out = ffmpeg.FS("readFile", outName);
   try { ffmpeg.FS("unlink", inName); } catch {}
   try { ffmpeg.FS("unlink", outName); } catch {}
-  try { await ffmpeg.exit(); } catch {} // 釋放 WASM 記憶體
+  try { await ffmpeg.exit(); } catch {}
 
   return new Blob([out.buffer], { type: "audio/wav" });
 }
 
-/* ========== 模型 ========== */
+// ===== 模型 =====
 async function ensurePipeline(){
   if (clf) return clf;
-
-  // 進入初始化階段：先給「準備中」的 spinner（不要顯示 0 B）
-  setStatus("下載/初始化模型中…", true);
-
-  // 用旗標記錄是否真的收到任何 progress 回報（Safari 走快取時通常沒有 bytes）
-  prog.started = false;
-  prog.loaded = 0; prog.total = 0; prog.pct = null; prog.label = "下載模型中";
+  setStatus("下載模型中…（首次會久一點）", true);
 
   const progress_callback = (p)=>{
     if (!p) return;
-    if (!prog.started) {
-      prog.started = true;
-      startProgressTicker(); // 第一次才啟動跑馬燈
+    let pct = null;
+    if (typeof p.loadedBytes === 'number' && typeof p.totalBytes === 'number' && p.totalBytes > 0) {
+      pct = p.loadedBytes / p.totalBytes;
+    } else if (typeof p.progress === 'number' && isFinite(p.progress)) {
+      pct = p.progress;
     }
-    if (p.status) prog.label = p.status.replace(/^Downloading/i, "下載模型中");
-    if (typeof p.loadedBytes === "number") prog.loaded = p.loadedBytes;
-    if (typeof p.totalBytes === "number")  prog.total  = p.totalBytes;
-    if (typeof p.progress === "number" && isFinite(p.progress)) prog.pct = p.progress;
+    const label = p.status || "下載模型";
+    if (pct == null) setStatus(`${label}…`, true);
+    else setStatus(`${label} ${Math.min(99, Math.max(0, Math.floor(pct*100)))}% …`, true);
   };
 
-  try{
-    const device = (typeof navigator !== 'undefined' && navigator.gpu) ? 'webgpu' : 'wasm';
-    const t0 = performance.now();
-    clf = await pipeline("audio-classification", MODEL_ID, { progress_callback, device });
-
-    // 成功後收尾
-    stopProgressTicker();
-    const took = performance.now() - t0;
-
-    // 如果完全沒啟動進度（多半是走 HTTP 快取），給清楚文案
-    if (!prog.started) {
-      const quick = took < 1500;
-      setStatus(quick ? `模型就緒（快取）` : `模型就緒`);
-    } else {
-      setStatus(`模型就緒（device: ${device}）`);
-    }
-    return clf;
-  } catch (err){
-    stopProgressTicker();
-    console.error("[ensurePipeline]", err);
-    setStatus("模型下載/初始化失敗");
-    throw err;
-  }
+  const device = (typeof navigator !== 'undefined' && navigator.gpu) ? 'webgpu' : 'wasm';
+  clf = await pipeline("audio-classification", MODEL_ID, { progress_callback, device });
+  setStatus(`模型就緒（device: ${device}）`);
+  return clf;
 }
 
-/* ========== 分析（整段/分段） ========== */
+// ===== 分析（整段） =====
 async function analyzeWhole(float32, sr, durationSec){
   const model = await ensurePipeline();
   meter?.classList.remove("hidden");
@@ -562,7 +373,7 @@ async function analyzeWhole(float32, sr, durationSec){
   const started = performance.now();
   startHeartbeat(() => {
     const elapsed = (performance.now() - started)/1000;
-    setStatus(`分析中（整段、不分段）｜音檔 ${fmtSec(durationSec)}｜已用 ${fmtSec(elapsed)}`, true);
+    setStatus(`分析中（整段）｜音檔 ${fmtSec(durationSec)}｜已用 ${fmtSec(elapsed)}`, true);
   });
 
   try {
@@ -578,11 +389,10 @@ async function analyzeWhole(float32, sr, durationSec){
     }
     console.error("[analyzeWhole]", err);
     setStatus("分析失敗（整段）");
-  } finally {
-    stopHeartbeat();
-  }
+  } finally { stopHeartbeat(); }
 }
 
+// ===== 分析（串流分段） =====
 async function analyzeStreamed(float32, sr, durationSec, reason="串流分段"){
   const model = await ensurePipeline();
   meter?.classList.remove("hidden");
@@ -594,13 +404,8 @@ async function analyzeStreamed(float32, sr, durationSec, reason="串流分段"){
       return;
     } catch (e) {
       lastErr = e;
-      if (isOOMError(e)) {
-        console.warn(`[streamed] OOM at win=${winSec}s → downshift`);
-        continue;
-      } else {
-        console.error(`[streamed] error at win=${winSec}s`, e);
-        break;
-      }
+      if (isOOMError(e)) { console.warn(`[streamed] OOM at win=${winSec}s → downshift`); continue; }
+      else { console.error(`[streamed] error at win=${winSec}s`, e); break; }
     }
   }
   console.error("[analyzeStreamed] failed", lastErr);
@@ -627,7 +432,7 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
   startHeartbeat(() => {
     const elapsed = (performance.now() - started)/1000;
     const pct = processedSec > 0 ? Math.min(99, Math.round((processedSec/durationSec)*100)) : 0;
-    setStatus(`分析中（串流分段；win=${WIN_S}s/step=${HOP_S}s）｜${reason}｜${pct}%｜已用 ${fmtSec(elapsed)}`, true);
+    setStatus(`分析中（串流；win=${WIN_S}s/step=${HOP_S}s）｜${reason}｜${pct}%｜已用 ${fmtSec(elapsed)}`, true);
   });
 
   try {
@@ -646,8 +451,7 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
       const pm = clamp01(map.male   || EPS);
       const logit = Math.log(pf) - Math.log(pm);
 
-      logitSum += logit * dur;
-      wSum     += dur;
+      logitSum += logit * dur; wSum += dur;
 
       const logitAvg = logitSum / Math.max(wSum, EPS);
       const pf_now = 1 / (1 + Math.exp(-logitAvg));
@@ -658,10 +462,7 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
       const remain = chunks.length - i - 1;
       const etaSec = (remain * (avgMs/1000));
       const pct = Math.round(((i+1)/chunks.length)*100);
-      setStatus(
-        `分析中（串流分段；win=${WIN_S}s/step=${HOP_S}s）｜片段 ${i+1}/${chunks.length}｜${pct}%｜已處理 ${fmtSec(processedSec)} / ${fmtSec(durationSec)}｜預估剩餘 ~ ${fmtSec(etaSec)}`,
-        true
-      );
+      setStatus(`分析中（串流；win=${WIN_S}s）｜片段 ${i+1}/${chunks.length}｜${pct}%｜已處理 ${fmtSec(processedSec)} / ${fmtSec(durationSec)}｜預估剩餘 ~ ${fmtSec(etaSec)}`, true);
 
       await microYield();
     }
@@ -671,12 +472,10 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
     const pm = 1 - pf;
     render(pf, pm);
     setStatus("完成（串流分段）");
-  } finally {
-    stopHeartbeat();
-  }
+  } finally { stopHeartbeat(); }
 }
 
-/* ========== 播放器（無內嵌色值） ========== */
+// ===== 播放器（CSS 驅動） =====
 function ensurePlayerUI(){
   const container = document.querySelector(".container");
   if (!container) return;
@@ -687,36 +486,43 @@ function ensurePlayerUI(){
 
   const btn = document.createElement("button");
   btn.id = "playBtn"; btn.type = "button"; btn.disabled = true;
-  btn.textContent = "▶︎ 播放剛才的聲音"; btn.setAttribute("aria-label", "播放剛才的聲音");
+  btn.textContent = "▶︎ 播放剛才的聲音";
+  btn.setAttribute("aria-label", "播放剛才的聲音");
 
   const hint = document.createElement("div");
   hint.className = "hint";
-  const a = document.createElement("a");
-  a.href = "#play"; a.textContent = "點這裡";
-  hint.append("想再聽一次剛才那段嗎？", a, "。");
+  hint.innerHTML = `想再聽一次剛才那段嗎？<a href="#" id="replayLink">點這裡</a>。`;
 
   const audio = document.createElement("audio");
   audio.id = "playback"; audio.preload = "metadata"; audio.style.display = "none";
 
-  wrap.append(btn, hint, audio);
+  wrap.appendChild(btn); wrap.appendChild(hint); wrap.appendChild(audio);
 
   const tipEl = container.querySelector(".callout");
   if (tipEl) container.insertBefore(wrap, tipEl); else container.appendChild(wrap);
 
   playBtn = btn; audioEl = audio;
 
-  const play = async () => {
+  playBtn.onclick = async () => {
     if (!audioEl.src) return;
     try {
-      if (audioEl.paused) { await audioEl.play(); playBtn.textContent = "⏸ 暫停播放"; }
-      else { audioEl.pause(); playBtn.textContent = "▶︎ 播放剛才的聲音"; }
+      if (audioEl.paused) {
+        await audioEl.play();
+        playBtn.textContent = "⏸ 暫停播放";
+      } else {
+        audioEl.pause();
+        playBtn.textContent = "▶︎ 播放剛才的聲音";
+      }
     } catch (e) { console.error("[audio play]", e); }
   };
-  playBtn.onclick = play;
-  a.onclick = (e)=>{ e.preventDefault(); play(); };
   audioEl.onended = () => { playBtn.textContent = "▶︎ 播放剛才的聲音"; };
-}
 
+  // 點「點這裡」也觸發播放
+  wrap.querySelector("#replayLink")?.addEventListener("click", (e)=>{
+    e.preventDefault();
+    playBtn.click();
+  });
+}
 function setPlaybackSource(blob){
   try {
     if (!audioEl || !playBtn) return;
@@ -729,7 +535,7 @@ function setPlaybackSource(blob){
   } catch (e) { console.error("[setPlaybackSource]", e); }
 }
 
-/* ========== 其他工具 ========== */
+// ===== UI 工具 =====
 function toMap(arr){
   const m = { female: 0, male: 0 };
   if (Array.isArray(arr)) for (const r of arr) {
@@ -740,27 +546,16 @@ function toMap(arr){
 function render(pf, pm){
   const barF = document.querySelector(".bar.female");
   const barM = document.querySelector(".bar.male");
-  if (barF) {
-    barF.style.setProperty("--p", pf ?? 0);
-    barF.setAttribute("aria-valuenow", Math.round(((pf ?? 0) * 100)));
-  }
-  if (barM) {
-    barM.style.setProperty("--p", pm ?? 0);
-    barM.setAttribute("aria-valuenow", Math.round(((pm ?? 0) * 100)));
-  }
+  if (barF) { barF.style.setProperty("--p", pf ?? 0); barF.setAttribute("aria-valuenow", Math.round(((pf ?? 0) * 100))); }
+  if (barM) { barM.style.setProperty("--p", pm ?? 0); barM.setAttribute("aria-valuenow", Math.round(((pm ?? 0) * 100))); }
   if (femaleVal) femaleVal.textContent = `${((pf ?? 0) * 100).toFixed(1)}%`;
   if (maleVal)   maleVal.textContent   = `${((pm ?? 0) * 100).toFixed(1)}%`;
 }
-function startHeartbeat(tickFn){
-  stopHeartbeat();
-  heartbeatTimer = setInterval(() => { try{ tickFn(); }catch{} }, 1000);
-}
-function stopHeartbeat(){
-  if (heartbeatTimer){ clearInterval(heartbeatTimer); heartbeatTimer = null; }
-}
+function startHeartbeat(tickFn){ stopHeartbeat(); heartbeatTimer = setInterval(() => { try{ tickFn(); }catch{} }, 1000); }
+function stopHeartbeat(){ if (heartbeatTimer){ clearInterval(heartbeatTimer); heartbeatTimer = null; } }
 function microYield(){ return new Promise(r=>setTimeout(r,0)); }
 
-/* ========== WAV 轉 float32（給 ffmpeg 轉出用） ========== */
+// ===== WAV 解析（供 ffmpeg 轉出） =====
 function wavToFloat32(arrayBuffer){
   const view = new DataView(arrayBuffer);
   const riff = str(view,0,4), wave = str(view,8,4);
@@ -791,7 +586,7 @@ function wavToFloat32(arrayBuffer){
 }
 function str(v,s,l){ let x=""; for(let i=0;i<l;i++) x+=String.fromCharCode(v.getUint8(s+i)); return x; }
 
-/* ========== 自適應 VAD（選段，不動原音） ========== */
+// ===== 自適應 VAD（能量門檻；只做「選段」） =====
 function maybeApplyAdaptiveVAD(float32, sr){
   const dur = float32.length / sr;
   if (dur < VAD_MIN_APPLY_SEC) return null;
@@ -803,8 +598,7 @@ function maybeApplyAdaptiveVAD(float32, sr){
 
   const energies = [];
   for (let s=0; s+frame <= float32.length; s+=hop){
-    let acc=0;
-    for (let i=0;i<frame;i++){ const v=float32[s+i]; acc += v*v; }
+    let acc=0; for (let i=0;i<frame;i++){ const v=float32[s+i]; acc += v*v; }
     energies.push(acc / frame);
   }
   if (energies.length < 5) return null;
@@ -834,31 +628,32 @@ function maybeApplyAdaptiveVAD(float32, sr){
 
   const out = new Float32Array(kept);
   let offset = 0;
-  for (const [s0,s1] of segs){
-    out.set(float32.subarray(s0, s1), offset);
-    offset += (s1 - s0);
-  }
+  for (const [s0,s1] of segs){ out.set(float32.subarray(s0, s1), offset); offset += (s1 - s0); }
   return { used: true, arr: out, keptSec, segs };
 }
 function percentile(arr, p){
   const a = arr.slice().sort((x,y)=>x-y);
-  const idx = Math.min(a.length-1, Math.max(0, Math.round((p/100)*(a.length-1))));
+  const idx = Math.min(a.length-1, Math.max(0, Math.round((p/100)* (a.length-1))));
   return a[idx];
 }
 function smoothMask(mask, k=3){
   let count=0;
   for (let i=0;i<=mask.length;i++){
-    if (i<mask.length && !mask[i]) count++;
-    else { if (count>0 && count<k){ for (let j=i-count;j<i;j++) mask[j]=true; } count=0; }
+    if (i<mask.length && !mask[i]) count++; else {
+      if (count>0 && count<k){ for (let j=i-count;j+i && j<i;j++) mask[j]=true; }
+      count=0;
+    }
   }
   count=0;
   for (let i=0;i<=mask.length;i++){
-    if (i<mask.length && mask[i]) count++;
-    else { if (count>0 && count<k){ for (let j=i-count;j<i;j++) mask[j]=false; } count=0; }
+    if (i<mask.length && mask[i]) count++; else {
+      if (count>0 && count<k){ for (let j=i-count;j<i;j++) mask[j]=false; }
+      count=0;
+    }
   }
 }
 
-/* ========== 離站清理：釋放最後 URL ========== */
+// ===== 離站清理 =====
 window.addEventListener("beforeunload", () => {
   if (lastAudioUrl) { try { URL.revokeObjectURL(lastAudioUrl); } catch {} }
 });
