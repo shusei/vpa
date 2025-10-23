@@ -16,7 +16,21 @@ const EPS             = 1e-9;
 const VAD_MIN_APPLY_SEC   = 20, VAD_FRAME_MS=30, VAD_HOP_MS=10, VAD_PAD_MS=60, VAD_MIN_SEG_MS=200, VAD_MIN_VOICED_SEC=2, VAD_SILENCE_RATIO_TO_APPLY=0.15;
 const IS_SAFARI = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
-// ===== DOM =====
+/* ========== 主題常數（上移，避免 use-before-init） ========== */
+const THEMES = ["warm","lavender","peach","mint","ink","day","night","contrast"];
+
+function applyTheme(name){
+  document.documentElement.setAttribute("data-theme", name);
+  try { localStorage.setItem("vpa-theme", name); } catch {}
+}
+function initTheme(){
+  const urlTheme = new URL(location.href).searchParams.get("theme");
+  const saved = localStorage.getItem("vpa-theme");
+  const theme = (urlTheme && THEMES.includes(urlTheme)) ? urlTheme : (saved && THEMES.includes(saved) ? saved : "warm");
+  applyTheme(theme);
+}
+
+/* ===== DOM ===== */
 const recordBtn = document.getElementById("recordBtn");
 const fileInput = document.getElementById("fileInput");
 const statusEl  = document.getElementById("status");
@@ -24,14 +38,15 @@ const meter     = document.getElementById("meter");
 const femaleVal = document.getElementById("femaleVal");
 const maleVal   = document.getElementById("maleVal");
 
-// ===== 播放器 UI（用 class，不再用內嵌深綠樣式） =====
+/* ===== 播放器 UI ===== */
 let playBtn = null;
 let audioEl = null;
 let lastAudioUrl = null;
 
+/* ===== 先套主題，再建 UI（修正初始化順序） ===== */
+initTheme();
 ensurePlayerUI();
 ensureSettingsUI();   // 右上角設定齒輪
-initTheme();          // 記住主題
 
 // ===== 狀態 =====
 let mediaRecorder = null;
@@ -68,19 +83,6 @@ log("[app] ready — standard mode, theme memory, model cache clear, storage est
     if (verEl) verEl.textContent = `build-${y}${m}${day}-${hh}${mm}`;
   } catch {}
 })();
-
-/* ========== 主題：記憶 + 套用 ========== */
-const THEMES = ["warm","lavender","peach","mint","ink","day","night","contrast"];
-function initTheme(){
-  const urlTheme = new URL(location.href).searchParams.get("theme");
-  const saved = localStorage.getItem("vpa-theme");
-  const theme = (urlTheme && THEMES.includes(urlTheme)) ? urlTheme : (saved && THEMES.includes(saved) ? saved : "warm");
-  applyTheme(theme);
-}
-function applyTheme(name){
-  document.documentElement.setAttribute("data-theme", name);
-  try { localStorage.setItem("vpa-theme", name); } catch {}
-}
 
 /* ========== 設定齒輪（主題選單 / 儲存空間 / 清除模型） ========== */
 function ensureSettingsUI(){
@@ -167,7 +169,7 @@ async function updateStorageEstimate(){
 }
 
 async function clearModelCaches(){
-  // 1) IndexedDB：刪常見的 transformers/ffmpeg/onnx 快取庫名
+  // 1) IndexedDB
   const dbNames = ["transformers-cache","transformersjs","xenova-transformers","onnx-cache","model-cache","ffmpeg-cache"];
   if (indexedDB?.databases) {
     try{
@@ -177,7 +179,7 @@ async function clearModelCaches(){
   }
   dbNames.forEach(n => { try{ indexedDB.deleteDatabase(n); }catch{} });
 
-  // 2) Cache Storage（若有 Service Worker 或你手動使用 caches API）
+  // 2) Cache Storage
   if ("caches" in window) {
     try{
       const keys = await caches.keys();
@@ -185,7 +187,7 @@ async function clearModelCaches(){
     }catch{}
   }
 
-  // 3) 清理 transformers.js 內部快取開關（防守形）
+  // 3) transformers.js 內部快取開關（防守）
   try { env.cacheModel = false; } catch {}
 }
 
