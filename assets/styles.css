@@ -1,38 +1,31 @@
 /* =========================
    VPA — Clean Theming + Settings
-   固定標準模式；齒輪在開始區塊內側右上
+   固定標準模式；齒輪在整個系統大框（.container）右上
    ========================= */
 
 /* ---------- Base tokens（預設 Warm） ---------- */
 :root{
-  /* 背景（暖、無綠） */
   --bg-start:#2b1e20; --bg-end:#171112;
 
-  /* 面層 */
   --surface:rgba(46,33,36,.60);
   --surface-strong:rgba(46,33,36,.80);
   --panel:#fffaf7;
   --panel-border:#eadbd5;
 
-  /* 文字 */
   --text:#f7f2f4; --muted:#cbbec3; --ink:#2c1f22;
 
-  /* 重點色（玫瑰 ↔ 杏桃） */
   --accent-1:#f6a6c1; --accent-2:#f6c28b;
   --accent: color-mix(in oklab, var(--accent-1) 58%, var(--accent-2) 42%);
 
-  /* 邊框/焦點 */
   --ring:#ffd39e; --border:#3a2a2e;
 
-  /* 計量條 */
   --female:#f3accf; --male:#ffc0a8;
 
-  /* 連結 */
   --link: color-mix(in oklab, #ffe7c7 55%, var(--accent) 45%);
 }
 
 /* ---------- 題庫主題 ---------- */
-html[data-theme="warm"]{} /* 預設 */
+html[data-theme="warm"]{} /* default */
 
 html[data-theme="lavender"]{
   --bg-start:#2a1f35; --bg-end:#14101c;
@@ -117,8 +110,11 @@ a:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring); border-radius:8
 
 /* ---------- Layout ---------- */
 .container{
-  max-width:880px; margin:clamp(32px,10vh,120px) auto;
-  padding:28px clamp(18px,3vw,36px); border-radius:24px;
+  position:relative;            /* 讓齒輪絕對定位在容器內 */
+  max-width:880px;
+  margin:clamp(32px,10vh,120px) auto;
+  padding:28px clamp(18px,3vw,36px);
+  border-radius:24px;
 }
 .backdrop{
   background:var(--surface);
@@ -156,21 +152,20 @@ a:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring); border-radius:8
   box-shadow:0 8px 18px color-mix(in oklab,var(--accent-2) 25%, #000 75%);
 }
 
-/* ---------- Start / Settings ---------- */
-.start-wrap{ position:relative; }
+/* ---------- Settings（齒輪 + 選單） ---------- */
 .settings-btn{
-  position:absolute; top:10px; right:10px;
+  position:absolute; top:12px; right:12px;
   display:grid; place-items:center; width:34px; height:34px;
   border-radius:10px; border:1px solid var(--panel-border);
   background:var(--panel); color:var(--ink);
   box-shadow:0 6px 18px rgba(0,0,0,.12);
-  cursor:pointer;
+  cursor:pointer; z-index:30;
 }
 .settings-btn:hover{ filter:brightness(1.05); }
 .settings-btn:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring); }
 
 .theme-menu{
-  position:absolute; top:50px; right:10px; z-index:20;
+  position:absolute; top:52px; right:12px; z-index:40;
   min-width: 200px; padding:8px; border-radius:12px;
   border:1px solid var(--panel-border); background:var(--panel); color:var(--ink);
   box-shadow:0 20px 40px rgba(0,0,0,.18);
@@ -192,6 +187,9 @@ a:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring); border-radius:8
 .swatch--day{ background:linear-gradient(135deg,#f0abfc,#7dd3fc); }
 .swatch--night{ background:linear-gradient(135deg,#c084fc,#22d3ee); }
 .swatch--contrast{ background:linear-gradient(135deg,#000,#fff); }
+
+/* ---------- Start ---------- */
+.start-wrap{ margin-top:6px; }
 
 /* ---------- Record button ---------- */
 .record-btn{
