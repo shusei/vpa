@@ -1,133 +1,227 @@
 <!doctype html>
 <html lang="zh-Hant">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Voice Presentation Analyzer — Browser-only</title>
-  <meta name="description" content="在瀏覽器端本地推論，估計聲音被模型感知為女性化／男性化的傾向；隱私優先，不上傳音檔。" />
-  <link rel="stylesheet" href="assets/styles.css" />
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link rel="preconnect" href="https://huggingface.co" crossorigin>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Voice Presentation Analyzer — Browser-only</title>
+    <meta name="description" content="在瀏覽器端本地推論，估計聲音被模型感知為女性化／男性化的傾向；隱私優先，不上傳音檔。" />
+    <link rel="stylesheet" href="assets/styles.css" />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="preconnect" href="https://huggingface.co" crossorigin />
 
-  <!-- 站點圖示：用內嵌 SVG，避免 404 -->
-  <link rel="icon" type="image/svg+xml"
-        href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="%236ee7b7"/><stop offset="1" stop-color="%238ab4f8"/></linearGradient></defs><rect width="96" height="96" rx="18" fill="%23151922"/><circle cx="32" cy="40" r="10" fill="url(%23g)"/><circle cx="64" cy="56" r="10" fill="url(%23g)"/><path d="M20 70c24-12 32-12 56 0" stroke="url(%23g)" stroke-width="6" fill="none" stroke-linecap="round"/></svg>' />
-</head>
-<body>
-<main class="container">
-  <h1 class="hero-title">
-    Voice Presentation Analyzer
-    <span class="chip beta">練習用</span>
-  </h1>
+    <!-- 站點圖示：用內嵌 SVG，避免 404 -->
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="%236ee7b7"/><stop offset="1" stop-color="%238ab4f8"/></linearGradient></defs><rect width="96" height="96" rx="18" fill="%23151922"/><circle cx="32" cy="40" r="10" fill="url(%23g)"/><circle cx="64" cy="56" r="10" fill="url(%23g)"/><path d="M20 70c24-12 32-12 56 0" stroke="url(%23g)" stroke-width="6" fill="none" stroke-linecap="round"/></svg>'
+    />
+  </head>
+  <body>
+    <main class="container">
+      <h1 class="hero-title">
+        Voice Presentation Analyzer
+        <span class="chip beta">練習用</span>
+      </h1>
 
-  <!-- 信任區：本地推論 / 模型來源 / 開源 -->
-  <div class="trust-row">
-    <span class="chip local">本地推論・不上傳</span>
-    <a class="chip link" href="https://huggingface.co/prithivMLmods/Common-Voice-Gender-Detection" target="_blank" rel="noopener">
-      模型：Common-Voice-Gender-Detection（ONNX）
-    </a>
-    <a class="chip link" href="https://github.com/shusei/vpa" target="_blank" rel="noopener">
-      原始碼
-    </a>
-  </div>
-
-  <p class="muted" style="margin:6px 0 0 0;font-size:12px;">
-    Likelihood of feminine/masculine presentation — privacy-first, runs in your browser.
-  </p>
-
-  <!-- 錄音主按鈕 -->
-  <button id="recordBtn" class="record-btn" aria-pressed="false">
-    <span class="idle">● 開始錄音</span>
-    <span class="rec">■ 停止錄音</span>
-  </button>
-
-  <!-- 明確提示右下角上傳 -->
-  <p class="muted" style="margin:10px 0 0 0;">
-    或使用 <b>右下角 ⬆︎</b> 上傳現有音檔（支援 <code>mp3</code> / <code>m4a</code> / <code>mp4</code> / <code>mov</code>）。
-  </p>
-
-  <!-- 結果儀表 -->
-  <div id="meter" class="meter hidden" aria-labelledby="meterTitle">
-    <div class="bar female" role="meter" aria-label="女性化傾向" aria-valuemin="0" aria-valuemax="100">
-      <span class="label">女性化傾向</span>
-      <span class="value" id="femaleVal">—</span>
-    </div>
-    <div class="bar male" role="meter" aria-label="男性化傾向" aria-valuemin="0" aria-valuemax="100">
-      <span class="label">男性化傾向</span>
-      <span class="value" id="maleVal">—</span>
-    </div>
-  </div>
-
-  <!-- 狀態（即時進度） -->
-  <div id="status" class="status" aria-live="polite">準備就緒</div>
-
-  <!-- 播放剛才那段（由 app.js 動態插入到這段提示前方） -->
-
-  <!-- 友善提示 -->
-  <div class="callout soft">
-    <strong>提示：</strong> 分數介於 <b>40–60%</b> 視為灰色帶，建議多錄幾段、以趨勢為準。
-  </div>
-
-  <!-- 說明與免責 -->
-  <section class="info">
-    <details open>
-      <summary>如何錄比較準？</summary>
-      <ul class="bullets">
-        <li>錄 <b>5–10 秒「說話」</b>（非唱歌），環境安靜、避免背景樂/回音。</li>
-        <li>麥克風距離約 <b>10–15 cm</b>，用平常對話的音量與語速。</li>
-        <li>要上傳既有錄音：點右下角 <b>⬆︎</b>。iPhone「語音備忘錄」請先「分享 → 存到檔案 (Files)」，再回本頁選「瀏覽」上傳。</li>
-        <li>若是長檔，先裁成想測的片段再丟；唱歌結果通常會偏差。</li>
-      </ul>
-    </details>
-
-    <details>
-      <summary>關於 / 免責</summary>
-      <p>
-        本工具顯示的是你的聲音被模型感知為「女性化／男性化」的<strong>傾向</strong>，不是你的性別認同、也不是醫療或法律判定。
-        請將本工具視作<strong>自我練習的回饋</strong>，不要用來評價他人或作為任何歧視行為的依據。
-      </p>
-    </details>
-
-    <details>
-      <summary>方法簡述（專業透明）</summary>
-      <ul class="bullets">
-        <li>模型：<b>Wav2Vec2</b> 架構的二分類（女性/男性），ONNX 版本於瀏覽器推論。</li>
-        <li>音訊處理：只做 <b>單聲道混合</b> 與 <b>16 kHz 重採樣</b> 以符合模型；<b>不</b>去靜音、不調音量。</li>
-        <li>結果：顯示模型對兩類的分數（機率樣），以利自我觀察。</li>
-      </ul>
-      <p class="note">模型來源與授權：<a href="https://huggingface.co/prithivMLmods/Common-Voice-Gender-Detection" target="_blank" rel="noopener">Hugging Face Model Card</a>（Apache-2.0）。</p>
-    </details>
-
-    <details>
-      <summary>已知侷限</summary>
-      <ul class="bullets">
-        <li>模型主要以 <b>英語朗讀</b>資料訓練，對中文/方言/唱歌/戲腔可能有落差。</li>
-        <li>大噪音、回音、鼻音重、感冒、與極度用力拉高音高，皆可能造成偏差。</li>
-        <li>分數非絕對值：請觀察多次測試的趨勢，不要單看一次結果。</li>
-      </ul>
-    </details>
-
-    <details>
-      <summary>版本與授權</summary>
-      <div class="kv">
-        <div>版本：</div><div><code id="ver"></code></div>
-        <div>更新：</div><div><code id="updatedAt"></code></div>
-        <div>授權：</div><div>模型 <code>Apache-2.0</code>；此網站程式碼以你的庫為準。</div>
-        <div>原始碼：</div><div><a href="https://github.com/shusei/vpa" target="_blank" rel="noopener">GitHub / vpa</a></div>
+      <!-- 信任區：本地推論 / 模型來源 / 開源 -->
+      <div class="trust-row">
+        <span class="chip local">本地推論・不上傳</span>
+        <a
+          class="chip link"
+          href="https://huggingface.co/prithivMLmods/Common-Voice-Gender-Detection"
+          target="_blank"
+          rel="noopener"
+        >
+          模型：Common-Voice-Gender-Detection（ONNX）
+        </a>
+        <a
+          class="chip link"
+          href="https://github.com/shusei/vpa"
+          target="_blank"
+          rel="noopener"
+        >
+          原始碼
+        </a>
       </div>
-    </details>
-  </section>
-</main>
 
-<!-- 浮動上傳按鈕 -->
-<label class="fab" title="上傳音檔（mp3 / m4a / mp4 / mov）" aria-label="上傳音檔（mp3 / m4a / mp4 / mov）">
-  ⬆︎
-  <input id="fileInput" type="file"
-         accept="audio/*,audio/mp4,video/mp4,video/quicktime,.m4a,.mp4,.mov"
-         hidden />
-</label>
+      <p class="muted" style="margin: 6px 0 0 0; font-size: 12px;">
+        Likelihood of feminine/masculine presentation — privacy-first, runs in your browser.
+      </p>
 
-<!-- 主程式（會自動把版本與更新日填進去） -->
-<script type="module" src="assets/app.js"></script>
-</body>
+      <!-- 錄音主按鈕 -->
+      <button id="recordBtn" class="record-btn" aria-pressed="false">
+        <span class="idle">● 開始錄音</span>
+        <span class="rec">■ 停止錄音</span>
+      </button>
+
+      <!-- 明確提示右下角上傳 -->
+      <p class="muted" style="margin: 10px 0 0 0;">
+        或使用 <b>右下角 ⬆︎</b> 上傳現有音檔（支援 <code>mp3</code> / <code>m4a</code> / <code>mp4</code> / <code>mov</code>）。
+      </p>
+
+      <!-- 結果儀表 -->
+      <div id="meter" class="meter hidden" aria-labelledby="meterTitle">
+        <div class="bar female" role="meter" aria-label="女性化傾向" aria-valuemin="0" aria-valuemax="100">
+          <span class="label">女性化傾向</span>
+          <span class="value" id="femaleVal">—</span>
+        </div>
+        <div class="bar male" role="meter" aria-label="男性化傾向" aria-valuemin="0" aria-valuemax="100">
+          <span class="label">男性化傾向</span>
+          <span class="value" id="maleVal">—</span>
+        </div>
+      </div>
+
+      <!-- 狀態（即時進度） -->
+      <div id="status" class="status" aria-live="polite">準備就緒</div>
+
+      <!-- 播放剛才那段（由 app.js 動態插入到這段提示前方） -->
+
+      <!-- 友善提示 -->
+      <div class="callout soft">
+        <strong>提示：</strong> 分數介於 <b>40–60%</b> 視為灰色帶，建議多錄幾段、以趨勢為準。
+      </div>
+
+      <!-- 說明與免責 -->
+      <section class="info">
+        <details open>
+          <summary>如何錄比較準？</summary>
+          <ul class="bullets">
+            <li>錄 <b>5–10 秒「說話」</b>（非唱歌），環境安靜、避免背景音／回音。</li>
+            <li>麥克風距離約 <b>10–15 cm</b>，用平常對話的音量與語速。</li>
+            <li>要上傳既有錄音：點右下角 <b>⬆︎</b>（支援 mp3/m4a/mp4/mov）。</li>
+            <li>iPhone 語音備忘錄：先「分享 → 存到檔案 (Files)」，回本頁選「瀏覽」上傳。</li>
+          </ul>
+        </details>
+
+        <details>
+          <summary>模型概覽</summary>
+          <div class="kv">
+            <div>名稱：</div>
+            <div>
+              <a
+                href="https://huggingface.co/prithivMLmods/Common-Voice-Gender-Detection"
+                target="_blank"
+                rel="noopener"
+                >Common-Voice-Gender-Detection</a
+              >（ONNX）
+            </div>
+            <div>架構：</div>
+            <div>
+              Wav2Vec2（
+              <a href="https://arxiv.org/pdf/2006.11477" target="_blank" rel="noopener">
+                Self-Supervised Learning for Speech Recognition
+              </a>
+              ）
+            </div>
+            <div>標籤空間：</div>
+            <div>二分類（<code>female</code> / <code>male</code>）</div>
+            <div>來源資料：</div>
+            <div>Mozilla Common Voice 等語音語料（以英語朗讀為主）</div>
+            <div>授權：</div>
+            <div>Apache-2.0（模型）；本頁程式碼依你的 repo 授權</div>
+            <div>DOI：</div>
+            <div>
+              <a href="https://doi.org/10.57967/hf/5684" target="_blank" rel="noopener">10.57967/hf/5684</a>
+            </div>
+          </div>
+        </details>
+
+        <details>
+          <summary>準確度（開發者報告）</summary>
+          <p>模型作者在其測試集上的摘要結果：</p>
+          <ul class="bullets" style="margin-top: 6px;">
+            <li>整體準確率：<b>98.46%</b>（6545 筆）</li>
+            <li>female：precision <b>0.9705</b>、recall <b>0.9916</b>、F1 <b>0.9809</b>（2622 筆）</li>
+            <li>male：precision <b>0.9943</b>、recall <b>0.9799</b>、F1 <b>0.9870</b>（3923 筆）</li>
+          </ul>
+          <p class="muted">說明：上述是開發者在其資料分佈下的離線評估；不同語言、錄音環境與內容（如唱歌）可能與此有落差。</p>
+        </details>
+
+        <details>
+          <summary>方法簡述（本頁實作）</summary>
+          <ul class="bullets">
+            <li>
+              <b>推論引擎：</b>Transformers.js（@xenova/transformers）+ ONNX Runtime。
+              <b>有 WebGPU 就用 GPU</b>，否則回退 WASM。
+            </li>
+            <li>
+              <b>前處理（最小化）：</b>立體聲混單聲道＋<b>16 kHz</b> 重採樣以符合模型；不去靜音、不正規化音量。
+            </li>
+            <li>
+              <b>長檔策略：</b>≤150 秒走「整段一次」。更長自動改為「串流分段」：視記憶體逐級使用 12s → 8s → 6s → 4s 視窗，
+              <b>log-odds 加權</b>聚合，盡量貼近整段結果。
+            </li>
+            <li>
+              <b>可選 VAD（只「選段」）：</b>偵測語音段落以跳過長靜音；<u>不改原音</u>、不增益不壓限，只決定哪些區段要丟進模型。
+            </li>
+            <li>
+              <b>隱私：</b>100% 本地推論；音檔不離開裝置。只保留「最新一段」的回放 URL，換檔即釋放。
+            </li>
+          </ul>
+        </details>
+
+        <details>
+          <summary>用途定位與倫理提醒</summary>
+          <ul class="bullets">
+            <li>定位：自我練習回饋、教學示範、資料標註輔助、研究原型。</li>
+            <li>限制：此分數是「模型對聲音表現的傾向」，<b>不是性別認同、醫療或法律判定</b>。</li>
+            <li>請勿：用於歧視、排除、或任何影響權益的自動決策。</li>
+          </ul>
+        </details>
+
+        <details>
+          <summary>已知侷限</summary>
+          <ul class="bullets">
+            <li>模型以英語朗讀為主；<b>中文／方言／唱歌／戲腔</b>可能偏差。</li>
+            <li>噪音、回音、鼻音、感冒、或只「硬拉高音高」都會影響。</li>
+            <li>長檔在行動裝置上可能較慢；若裝置無 WebGPU，會回退 WASM 單執行緒。</li>
+            <li>建議看<b>多次測試的趨勢</b>，不要只看一次分數。</li>
+          </ul>
+        </details>
+
+        <details>
+          <summary>版本與授權</summary>
+          <div class="kv">
+            <div>版本：</div>
+            <div><code id="ver"></code></div>
+            <div>更新：</div>
+            <div><code id="updatedAt"></code></div>
+            <div>授權：</div>
+            <div>模型 <code>Apache-2.0</code>；網站程式碼依你的 repo 授權</div>
+            <div>原始碼：</div>
+            <div>
+              <a href="https://github.com/shusei/vpa" target="_blank" rel="noopener">GitHub / vpa</a>
+            </div>
+          </div>
+        </details>
+
+        <details>
+          <summary>相容性與效能</summary>
+          <ul class="bullets">
+            <li>瀏覽器：近期 Chrome / Edge / Firefox / Safari；<b>開啟 WebGPU 更快</b>。</li>
+            <li>格式：audio/*、.m4a、.mp3、.wav、.mp4、.mov（影片僅取音軌）。</li>
+            <li>備援：WebAudio 解不動時自動落到 ffmpeg.wasm，轉完即釋放記憶體。</li>
+          </ul>
+        </details>
+      </section>
+    </main>
+
+    <!-- 浮動上傳按鈕 -->
+    <label
+      class="fab"
+      title="上傳音檔（mp3 / m4a / mp4 / mov）"
+      aria-label="上傳音檔（mp3 / m4a / mp4 / mov）"
+    >
+      ⬆︎
+      <input
+        id="fileInput"
+        type="file"
+        accept="audio/*,audio/mp4,video/mp4,video/quicktime,.m4a,.mp4,.mov"
+        hidden
+      />
+    </label>
+
+    <!-- 主程式（會自動把版本與更新日填進去） -->
+    <script type="module" src="assets/app.js"></script>
+  </body>
 </html>
