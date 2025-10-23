@@ -6,6 +6,7 @@
 // - 全程進度＋ETA，避免以為卡住
 // - 聚合使用「對數勝算」，盡量貼近整段一次結果
 // - 追加：自適應 VAD（能跳過長靜音；只做「選段」不改動原音），WebGPU/WASM 自動選擇 device
+// - 修正：模型下載 progress 可能 >100% 的顯示 bug（無 Content-Length 時改為僅顯示狀態或 clamp 至 99%）；ffmpeg ratio 也做 clamp
 
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
 
@@ -277,7 +278,8 @@ async function transcodeToWav16kViaFFmpeg(blobOrFile){
 
   if (!ffmpeg.isLoaded()) setStatus("下載 ffmpeg…", true);
   ffmpeg.setProgress(({ ratio }) => {
-    if (ratio > 0 && ratio <= 1) setStatus(`轉檔（ffmpeg）… ${Math.round(ratio*100)}%`, true);
+    const r = Math.min(1, Math.max(0, Number.isFinite(ratio) ? ratio : 0));
+    setStatus(`轉檔（ffmpeg）… ${Math.round(r*100)}%`, true);
   });
   if (!ffmpeg.isLoaded()) await ffmpeg.load();
 
@@ -293,17 +295,31 @@ async function transcodeToWav16kViaFFmpeg(blobOrFile){
   return new Blob([out.buffer], { type: "audio/wav" });
 }
 
-// ===== 模型（加入 device：有 WebGPU 就用 'webgpu'，否則 'wasm'）=====
+// ===== 模型（加入 device：有 WebGPU 就用 'webgpu'，否則 'wasm'），並修正進度顯示溢出的情況 =====
 async function ensurePipeline(){
   if (clf) return clf;
   setStatus("下載模型中…（首次會久一點）", true);
+
   const progress_callback = (p)=>{
-    if (p?.status==="progress" && typeof p.progress==="number") {
-      setStatus(`下載模型 ${Math.round(p.progress*100)}% …`, true);
-    } else if (p?.status) {
-      setStatus(`${p.status}…`, true);
+    if (!p) return;
+
+    // 選用可用資訊：優先 loaded/total；否則用 progress；兩者都沒有就不顯示百分比
+    let pct = null;
+    if (typeof p.loadedBytes === 'number' && typeof p.totalBytes === 'number' && p.totalBytes > 0) {
+      pct = p.loadedBytes / p.totalBytes;
+    } else if (typeof p.progress === 'number' && isFinite(p.progress)) {
+      pct = p.progress;
+    }
+
+    const label = p.status || "下載模型";
+    if (pct == null) {
+      setStatus(`${label}…`, true);
+    } else {
+      const safe = Math.min(99, Math.max(0, Math.floor(pct * 100))); // clamp 到 0–99%，避免 4786% 之類
+      setStatus(`${label} ${safe}% …`, true);
     }
   };
+
   const device = (typeof navigator !== 'undefined' && navigator.gpu) ? 'webgpu' : 'wasm';
   clf = await pipeline("audio-classification", MODEL_ID, { progress_callback, device });
   setStatus(`模型就緒（device: ${device}）`);
