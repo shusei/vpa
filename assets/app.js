@@ -1,5 +1,13 @@
 // ===== Transformers pipeline =====
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
+
+/** 只用遠端（Hugging Face Hub），停用本機 /models 尋址，避免去打你的 GitHub Pages */
+env.allowLocalModels = false;
+env.allowRemoteModels = true;
+env.remoteHost = "https://huggingface.co";
+env.remotePathTemplate = "{{model}}/resolve/main/{{file}}";
+
+/** 視需要可調整：WASM 執行緒數 */
 env.backends.onnx.wasm.numThreads = 1;
 
 // ===== Theme (標準模式、記憶主題) =====
@@ -474,7 +482,7 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
       processedSec = Math.min(durationSec, (s1 / sr));
       const remain = chunks.length - i - 1;
       const etaSec = (remain * (avgMs/1000));
-      const pct = Math.round(((i+1)/chunks.length)*100);
+      const pct = Math.round(((i+1)/chunks.length)*100));
       setStatus(`分析中（串流；win=${WIN_S}s）｜片段 ${i+1}/${chunks.length}｜${pct}%｜已處理 ${fmtSec(processedSec)} / ${fmtSec(durationSec)}｜預估剩餘 ~ ${fmtSec(etaSec)}`, true);
 
       await microYield();
@@ -539,7 +547,7 @@ function ensurePlayerUI(){
 function setPlaybackSource(blob){
   try {
     if (!audioEl || !playBtn) return;
-    if (lastAudioUrl) { try { URL.revokeObjectURL(lastAudioUrl); } catch {} lastAudioUrl = null; }
+    if (lastAudioUrl) { try { URL.revokeObjectURL(lastAudioUrl); } catch {} }
     lastAudioUrl = URL.createObjectURL(blob);
     audioEl.src = lastAudioUrl;
     audioEl.load();
