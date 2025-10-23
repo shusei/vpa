@@ -38,7 +38,7 @@
         <span class="rec">■ 停止錄音</span>
       </button>
 
-      <p class="subline" style="margin-top:10px;">
+      <p class="subline mt-10">
         或使用 <b>右下角 ⬆︎</b> 上傳現有音檔（支援 <code>mp3</code> / <code>m4a</code> / <code>mp4</code> / <code>mov</code>）。
       </p>
 
@@ -60,10 +60,12 @@
       <!-- Player gets injected before this callout by app.js -->
       <div class="callout soft">
         <strong>提示：</strong> 40–60% 是正常的灰色帶，建議多錄幾段、看趨勢而不是只看一次。
+        <!-- app.js 會把「想再聽一次…點這裡」插進 player 的 .hint -->
       </div>
 
       <!-- Info -->
       <section class="info">
+
         <details open>
           <summary>如何錄比較準？（快速）</summary>
           <ul class="bullets">
@@ -74,6 +76,7 @@
           </ul>
         </details>
 
+        <!-- DOC-LOCK: 模型概覽（請勿動） -->
         <details>
           <summary>模型概覽</summary>
           <div class="kv">
@@ -87,7 +90,9 @@
             <div>DOI：</div><div><a href="https://doi.org/10.57967/hf/5684" target="_blank" rel="noopener">10.57967/hf/5684</a></div>
           </div>
         </details>
+        <!-- /DOC-LOCK -->
 
+        <!-- DOC-LOCK: 準確度（請勿動） -->
         <details>
           <summary>準確度（開發者報告）</summary>
           <ul class="bullets" style="margin-top:6px;">
@@ -97,7 +102,9 @@
           </ul>
           <p class="subline">說明：上述為作者資料分佈下的離線評估；不同語言、環境、內容（如唱歌）可能與此有落差。</p>
         </details>
+        <!-- /DOC-LOCK -->
 
+        <!-- DOC-LOCK: 方法簡述（請勿動） -->
         <details>
           <summary>方法簡述（本頁實作）</summary>
           <ul class="bullets">
@@ -108,7 +115,9 @@
             <li><b>隱私：</b>100% 本地推論；音檔不離開裝置。只保留「最新一段」的回放 URL，換檔即釋放。</li>
           </ul>
         </details>
+        <!-- /DOC-LOCK -->
 
+        <!-- DOC-LOCK: 用途與倫理（請勿動） -->
         <details>
           <summary>用途定位與倫理提醒</summary>
           <ul class="bullets">
@@ -117,7 +126,9 @@
             <li>請勿：用於歧視、排除、或任何影響權益的自動決策。</li>
           </ul>
         </details>
+        <!-- /DOC-LOCK -->
 
+        <!-- DOC-LOCK: 版本與授權（請勿動） -->
         <details>
           <summary>版本與授權</summary>
           <div class="kv">
@@ -127,7 +138,9 @@
             <div>原始碼：</div><div><a href="https://github.com/shusei/vpa" target="_blank" rel="noopener">GitHub / vpa</a></div>
           </div>
         </details>
+        <!-- /DOC-LOCK -->
 
+        <!-- DOC-LOCK: 相容性與效能（請勿動） -->
         <details>
           <summary>相容性與效能</summary>
           <ul class="bullets">
@@ -136,6 +149,8 @@
             <li>備援：WebAudio 解不動時自動落到 ffmpeg.wasm，轉完即釋放記憶體。</li>
           </ul>
         </details>
+        <!-- /DOC-LOCK -->
+
       </section>
     </main>
 
