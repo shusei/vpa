@@ -1,38 +1,19 @@
-// assets/app.js — 整段一次；長檔自動切「串流分段」＋自動降載（12s→8s→6s→4s）
-// - WebAudio 解碼優先；Safari+m4a 直接走 ffmpeg.wasm；其餘失敗再 fallback ffmpeg（jsDelivr），轉完立刻 exit() 釋放
-// - 只保留「最後一次」音檔（ObjectURL 會 revoke）
-// - 關閉 AudioContext、清 chunks、丟大型陣列參考，避免長玩變胖
-// - 整段跑 OOM → 自動切串流分段；分段也 OOM → 降載窗口長度
-// - 全程進度＋ETA，避免以為卡住
-// - 聚合使用「對數勝算」，盡量貼近整段一次結果
-// - 追加：自適應 VAD（能跳過長靜音；只做「選段」不改動原音），WebGPU/WASM 自動選擇 device
-// - 修正：模型下載 progress 可能 >100% 的顯示 bug（無 Content-Length 時改為僅顯示狀態或 clamp 至 99%）；ffmpeg ratio 也做 clamp
-// - 新增：自動用 HEAD 讀取 app.js 的 Last-Modified，填入 #updatedAt 與 #ver（HTML 不用改）
-
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
 
-// GH Pages 無 COOP/COEP → ONNX WASM 單執行緒（若可用 WebGPU 會自動走 GPU）
+/* ===================================
+   CONFIG（標準模式；主題記憶；清除模型；容量估算）
+   =================================== */
 env.backends.onnx.wasm.numThreads = 1;
 
-// ===== 參數 =====
 const MODEL_ID        = (window.ONNX_MODEL_ID || "prithivMLmods/Common-Voice-Gender-Detection-ONNX");
-const TARGET_SR       = 16000;      // 模型需求：16 kHz
-const MAX_WHOLE_SEC   = 150;        // ≤150 秒走整段；>150 秒改串流分段
-const WARN_LONG_SEC   = 180;        // >3 分鐘提醒（仍會照跑）
-const STREAM_WIN_CAND = [12, 8, 6, 4]; // 串流分段長度候選（秒），遇到 OOM 逐級降載
-const STREAM_HOP_S    = 3;          // 分段位移（秒）
+const TARGET_SR       = 16000;
+const MAX_WHOLE_SEC   = 150;
+const WARN_LONG_SEC   = 180;
+const STREAM_WIN_CAND = [12, 8, 6, 4];
+const STREAM_HOP_S    = 3;
 const EPS             = 1e-9;
 
-// VAD 參數（輕量能量門檻，僅做「選段」）
-const VAD_MIN_APPLY_SEC   = 20;     // 短於此長度就不跑 VAD（避免得不償失）
-const VAD_FRAME_MS        = 30;     // 30ms 框
-const VAD_HOP_MS          = 10;     // 10ms hop
-const VAD_PAD_MS          = 60;     // 片段前後保留 padding（避免切字頭尾）
-const VAD_MIN_SEG_MS      = 200;    // 最短片段（太短不分析）
-const VAD_MIN_VOICED_SEC  = 2;      // VAD 篩出總時長 < 2s 就放棄 VAD
-const VAD_SILENCE_RATIO_TO_APPLY = 0.15; // 無聲占比 ≥ 15% 才有跑 VAD 的價值
-
-// Safari 偵測（for m4a/ALAC/HE-AAC 解碼相容）
+const VAD_MIN_APPLY_SEC   = 20, VAD_FRAME_MS=30, VAD_HOP_MS=10, VAD_PAD_MS=60, VAD_MIN_SEG_MS=200, VAD_MIN_VOICED_SEC=2, VAD_SILENCE_RATIO_TO_APPLY=0.15;
 const IS_SAFARI = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 // ===== DOM =====
@@ -43,23 +24,25 @@ const meter     = document.getElementById("meter");
 const femaleVal = document.getElementById("femaleVal");
 const maleVal   = document.getElementById("maleVal");
 
-// ===== 播放器 UI（動態建立，無需改 HTML/CSS） =====
+// ===== 播放器 UI（用 class，不再用內嵌深綠樣式） =====
 let playBtn = null;
 let audioEl = null;
 let lastAudioUrl = null;
 
 ensurePlayerUI();
+ensureSettingsUI();   // 右上角設定齒輪
+initTheme();          // 記住主題
 
 // ===== 狀態 =====
 let mediaRecorder = null;
 let chunks = [];
-let clf = null;        // transformers.js pipeline
+let clf = null;
 let busy = false;
 let heartbeatTimer = null;
 
-log("[app] whole-pass (≤150s) + streamed long-mode + auto downshift + Safari m4a hardening + adaptive VAD + player + GC-safe ready.");
+log("[app] ready — standard mode, theme memory, model cache clear, storage estimate enabled.");
 
-// ====== 版本/日期自動填入（以 app.js Last-Modified 為準）======
+/* ========== 版本/日期（以 app.js Last-Modified） ========== */
 (async function fillBuildMeta(){
   try {
     const verEl = document.getElementById('ver');
@@ -83,11 +66,130 @@ log("[app] whole-pass (≤150s) + streamed long-mode + auto downshift + Safari m
 
     if (updEl) updEl.textContent = `${y}-${m}-${day}`;
     if (verEl) verEl.textContent = `build-${y}${m}${day}-${hh}${mm}`;
-  } catch (e) {
-    // 靜默失敗，不影響主流程
-  }
+  } catch {}
 })();
 
+/* ========== 主題：記憶 + 套用 ========== */
+const THEMES = ["warm","lavender","peach","mint","ink","day","night","contrast"];
+function initTheme(){
+  const urlTheme = new URL(location.href).searchParams.get("theme");
+  const saved = localStorage.getItem("vpa-theme");
+  const theme = (urlTheme && THEMES.includes(urlTheme)) ? urlTheme : (saved && THEMES.includes(saved) ? saved : "warm");
+  applyTheme(theme);
+}
+function applyTheme(name){
+  document.documentElement.setAttribute("data-theme", name);
+  try { localStorage.setItem("vpa-theme", name); } catch {}
+}
+
+/* ========== 設定齒輪（主題選單 / 儲存空間 / 清除模型） ========== */
+function ensureSettingsUI(){
+  if (document.querySelector(".settings")) return;
+  const wrap = document.createElement("div");
+  wrap.className = "settings";
+
+  const btn = document.createElement("button");
+  btn.className = "btn"; btn.type = "button"; btn.title = "設定"; btn.setAttribute("aria-haspopup","true");
+  btn.innerHTML = "⚙︎";
+
+  const panel = document.createElement("div");
+  panel.className = "panel"; panel.style.display = "none";
+
+  // 主題選單
+  const rowTheme = document.createElement("div"); rowTheme.className = "row";
+  rowTheme.innerHTML = `
+    <label for="themeSelect">主題</label>
+    <select id="themeSelect">
+      ${THEMES.map(t => `<option value="${t}">${t}</option>`).join("")}
+    </select>
+  `;
+
+  // 容量
+  const rowStorage = document.createElement("div"); rowStorage.className = "row";
+  rowStorage.innerHTML = `
+    <div class="inline">
+      <div class="muted">儲存占用（browser estimate）</div>
+      <button class="kbtn" id="refreshStorage">重新檢查</button>
+    </div>
+    <div class="inline">
+      <div>已用：<b id="usageMB">—</b> MB</div>
+      <div>配額：約 <b id="quotaMB">—</b> MB</div>
+    </div>
+  `;
+
+  // 清除模型
+  const rowClear = document.createElement("div"); rowClear.className = "row";
+  rowClear.innerHTML = `
+    <button class="kbtn danger" id="clearModelBtn">清除模型快取</button>
+    <div class="muted">清除 transformers / ffmpeg 相關快取與索引資料庫。清除後首次推論會重新下載。</div>
+  `;
+
+  panel.appendChild(rowTheme);
+  panel.appendChild(rowStorage);
+  panel.appendChild(rowClear);
+
+  wrap.appendChild(btn);
+  wrap.appendChild(panel);
+  document.body.appendChild(wrap);
+
+  const themeSelect = panel.querySelector("#themeSelect");
+  themeSelect.value = localStorage.getItem("vpa-theme") || "warm";
+  themeSelect.addEventListener("change", (e) => applyTheme(e.target.value));
+
+  btn.addEventListener("click", () => {
+    panel.style.display = (panel.style.display === "none" ? "block" : "none");
+  });
+  document.addEventListener("click", (e) => {
+    if (!wrap.contains(e.target)) panel.style.display = "none";
+  });
+
+  panel.querySelector("#refreshStorage")?.addEventListener("click", updateStorageEstimate);
+  panel.querySelector("#clearModelBtn")?.addEventListener("click", async () => {
+    await clearModelCaches();
+    await updateStorageEstimate();
+    alert("已清除模型快取。重新整理可釋放更多瀏覽器 HTTP 快取。");
+  });
+
+  updateStorageEstimate(); // 首次顯示
+}
+
+async function updateStorageEstimate(){
+  try{
+    const est = await navigator.storage?.estimate?.();
+    const used = est?.usage || 0;
+    const quota = est?.quota || 0;
+    const mb = (x)=> (x/1024/1024).toFixed(1);
+    const usageMB = document.getElementById("usageMB");
+    const quotaMB = document.getElementById("quotaMB");
+    if (usageMB) usageMB.textContent = mb(used);
+    if (quotaMB) quotaMB.textContent = quota ? mb(quota) : "—";
+  }catch{}
+}
+
+async function clearModelCaches(){
+  // 1) IndexedDB：刪常見的 transformers/ffmpeg/onnx 快取庫名
+  const dbNames = ["transformers-cache","transformersjs","xenova-transformers","onnx-cache","model-cache","ffmpeg-cache"];
+  if (indexedDB?.databases) {
+    try{
+      const dbs = await indexedDB.databases();
+      dbs.forEach(db => { if (db?.name && dbNames.some(n => db.name.includes(n))) indexedDB.deleteDatabase(db.name); });
+    }catch{}
+  }
+  dbNames.forEach(n => { try{ indexedDB.deleteDatabase(n); }catch{} });
+
+  // 2) Cache Storage（若有 Service Worker 或你手動使用 caches API）
+  if ("caches" in window) {
+    try{
+      const keys = await caches.keys();
+      for (const k of keys) await caches.delete(k);
+    }catch{}
+  }
+
+  // 3) 清理 transformers.js 內部快取開關（防守形）
+  try { env.cacheModel = false; } catch {}
+}
+
+/* ========== UI 工具 ========== */
 function setStatus(text, spin=false) {
   if (!statusEl) return;
   statusEl.innerHTML = spin ? `<span class="spinner"></span> ${text}` : text;
@@ -100,7 +202,7 @@ function isOOMError(err){
   return /OrtRun|bad_alloc|out of memory|memory|alloc/i.test(msg);
 }
 
-// ===== 事件 =====
+/* ========== 事件：錄音／上傳 ========== */
 recordBtn?.addEventListener("click", async () => {
   if (busy) return;
   try {
@@ -118,11 +220,11 @@ fileInput?.addEventListener("change", async (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
     await handleFileOrBlob(f);
-    e.target.value = "";
+    e.target.value = "";              // ★ 不留任何檔案引用
   } catch (err){ console.error("[fileInput]", err); setStatus("上傳處理失敗"); }
 });
 
-// ===== 錄音 =====
+/* ========== 錄音 ========== */
 function pickSupportedMime(){
   const cands = ["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/ogg"];
   try{
@@ -145,7 +247,7 @@ async function startRecording(){
   mediaRecorder.onstop = async () => {
     try {
       const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
-      chunks.length = 0; // ★ 立刻丟掉暫存
+      chunks.length = 0;              // ★ 立刻丟暫存
       await handleFileOrBlob(blob);
     } catch (e) {
       console.error("[onstop]", e); setStatus("錄音處理失敗");
@@ -169,12 +271,12 @@ async function stopRecording(){
   document.querySelector(".container")?.classList.remove("recording");
 }
 
-// ===== 主流程（先判斷長短，再選路徑） =====
+/* ========== 主流程 ========== */
 async function handleFileOrBlob(fileOrBlob){
   busy = true;
   let decoded = null;
   try {
-    // 先把原始檔綁到播放器（只保留最新一個）
+    // 播放器總是只綁最新一個來源
     setPlaybackSource(fileOrBlob);
 
     setStatus("解析檔案…", true);
@@ -186,7 +288,7 @@ async function handleFileOrBlob(fileOrBlob){
       await microYield();
     }
 
-    // ★ 自適應 VAD（只做「選段」）：長檔或靜音比例明顯才啟用
+    // 自適應 VAD（只做「選段」）
     const vad = maybeApplyAdaptiveVAD(float32, sr);
     if (vad && vad.used) {
       const reducedRatio = 1 - (vad.keptSec / durationSec);
@@ -205,16 +307,13 @@ async function handleFileOrBlob(fileOrBlob){
     console.error("[handleFileOrBlob]", e);
     setStatus("處理失敗：" + (e?.message || "無法解碼或分析此音檔"));
   } finally {
-    // ★ 放掉大陣列參考（讓 GC 收）
-    if (decoded) decoded.float32 = null;
+    if (decoded) decoded.float32 = null; // 放掉大陣列
     decoded = null;
     busy = false;
   }
 }
 
-// ===== 解碼策略 =====
-// 1) Safari + m4a/mp4：直接 ffmpeg（穩）
-// 2) 其他 → 先 WebAudio（保留原聲、較快），失敗再 ffmpeg
+/* ========== 解碼策略 ========== */
 async function decodeSmartToFloat32(blobOrFile, targetSR){
   const name = (blobOrFile.name || "").toLowerCase();
   const type = (blobOrFile.type || "").toLowerCase();
@@ -230,12 +329,11 @@ async function decodeSmartToFloat32(blobOrFile, targetSR){
   try {
     setStatus("直接解碼（WebAudio）…", true);
     return await decodeViaWebAudio(blobOrFile, targetSR);
-  } catch (e) {
-    log("[decode] WebAudio failed, fallback to ffmpeg:", e?.message || e);
-  }
+  } catch (e) { log("[decode] WebAudio failed, fallback to ffmpeg:", e?.message || e); }
+
   setStatus("轉檔（ffmpeg）準備中…", true);
   const wavBlob = await transcodeToWav16kViaFFmpeg(blobOrFile);
-  const { float32, sr } = wavToFloat32(await wavBlob.arrayBuffer()); // 已是 16k/mono
+  const { float32, sr } = wavToFloat32(await wavBlob.arrayBuffer());
   return { float32, sr, durationSec: float32.length / sr };
 }
 
@@ -247,7 +345,6 @@ async function decodeViaWebAudio(blobOrFile, targetSR=16000){
   try {
     const audioBuf = await ctx.decodeAudioData(arrayBuf);
 
-    // ★ Safari 相容：不要用 new AudioBuffer({ ... })
     const mono = ctx.createBuffer(1, audioBuf.length, audioBuf.sampleRate);
     const outCh = mono.getChannelData(0);
     const ch0 = audioBuf.getChannelData(0);
@@ -259,7 +356,6 @@ async function decodeViaWebAudio(blobOrFile, targetSR=16000){
       outCh.set(ch0);
     }
 
-    // 僅為符合模型而重採樣到 16k（內容不裁、不調音量）
     let out;
     if (audioBuf.sampleRate === targetSR) {
       out = outCh.slice(0);
@@ -273,11 +369,11 @@ async function decodeViaWebAudio(blobOrFile, targetSR=16000){
     return { float32: out, sr: targetSR, durationSec: out.length / targetSR };
   } finally {
     try { await ctx.close(); } catch {}
-    offline = null; // 讓 GC 收
+    offline = null;
   }
 }
 
-// ---- FFmpeg 載入（只有當 WebAudio 失敗或 Safari+m4a 才會用到） ----
+/* ========== FFmpeg（必要時才載） ========== */
 async function loadFFmpegModule(){
   try {
     const m = await import("https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/+esm");
@@ -315,7 +411,6 @@ async function transcodeToWav16kViaFFmpeg(blobOrFile){
 
   const inName = "in.bin", outName = "out.wav";
   ffmpeg.FS("writeFile", inName, await fetchFile(blobOrFile));
-  // -vn 去視訊；-ac 1 單聲道；-ar 16000 取樣率；輸出 PCM WAV
   await ffmpeg.run("-i", inName, "-vn", "-ac", "1", "-ar", `${TARGET_SR}`, "-f", "wav", outName);
   const out = ffmpeg.FS("readFile", outName);
   try { ffmpeg.FS("unlink", inName); } catch {}
@@ -325,27 +420,24 @@ async function transcodeToWav16kViaFFmpeg(blobOrFile){
   return new Blob([out.buffer], { type: "audio/wav" });
 }
 
-// ===== 模型（加入 device：有 WebGPU 就用 'webgpu'，否則 'wasm'），並修正進度顯示溢出的情況 =====
+/* ========== 模型 ========== */
 async function ensurePipeline(){
   if (clf) return clf;
   setStatus("下載模型中…（首次會久一點）", true);
 
   const progress_callback = (p)=>{
     if (!p) return;
-
-    // 選用可用資訊：優先 loaded/total；否則用 progress；兩者都沒有就不顯示百分比
     let pct = null;
     if (typeof p.loadedBytes === 'number' && typeof p.totalBytes === 'number' && p.totalBytes > 0) {
       pct = p.loadedBytes / p.totalBytes;
     } else if (typeof p.progress === 'number' && isFinite(p.progress)) {
       pct = p.progress;
     }
-
     const label = p.status || "下載模型";
     if (pct == null) {
       setStatus(`${label}…`, true);
     } else {
-      const safe = Math.min(99, Math.max(0, Math.floor(pct * 100))); // clamp 到 0–99%，避免 4786% 之類
+      const safe = Math.min(99, Math.max(0, Math.floor(pct * 100)));
       setStatus(`${label} ${safe}% …`, true);
     }
   };
@@ -356,7 +448,7 @@ async function ensurePipeline(){
   return clf;
 }
 
-// ===== 整段一次（≤150s） =====
+/* ========== 分析（整段/分段） ========== */
 async function analyzeWhole(float32, sr, durationSec){
   const model = await ensurePipeline();
   meter?.classList.remove("hidden");
@@ -385,29 +477,26 @@ async function analyzeWhole(float32, sr, durationSec){
   }
 }
 
-// ===== 串流分段（逐段送模型，避免一次吃爆） =====
 async function analyzeStreamed(float32, sr, durationSec, reason="串流分段"){
   const model = await ensurePipeline();
   meter?.classList.remove("hidden");
 
-  // 逐級嘗試不同窗口長度：12 → 8 → 6 → 4 秒
   let lastErr = null;
   for (const winSec of STREAM_WIN_CAND) {
     try {
       await runStreamedWithWindow(model, float32, sr, durationSec, winSec, STREAM_HOP_S, reason);
-      return; // 成功就結束
+      return;
     } catch (e) {
       lastErr = e;
       if (isOOMError(e)) {
         console.warn(`[streamed] OOM at win=${winSec}s → downshift`);
-        continue; // 換更小窗口
+        continue;
       } else {
         console.error(`[streamed] error at win=${winSec}s`, e);
-        break; // 其他錯誤就不再嘗試
+        break;
       }
     }
   }
-  // 全部嘗試失敗
   console.error("[analyzeStreamed] failed", lastErr);
   setStatus("分析失敗（串流分段）");
 }
@@ -416,21 +505,16 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
   const win = Math.max(1, Math.floor(WIN_S * sr));
   const hop = Math.max(1, Math.floor(HOP_S * sr));
 
-  // 構建窗口索引（用 subarray，不複製）
   const chunks = [];
   for (let s=0; s<float32.length; s+=hop){
     const e = Math.min(s + win, float32.length);
-    if (e - s < Math.floor(0.5 * sr)) break; // 末段不足 0.5s 就跳過
+    if (e - s < Math.floor(0.5 * sr)) break;
     chunks.push([s,e]);
     if (e === float32.length) break;
   }
   if (!chunks.length) chunks.push([0, Math.min(win, float32.length)]);
 
-  // 進度顯示
-  let avgMs = 0;
-  let processedSec = 0;
-
-  // 對數勝算聚合（等長加權：用片段時長當權重）
+  let avgMs = 0, processedSec = 0;
   let logitSum = 0, wSum = 0;
 
   const started = performance.now();
@@ -456,10 +540,9 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
       const pm = clamp01(map.male   || EPS);
       const logit = Math.log(pf) - Math.log(pm);
 
-      logitSum += logit * dur; // 權重 = 該段時長（不動原音）
+      logitSum += logit * dur;
       wSum     += dur;
 
-      // 即時顯示當前聚合
       const logitAvg = logitSum / Math.max(wSum, EPS);
       const pf_now = 1 / (1 + Math.exp(-logitAvg));
       const pm_now = 1 - pf_now;
@@ -487,78 +570,47 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
   }
 }
 
-// ===== 播放器：用「剛才送去分析的原檔」 =====
+/* ========== 播放器（無內嵌色值） ========== */
 function ensurePlayerUI(){
   const container = document.querySelector(".container");
   if (!container) return;
-  if (document.getElementById("playBtn")) return; // 避免重複
+  if (document.getElementById("playBtn")) return;
 
   const wrap = document.createElement("div");
   wrap.className = "player";
-  wrap.style.cssText = `
-    margin-top: 18px; padding: 14px; border-radius: 14px;
-    background: linear-gradient(180deg, rgba(21,25,34,0.55), rgba(21,25,34,0.35));
-    border: 1px solid #1f2937; display: flex; align-items: center; gap: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,.25);
-  `;
 
   const btn = document.createElement("button");
-  btn.id = "playBtn";
-  btn.type = "button";
-  btn.disabled = true;
-  btn.textContent = "▶︎ 播放剛才的聲音";
-  btn.ariaLabel = "播放剛才的聲音";
-  btn.style.cssText = `
-    padding: 10px 14px; font-size: 14px; border-radius: 999px;
-    background: linear-gradient(135deg, color-mix(in oklab, var(--accent) 85%, #fff 8%), #1f2937);
-    color: #0b0c10; font-weight: 700; letter-spacing: .2px;
-    border: none; cursor: pointer; box-shadow: 0 6px 18px rgba(110,231,183,.25);
-    transition: transform .06s ease, filter .2s ease, opacity .2s ease;
-    opacity: .92;
-  `;
-  btn.onmouseenter = () => { btn.style.transform = "translateY(-1px)"; btn.style.filter = "brightness(1.05)"; };
-  btn.onmouseleave = () => { btn.style.transform = "translateY(0)"; btn.style.filter = "none"; };
+  btn.id = "playBtn"; btn.type = "button"; btn.disabled = true;
+  btn.textContent = "▶︎ 播放剛才的聲音"; btn.setAttribute("aria-label", "播放剛才的聲音");
 
   const hint = document.createElement("div");
-  hint.textContent = "想再聽一次剛才那段嗎？點這裡。";
-  hint.style.cssText = "color: var(--muted); font-size: 13px;";
+  hint.className = "hint";
+  const a = document.createElement("a");
+  a.href = "#play"; a.textContent = "點這裡";
+  hint.append("想再聽一次剛才那段嗎？", a, "。");
 
   const audio = document.createElement("audio");
-  audio.id = "playback";
-  audio.preload = "metadata";
-  audio.style.display = "none";
+  audio.id = "playback"; audio.preload = "metadata"; audio.style.display = "none";
 
-  wrap.appendChild(btn);
-  wrap.appendChild(hint);
-  wrap.appendChild(audio);
+  wrap.append(btn, hint, audio);
 
-  // 插在提示（.callout）之前
   const tipEl = container.querySelector(".callout");
-  if (tipEl) {
-    container.insertBefore(wrap, tipEl);
-  } else {
-    const statusEl = container.querySelector("#status");
-    if (statusEl && statusEl.parentNode) statusEl.parentNode.insertBefore(wrap, statusEl.nextSibling);
-    else container.appendChild(wrap);
-  }
+  if (tipEl) container.insertBefore(wrap, tipEl); else container.appendChild(wrap);
 
-  playBtn = btn;
-  audioEl = audio;
+  playBtn = btn; audioEl = audio;
 
-  playBtn.onclick = async () => {
+  const play = async () => {
     if (!audioEl.src) return;
     try {
-      if (audioEl.paused) {
-        await audioEl.play();
-        playBtn.textContent = "⏸ 暫停播放";
-      } else {
-        audioEl.pause();
-        playBtn.textContent = "▶︎ 播放剛才的聲音";
-      }
+      if (audioEl.paused) { await audioEl.play(); playBtn.textContent = "⏸ 暫停播放"; }
+      else { audioEl.pause(); playBtn.textContent = "▶︎ 播放剛才的聲音"; }
     } catch (e) { console.error("[audio play]", e); }
   };
+  playBtn.onclick = play;
+  a.onclick = (e)=>{ e.preventDefault(); play(); };
   audioEl.onended = () => { playBtn.textContent = "▶︎ 播放剛才的聲音"; };
 }
+
 function setPlaybackSource(blob){
   try {
     if (!audioEl || !playBtn) return;
@@ -571,7 +623,7 @@ function setPlaybackSource(blob){
   } catch (e) { console.error("[setPlaybackSource]", e); }
 }
 
-// ===== UI 工具 =====
+/* ========== 其他工具 ========== */
 function toMap(arr){
   const m = { female: 0, male: 0 };
   if (Array.isArray(arr)) for (const r of arr) {
@@ -602,7 +654,7 @@ function stopHeartbeat(){
 }
 function microYield(){ return new Promise(r=>setTimeout(r,0)); }
 
-// ===== 解析 16-bit PCM WAV → Float32（單聲道），僅供 FFmpeg 轉出的 WAV 使用 =====
+/* ========== WAV 轉 float32（給 ffmpeg 轉出用） ========== */
 function wavToFloat32(arrayBuffer){
   const view = new DataView(arrayBuffer);
   const riff = str(view,0,4), wave = str(view,8,4);
@@ -633,7 +685,7 @@ function wavToFloat32(arrayBuffer){
 }
 function str(v,s,l){ let x=""; for(let i=0;i<l;i++) x+=String.fromCharCode(v.getUint8(s+i)); return x; }
 
-// ===== 自適應 VAD（能量門檻；只做「選段」，不動原音檔） =====
+/* ========== 自適應 VAD（選段，不動原音） ========== */
 function maybeApplyAdaptiveVAD(float32, sr){
   const dur = float32.length / sr;
   if (dur < VAD_MIN_APPLY_SEC) return null;
@@ -643,7 +695,6 @@ function maybeApplyAdaptiveVAD(float32, sr){
   const pad   = Math.max(0, Math.floor(sr * (VAD_PAD_MS/1000)));
   const minSeg= Math.max(1, Math.floor(sr * (VAD_MIN_SEG_MS/1000)));
 
-  // 計能量（RMS 的平方：mean(x^2)）
   const energies = [];
   for (let s=0; s+frame <= float32.length; s+=hop){
     let acc=0;
@@ -652,14 +703,10 @@ function maybeApplyAdaptiveVAD(float32, sr){
   }
   if (energies.length < 5) return null;
 
-  // 動態門檻：以 20 分位作底 + 放大係數
   const thr = Math.max(1e-7, percentile(energies, 20) * 1.5);
   const voicedMask = energies.map(e => e > thr);
-
-  // 簡單平滑：去掉太短的洞/脈衝（3 帧）
   smoothMask(voicedMask, 3);
 
-  // 轉為樣本級區段（含 padding）
   const segs = [];
   let i = 0;
   while (i < voicedMask.length){
@@ -674,15 +721,11 @@ function maybeApplyAdaptiveVAD(float32, sr){
   }
   if (!segs.length) return null;
 
-  // 統計：若無聲占比低（<15%），其實沒必要 VAD
   const kept = segs.reduce((a,[s0,s1]) => a + (s1 - s0), 0);
   const keptSec = kept / sr;
   const silenceRatio = 1 - (keptSec / dur);
-  if (silenceRatio < VAD_SILENCE_RATIO_TO_APPLY || keptSec < VAD_MIN_VOICED_SEC) {
-    return null;
-  }
+  if (silenceRatio < VAD_SILENCE_RATIO_TO_APPLY || keptSec < VAD_MIN_VOICED_SEC) return null;
 
-  // 拼接成新 array（僅供推論；播放器仍用原檔）
   const out = new Float32Array(kept);
   let offset = 0;
   for (const [s0,s1] of segs){
@@ -693,36 +736,23 @@ function maybeApplyAdaptiveVAD(float32, sr){
 }
 function percentile(arr, p){
   const a = arr.slice().sort((x,y)=>x-y);
-  const idx = Math.min(a.length-1, Math.max(0, Math.round((p/100)* (a.length-1))));
+  const idx = Math.min(a.length-1, Math.max(0, Math.round((p/100)*(a.length-1))));
   return a[idx];
 }
 function smoothMask(mask, k=3){
-  // 移除孤立脈衝/洞：連續 true/false 少於 k 則合併鄰側
-  // 先處理 false 島
   let count=0;
   for (let i=0;i<=mask.length;i++){
     if (i<mask.length && !mask[i]) count++;
-    else {
-      if (count>0 && count<k){
-        for (let j=i-count;j<i;j++) mask[j]=true;
-      }
-      count=0;
-    }
+    else { if (count>0 && count<k){ for (let j=i-count;j<i;j++) mask[j]=true; } count=0; }
   }
-  // 再處理 true 島（轉反邏輯）
   count=0;
   for (let i=0;i<=mask.length;i++){
     if (i<mask.length && mask[i]) count++;
-    else {
-      if (count>0 && count<k){
-        for (let j=i-count;j<i;j++) mask[j]=false;
-      }
-      count=0;
-    }
+    else { if (count>0 && count<k){ for (let j=i-count;j<i;j++) mask[j]=false; } count=0; }
   }
 }
 
-// ===== 離站清理：離開頁面時釋放最後 URL =====
+/* ========== 離站清理：釋放最後 URL ========== */
 window.addEventListener("beforeunload", () => {
   if (lastAudioUrl) { try { URL.revokeObjectURL(lastAudioUrl); } catch {} }
 });
