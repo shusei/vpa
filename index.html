@@ -12,16 +12,6 @@
   <!-- 站點圖示：用內嵌 SVG，避免 404 -->
   <link rel="icon" type="image/svg+xml"
         href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="%236ee7b7"/><stop offset="1" stop-color="%238ab4f8"/></linearGradient></defs><rect width="96" height="96" rx="18" fill="%23151922"/><circle cx="32" cy="40" r="10" fill="url(%23g)"/><circle cx="64" cy="56" r="10" fill="url(%23g)"/><path d="M20 70c24-12 32-12 56 0" stroke="url(%23g)" stroke-width="6" fill="none" stroke-linecap="round"/></svg>' />
-
-  <script>
-    // 部署參數（預設為 100% 客端）
-    window.INFERENCE_MODE = 'browser'; // 'browser' | 'server'
-    window.API_BASE_URL   = '/api/classify'; // 若改用後端代理再調整
-    // ONNX 模型 (與 HF 上一致)
-    window.ONNX_MODEL_ID  = 'prithivMLmods/Common-Voice-Gender-Detection-ONNX';
-    // 版本號（顯示在頁尾 details）
-    window.APP_VERSION    = 'v2025-10-22';
-  </script>
 </head>
 <body>
 <main class="container">
@@ -68,8 +58,10 @@
     </div>
   </div>
 
-  <!-- 狀態（即時進度，具可存取性） -->
+  <!-- 狀態（即時進度） -->
   <div id="status" class="status" aria-live="polite">準備就緒</div>
+
+  <!-- 播放剛才那段（由 app.js 動態插入到這段提示前方） -->
 
   <!-- 友善提示 -->
   <div class="callout soft">
@@ -100,7 +92,7 @@
       <summary>方法簡述（專業透明）</summary>
       <ul class="bullets">
         <li>模型：<b>Wav2Vec2</b> 架構的二分類（女性/男性），ONNX 版本於瀏覽器推論。</li>
-        <li>音訊處理：只做 <b>單聲道混合</b> 與 <b>16 kHz 重採樣</b> 以符合模型；<b>不</b>去靜音、不調音量。<b>超長檔或記憶體不足時</b>會自動改為「串流分段」（對數勝算聚合）。</li>
+        <li>音訊處理：只做 <b>單聲道混合</b> 與 <b>16 kHz 重採樣</b> 以符合模型；<b>不</b>去靜音、不調音量。</li>
         <li>結果：顯示模型對兩類的分數（機率樣），以利自我觀察。</li>
       </ul>
       <p class="note">模型來源與授權：<a href="https://huggingface.co/prithivMLmods/Common-Voice-Gender-Detection" target="_blank" rel="noopener">Hugging Face Model Card</a>（Apache-2.0）。</p>
@@ -116,22 +108,10 @@
     </details>
 
     <details>
-      <summary>隱私與快取</summary>
-      <ul class="bullets">
-        <li><b>全程本地推論，不上傳音檔</b>；換新檔會釋放上一段的暫存。</li>
-        <li>模型檔會快取於瀏覽器（IndexedDB），以便下次更快。</li>
-      </ul>
-      <div class="tool-row">
-        <button class="btn subtle" onclick="clearModelCache()">清除模型快取</button>
-        <button class="btn subtle" onclick="location.reload()">重新整理</button>
-        <span class="muted">可釋放儲存空間；清除後首次使用會重新下載模型。</span>
-      </div>
-    </details>
-
-    <details>
       <summary>版本與授權</summary>
       <div class="kv">
         <div>版本：</div><div><code id="ver"></code></div>
+        <div>更新：</div><div><code id="updatedAt"></code></div>
         <div>授權：</div><div>模型 <code>Apache-2.0</code>；此網站程式碼以你的庫為準。</div>
         <div>原始碼：</div><div><a href="https://github.com/shusei/vpa" target="_blank" rel="noopener">GitHub / vpa</a></div>
       </div>
@@ -139,7 +119,7 @@
   </section>
 </main>
 
-<!-- 浮動上傳按鈕（強化 aria/提示，且列出支援格式） -->
+<!-- 浮動上傳按鈕 -->
 <label class="fab" title="上傳音檔（mp3 / m4a / mp4 / mov）" aria-label="上傳音檔（mp3 / m4a / mp4 / mov）">
   ⬆︎
   <input id="fileInput" type="file"
@@ -147,22 +127,7 @@
          hidden />
 </label>
 
-<!-- 主程式 -->
+<!-- 主程式（會自動把版本與更新日填進去） -->
 <script type="module" src="assets/app.js"></script>
-
-<!-- 小工具：顯示版本、清除模型快取（IndexedDB） -->
-<script>
-  (function showVersion() {
-    const el = document.getElementById('ver');
-    if (el) el.textContent = window.APP_VERSION || '';
-  })();
-
-  async function clearModelCache() {
-    try { indexedDB.deleteDatabase('transformers-cache'); } catch(e) {}
-    try { indexedDB.deleteDatabase('transformers'); } catch(e) {}
-    alert('已請求清除模型快取。請重新整理頁面以完成釋放。');
-  }
-</script>
 </body>
 </html>
-
