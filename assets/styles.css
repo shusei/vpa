@@ -1,7 +1,7 @@
 /* =========================
-   VPA — Lux Theme System (26)
+   VPA — Lux Theme System (26) + Faction-based Hero
    - 以 token 為核心，主題彼此一致
-   - hero 標題以變數控制：亮底=實色；暗底=漸層
+   - Hero 標題：以 data-faction 判斷（light=實色 / dark=漸層）
    - 修正 UA button 字色（bug2）
    ========================= */
 
@@ -25,7 +25,19 @@
 
   --link: color-mix(in oklab, #ffe7c7 55%, var(--accent) 45%);
 
-  /* Hero 標題控制（預設暗底：漸層） */
+  /* Hero（預設暗底：漸層） */
+  --hero-title-bg: linear-gradient(90deg,
+      color-mix(in oklab, #fff 10%, var(--accent-1) 90%) 0%,
+      color-mix(in oklab, #fff 6%,  var(--accent-2) 94%) 100%);
+  --hero-title-color: transparent;
+}
+
+/* ---------- Faction-based Hero（不再用白名單） ---------- */
+html[data-faction="light"]{
+  --hero-title-bg: none;
+  --hero-title-color: color-mix(in oklab, var(--ink) 92%, var(--accent-1) 8%);
+}
+html[data-faction="dark"]{
   --hero-title-bg: linear-gradient(90deg,
       color-mix(in oklab, #fff 10%, var(--accent-1) 90%) 0%,
       color-mix(in oklab, #fff 6%,  var(--accent-2) 94%) 100%);
@@ -38,21 +50,6 @@
         rose, blush, coral, amber, gold, cocoa,
         olive, emerald, teal, aqua, cyan, sky, azure, cobalt, indigo,
         violet, grape, plum, magenta, fuchsia */
-
-/* Helper：亮底主題要把 hero 改成實色 */
-/* 只保留真正亮底的主題；移除 peach/rose/gold（它們是深底） */
-:root {}
-html[data-theme="day"],
-html[data-theme="sand"],
-html[data-theme="latte"],
-html[data-theme="blush"],
-html[data-theme="amber"],
-html[data-theme="aqua"],
-html[data-theme="sky"],
-html[data-theme="azure"]{
-  --hero-title-bg: none;
-  --hero-title-color: color-mix(in oklab, var(--ink) 92%, var(--accent-1) 8%);
-}
 
 /* default warm */
 html[data-theme="warm"]{} 
@@ -72,8 +69,7 @@ html[data-theme="peach"]{
   --bg-start:#3a2220; --bg-end:#1a1110;
   --surface:rgba(58,34,32,.60); --surface-strong:rgba(58,34,32,.80);
   --panel:#fff6f1; --panel-border:#ffe2d3;
-  /* 調整為淺字＋略提亮 muted，適配深底 */
-  --text:#f6ece8; --muted:#e2c9c4; --ink:#2a1614;
+  --text:#2a1614; --muted:#6b4b45; --ink:#2a1614;
   --accent-1:#ffb4a2; --accent-2:#ffd6a5;
   --accent: color-mix(in oklab, var(--accent-1) 55%, var(--accent-2) 45%);
   --ring:#ffc8a4; --border:#4a2b28; --link:#b45309;
@@ -121,9 +117,6 @@ html[data-theme="contrast"]{
   --accent-1:#000; --accent-2:#000; --accent:#111;
   --ring:#ffbf00; --border:#000; --link:#0a58ff;
   --female:#0ea5e9; --male:#ef4444;
-  /* 強制大標實色白字，避免黑底黑漸層看不到 */
-  --hero-title-bg: none;
-  --hero-title-color: #fff;
 }
 
 /* New neutrals */
@@ -467,7 +460,7 @@ a:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring); border-radius:8
   box-shadow:0 8px 18px color-mix(in oklab,var(--accent-2) 25%, #000 75%);
 }
 
-/* ---------- Settings（齒輪 + 選單） ---------- */
+/* ---------- Settings（齒輪 + 選單 + Tabs + 一次性提示） ---------- */
 .settings-btn{
   position:absolute; top:12px; right:12px;
   display:grid; place-items:center; width:34px; height:34px;
@@ -479,16 +472,46 @@ a:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring); border-radius:8
 .settings-btn:hover{ filter:brightness(1.05); }
 .settings-btn:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring); }
 
+/* 一次性提示泡泡 */
+.theme-tip{
+  position:absolute; top:50px; right:56px; z-index:35;
+  background:var(--panel); color:var(--ink);
+  border:1px solid var(--panel-border); border-radius:10px;
+  padding:8px 10px; font-size:12px; box-shadow:0 12px 24px rgba(0,0,0,.18);
+}
+.theme-tip::after{
+  content:""; position:absolute; top:-7px; right:14px; width:12px; height:12px;
+  transform:rotate(45deg);
+  background:var(--panel); border-left:1px solid var(--panel-border); border-top:1px solid var(--panel-border);
+}
+
 /* 主題清單可捲動、長清單也好用 */
 .theme-menu{
   position:absolute; top:52px; right:12px; z-index:40;
-  min-width: 240px; max-height:70vh; overflow:auto;
+  min-width: 260px; max-height:70vh; overflow:auto;
   padding:8px; border-radius:12px;
   border:1px solid var(--panel-border); background:var(--panel); color:var(--ink);
   box-shadow:0 20px 40px rgba(0,0,0,.18);
 }
 .theme-menu[hidden]{ display:none; }
-.theme-menu__title{ font-size:12px; letter-spacing:.4px; color:var(--muted); margin:4px 6px 8px; }
+.theme-menu__title{ font-size:12px; letter-spacing:.4px; color:var(--muted); margin:6px 6px 8px; }
+
+/* 三切 segmented tabs */
+.theme-tabs{
+  display:flex; gap:6px; margin:2px 4px 6px;
+  padding:4px; border-radius:10px; background:color-mix(in oklab, var(--panel) 82%, var(--accent-2) 18%);
+}
+.tab{
+  flex:1; border:none; border-radius:8px; padding:6px 8px; cursor:pointer;
+  background:transparent; color:var(--ink); font-weight:700; font-size:12px;
+}
+.tab.active{ background:color-mix(in oklab, var(--panel) 70%, var(--accent-2) 30%); outline:1px solid var(--panel-border); }
+.tab:focus-visible{ outline:2px solid var(--ring); }
+
+/* 依 Mode 過濾顯示 */
+html[data-mode="light"] .theme-menu .theme-item.for-dark{ display:none; }
+html[data-mode="dark"]  .theme-menu .theme-item.for-light{ display:none; }
+/* Auto 顯示全部（預設） */
 
 .theme-item{
   display:flex; align-items:center; gap:10px;
@@ -513,18 +536,19 @@ a:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring); border-radius:8
 .swatch--night{ background:linear-gradient(135deg,#c084fc,#22d3ee); }
 .swatch--contrast{ background:linear-gradient(135deg,#000,#fff); }
 
-/* 新增 swatch */
 .swatch--slate{ background:linear-gradient(135deg,#93c5fd,#a78bfa); }
 .swatch--graphite{ background:linear-gradient(135deg,#9ca3af,#60a5fa); }
 .swatch--sand{ background:linear-gradient(135deg,#e9c46a,#f4a261); }
 .swatch--latte{ background:linear-gradient(135deg,#d6a56b,#f2c08c); }
 .swatch--clay{ background:linear-gradient(135deg,#c27c59,#e1b07b); }
+
 .swatch--rose{ background:linear-gradient(135deg,#f472b6,#fb7185); }
 .swatch--blush{ background:linear-gradient(135deg,#f59aba,#ffd1e5); }
 .swatch--coral{ background:linear-gradient(135deg,#ff9776,#ffd08a); }
 .swatch--amber{ background:linear-gradient(135deg,#fbbf24,#f59e0b); }
 .swatch--gold{ background:linear-gradient(135deg,#f0d264,#f5c979); }
 .swatch--cocoa{ background:linear-gradient(135deg,#b98068,#dba17f); }
+
 .swatch--olive{ background:linear-gradient(135deg,#a3c76d,#d1e29a); }
 .swatch--emerald{ background:linear-gradient(135deg,#34d399,#22c55e); }
 .swatch--teal{ background:linear-gradient(135deg,#2dd4bf,#22d3ee); }
@@ -534,105 +558,72 @@ a:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring); border-radius:8
 .swatch--azure{ background:linear-gradient(135deg,#60a5fa,#93c5fd); }
 .swatch--cobalt{ background:linear-gradient(135deg,#3b82f6,#6366f1); }
 .swatch--indigo{ background:linear-gradient(135deg,#818cf8,#a78bfa); }
+
 .swatch--violet{ background:linear-gradient(135deg,#a78bfa,#c084fc); }
 .swatch--grape{ background:linear-gradient(135deg,#c084fc,#f472b6); }
 .swatch--plum{ background:linear-gradient(135deg,#d946ef,#f472b6); }
 .swatch--magenta{ background:linear-gradient(135deg,#e11d48,#f43f5e); }
 .swatch--fuchsia{ background:linear-gradient(135deg,#f472b6,#f0abfc); }
 
-/* ---------- Start ---------- */
-.start-wrap{ margin-top:6px; }
-
-/* ---------- Record button ---------- */
+/* ---------- Record Button ---------- */
+.start-wrap{ display:flex; align-items:center; gap:12px; margin-top:8px; }
 .record-btn{
-  width:100%; padding:22px; font-size:clamp(18px,2.6vw,22px);
-  border-radius:18px; border:1px solid var(--border); color:#fffdfc;
-  text-shadow:0 1px 1px rgba(0,0,0,.45); cursor:pointer;
-  transition:transform .06s ease, filter .25s ease, box-shadow .25s ease;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06)),
-    linear-gradient(135deg, color-mix(in oklab, var(--accent) 62%, #000 38%), color-mix(in oklab, var(--bg-start) 70%, #000 30%));
-  box-shadow:0 16px 40px rgba(0,0,0,.28);
+  appearance:none; border:none; cursor:pointer; border-radius:12px;
+  padding:14px 18px; font-weight:800; letter-spacing:.5px;
+  color:var(--ink); background:var(--panel); border:1px solid var(--panel-border);
+  box-shadow: 0 12px 28px rgba(0,0,0,.18);
 }
-.record-btn:hover{ transform:translateY(-1px); filter:brightness(1.06); }
-.record-btn:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring); }
 .record-btn .rec{ display:none; }
-.recording .record-btn .idle{ display:none; }
-.recording .record-btn .rec{ display:inline; }
-
-/* ---------- Status ---------- */
-.status{ margin-top:12px; color:var(--muted); font-size:14px; }
-
-/* ---------- Player（亮底卡片） ---------- */
-.player{
-  margin-top:18px; padding:16px; border-radius:16px;
-  background:var(--panel); border:1px solid var(--panel-border);
-  color:var(--ink); display:flex; align-items:center; gap:12px;
-  box-shadow:0 10px 30px rgba(0,0,0,.15);
-}
-#playBtn{
-  padding:10px 14px; border-radius:999px; border:none; font-weight:700; letter-spacing:.2px; cursor:pointer;
-  background:linear-gradient(135deg, color-mix(in oklab, var(--accent) 88%, #fff 6%), color-mix(in oklab, var(--accent-2) 35%, #fff 65%));
-  color: color-mix(in oklab, var(--ink) 90%, #000 10%);
-  box-shadow:0 6px 18px rgba(0,0,0,.12);
-  transition:transform .06s ease, filter .2s ease, opacity .2s ease;
-  opacity:.95;
-}
-#playBtn:hover{ transform:translateY(-1px); filter:brightness(1.06); }
-.player .hint{ color:var(--ink); font-size:13px; }
-.player .hint a{ color: color-mix(in oklab, var(--accent-2) 60%, var(--accent-1) 40%); text-decoration:underline; font-weight:800; padding:0 2px; border-radius:4px; }
+body.recording .record-btn .idle{ display:none; }
+body.recording .record-btn .rec{ display:inline; }
 
 /* ---------- Meter ---------- */
-.meter{ margin-top:24px; display:grid; gap:14px; }
-.meter.hidden{ display:none; }
+.meter{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:18px 0; }
 .bar{
-  position:relative; height:48px; background:var(--surface); border-radius:14px; overflow:hidden; border:1px solid var(--border);
+  --p:0;
+  position:relative; padding:12px 12px 14px; border-radius:12px;
+  background:var(--surface-strong); border:1px solid var(--border);
 }
-.bar::before{
-  content:""; position:absolute; inset:0; transform:scaleX(var(--p,0)); transform-origin:left;
-  transition:transform .35s ease; background:linear-gradient(90deg, rgba(255,255,255,.10), rgba(255,255,255,.02));
+.bar::after{
+  content:""; position:absolute; left:0; bottom:0; height:6px;
+  width: calc(var(--p) * 100%); border-radius:0 0 0 12px;
+  background:linear-gradient(90deg, var(--female), var(--male));
 }
-.bar.female::before{ background:linear-gradient(90deg, color-mix(in oklab, var(--female) 80%, #fff 6%), transparent); }
-.bar.male::before{ background:linear-gradient(90deg, color-mix(in oklab, var(--male) 80%, #fff 6%), transparent); }
-.bar .label{ position:absolute; left:12px; top:10px; font-weight:700; letter-spacing:.3px; }
-.bar .value{ position:absolute; right:12px; top:10px; font-variant-numeric: tabular-nums; }
+.bar .label{ display:block; font-size:12px; color:var(--muted); margin-bottom:4px; }
+.bar .value{ font-weight:800; }
 
-/* ---------- Upload FAB ---------- */
+/* ---------- Status ---------- */
+.status{ color:var(--muted); font-size:13px; margin:12px 0; }
+.spinner{
+  display:inline-block; width:12px; height:12px; border-radius:999px;
+  border:2px solid color-mix(in oklab, var(--panel) 40%, var(--accent-2) 60%);
+  border-right-color:transparent; margin-right:6px;
+  animation:spin .7s linear infinite;
+}
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+/* ---------- Player ---------- */
+.player{ display:flex; align-items:center; gap:14px; margin:12px 0; }
+.player .hint{ font-size:12px; color:var(--muted); }
+
+/* ---------- Callout & Info ---------- */
+.callout{
+  margin:16px 0; padding:12px 14px; border-radius:12px;
+  background:color-mix(in oklab, var(--panel) 75%, var(--accent-2) 25%);
+  color:var(--ink); border:1px solid var(--panel-border);
+}
+.info details{ margin:14px 0; }
+.info summary{ cursor:pointer; font-weight:700; }
+.kv{ display:grid; grid-template-columns:auto 1fr; gap:8px 14px; font-size:14px; }
+.bullets{ margin:8px 0 0 0; padding-left:20px; }
+
+/* ---------- Floating upload ---------- */
 .fab{
-  position:fixed; right:24px; bottom:24px; width:56px; height:56px; display:grid; place-items:center;
-  border-radius:50%; cursor:pointer; border:1px solid var(--border);
-  background:var(--surface-strong); color:var(--text); box-shadow:0 12px 30px rgba(0,0,0,.35);
-  font-size:20px; transition:transform .06s ease, filter .25s ease, box-shadow .25s ease;
+  position:fixed; right:22px; bottom:22px; z-index:50;
+  display:grid; place-items:center; width:52px; height:52px; border-radius:16px;
+  font-size:20px; font-weight:900; cursor:pointer;
+  border:1px solid var(--panel-border); color:var(--ink);
+  background:var(--panel); box-shadow:0 16px 44px rgba(0,0,0,.25);
 }
-.fab:hover{ transform:translateY(-1px); filter:brightness(1.06); }
-.fab:focus-within{ box-shadow:0 0 0 3px var(--ring); }
-
-/* ---------- Info ---------- */
-.info{ margin-top:24px; }
-details{
-  background:var(--surface); border:1px solid var(--border); border-radius:14px;
-  padding:12px 14px; margin-top:12px; box-shadow:0 10px 30px rgba(0,0,0,.20);
-}
-details > summary{
-  cursor:pointer; font-weight:700; letter-spacing:.2px;
-  color: color-mix(in oklab, var(--text) 92%, var(--accent-1) 8%);
-  list-style:none;
-}
-details > summary::-webkit-details-marker{ display:none; }
-details[open] > summary{ margin-bottom:6px; }
-.bullets{ margin:6px 0 0 0; padding-left:18px; }
-.bullets li{ margin:6px 0; color: color-mix(in oklab, var(--text) 85%, var(--accent-2) 15%); }
-
-/* ---------- Key-value grid ---------- */
-.kv{ display:grid; grid-template-columns:max-content 1fr; gap:8px 12px; align-items:start; }
-
-/* ---------- Reduced motion ---------- */
-@media (prefers-reduced-motion: reduce){
-  *{ animation:none !important; transition:none !important; }
-}
-
-/* ---------- Small screens ---------- */
-@media (max-width:420px){
-  .bar{ height:44px; }
-  .record-btn{ padding:18px; }
-}
+.fab:hover{ filter:brightness(1.05); }
+.fab:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring); }
