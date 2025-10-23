@@ -1,11 +1,12 @@
 // ===== Transformers pipeline =====
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
 
-/** 只用遠端（Hugging Face Hub），停用本機 /models 尋址，避免去打你的 GitHub Pages */
+/** 只用遠端（Hugging Face Hub），停用本機 /models 尋址 */
 env.allowLocalModels = false;
 env.allowRemoteModels = true;
 env.remoteHost = "https://huggingface.co";
-env.remotePathTemplate = "{{model}}/resolve/main/{{file}}";
+/** NOTE: 這版 Transformers.js 需用「單大括號」佔位字 */
+env.remotePathTemplate = "{model}/resolve/{revision}/{file}";
 
 /** 視需要可調整：WASM 執行緒數 */
 env.backends.onnx.wasm.numThreads = 1;
@@ -48,7 +49,10 @@ function initThemeUI(){
 initThemeUI();
 
 // ===== 常量 =====
-const MODEL_ID        = (window.ONNX_MODEL_ID || "prithivMLmods/Common-Voice-Gender-Detection-ONNX");
+/** 防呆：剝掉外層花括號或空白（若有） */
+const RAW_MODEL_ID = (window.ONNX_MODEL_ID || "prithivMLmods/Common-Voice-Gender-Detection-ONNX");
+const MODEL_ID     = String(RAW_MODEL_ID).trim().replace(/^\{+|\}+$/g, "");
+
 const TARGET_SR       = 16000;
 const MAX_WHOLE_SEC   = 150;
 const WARN_LONG_SEC   = 180;
@@ -662,7 +666,7 @@ function smoothMask(mask, k=3){
   let count=0;
   for (let i=0;i<=mask.length;i++){
     if (i<mask.length && !mask[i]) count++; else {
-      if (count>0 && count<k){ for (let j=i-count;j<i;j++) mask[j]=true; }
+      if (count>0 && count<k){ for (let j=i-count;j+i;j++) mask[j]=true; }
       count=0;
     }
   }
