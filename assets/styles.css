@@ -65,13 +65,16 @@ html[data-theme="lavender"]{
   --female:#c7b8ff; --male:#ffb3c7;
 }
 
-html[data-theme="peach"]{
+html[data-theme="peach"] {
   --bg-start:#3a2220; --bg-end:#1a1110;
-  --surface:rgba(58,34,32,.60); --surface-strong:rgba(58,34,32,.80);
+  --surface:rgba(58,34,32,.60);
+  --surface-strong:rgba(58,34,32,.80);
   --panel:#fff6f1; --panel-border:#ffe2d3;
-  --text:#2a1614; --muted:#6b4b45; --ink:#2a1614;
+  --text:#f6e9e4; /* 改為亮字 */
+  --muted:#dec4bc;
+  --ink:#2a1614;
   --accent-1:#ffb4a2; --accent-2:#ffd6a5;
-  --accent: color-mix(in oklab, var(--accent-1) 55%, var(--accent-2) 45%);
+  --accent:color-mix(in oklab,var(--accent-1)55%,var(--accent-2)45%);
   --ring:#ffc8a4; --border:#4a2b28; --link:#b45309;
   --female:#ffb7cc; --male:#ffd0b3;
 }
@@ -109,7 +112,7 @@ html[data-theme="night"]{
   --female:#93b5ff; --male:#ff9aa2;
 }
 
-html[data-theme="contrast"]{
+html[data-theme="contrast"] {
   --bg-start:#000; --bg-end:#000;
   --surface:rgba(0,0,0,.85); --surface-strong:rgba(0,0,0,.92);
   --panel:#fff; --panel-border:#000;
@@ -117,6 +120,12 @@ html[data-theme="contrast"]{
   --accent-1:#000; --accent-2:#000; --accent:#111;
   --ring:#ffbf00; --border:#000; --link:#0a58ff;
   --female:#0ea5e9; --male:#ef4444;
+}
+/* contrast 額外：Hero 用白字不漸層 */
+html[data-theme="contrast"] .hero-title {
+  background: none !important;
+  color: #fff !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, .4);
 }
 
 /* New neutrals */
