@@ -5,6 +5,7 @@
 // - 整段跑 OOM → 自動切串流分段；分段也 OOM → 降載窗口長度
 // - 全程進度＋ETA，避免以為卡住
 // - 聚合使用「對數勝算」，盡量貼近整段一次結果
+// - 追加：自適應 VAD（能跳過長靜音；只做「選段」不改動原音），WebGPU/WASM 自動選擇 device
 
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
 
@@ -19,6 +20,15 @@ const WARN_LONG_SEC   = 180;        // >3 分鐘提醒（仍會照跑）
 const STREAM_WIN_CAND = [12, 8, 6, 4]; // 串流分段長度候選（秒），遇到 OOM 逐級降載
 const STREAM_HOP_S    = 3;          // 分段位移（秒）
 const EPS             = 1e-9;
+
+// VAD 參數（輕量能量門檻，僅做「選段」）
+const VAD_MIN_APPLY_SEC   = 20;     // 短於此長度就不跑 VAD（避免得不償失）
+const VAD_FRAME_MS        = 30;     // 30ms 框
+const VAD_HOP_MS          = 10;     // 10ms hop
+const VAD_PAD_MS          = 60;     // 片段前後保留 padding（避免切字頭尾）
+const VAD_MIN_SEG_MS      = 200;    // 最短片段（太短不分析）
+const VAD_MIN_VOICED_SEC  = 2;      // VAD 篩出總時長 < 2s 就放棄 VAD
+const VAD_SILENCE_RATIO_TO_APPLY = 0.15; // 無聲占比 ≥ 15% 才有跑 VAD 的價值
 
 // Safari 偵測（for m4a/ALAC/HE-AAC 解碼相容）
 const IS_SAFARI = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
@@ -45,7 +55,7 @@ let clf = null;        // transformers.js pipeline
 let busy = false;
 let heartbeatTimer = null;
 
-log("[app] whole-pass (≤150s) + streamed long-mode + auto downshift + Safari m4a hardening + player + GC-safe ready.");
+log("[app] whole-pass (≤150s) + streamed long-mode + auto downshift + Safari m4a hardening + adaptive VAD + player + GC-safe ready.");
 
 function setStatus(text, spin=false) {
   if (!statusEl) return;
@@ -138,10 +148,20 @@ async function handleFileOrBlob(fileOrBlob){
 
     setStatus("解析檔案…", true);
     decoded = await decodeSmartToFloat32(fileOrBlob, TARGET_SR);
-    const { float32, sr, durationSec } = decoded;
+    let { float32, sr, durationSec } = decoded;
 
     if (durationSec > WARN_LONG_SEC) {
       setStatus(`提示：長度 ${fmtSec(durationSec)}，分析可能較久。準備推論…`, true);
+      await microYield();
+    }
+
+    // ★ 自適應 VAD（只做「選段」）：長檔或靜音比例明顯才啟用
+    const vad = maybeApplyAdaptiveVAD(float32, sr);
+    if (vad && vad.used) {
+      const reducedRatio = 1 - (vad.keptSec / durationSec);
+      float32    = vad.arr;
+      durationSec = vad.keptSec;
+      setStatus(`已去除靜音（約 ${(reducedRatio*100).toFixed(0)}%）→ 有效時長 ${fmtSec(durationSec)}，開始推論…`, true);
       await microYield();
     }
 
@@ -273,7 +293,7 @@ async function transcodeToWav16kViaFFmpeg(blobOrFile){
   return new Blob([out.buffer], { type: "audio/wav" });
 }
 
-// ===== 模型 =====
+// ===== 模型（加入 device：有 WebGPU 就用 'webgpu'，否則 'wasm'）=====
 async function ensurePipeline(){
   if (clf) return clf;
   setStatus("下載模型中…（首次會久一點）", true);
@@ -284,8 +304,9 @@ async function ensurePipeline(){
       setStatus(`${p.status}…`, true);
     }
   };
-  clf = await pipeline("audio-classification", MODEL_ID, { progress_callback });
-  setStatus("模型就緒");
+  const device = (typeof navigator !== 'undefined' && navigator.gpu) ? 'webgpu' : 'wasm';
+  clf = await pipeline("audio-classification", MODEL_ID, { progress_callback, device });
+  setStatus(`模型就緒（device: ${device}）`);
   return clf;
 }
 
@@ -565,6 +586,95 @@ function wavToFloat32(arrayBuffer){
   return { float32: out, sr: fmt.sampleRate };
 }
 function str(v,s,l){ let x=""; for(let i=0;i<l;i++) x+=String.fromCharCode(v.getUint8(s+i)); return x; }
+
+// ===== 自適應 VAD（能量門檻；只做「選段」，不動原音檔） =====
+function maybeApplyAdaptiveVAD(float32, sr){
+  const dur = float32.length / sr;
+  if (dur < VAD_MIN_APPLY_SEC) return null;
+
+  const frame = Math.max(1, Math.floor(sr * (VAD_FRAME_MS/1000)));
+  const hop   = Math.max(1, Math.floor(sr * (VAD_HOP_MS/1000)));
+  const pad   = Math.max(0, Math.floor(sr * (VAD_PAD_MS/1000)));
+  const minSeg= Math.max(1, Math.floor(sr * (VAD_MIN_SEG_MS/1000)));
+
+  // 計能量（RMS 的平方：mean(x^2)）
+  const energies = [];
+  for (let s=0; s+frame <= float32.length; s+=hop){
+    let acc=0;
+    for (let i=0;i<frame;i++){ const v=float32[s+i]; acc += v*v; }
+    energies.push(acc / frame);
+  }
+  if (energies.length < 5) return null;
+
+  // 動態門檻：以 20 分位作底 + 放大係數
+  const thr = Math.max(1e-7, percentile(energies, 20) * 1.5);
+  const voicedMask = energies.map(e => e > thr);
+
+  // 簡單平滑：去掉太短的洞/脈衝（3 帧）
+  smoothMask(voicedMask, 3);
+
+  // 轉為樣本級區段（含 padding）
+  const segs = [];
+  let i = 0;
+  while (i < voicedMask.length){
+    while (i < voicedMask.length && !voicedMask[i]) i++;
+    if (i >= voicedMask.length) break;
+    let j = i;
+    while (j < voicedMask.length && voicedMask[j]) j++;
+    const s0 = Math.max(0, i*hop - pad);
+    const s1 = Math.min(float32.length, j*hop + frame + pad);
+    if ((s1 - s0) >= minSeg) segs.push([s0, s1]);
+    i = j;
+  }
+  if (!segs.length) return null;
+
+  // 統計：若無聲占比低（<15%），其實沒必要 VAD
+  const kept = segs.reduce((a,[s0,s1]) => a + (s1 - s0), 0);
+  const keptSec = kept / sr;
+  const silenceRatio = 1 - (keptSec / dur);
+  if (silenceRatio < VAD_SILENCE_RATIO_TO_APPLY || keptSec < VAD_MIN_VOICED_SEC) {
+    return null;
+  }
+
+  // 拼接成新 array（僅供推論；播放器仍用原檔）
+  const out = new Float32Array(kept);
+  let offset = 0;
+  for (const [s0,s1] of segs){
+    out.set(float32.subarray(s0, s1), offset);
+    offset += (s1 - s0);
+  }
+  return { used: true, arr: out, keptSec, segs };
+}
+function percentile(arr, p){
+  const a = arr.slice().sort((x,y)=>x-y);
+  const idx = Math.min(a.length-1, Math.max(0, Math.round((p/100)* (a.length-1))));
+  return a[idx];
+}
+function smoothMask(mask, k=3){
+  // 移除孤立脈衝/洞：連續 true/false 少於 k 則合併鄰側
+  // 先處理 false 島
+  let count=0;
+  for (let i=0;i<=mask.length;i++){
+    if (i<mask.length && !mask[i]) count++;
+    else {
+      if (count>0 && count<k){
+        for (let j=i-count;j<i;j++) mask[j]=true;
+      }
+      count=0;
+    }
+  }
+  // 再處理 true 島（轉反邏輯）
+  count=0;
+  for (let i=0;i<=mask.length;i++){
+    if (i<mask.length && mask[i]) count++;
+    else {
+      if (count>0 && count<k){
+        for (let j=i-count;j<i;j++) mask[j]=false;
+      }
+      count=0;
+    }
+  }
+}
 
 // ===== 離站清理：離開頁面時釋放最後 URL =====
 window.addEventListener("beforeunload", () => {
