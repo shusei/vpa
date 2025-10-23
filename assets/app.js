@@ -8,9 +8,21 @@ env.allowRemoteModels = true;
 /** 視需要可調整：WASM 執行緒數 */
 env.backends.onnx.wasm.numThreads = 1;
 
-// ===== Theme (標準模式、記憶主題) =====
+// ===== Theme (完整主題清單 + 記憶) =====
 const THEME_KEY = "vpa.theme";
-const THEMES = ["warm","lavender","peach","ink","day","night","contrast"];
+const THEMES = [
+  // Neutrals
+  "day","night","contrast","slate","graphite","sand","latte","clay",
+  // Warm
+  "warm","peach","rose","blush","coral","amber","gold","cocoa",
+  // Cool
+  "olive","emerald","teal","aqua","cyan","sky","azure","cobalt","indigo",
+  // Purple/Pink
+  "lavender","violet","grape","plum","magenta","fuchsia",
+  // Extras
+  "ink"
+];
+
 function getSavedTheme(){ try{ return localStorage.getItem(THEME_KEY) || "warm"; }catch{ return "warm"; } }
 function applyTheme(t){
   if (!THEMES.includes(t)) t = "warm";
@@ -46,7 +58,6 @@ function initThemeUI(){
 initThemeUI();
 
 // ===== 常量 =====
-/** 防呆：剝掉外層花括號或空白（若有） */
 const RAW_MODEL_ID = (window.ONNX_MODEL_ID || "prithivMLmods/Common-Voice-Gender-Detection-ONNX");
 const MODEL_ID     = String(RAW_MODEL_ID).trim().replace(/^\{+|\}+$/g, "");
 
@@ -66,7 +77,7 @@ const VAD_MIN_SEG_MS      = 200;
 const VAD_MIN_VOICED_SEC  = 2;
 const VAD_SILENCE_RATIO_TO_APPLY = 0.15;
 
-// Safari 檢測
+// Safari
 const IS_SAFARI = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 // ===== DOM =====
@@ -147,7 +158,6 @@ function isOOMError(err){
 recordBtn?.addEventListener("click", async () => {
   if (busy) return;
   try {
-    // 使用者按「開始」就先把結果條歸零
     if (!mediaRecorder || mediaRecorder.state === "inactive") {
       resetMeter();
       await startRecording();
@@ -162,7 +172,6 @@ fileInput?.addEventListener("change", async (e) => {
   try {
     const f = e.target.files?.[0];
     if (!f) return;
-    // 使用者選定檔案當下就歸零
     resetMeter();
     await handleFileOrBlob(f);
     e.target.value = "";
@@ -174,7 +183,7 @@ function pickSupportedMime(){
   const cands = ["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/ogg"];
   try{
     if (typeof MediaRecorder!=="undefined" && MediaRecorder.isTypeSupported) {
-      for (const t of cands) if (MediaRecorder.isTypeSupported(t)) return t;
+      for (const t of cands) if (MediaRange.isTypeSupported?.(t) || MediaRecorder.isTypeSupported(t)) return t;
     }
   }catch{}
   return "";
@@ -221,7 +230,6 @@ async function handleFileOrBlob(fileOrBlob){
   busy = true;
   let decoded = null;
   try {
-    // 先給播放器用原檔；只保留最新一個
     setPlaybackSource(fileOrBlob);
 
     setStatus("解析檔案…", true);
@@ -233,7 +241,6 @@ async function handleFileOrBlob(fileOrBlob){
       await microYield();
     }
 
-    // 自適應 VAD（只選段、不動原音）
     const vad = maybeApplyAdaptiveVAD(float32, sr);
     if (vad && vad.used) {
       const reducedRatio = 1 - (vad.keptSec / durationSec);
