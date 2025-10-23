@@ -17,7 +17,7 @@
   --link-contrast: #ffffff; /* for dark hint blocks */
 
   /* Player (lighter, warm-paper look) */
-  --player-bg: rgba(255, 240, 230, 0.92);  /* 這行把播放器背景提亮 */
+  --player-bg: rgba(255, 240, 230, 0.92);  /* 亮：播放器背景 */
   --player-text: #2c1f22;                  /* 深色字，對比強 */
   --player-hint: #4a2f34;                  /* 提示小字 */
   --player-hint-link: #b45309;             /* 提示內連結（琥珀色） */
@@ -46,7 +46,7 @@
     --link: #b45309;
     --link-contrast: #2c1f22;
 
-    /* Light 模式下播放器用全白卡片風 */
+    /* Light 模式下播放器用全白卡片 */
     --player-bg: #ffffff;
     --player-text: #2c1f22;
     --player-hint: #4a2f34;
@@ -161,12 +161,12 @@ body{
 /* Status */
 .status{ margin-top:12px; color:var(--muted); font-size:14px; }
 
-/* Player (NOW LIGHTER) */
+/* Player (lighter card with high-contrast hint) */
 .player{
   margin-top:18px; padding: 16px; border-radius: 16px;
-  background: var(--player-bg);            /* 亮色背景 */
+  background: var(--player-bg);
   border:1px solid var(--player-border);
-  color: var(--player-text);               /* 深色字 */
+  color: var(--player-text);
   display:flex; align-items:center; gap:12px;
   box-shadow: 0 10px 30px rgba(0,0,0,.15);
 }
@@ -185,7 +185,7 @@ body{
 }
 #playBtn:hover{ transform: translateY(-1px); filter:brightness(1.06); }
 
-/* 讓「想再聽一次…點這裡」在亮底上超清楚 */
+/* 提示：想再聽一次…點這裡 */
 .player .hint{
   color: var(--player-hint);
   font-size:13px;
@@ -306,6 +306,6 @@ a:focus-visible{ outline:none; box-shadow: 0 0 0 3px var(--ring); border-radius:
       color-mix(in oklab, var(--accent-2) 24%, #fff 76%)
     );
   }
-  /* 在淺色主題，提示連結回到暖色藍/棕，依然高對比 */
+  /* 在淺色主題，提示連結回到暖色，對比仍高 */
   .player .hint a{ color: var(--player-hint-link); }
 }
