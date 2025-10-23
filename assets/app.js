@@ -1,10 +1,8 @@
-// ===== 引用 transformers（原功能保留） =====
+// ===== Transformers pipeline =====
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
-
-// ONNX WASM 單執行緒（若可用 WebGPU 會自動走 GPU）
 env.backends.onnx.wasm.numThreads = 1;
 
-// ====== 主題：固定標準模式（記住使用者選擇）======
+// ===== Theme (標準模式、記憶主題) =====
 const THEME_KEY = "vpa.theme";
 const THEMES = ["warm","lavender","peach","ink","day","night","contrast"];
 function getSavedTheme(){ try{ return localStorage.getItem(THEME_KEY) || "warm"; }catch{ return "warm"; } }
@@ -12,10 +10,8 @@ function applyTheme(t){
   if (!THEMES.includes(t)) t = "warm";
   document.documentElement.setAttribute("data-theme", t);
   try{ localStorage.setItem(THEME_KEY, t); }catch{}
-  // 同步 menu 狀態
   document.querySelectorAll(".theme-item").forEach(btn=>{
-    const on = btn.dataset.theme === t;
-    btn.setAttribute("aria-checked", on ? "true":"false");
+    btn.setAttribute("aria-checked", btn.dataset.theme === t ? "true":"false");
   });
 }
 function initThemeUI(){
@@ -23,15 +19,14 @@ function initThemeUI(){
   const gear = document.getElementById("settingsBtn");
   const menu = document.getElementById("themeMenu");
   if (!gear || !menu) return;
-
   gear.addEventListener("click", (e)=>{
     e.stopPropagation();
-    const open = menu.hasAttribute("hidden") ? false : true;
+    const open = !menu.hasAttribute("hidden");
     if (open){ menu.setAttribute("hidden",""); gear.setAttribute("aria-expanded","false"); }
     else { menu.removeAttribute("hidden"); gear.setAttribute("aria-expanded","true"); }
   });
   document.addEventListener("click", (e)=>{
-    if (!menu.contains(e.target) && e.target !== gear){
+    if (!menu.contains(e.target) && e.target !== gear && !gear.contains(e.target)){
       if (!menu.hasAttribute("hidden")){ menu.setAttribute("hidden",""); gear.setAttribute("aria-expanded","false"); }
     }
   });
@@ -44,7 +39,7 @@ function initThemeUI(){
 }
 initThemeUI();
 
-// ===== 參數 =====
+// ===== 常量 =====
 const MODEL_ID        = (window.ONNX_MODEL_ID || "prithivMLmods/Common-Voice-Gender-Detection-ONNX");
 const TARGET_SR       = 16000;
 const MAX_WHOLE_SEC   = 150;
@@ -53,7 +48,7 @@ const STREAM_WIN_CAND = [12, 8, 6, 4];
 const STREAM_HOP_S    = 3;
 const EPS             = 1e-9;
 
-// VAD 參數
+// VAD
 const VAD_MIN_APPLY_SEC   = 20;
 const VAD_FRAME_MS        = 30;
 const VAD_HOP_MS          = 10;
@@ -62,7 +57,7 @@ const VAD_MIN_SEG_MS      = 200;
 const VAD_MIN_VOICED_SEC  = 2;
 const VAD_SILENCE_RATIO_TO_APPLY = 0.15;
 
-// Safari 偵測
+// Safari 檢測
 const IS_SAFARI = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 // ===== DOM =====
@@ -73,11 +68,10 @@ const meter     = document.getElementById("meter");
 const femaleVal = document.getElementById("femaleVal");
 const maleVal   = document.getElementById("maleVal");
 
-// ===== 播放器 UI（動態建立：只加 class，不用行內色碼） =====
+// 播放器（動態建立）
 let playBtn = null;
 let audioEl = null;
 let lastAudioUrl = null;
-
 ensurePlayerUI();
 
 // ===== 狀態 =====
@@ -87,9 +81,9 @@ let clf = null;
 let busy = false;
 let heartbeatTimer = null;
 
-log("[app] ready: theming + player (CSS-driven) + pipeline");
+log("[app] ready: theming + player + pipeline");
 
-// ===== 版本/日期自動填入（以 app.js Last-Modified 為準）======
+// ===== 版本資訊 =====
 (async function fillBuildMeta(){
   try {
     const verEl = document.getElementById('ver');
@@ -113,6 +107,7 @@ log("[app] ready: theming + player (CSS-driven) + pipeline");
   } catch {}
 })();
 
+// ===== UI 小工具 =====
 function setStatus(text, spin=false) {
   if (!statusEl) return;
   statusEl.innerHTML = spin ? `<span class="spinner"></span> ${text}` : text;
@@ -120,6 +115,20 @@ function setStatus(text, spin=false) {
 function log(...a){ try{ console.log(...a);}catch{} }
 function fmtSec(s){ if (!isFinite(s)) return "—"; const m=Math.floor(s/60), ss=Math.round(s%60); return m? `${m}分${ss}秒`:`${ss}秒`; }
 function clamp01(x){ return Math.min(1, Math.max(EPS, x)); }
+
+function resetMeter() {
+  try {
+    meter?.classList.remove("hidden");
+    const barF = document.querySelector(".bar.female");
+    const barM = document.querySelector(".bar.male");
+    if (barF) { barF.style.setProperty("--p", 0); barF.setAttribute("aria-valuenow","0"); }
+    if (barM) { barM.style.setProperty("--p", 0); barM.setAttribute("aria-valuenow","0"); }
+    if (femaleVal) femaleVal.textContent = "0.0%";
+    if (maleVal)   maleVal.textContent   = "0.0%";
+  } catch {}
+}
+
+// 檢查 OOM
 function isOOMError(err){
   const msg = String(err?.message || err || "");
   return /OrtRun|bad_alloc|out of memory|memory|alloc/i.test(msg);
@@ -129,7 +138,9 @@ function isOOMError(err){
 recordBtn?.addEventListener("click", async () => {
   if (busy) return;
   try {
+    // 使用者按「開始」就先把結果條歸零
     if (!mediaRecorder || mediaRecorder.state === "inactive") {
+      resetMeter();
       await startRecording();
     } else {
       await stopRecording();
@@ -142,6 +153,8 @@ fileInput?.addEventListener("change", async (e) => {
   try {
     const f = e.target.files?.[0];
     if (!f) return;
+    // 使用者選定檔案當下就歸零
+    resetMeter();
     await handleFileOrBlob(f);
     e.target.value = "";
   } catch (err){ console.error("[fileInput]", err); setStatus("上傳處理失敗"); }
@@ -211,7 +224,7 @@ async function handleFileOrBlob(fileOrBlob){
       await microYield();
     }
 
-    // 自適應 VAD（僅選段，不動原音）
+    // 自適應 VAD（只選段、不動原音）
     const vad = maybeApplyAdaptiveVAD(float32, sr);
     if (vad && vad.used) {
       const reducedRatio = 1 - (vad.keptSec / durationSec);
@@ -517,12 +530,12 @@ function ensurePlayerUI(){
   };
   audioEl.onended = () => { playBtn.textContent = "▶︎ 播放剛才的聲音"; };
 
-  // 點「點這裡」也觸發播放
   wrap.querySelector("#replayLink")?.addEventListener("click", (e)=>{
     e.preventDefault();
     playBtn.click();
   });
 }
+
 function setPlaybackSource(blob){
   try {
     if (!audioEl || !playBtn) return;
@@ -535,7 +548,7 @@ function setPlaybackSource(blob){
   } catch (e) { console.error("[setPlaybackSource]", e); }
 }
 
-// ===== UI 工具 =====
+// ===== Render / Utils =====
 function toMap(arr){
   const m = { female: 0, male: 0 };
   if (Array.isArray(arr)) for (const r of arr) {
@@ -551,11 +564,12 @@ function render(pf, pm){
   if (femaleVal) femaleVal.textContent = `${((pf ?? 0) * 100).toFixed(1)}%`;
   if (maleVal)   maleVal.textContent   = `${((pm ?? 0) * 100).toFixed(1)}%`;
 }
+
 function startHeartbeat(tickFn){ stopHeartbeat(); heartbeatTimer = setInterval(() => { try{ tickFn(); }catch{} }, 1000); }
 function stopHeartbeat(){ if (heartbeatTimer){ clearInterval(heartbeatTimer); heartbeatTimer = null; } }
 function microYield(){ return new Promise(r=>setTimeout(r,0)); }
 
-// ===== WAV 解析（供 ffmpeg 轉出） =====
+// ===== WAV 解析 =====
 function wavToFloat32(arrayBuffer){
   const view = new DataView(arrayBuffer);
   const riff = str(view,0,4), wave = str(view,8,4);
@@ -586,7 +600,7 @@ function wavToFloat32(arrayBuffer){
 }
 function str(v,s,l){ let x=""; for(let i=0;i<l;i++) x+=String.fromCharCode(v.getUint8(s+i)); return x; }
 
-// ===== 自適應 VAD（能量門檻；只做「選段」） =====
+// ===== VAD（只「選段」） =====
 function maybeApplyAdaptiveVAD(float32, sr){
   const dur = float32.length / sr;
   if (dur < VAD_MIN_APPLY_SEC) return null;
@@ -640,7 +654,7 @@ function smoothMask(mask, k=3){
   let count=0;
   for (let i=0;i<=mask.length;i++){
     if (i<mask.length && !mask[i]) count++; else {
-      if (count>0 && count<k){ for (let j=i-count;j+i && j<i;j++) mask[j]=true; }
+      if (count>0 && count<k){ for (let j=i-count;j<i;j++) mask[j]=true; }
       count=0;
     }
   }
