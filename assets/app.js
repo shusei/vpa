@@ -3,6 +3,11 @@ import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers
 /* ===================================
    CONFIG（標準模式；主題記憶；清除模型；容量估算）
    =================================== */
+
+/* ★ 關鍵修正：禁止用本地 /models，避免 404 到 https://你的網域/models/... */
+env.allowLocalModels = false;
+
+/* 可選：指定 onnxruntime web 的 wasm 路徑（CDN），避免本地找檔 */
 env.backends.onnx.wasm.numThreads = 1;
 
 const MODEL_ID        = (window.ONNX_MODEL_ID || "prithivMLmods/Common-Voice-Gender-Detection-ONNX");
@@ -16,7 +21,7 @@ const EPS             = 1e-9;
 const VAD_MIN_APPLY_SEC   = 20, VAD_FRAME_MS=30, VAD_HOP_MS=10, VAD_PAD_MS=60, VAD_MIN_SEG_MS=200, VAD_MIN_VOICED_SEC=2, VAD_SILENCE_RATIO_TO_APPLY=0.15;
 const IS_SAFARI = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
-/* ========== 主題常數（上移，避免 use-before-init） ========== */
+/* ========== 主題常數（先宣告，避免 use-before-init） ========== */
 const THEMES = ["warm","lavender","peach","mint","ink","day","night","contrast"];
 
 function applyTheme(name){
@@ -43,7 +48,7 @@ let playBtn = null;
 let audioEl = null;
 let lastAudioUrl = null;
 
-/* ===== 先套主題，再建 UI（修正初始化順序） ===== */
+/* ===== 先套主題，再建 UI ===== */
 initTheme();
 ensurePlayerUI();
 ensureSettingsUI();   // 右上角設定齒輪
@@ -187,8 +192,11 @@ async function clearModelCaches(){
     }catch{}
   }
 
-  // 3) transformers.js 內部快取開關（防守）
+  // 3) transformers.js 內部快取選項（防守）
   try { env.cacheModel = false; } catch {}
+
+  // 4) 再次保險：保持遠端模式
+  env.allowLocalModels = false;
 }
 
 /* ========== UI 工具 ========== */
