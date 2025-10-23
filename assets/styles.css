@@ -1,43 +1,43 @@
 :root{
-  /* Core palette (soft & affirming) */
-  --bg: #0b0c10;
-  --surface: rgba(21,25,34,0.55);
-  --surface-strong: rgba(21,25,34,0.75);
-  --card: #141a24;
-  --text: #e7ebf3;
-  --muted: #a9b1c3;
+  /* Core palette (WARM & gentle) */
+  --bg: #120f12;
+  --surface: rgba(39,29,31,0.55);       /* warm glass */
+  --surface-strong: rgba(39,29,31,0.75);
+  --card: #1f1719;
+  --text: #f7f2f4;
+  --muted: #cbbec3;
 
-  /* Accents */
-  --accent-1: #c084fc; /* lavender */
-  --accent-2: #22d3ee; /* cyan */
-  --accent: color-mix(in oklab, var(--accent-1) 60%, var(--accent-2) 40%);
+  /* Accents: rose ↔ apricot */
+  --accent-1: #f6a6c1; /* rose quartz */
+  --accent-2: #f6c28b; /* apricot */
+  --accent: color-mix(in oklab, var(--accent-1) 58%, var(--accent-2) 42%);
 
   /* Links & emphasis */
-  --link: color-mix(in oklab, #cfe8ff 60%, var(--accent) 40%);
-  --link-contrast: #ffffff; /* for dark blocks like the player hint */
+  --link: color-mix(in oklab, #ffe7c7 55%, var(--accent) 45%);
+  --link-contrast: #ffffff; /* for dark hint blocks */
 
-  /* Meter colors */
-  --female: #93b5ff;
-  --male:   #ff9aa2;
+  /* Meter colors (warm versions) */
+  --female: #f3accf;   /* warm rose */
+  --male:   #ffc0a8;   /* peach-coral */
 
   /* Shadows & borders */
-  --ring: #7dd3fc;
-  --border: #243041;
+  --ring: #ffd39e;     /* warm focus ring */
+  --border: #3a2a2e;
 }
 
-/* Light mode (auto) */
+/* Light mode (auto, warm paper) */
 @media (prefers-color-scheme: light){
   :root{
-    --bg: #f6f7fb;
-    --surface: rgba(255,255,255,0.7);
-    --surface-strong: rgba(255,255,255,0.85);
+    --bg: #fffaf7;
+    --surface: rgba(255,255,255,0.72);
+    --surface-strong: rgba(255,255,255,0.88);
     --card: #ffffff;
-    --text: #0e1320;
-    --muted: #556070;
-    --border: #e5e7eb;
+    --text: #2c1f22;
+    --muted: #7b666d;
+    --border: #f0e3df;
 
-    --link: #2563eb;        /* brighter blue on light bg */
-    --link-contrast: #1f2937; /* dark text on light hint blocks */
+    --link: #b45309;        /* warm amber on light bg */
+    --link-contrast: #2c1f22;
   }
 }
 
@@ -46,7 +46,8 @@ html,body{ height:100%; }
 body{
   margin:0;
   color:var(--text);
-  background: radial-gradient(1200px 600px at 50% -10%, #1f2937, #0b0c10);
+  background:
+    radial-gradient(1200px 600px at 50% -10%, #2a1d1f, #120f12);
   font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Text", Segoe UI, Roboto, "Noto Sans TC", Arial, "Apple Color Emoji", "Segoe UI Emoji";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -58,8 +59,8 @@ body{
 /* Subtle backdrop glass */
 .backdrop{
   background: var(--surface);
-  backdrop-filter: saturate(120%) blur(14px);
-  -webkit-backdrop-filter: saturate(120%) blur(14px);
+  backdrop-filter: saturate(118%) blur(14px);
+  -webkit-backdrop-filter: saturate(118%) blur(14px);
   border: 1px solid var(--border);
   box-shadow: 0 24px 80px rgba(0,0,0,.35);
 }
@@ -80,7 +81,7 @@ body{
   letter-spacing:.2px;
   line-height:1.15;
   display:flex; align-items:center; gap:10px;
-  background: linear-gradient(90deg, #ffffff, #e9d5ff 40%, #cffafe 85%);
+  background: linear-gradient(90deg, #ffffff, #ffe0e7 40%, #ffe6c9 85%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -103,38 +104,38 @@ body{
 }
 .chip.beta{
   font-weight:700;
-  color:#0b0c10;
+  color:#221417;
   background: linear-gradient(135deg,
-    color-mix(in oklab, var(--accent-1) 70%, #fff 30%),
-    color-mix(in oklab, var(--accent-2) 35%, #fff 65%)
+    color-mix(in oklab, var(--accent-1) 72%, #fff 28%),
+    color-mix(in oklab, var(--accent-2) 38%, #fff 62%)
   );
-  box-shadow: 0 6px 14px rgba(125,211,252,.25);
+  box-shadow: 0 6px 14px rgba(255,211,170,.25);
 }
 .chip.local{
-  font-weight:800; color:#0b0c10; border:none;
-  background: linear-gradient(135deg, color-mix(in oklab, var(--accent) 80%, #fff 8%), #d1fae5);
-  box-shadow: 0 8px 18px rgba(125, 211, 252, .25);
+  font-weight:800; color:#221417; border:none;
+  background: linear-gradient(135deg, color-mix(in oklab, var(--accent) 85%, #fff 10%), #fdecc8);
+  box-shadow: 0 8px 18px rgba(255, 208, 170, .28);
 }
 .chip.link{ text-decoration:none; }
 .chip.link:hover{ filter:brightness(1.06); }
 
-/* Record button */
+/* Record button (warm) */
 .record-btn{
   width:100%;
   padding: 22px;
   font-size: clamp(18px, 2.6vw, 22px);
   border-radius: 18px;
   border:1px solid var(--border);
-  color:#ffffff;
+  color:#fffdfc;
   text-shadow: 0 1px 1px rgba(0,0,0,.45);
   cursor:pointer;
   transition: transform .06s ease, filter .25s ease, box-shadow .25s ease;
   background:
-    linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.08)),
-    linear-gradient(135deg, color-mix(in oklab, var(--accent) 55%, #0f172a 45%), #243b55);
+    linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06)),
+    linear-gradient(135deg, color-mix(in oklab, var(--accent) 62%, #2a1d1f 38%), #3a2629);
   box-shadow: 0 16px 40px rgba(0,0,0,.28);
 }
-.record-btn:hover{ transform: translateY(-1px); filter:brightness(1.05); }
+.record-btn:hover{ transform: translateY(-1px); filter:brightness(1.06); }
 .record-btn:focus-visible{
   outline: none;
   box-shadow: 0 0 0 3px var(--ring);
@@ -158,16 +159,19 @@ body{
   padding:10px 14px; border-radius:999px; border:none;
   font-weight:700; letter-spacing:.2px;
   cursor:pointer;
-  background: linear-gradient(135deg, color-mix(in oklab, var(--accent) 85%, #fff 8%), #1f2937);
-  color:#0b0c10;
-  box-shadow: 0 6px 18px rgba(110,231,183,.25);
+  background: linear-gradient(135deg,
+    color-mix(in oklab, var(--accent) 88%, #fff 6%),
+    #3b2a2c
+  );
+  color:#261417;
+  box-shadow: 0 6px 18px rgba(255, 210, 170, .28);
   transition: transform .06s ease, filter .2s ease, opacity .2s ease;
   opacity:.95;
 }
-#playBtn:hover{ transform: translateY(-1px); filter:brightness(1.05); }
+#playBtn:hover{ transform: translateY(-1px); filter:brightness(1.06); }
 
-/* 讓「想再聽一次…點這裡」超好辨識 */
-.player .hint{ color: color-mix(in oklab, var(--text) 92%, #ffffff 8%); font-size:13px; }
+/* Make the "想再聽一次…點這裡" link pop */
+.player .hint{ color: color-mix(in oklab, var(--text) 94%, #ffffff 6%); font-size:13px; }
 .player .hint a{
   color: var(--link-contrast);
   text-decoration: underline;
@@ -194,10 +198,10 @@ body{
   background: linear-gradient(90deg, rgba(255,255,255,.10), rgba(255,255,255,.02));
 }
 .bar.female::before{
-  background: linear-gradient(90deg, color-mix(in oklab, var(--female) 80%, #fff 5%), transparent);
+  background: linear-gradient(90deg, color-mix(in oklab, var(--female) 80%, #fff 6%), transparent);
 }
 .bar.male::before{
-  background: linear-gradient(90deg, color-mix(in oklab, var(--male) 80%, #fff 5%), transparent);
+  background: linear-gradient(90deg, color-mix(in oklab, var(--male) 80%, #fff 6%), transparent);
 }
 .bar .label{ position:absolute; left:12px; top:10px; font-weight:700; letter-spacing:.3px; }
 .bar .value{ position:absolute; right:12px; top:10px; font-variant-numeric: tabular-nums; }
@@ -236,23 +240,23 @@ details{
 }
 details > summary{
   cursor:pointer; font-weight:700; letter-spacing:.2px;
-  color: color-mix(in oklab, var(--text) 92%, #c7d2fe 8%);
+  color: color-mix(in oklab, var(--text) 92%, #ffd6c2 8%);
   list-style:none;
 }
 details > summary::-webkit-details-marker{ display:none; }
 details[open] > summary{ margin-bottom:6px; }
 .bullets{ margin: 6px 0 0 0; padding-left: 18px; }
-.bullets li{ margin:6px 0; color: color-mix(in oklab, var(--text) 85%, #9fb2d9 15%); }
+.bullets li{ margin:6px 0; color: color-mix(in oklab, var(--text) 85%, #ffd9c7 15%); }
 
 /* Callout */
 .callout{
   margin-top:12px; padding: 12px 14px; border-radius:12px;
-  background: linear-gradient(180deg, rgba(27,33,46,.6), rgba(15,23,42,.45));
+  background: linear-gradient(180deg, rgba(48,34,36,.6), rgba(33,22,24,.45));
   border:1px dashed var(--border);
-  color: color-mix(in oklab, var(--text) 95%, #dbe3f7 5%);
+  color: color-mix(in oklab, var(--text) 96%, #fff0e1 4%);
 }
 
-/* Links (一般情境) */
+/* Links (general) */
 a{ color: var(--link); }
 a:focus-visible{ outline:none; box-shadow: 0 0 0 3px var(--ring); border-radius: 8px; }
 
@@ -267,22 +271,22 @@ a:focus-visible{ outline:none; box-shadow: 0 0 0 3px var(--ring); border-radius:
   .record-btn{ padding:18px; }
 }
 
-/* Light-mode overrides */
+/* Light-mode overrides (warm paper) */
 @media (prefers-color-scheme: light){
   .record-btn{
     background:
-      linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.88)),
-      linear-gradient(135deg, color-mix(in oklab, var(--accent) 18%, #ffffff 82%), #ffffff);
-    color:#0e1320;
+      linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,255,255,.90)),
+      linear-gradient(135deg, color-mix(in oklab, var(--accent) 22%, #ffffff 78%), #ffffff);
+    color:#2c1f22;
     text-shadow:none;
-    border-color:#d1d5db;
+    border-color:#eadbd5;
   }
   .chip.beta{
-    color:#0e1320;
+    color:#2c1f22;
     background: linear-gradient(135deg,
-      color-mix(in oklab, var(--accent-1) 35%, #fff 65%),
-      color-mix(in oklab, var(--accent-2) 20%, #fff 80%)
+      color-mix(in oklab, var(--accent-1) 40%, #fff 60%),
+      color-mix(in oklab, var(--accent-2) 24%, #fff 76%)
     );
   }
-  .player .hint a{ color: var(--link); } /* 在淺色主題改回藍色高對比 */
+  .player .hint a{ color: var(--link); }
 }
