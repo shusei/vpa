@@ -60,6 +60,61 @@ let clf = null;
 let busy = false;
 let heartbeatTimer = null;
 
+/* ===== 下載進度視覺強化（bytes / 速度 / 動態省略號） ===== */
+const prog = {
+  active: false,
+  loaded: 0,
+  total: 0,
+  pct: null,
+  label: "下載模型中",
+  dot: 0,
+  speedBps: 0,
+  _lastT: 0,
+  _lastB: 0,
+  _ticker: null,
+};
+function humanBytes(n){
+  if (!isFinite(n) || n < 0) return "—";
+  const u = ["B","KB","MB","GB","TB"];
+  let i = 0; while (n >= 1024 && i < u.length-1){ n /= 1024; i++; }
+  const fixed = n < 10 && i > 0 ? 1 : 0;
+  return `${n.toFixed(fixed)} ${u[i]}`;
+}
+function startProgressTicker(){
+  if (prog._ticker) return;
+  prog.active = true;
+  prog._lastT = performance.now();
+  prog._lastB = prog.loaded || 0;
+  prog._ticker = setInterval(() => {
+    // 動態省略號
+    prog.dot = (prog.dot + 1) % 4;
+    // 即時速度估計（即使 callback 暫停也讓 UI 活著）
+    const now = performance.now();
+    const dt = Math.max(1, now - prog._lastT); // ms
+    const db = (prog.loaded || 0) - prog._lastB;
+    const instBps = (db * 1000) / dt;
+    prog.speedBps = prog.speedBps === 0 ? instBps : (prog.speedBps * 0.8 + instBps * 0.2);
+    prog._lastT = now;
+    prog._lastB = prog.loaded || 0;
+
+    // 組合文案
+    const dots = ".".repeat(prog.dot);
+    const hasTotal = isFinite(prog.total) && prog.total > 0;
+    const pctStr = (prog.pct != null) ? ` ${Math.min(100, Math.max(0, Math.floor(prog.pct*100)))}%` : "";
+    const bytesStr = hasTotal
+      ? `${humanBytes(prog.loaded)} / ${humanBytes(prog.total)}${pctStr}`
+      : `${humanBytes(prog.loaded)}`;
+    const speedStr = prog.speedBps > 0 ? ` ｜${humanBytes(prog.speedBps)}/s` : "";
+    const phase = (prog.pct != null && prog.pct >= 0.999) ? "（初始化/編譯中）" : "";
+    setStatus(`${prog.label}${phase}… ${bytesStr}${speedStr} ${dots}`, true);
+  }, 400);
+}
+function stopProgressTicker(){
+  prog.active = false;
+  if (prog._ticker){ clearInterval(prog._ticker); prog._ticker = null; }
+  prog.dot = 0; prog.speedBps = 0;
+}
+
 log("[app] ready — standard mode, theme memory, model cache clear, storage estimate enabled.");
 
 /* ========== 版本/日期（以 app.js Last-Modified） ========== */
@@ -448,29 +503,34 @@ async function transcodeToWav16kViaFFmpeg(blobOrFile){
 /* ========== 模型 ========== */
 async function ensurePipeline(){
   if (clf) return clf;
-  setStatus("下載模型中…（首次會久一點）", true);
+
+  // 啟動進度跑馬燈（就算 callback 暫停也會動）
+  prog.label = "下載模型中";
+  prog.loaded = 0; prog.total = 0; prog.pct = null;
+  startProgressTicker();
 
   const progress_callback = (p)=>{
+    // p: { status, loadedBytes, totalBytes, progress }
     if (!p) return;
-    let pct = null;
-    if (typeof p.loadedBytes === 'number' && typeof p.totalBytes === 'number' && p.totalBytes > 0) {
-      pct = p.loadedBytes / p.totalBytes;
-    } else if (typeof p.progress === 'number' && isFinite(p.progress)) {
-      pct = p.progress;
-    }
-    const label = p.status || "下載模型";
-    if (pct == null) {
-      setStatus(`${label}…`, true);
-    } else {
-      const safe = Math.min(99, Math.max(0, Math.floor(pct * 100)));
-      setStatus(`${label} ${safe}% …`, true);
-    }
+    if (p.status) prog.label = p.status.replace(/^Downloading/i, "下載模型中");
+    if (typeof p.loadedBytes === "number") prog.loaded = p.loadedBytes;
+    if (typeof p.totalBytes === "number")  prog.total  = p.totalBytes;
+    if (typeof p.progress === "number" && isFinite(p.progress)) prog.pct = p.progress; // 0..1
+    // 畫面更新交給 ticker，每 400ms 會重繪
   };
 
-  const device = (typeof navigator !== 'undefined' && navigator.gpu) ? 'webgpu' : 'wasm';
-  clf = await pipeline("audio-classification", MODEL_ID, { progress_callback, device });
-  setStatus(`模型就緒（device: ${device}）`);
-  return clf;
+  try{
+    const device = (typeof navigator !== 'undefined' && navigator.gpu) ? 'webgpu' : 'wasm';
+    clf = await pipeline("audio-classification", MODEL_ID, { progress_callback, device });
+    stopProgressTicker();
+    setStatus(`模型就緒（device: ${device}）`);
+    return clf;
+  } catch (err){
+    stopProgressTicker();
+    console.error("[ensurePipeline]", err);
+    setStatus("模型下載/初始化失敗");
+    throw err;
+  }
 }
 
 /* ========== 分析（整段/分段） ========== */
