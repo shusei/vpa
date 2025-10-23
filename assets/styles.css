@@ -16,6 +16,13 @@
   --link: color-mix(in oklab, #ffe7c7 55%, var(--accent) 45%);
   --link-contrast: #ffffff; /* for dark hint blocks */
 
+  /* Player (lighter, warm-paper look) */
+  --player-bg: rgba(255, 240, 230, 0.92);  /* 這行把播放器背景提亮 */
+  --player-text: #2c1f22;                  /* 深色字，對比強 */
+  --player-hint: #4a2f34;                  /* 提示小字 */
+  --player-hint-link: #b45309;             /* 提示內連結（琥珀色） */
+  --player-border: #eadbd5;
+
   /* Meter colors (warm versions) */
   --female: #f3accf;   /* warm rose */
   --male:   #ffc0a8;   /* peach-coral */
@@ -36,8 +43,15 @@
     --muted: #7b666d;
     --border: #f0e3df;
 
-    --link: #b45309;        /* warm amber on light bg */
+    --link: #b45309;
     --link-contrast: #2c1f22;
+
+    /* Light 模式下播放器用全白卡片風 */
+    --player-bg: #ffffff;
+    --player-text: #2c1f22;
+    --player-hint: #4a2f34;
+    --player-hint-link: #b45309;
+    --player-border: #eadbd5;
   }
 }
 
@@ -147,13 +161,14 @@ body{
 /* Status */
 .status{ margin-top:12px; color:var(--muted); font-size:14px; }
 
-/* Player */
+/* Player (NOW LIGHTER) */
 .player{
-  margin-top:18px; padding: 14px; border-radius: 14px;
-  background: var(--surface);
-  border:1px solid var(--border);
+  margin-top:18px; padding: 16px; border-radius: 16px;
+  background: var(--player-bg);            /* 亮色背景 */
+  border:1px solid var(--player-border);
+  color: var(--player-text);               /* 深色字 */
   display:flex; align-items:center; gap:12px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  box-shadow: 0 10px 30px rgba(0,0,0,.15);
 }
 #playBtn{
   padding:10px 14px; border-radius:999px; border:none;
@@ -161,7 +176,7 @@ body{
   cursor:pointer;
   background: linear-gradient(135deg,
     color-mix(in oklab, var(--accent) 88%, #fff 6%),
-    #3b2a2c
+    #f7d7b9
   );
   color:#261417;
   box-shadow: 0 6px 18px rgba(255, 210, 170, .28);
@@ -170,14 +185,17 @@ body{
 }
 #playBtn:hover{ transform: translateY(-1px); filter:brightness(1.06); }
 
-/* Make the "想再聽一次…點這裡" link pop */
-.player .hint{ color: color-mix(in oklab, var(--text) 94%, #ffffff 6%); font-size:13px; }
+/* 讓「想再聽一次…點這裡」在亮底上超清楚 */
+.player .hint{
+  color: var(--player-hint);
+  font-size:13px;
+}
 .player .hint a{
-  color: var(--link-contrast);
+  color: var(--player-hint-link);
   text-decoration: underline;
-  font-weight: 700;
-  padding: 1px 3px;
-  border-radius: 6px;
+  font-weight: 800;
+  padding: 0 2px;
+  border-radius: 4px;
 }
 .player .hint a:hover{ filter: brightness(1.1); }
 .player .hint a:focus-visible{ outline:none; box-shadow: 0 0 0 3px var(--ring); }
@@ -288,5 +306,6 @@ a:focus-visible{ outline:none; box-shadow: 0 0 0 3px var(--ring); border-radius:
       color-mix(in oklab, var(--accent-2) 24%, #fff 76%)
     );
   }
-  .player .hint a{ color: var(--link); }
+  /* 在淺色主題，提示連結回到暖色藍/棕，依然高對比 */
+  .player .hint a{ color: var(--player-hint-link); }
 }
