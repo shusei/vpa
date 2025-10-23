@@ -482,7 +482,7 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
       processedSec = Math.min(durationSec, (s1 / sr));
       const remain = chunks.length - i - 1;
       const etaSec = (remain * (avgMs/1000));
-      const pct = Math.round(((i+1)/chunks.length)*100));
+      const pct = Math.round(((i+1)/chunks.length)*100);
       setStatus(`分析中（串流；win=${WIN_S}s）｜片段 ${i+1}/${chunks.length}｜${pct}%｜已處理 ${fmtSec(processedSec)} / ${fmtSec(durationSec)}｜預估剩餘 ~ ${fmtSec(etaSec)}`, true);
 
       await microYield();
