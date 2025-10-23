@@ -132,6 +132,12 @@ a:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring); border-radius:8
   -webkit-background-clip:text; background-clip:text; color:transparent;
   font-size:clamp(24px,4.2vw,36px);
 }
+/* Day 主題：取消漸層，使用高對比純色（帶 8% accent 色調） */
+html[data-theme="day"] .hero-title{
+  background:none;
+  color: color-mix(in oklab, var(--ink) 92%, var(--accent-1) 8%);
+}
+
 .subline{ margin-top:6px; font-size:13px; color:var(--muted); }
 
 /* ---------- Chips ---------- */
