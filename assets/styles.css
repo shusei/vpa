@@ -40,16 +40,13 @@
         violet, grape, plum, magenta, fuchsia */
 
 /* Helper：亮底主題要把 hero 改成實色 */
+/* 只保留真正亮底的主題；移除 peach/rose/gold（它們是深底） */
 :root {}
-/* 你可視需要把下面「LIGHT THEMES」名單再擴增 */
 html[data-theme="day"],
 html[data-theme="sand"],
 html[data-theme="latte"],
-html[data-theme="peach"],
-html[data-theme="rose"],
 html[data-theme="blush"],
 html[data-theme="amber"],
-html[data-theme="gold"],
 html[data-theme="aqua"],
 html[data-theme="sky"],
 html[data-theme="azure"]{
@@ -75,7 +72,8 @@ html[data-theme="peach"]{
   --bg-start:#3a2220; --bg-end:#1a1110;
   --surface:rgba(58,34,32,.60); --surface-strong:rgba(58,34,32,.80);
   --panel:#fff6f1; --panel-border:#ffe2d3;
-  --text:#2a1614; --muted:#6b4b45; --ink:#2a1614;
+  /* 調整為淺字＋略提亮 muted，適配深底 */
+  --text:#f6ece8; --muted:#e2c9c4; --ink:#2a1614;
   --accent-1:#ffb4a2; --accent-2:#ffd6a5;
   --accent: color-mix(in oklab, var(--accent-1) 55%, var(--accent-2) 45%);
   --ring:#ffc8a4; --border:#4a2b28; --link:#b45309;
@@ -123,6 +121,9 @@ html[data-theme="contrast"]{
   --accent-1:#000; --accent-2:#000; --accent:#111;
   --ring:#ffbf00; --border:#000; --link:#0a58ff;
   --female:#0ea5e9; --male:#ef4444;
+  /* 強制大標實色白字，避免黑底黑漸層看不到 */
+  --hero-title-bg: none;
+  --hero-title-color: #fff;
 }
 
 /* New neutrals */
