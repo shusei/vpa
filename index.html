@@ -11,8 +11,6 @@
     <link rel="icon" type="image/svg+xml"
       href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="%23c084fc"/><stop offset="1" stop-color="%2322d3ee"/></linearGradient></defs><rect width="96" height="96" rx="18" fill="%23151922"/><circle cx="32" cy="40" r="10" fill="url(%23g)"/><circle cx="64" cy="56" r="10" fill="url(%23g)"/><path d="M20 70c24-12 32-12 56 0" stroke="url(%23g)" stroke-width="6" fill="none" stroke-linecap="round"/></svg>'
     />
-
-    <!-- Fluent × Apple: soft glass, large tap targets, accessible focus -->
     <link rel="stylesheet" href="assets/styles.css" />
   </head>
   <body>
@@ -25,7 +23,7 @@
       <div class="trust-row">
         <span class="chip local" title="100% 本地推論">本地推論・不上傳</span>
         <a class="chip link" href="https://huggingface.co/prithivMLmods/Common-Voice-Gender-Detection" target="_blank" rel="noopener">
-          模型：Common‑Voice‑Gender‑Detection（ONNX）
+          模型：Common-Voice-Gender-Detection（ONNX）
         </a>
         <a class="chip link" href="https://github.com/shusei/vpa" target="_blank" rel="noopener">原始碼</a>
       </div>
@@ -80,12 +78,12 @@
           <summary>模型概覽</summary>
           <div class="kv">
             <div>名稱：</div>
-            <div><a href="https://huggingface.co/prithivMLmods/Common-Voice-Gender-Detection" target="_blank" rel="noopener">Common‑Voice‑Gender‑Detection</a>（ONNX）</div>
+            <div><a href="https://huggingface.co/prithivMLmods/Common-Voice-Gender-Detection" target="_blank" rel="noopener">Common-Voice-Gender-Detection</a>（ONNX）</div>
             <div>架構：</div>
-            <div>Wav2Vec2（<a href="https://arxiv.org/pdf/2006.11477" target="_blank" rel="noopener">Self‑Supervised Learning for Speech Recognition</a>）</div>
+            <div>Wav2Vec2（<a href="https://arxiv.org/pdf/2006.11477" target="_blank" rel="noopener">Self-Supervised Learning for Speech Recognition</a>）</div>
             <div>標籤空間：</div><div>二分類（<code>female</code> / <code>male</code>）</div>
             <div>來源資料：</div><div>Mozilla Common Voice 等語料（以英語朗讀為主）</div>
-            <div>授權：</div><div>Apache‑2.0（模型）；本頁程式碼依你的 repo 授權</div>
+            <div>授權：</div><div>Apache-2.0（模型）；本頁程式碼依你的 repo 授權</div>
             <div>DOI：</div><div><a href="https://doi.org/10.57967/hf/5684" target="_blank" rel="noopener">10.57967/hf/5684</a></div>
           </div>
         </details>
@@ -105,7 +103,7 @@
           <ul class="bullets">
             <li><b>推論引擎：</b>Transformers.js + ONNX Runtime；<b>有 WebGPU 就用 GPU</b>，否則回退 WASM。</li>
             <li><b>前處理（最小化）：</b>立體混單聲道＋<b>16 kHz</b> 重採樣；不去靜音、不調音量。</li>
-            <li><b>長檔策略：</b>≤150 秒整段；更長改「串流分段」並 <b>log‑odds 加權</b>聚合。</li>
+            <li><b>長檔策略：</b>≤150 秒整段；更長改「串流分段」並 <b>log-odds 加權</b>聚合。</li>
             <li><b>可選 VAD（只「選段」）：</b>偵測語音段落以略過長靜音；<u>不動原音</u>。</li>
             <li><b>隱私：</b>100% 本地推論；音檔不離開裝置。只保留「最新一段」的回放 URL，換檔即釋放。</li>
           </ul>
@@ -125,7 +123,7 @@
           <div class="kv">
             <div>版本：</div><div><code id="ver"></code></div>
             <div>更新：</div><div><code id="updatedAt"></code></div>
-            <div>授權：</div><div>模型 <code>Apache‑2.0</code>；網站程式碼依你的 repo 授權</div>
+            <div>授權：</div><div>模型 <code>Apache-2.0</code>；網站程式碼依你的 repo 授權</div>
             <div>原始碼：</div><div><a href="https://github.com/shusei/vpa" target="_blank" rel="noopener">GitHub / vpa</a></div>
           </div>
         </details>
