@@ -176,8 +176,12 @@ a:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring); border-radius:8
   display:flex; align-items:center; gap:10px;
   width:100%; text-align:left; border:none; background:transparent;
   padding:8px 10px; border-radius:10px; cursor:pointer; font-weight:600;
+  /* 修正：按鈕文字在深色主題下不繼承顏色，導致黑字不可見 */
+  color: inherit; 
+  -webkit-text-fill-color: currentColor;
 }
 .theme-item[aria-checked="true"]{ outline:2px solid var(--ring); }
+.theme-item:focus-visible{ outline:2px solid var(--ring); }
 .theme-item:hover{ background: color-mix(in oklab, var(--panel) 80%, var(--accent-2) 20%); }
 .swatch{ width:18px; height:18px; border-radius:6px; border:1px solid var(--panel-border); }
 .swatch--warm{ background:linear-gradient(135deg,#f6a6c1,#f6c28b); }
