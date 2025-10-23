@@ -1,55 +1,55 @@
 :root{
-  /* Core palette (WARM & gentle) */
-  --bg: #120f12;
-  --surface: rgba(39,29,31,0.55);       /* warm glass */
-  --surface-strong: rgba(39,29,31,0.75);
+  /* WARM palette — no green */
+  --bg-start: #2b1e20;   /* plum-brown */
+  --bg-end:   #151112;   /* near-black warm */
+  --surface-r: 39; --surface-g: 29; --surface-b: 31; /* warm glass tint */
+
+  --surface: rgba(var(--surface-r),var(--surface-g),var(--surface-b),0.55);
+  --surface-strong: rgba(var(--surface-r),var(--surface-g),var(--surface-b),0.75);
   --card: #1f1719;
   --text: #f7f2f4;
   --muted: #cbbec3;
 
-  /* Accents: rose ↔ apricot */
-  --accent-1: #f6a6c1; /* rose quartz */
-  --accent-2: #f6c28b; /* apricot */
+  /* Accents: rose ↔ apricot (warm) */
+  --accent-1: #f6a6c1;
+  --accent-2: #f6c28b;
   --accent: color-mix(in oklab, var(--accent-1) 58%, var(--accent-2) 42%);
 
   /* Links & emphasis */
   --link: color-mix(in oklab, #ffe7c7 55%, var(--accent) 45%);
-  --link-contrast: #ffffff; /* for dark hint blocks */
 
-  /* Player (lighter, warm-paper look) */
-  --player-bg: rgba(255, 240, 230, 0.92);  /* 亮：播放器背景 */
-  --player-text: #2c1f22;                  /* 深色字，對比強 */
-  --player-hint: #4a2f34;                  /* 提示小字 */
-  --player-hint-link: #b45309;             /* 提示內連結（琥珀色） */
+  /* Player (light card) */
+  --player-bg: #fffaf7;      /* 亮底，避免再被染深 */
+  --player-text: #2c1f22;
+  --player-hint: #2c1f22;
+  --player-hint-link: #9a3412;
   --player-border: #eadbd5;
 
-  /* Meter colors (warm versions) */
-  --female: #f3accf;   /* warm rose */
-  --male:   #ffc0a8;   /* peach-coral */
+  /* Meter colors (warm) */
+  --female: #f3accf;
+  --male:   #ffc0a8;
 
-  /* Shadows & borders */
-  --ring: #ffd39e;     /* warm focus ring */
+  /* Focus & borders */
+  --ring: #ffd39e;
   --border: #3a2a2e;
 }
 
-/* Light mode (auto, warm paper) */
+/* Light mode (warm paper) */
 @media (prefers-color-scheme: light){
   :root{
-    --bg: #fffaf7;
+    --bg-start: #fffaf7;
+    --bg-end:   #fff7ef;
     --surface: rgba(255,255,255,0.72);
     --surface-strong: rgba(255,255,255,0.88);
     --card: #ffffff;
     --text: #2c1f22;
     --muted: #7b666d;
     --border: #f0e3df;
-
     --link: #b45309;
-    --link-contrast: #2c1f22;
 
-    /* Light 模式下播放器用全白卡片 */
     --player-bg: #ffffff;
     --player-text: #2c1f22;
-    --player-hint: #4a2f34;
+    --player-hint: #2c1f22;
     --player-hint-link: #b45309;
     --player-border: #eadbd5;
   }
@@ -60,8 +60,8 @@ html,body{ height:100%; }
 body{
   margin:0;
   color:var(--text);
-  background:
-    radial-gradient(1200px 600px at 50% -10%, #2a1d1f, #120f12);
+  /* 直接以暖色背景覆蓋，徹底拔掉舊的綠色漸層 */
+  background: radial-gradient(1200px 600px at 50% -10%, var(--bg-start), var(--bg-end)) !important;
   font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Text", Segoe UI, Roboto, "Noto Sans TC", Arial, "Apple Color Emoji", "Segoe UI Emoji";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -70,7 +70,7 @@ body{
 /* Utils */
 .mt-10{ margin-top:10px; }
 
-/* Subtle backdrop glass */
+/* Glass container */
 .backdrop{
   background: var(--surface);
   backdrop-filter: saturate(118%) blur(14px);
@@ -79,7 +79,6 @@ body{
   box-shadow: 0 24px 80px rgba(0,0,0,.35);
 }
 
-/* Container */
 .container{
   max-width: 880px;
   margin: clamp(32px, 10vh, 120px) auto;
@@ -133,7 +132,7 @@ body{
 .chip.link{ text-decoration:none; }
 .chip.link:hover{ filter:brightness(1.06); }
 
-/* Record button (warm) */
+/* Record button — 移除任何偏藍/綠色系 */
 .record-btn{
   width:100%;
   padding: 22px;
@@ -161,7 +160,7 @@ body{
 /* Status */
 .status{ margin-top:12px; color:var(--muted); font-size:14px; }
 
-/* Player (lighter card with high-contrast hint) */
+/* Player — 亮底卡片 + 高對比提示 */
 .player{
   margin-top:18px; padding: 16px; border-radius: 16px;
   background: var(--player-bg);
@@ -175,8 +174,7 @@ body{
   font-weight:700; letter-spacing:.2px;
   cursor:pointer;
   background: linear-gradient(135deg,
-    color-mix(in oklab, var(--accent) 88%, #fff 6%),
-    #f7d7b9
+    color-mix(in oklab, var(--accent) 88%, #fff 6%), #f7d7b9
   );
   color:#261417;
   box-shadow: 0 6px 18px rgba(255, 210, 170, .28);
@@ -184,21 +182,13 @@ body{
   opacity:.95;
 }
 #playBtn:hover{ transform: translateY(-1px); filter:brightness(1.06); }
-
-/* 提示：想再聽一次…點這裡 */
-.player .hint{
-  color: var(--player-hint);
-  font-size:13px;
-}
+.player .hint{ color: var(--player-hint); font-size:13px; }
 .player .hint a{
   color: var(--player-hint-link);
   text-decoration: underline;
   font-weight: 800;
-  padding: 0 2px;
-  border-radius: 4px;
+  padding: 0 2px; border-radius: 4px;
 }
-.player .hint a:hover{ filter: brightness(1.1); }
-.player .hint a:focus-visible{ outline:none; box-shadow: 0 0 0 3px var(--ring); }
 
 /* Meter */
 .meter{ margin-top:24px; display:grid; gap:14px; }
@@ -224,7 +214,7 @@ body{
 .bar .label{ position:absolute; left:12px; top:10px; font-weight:700; letter-spacing:.3px; }
 .bar .value{ position:absolute; right:12px; top:10px; font-variant-numeric: tabular-nums; }
 
-/* Fab (upload) */
+/* Fab */
 .fab{
   position:fixed; right:24px; bottom:24px;
   width:56px; height:56px; display:grid; place-items:center;
@@ -274,11 +264,11 @@ details[open] > summary{ margin-bottom:6px; }
   color: color-mix(in oklab, var(--text) 96%, #fff0e1 4%);
 }
 
-/* Links (general) */
+/* Links */
 a{ color: var(--link); }
 a:focus-visible{ outline:none; box-shadow: 0 0 0 3px var(--ring); border-radius: 8px; }
 
-/* Reduce motion */
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce){
   *{ animation: none !important; transition: none !important; }
 }
@@ -289,7 +279,7 @@ a:focus-visible{ outline:none; box-shadow: 0 0 0 3px var(--ring); border-radius:
   .record-btn{ padding:18px; }
 }
 
-/* Light-mode overrides (warm paper) */
+/* Light-mode overrides */
 @media (prefers-color-scheme: light){
   .record-btn{
     background:
@@ -306,6 +296,10 @@ a:focus-visible{ outline:none; box-shadow: 0 0 0 3px var(--ring); border-radius:
       color-mix(in oklab, var(--accent-2) 24%, #fff 76%)
     );
   }
-  /* 在淺色主題，提示連結回到暖色，對比仍高 */
   .player .hint a{ color: var(--player-hint-link); }
 }
+
+/* ---- SAFETY OVERRIDES: keep at end ---- */
+/* 防止任何殘留規則再把背景染回綠調 */
+body{ background: radial-gradient(1200px 600px at 50% -10%, var(--bg-start), var(--bg-end)) !important; }
+.backdrop{ background: var(--surface) !important; }
