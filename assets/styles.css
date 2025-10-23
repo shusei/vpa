@@ -565,23 +565,24 @@ html[data-mode="dark"]  .theme-menu .theme-item.for-light{ display:none; }
 .swatch--magenta{ background:linear-gradient(135deg,#e11d48,#f43f5e); }
 .swatch--fuchsia{ background:linear-gradient(135deg,#f472b6,#f0abfc); }
 
-/* ---------- Record Button（Primary） ---------- */
+/* ---------- Record Button（Primary / JUMBO） ---------- */
 .start-wrap{ display:flex; align-items:center; gap:12px; margin-top:8px; }
 
 .record-btn{
   --btn-h1: color-mix(in oklab, var(--accent-1) 82%, #111 18%);
   --btn-h2: color-mix(in oklab, var(--accent-2) 82%, #111 18%);
   appearance:none; border:0; cursor:pointer;
-  padding:14px 22px; border-radius:14px;
-  font-weight:900; letter-spacing:.4px; font-size:15px;
-  color:#fff;
+  padding:18px 28px; border-radius:18px;
+  min-height:60px;
+  font-weight:900; letter-spacing:.5px; font-size:18px;
+  color:#fff; text-shadow:0 1px 0 rgba(0,0,0,.25);
   background:
     linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0)) padding-box,
     linear-gradient(135deg, var(--btn-h1), var(--btn-h2)) border-box;
   border:1px solid transparent;
   box-shadow:
-    0 18px 40px color-mix(in oklab, var(--accent-2) 22%, #000 78%),
-    0 6px 14px rgba(0,0,0,.16),
+    0 22px 48px color-mix(in oklab, var(--accent-2) 26%, #000 74%),
+    0 10px 18px rgba(0,0,0,.18),
     inset 0 0 0 0 rgba(255,255,255,0);
   transform: translateY(0);
   transition: transform .12s ease, filter .15s ease, box-shadow .15s ease;
@@ -591,28 +592,28 @@ html[data-faction="dark"] .record-btn{
   --btn-h2: color-mix(in oklab, var(--accent-2) 88%, #fff 12%);
 }
 .record-btn:hover{
-  filter: saturate(1.02) brightness(1.02);
-  transform: translateY(-1px);
+  filter: saturate(1.03) brightness(1.03);
+  transform: translateY(-1.5px);
   box-shadow:
-    0 22px 48px color-mix(in oklab, var(--accent-2) 28%, #000 72%),
-    0 10px 18px rgba(0,0,0,.18),
+    0 26px 56px color-mix(in oklab, var(--accent-2) 30%, #000 70%),
+    0 12px 22px rgba(0,0,0,.20),
     inset 0 0 0 0 rgba(255,255,255,0);
 }
 .record-btn:active{
   transform: translateY(0);
   box-shadow:
-    0 12px 24px color-mix(in oklab, var(--accent-2) 22%, #000 78%),
-    0 6px 12px rgba(0,0,0,.20),
+    0 14px 28px color-mix(in oklab, var(--accent-2) 24%, #000 76%),
+    0 8px 16px rgba(0,0,0,.22),
     inset 0 1px 0 0 rgba(255,255,255,.18);
 }
 .record-btn:focus-visible{
   outline:none;
   box-shadow:
     0 0 0 3px var(--ring),
-    0 16px 36px color-mix(in oklab, var(--accent-2) 26%, #000 74%);
+    0 18px 40px color-mix(in oklab, var(--accent-2) 28%, #000 72%);
 }
 
-/* 錄音中：換成更沉穩的紅系提示，但仍沿用品牌漸層味道 */
+/* 錄音中：紅系但維持品牌調性與尺寸 */
 body.recording .record-btn{
   --btn-h1: color-mix(in oklab, #ef4444 78%, var(--accent-1) 22%);
   --btn-h2: color-mix(in oklab, #dc2626 78%, var(--accent-2) 22%);
@@ -648,20 +649,24 @@ body.recording .record-btn .rec{ display:inline; }
 }
 @keyframes spin{ to{ transform:rotate(360deg); } }
 
-/* ---------- Player（Secondary button） ---------- */
+/* ---------- Player（Secondary / JUMBO） ---------- */
 .player{ display:flex; align-items:center; gap:14px; margin:12px 0; }
 .player .hint{ font-size:12px; color:var(--muted); }
 
 #playBtn{
   appearance:none; border:0; cursor:pointer;
-  padding:12px 16px; border-radius:12px; font-weight:800; letter-spacing:.3px;
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:16px 24px; border-radius:16px; 
+  min-height:56px;
+  font-weight:900; letter-spacing:.4px; font-size:16px;
   background:
     linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0)) padding-box,
     color-mix(in oklab, var(--panel) 76%, var(--accent-2) 24%) border-box;
   border:1px solid transparent;
   color: color-mix(in oklab, var(--ink) 90%, var(--accent-1) 10%);
+  text-shadow:0 1px 0 rgba(0,0,0,.12);
   box-shadow:
-    0 10px 22px rgba(0,0,0,.14),
+    0 14px 30px rgba(0,0,0,.18),
     inset 0 -1px 0 rgba(0,0,0,.10);
   transition: transform .12s ease, filter .15s ease, box-shadow .15s ease, background .15s ease;
 }
@@ -670,28 +675,29 @@ html[data-faction="dark"] #playBtn{
     linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)) padding-box,
     color-mix(in oklab, var(--surface-strong) 70%, var(--accent-2) 30%) border-box;
   color: var(--text);
+  text-shadow:0 1px 0 rgba(0,0,0,.18);
   box-shadow:
-    0 12px 26px rgba(0,0,0,.28),
+    0 16px 36px rgba(0,0,0,.28),
     inset 0 -1px 0 rgba(255,255,255,.06);
 }
 #playBtn:hover{
-  filter: brightness(1.02) saturate(1.02);
-  transform: translateY(-1px);
+  filter: brightness(1.03) saturate(1.03);
+  transform: translateY(-1.5px);
   box-shadow:
-    0 14px 30px rgba(0,0,0,.18),
+    0 18px 40px rgba(0,0,0,.20),
     inset 0 -1px 0 rgba(255,255,255,.14);
 }
 #playBtn:active{
   transform: translateY(0);
   box-shadow:
-    0 8px 18px rgba(0,0,0,.20),
+    0 10px 22px rgba(0,0,0,.22),
     inset 0 1px 0 rgba(255,255,255,.18);
 }
 #playBtn:focus-visible{
   outline:none;
   box-shadow:
     0 0 0 3px var(--ring),
-    0 12px 26px rgba(0,0,0,.22);
+    0 14px 30px rgba(0,0,0,.22);
 }
 #playBtn:disabled{
   opacity:.55; cursor:not-allowed;
@@ -718,3 +724,9 @@ html[data-faction="dark"] #playBtn{
 }
 .fab:hover{ filter:brightness(1.05); }
 .fab:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring); }
+
+/* ---------- Responsive（手機全寬） ---------- */
+@media (max-width: 560px){
+  .player{ flex-direction:column; align-items:stretch; gap:10px; }
+  .record-btn, #playBtn{ width:100%; }
+}
