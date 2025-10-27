@@ -95,6 +95,16 @@ main.container{
 .theme-item[aria-checked="true"]{ outline:2px solid var(--ring); }
 .theme-item:hover{ background: color-mix(in oklab, var(--panel) 85%, var(--accent-2) 15%); }
 .swatch{ width:18px; height:18px; border-radius:6px; border:1px solid var(--panel-border); }
+.menu-actions{ margin-top:12px; padding-top:12px; border-top:1px solid var(--panel-border); display:flex; flex-direction:column; gap:8px; }
+.menu-action{
+  display:flex; align-items:center; justify-content:center; gap:6px; padding:10px;
+  border-radius:10px; border:1px solid var(--panel-border); cursor:pointer; font-weight:600;
+  background: color-mix(in oklab, var(--panel) 78%, var(--accent-2) 22%);
+  color: inherit; -webkit-text-fill-color: currentColor;
+}
+.menu-action:hover{ background: color-mix(in oklab, var(--panel) 60%, var(--accent-2) 40%); }
+.menu-action:focus-visible{ outline:2px solid var(--ring); outline-offset:2px; }
+.menu-hint{ margin:0; font-size:12px; color: var(--muted); }
 .swatch--warm{ background:linear-gradient(135deg,#f6a6c1,#f6c28b); }
 .swatch--lavender{ background:linear-gradient(135deg,#c9a7ff,#9bb8ff); }
 .swatch--peach{ background:linear-gradient(135deg,#ffb4a2,#ffd6a5); }

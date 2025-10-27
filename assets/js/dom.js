@@ -25,6 +25,8 @@ export const resValChest = document.getElementById("resChestVal");
 export const resValMask  = document.getElementById("resMaskVal");
 export const resValHead  = document.getElementById("resHeadVal");
 
+export const exportBtn   = document.getElementById("exportBtn");
+
 export const helpBtn = document.getElementById("helpBtn");
 export const helpOverlay = document.getElementById("helpOverlay");
 export const localeBtn = document.getElementById("localeBtn");
