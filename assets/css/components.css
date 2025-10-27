@@ -65,7 +65,7 @@ body.recording .record-btn .rec{ display:inline; }
 .upload-btn:hover{ background:color-mix(in oklab, var(--surface) 30%, var(--accent-2) 70%); }
 .upload-btn input{ display:none; }
 
-.fab{
+.fab{ 
   position:fixed;
   right:calc(18px + env(safe-area-inset-right, 0px));
   bottom:calc(18px + env(safe-area-inset-bottom, 0px));
@@ -85,6 +85,14 @@ body.recording .record-btn .rec{ display:inline; }
 .fab:hover{ transform:translateY(-1px); background:color-mix(in oklab, var(--surface) 20%, var(--accent-2) 80%); }
 .fab:active{ transform:translateY(0); }
 .fab:focus-visible{ outline:3px solid var(--ring); outline-offset:4px; }
+.fab[disabled]{
+  cursor:not-allowed;
+  opacity:.6;
+  transform:none;
+  box-shadow:0 8px 18px rgba(0,0,0,.15);
+}
+.fab[disabled]:hover{ transform:none; }
+.fab[disabled]:active{ transform:none; }
 
 @media (max-width:600px){
   .fab{ width:64px; height:64px; min-width:64px; min-height:64px; font-size:32px; }
@@ -110,6 +118,16 @@ body.recording .record-btn .rec{ display:inline; }
   border:1px solid transparent; color: color-mix(in oklab, var(--ink) 90%, var(--accent-1) 10%);
   text-shadow:0 1px 0 rgba(0,0,0,.12); box-shadow:0 14px 30px rgba(0,0,0,.18), inset 0 -1px 0 rgba(0,0,0,.10);
   transition: transform .12s ease, filter .15s ease, box-shadow .15s ease, background .15s ease;
+}
+#playBtn[disabled]{
+  cursor:not-allowed;
+  opacity:.65;
+  box-shadow:0 6px 16px rgba(0,0,0,.12), inset 0 -1px 0 rgba(0,0,0,.10);
+}
+#playBtn[disabled]:hover,
+#playBtn[disabled]:active{
+  transform:none;
+  filter:none;
 }
 .player .hint{ font-size:12px; color:var(--muted); }
 

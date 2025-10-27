@@ -257,6 +257,7 @@ export default {
     uploadFailed: "上傳處理失敗",
     recordProcessingFailed: "錄音處理失敗",
     recording: "錄音中… 再按一次停止",
+    uploadWhileRecording: "錄音時無法上傳，請先停止錄音。",
     processingAudio: "處理音訊…",
     decoding: "解析檔案…",
     warnLong: "提示：長度 {{duration}}，分析可能較久。準備推論…",
