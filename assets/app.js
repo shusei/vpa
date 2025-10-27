@@ -46,7 +46,6 @@ import {
   VAD_MIN_SEG_MS,
   VAD_MIN_VOICED_SEC,
   VAD_SILENCE_RATIO_TO_APPLY,
-  IS_SAFARI,
 } from "./js/constants.js";
 import {
   setStatus,
@@ -274,29 +273,16 @@ async function handleFileOrBlob(fileOrBlob){
   }
 }
 
-// ===== 解碼策略（WebAudio 優先，失敗再 ffmpeg.wasm） =====
+// ===== 解碼策略（WebAudio 為主） =====
 async function decodeSmartToFloat32(blobOrFile, targetSR){
-  const name = (blobOrFile.name || "").toLowerCase();
-  const type = (blobOrFile.type || "").toLowerCase();
-  const looksLikeM4A = /\.m4a$/i.test(name) || type.includes("audio/mp4") || type.includes("audio/x-m4a");
-
-  if (IS_SAFARI && looksLikeM4A){
-    setStatus(t("status.ffmpegPrepareSafari"), true);
-    const wavBlob = await transcodeToWav16kViaFFmpeg(blobOrFile);
-    const { float32, sr } = wavToFloat32(await wavBlob.arrayBuffer());
-    return { float32, sr, durationSec: float32.length / sr };
-  }
-
-  try{
-    setStatus(t("status.webaudioDecode"), true);
+  setStatus(t("status.webaudioDecode"), true);
+  try {
     return await decodeViaWebAudio(blobOrFile, targetSR);
-  }catch(e){
-    log("[decode] WebAudio failed, fallback to ffmpeg:", e?.message || e);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err ?? "");
+    log("[decode] WebAudio decode failed:", message);
+    throw new Error(t("status.decodeFailure"));
   }
-  setStatus(t("status.ffmpegPrepare"), true);
-  const wavBlob = await transcodeToWav16kViaFFmpeg(blobOrFile);
-  const { float32, sr } = wavToFloat32(await wavBlob.arrayBuffer());
-  return { float32, sr, durationSec: float32.length / sr };
 }
 async function decodeViaWebAudio(blobOrFile, targetSR=16000){
   const arrayBuf = await blobOrFile.arrayBuffer();
@@ -304,7 +290,18 @@ async function decodeViaWebAudio(blobOrFile, targetSR=16000){
   const ctx = new Ctx();
   let offline = null;
   try{
-    const audioBuf = await ctx.decodeAudioData(arrayBuf);
+    let audioBuf;
+    try {
+      audioBuf = await ctx.decodeAudioData(arrayBuf);
+    } catch (err) {
+      audioBuf = await new Promise((resolve, reject) => {
+        try {
+          ctx.decodeAudioData(arrayBuf.slice(0), resolve, reject);
+        } catch (legacyErr) {
+          reject(legacyErr);
+        }
+      });
+    }
     const mono = ctx.createBuffer(1, audioBuf.length, audioBuf.sampleRate);
     const outCh = mono.getChannelData(0);
     const ch0 = audioBuf.getChannelData(0);
@@ -328,105 +325,6 @@ async function decodeViaWebAudio(blobOrFile, targetSR=16000){
     try{ await ctx.close(); }catch{}
     offline = null;
   }
-}
-
-// ===== FFmpeg（ESM 優先，失敗用 UMD） =====
-async function loadFFmpegModule(){
-  const cdnCandidates = [
-    {
-      label: "jsdelivr",
-      esm: "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/+esm",
-      umd: "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js",
-      core: "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js",
-    },
-    {
-      label: "fastly.jsdelivr",
-      esm: "https://fastly.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/+esm",
-      umd: "https://fastly.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js",
-      core: "https://fastly.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js",
-    },
-    {
-      label: "esm.sh/elemecdn",
-      esm: "https://esm.sh/@ffmpeg/ffmpeg@0.12.6?target=es2020",
-      umd: "https://npm.elemecdn.com/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js",
-      core: "https://npm.elemecdn.com/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js",
-    },
-    {
-      label: "esm.run/unpkg",
-      esm: "https://esm.run/@ffmpeg/ffmpeg@0.12.6",
-      umd: "https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js",
-      core: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js",
-    },
-  ];
-
-  let lastError = null;
-  for (const cdn of cdnCandidates){
-    try{
-      const m = await import(cdn.esm);
-      if (typeof m.createFFmpeg==="function" && typeof m.fetchFile==="function"){
-        log(`[ffmpeg] using ${cdn.label} (esm)`);
-        return { createFFmpeg: m.createFFmpeg, fetchFile: m.fetchFile, corePath: cdn.core, mode:"esm", cdn: cdn.label };
-      }
-    }catch(e){
-      const msg = e instanceof Error ? e.message : String(e);
-      log(`[ffmpeg] ${cdn.label} +esm import failed:`, msg);
-      lastError = new Error(`[ffmpeg] ${cdn.label} +esm import failed: ${msg}`);
-    }
-
-    try{
-      await loadScriptTag(cdn.umd, cdn.label);
-      const FF = window.FFmpeg;
-      if (FF && typeof FF.createFFmpeg==="function" && typeof FF.fetchFile==="function"){
-        log(`[ffmpeg] using ${cdn.label} (umd)`);
-        return { createFFmpeg: FF.createFFmpeg, fetchFile: FF.fetchFile, corePath: cdn.core, mode:"umd", cdn: cdn.label };
-      }
-      lastError = new Error(`FFmpeg UMD load failed (${cdn.label})`);
-    }catch(e){
-      const msg = e instanceof Error ? e.message : String(e);
-      log(`[ffmpeg] ${cdn.label} umd load failed:`, msg);
-      lastError = new Error(`[ffmpeg] ${cdn.label} umd load failed: ${msg}`);
-    }
-  }
-
-  const errMsg = lastError?.message || "FFmpeg module load failed";
-  throw new Error(t("errors.ffmpegModuleLoadFailed", { message: errMsg }));
-}
-function loadScriptTag(src, label=""){
-  return new Promise((resolve, reject)=>{
-    const s = document.createElement("script");
-    s.src = src; s.async = true; s.crossOrigin = "anonymous"; s.referrerPolicy = "no-referrer";
-    s.onload = ()=>resolve();
-    s.onerror = ()=>{
-      s.remove();
-      const labelSuffix = label ? ` (${label})` : "";
-      reject(new Error(t("errors.scriptLoad", { src, label: labelSuffix })));
-    };
-    document.head.appendChild(s);
-  });
-}
-async function transcodeToWav16kViaFFmpeg(blobOrFile){
-  const { createFFmpeg, fetchFile, corePath, mode, cdn } = await loadFFmpegModule();
-  log(`[ffmpeg] loader mode = ${mode}（cdn: ${cdn}）`);
-  const ffmpeg = createFFmpeg({
-    corePath,
-    log: false
-  });
-
-  if (!ffmpeg.isLoaded()) setStatus(t("status.ffmpegLoading"), true);
-  ffmpeg.setProgress(({ ratio })=>{
-    const r = Math.min(1, Math.max(0, Number.isFinite(ratio)?ratio:0));
-    setStatus(t("status.ffmpegTranscode", { progress: Math.round(r*100) }), true);
-  });
-  if (!ffmpeg.isLoaded()) await ffmpeg.load();
-
-  const inName="in.bin", outName="out.wav";
-  ffmpeg.FS("writeFile", inName, await fetchFile(blobOrFile));
-  await ffmpeg.run("-i", inName, "-vn", "-ac", "1", "-ar", `${TARGET_SR}`, "-f", "wav", outName);
-  const out = ffmpeg.FS("readFile", outName);
-  try{ ffmpeg.FS("unlink", inName); }catch{}
-  try{ ffmpeg.FS("unlink", outName); }catch{}
-  try{ await ffmpeg.exit(); }catch{}
-  return new Blob([out.buffer], { type:"audio/wav" });
 }
 
 // ===== 模型 =====
@@ -688,34 +586,6 @@ function render(pf, pm){
 function startHeartbeat(fn){ stopHeartbeat(); heartbeatTimer=setInterval(()=>{ try{ fn(); }catch{} }, 1000); }
 function stopHeartbeat(){ if (heartbeatTimer){ clearInterval(heartbeatTimer); heartbeatTimer=null; } }
 function microYield(){ return new Promise(r=>setTimeout(r,0)); }
-
-// ===== WAV 解析（16-bit PCM / float32 支援） =====
-function wavToFloat32(arrayBuffer){
-  const dv = new DataView(arrayBuffer);
-  function str(o,n){ let s=""; for(let i=0;i<n;i++) s+=String.fromCharCode(dv.getUint8(o+i)); return s; }
-  if(str(0,4)!=="RIFF" || str(8,4)!=="WAVE") throw new Error(t("errors.notWav"));
-  let off=12, fmt=null, dataOff=0, dataLen=0;
-  while(off<dv.byteLength){
-    const id=str(off,4); const sz=dv.getUint32(off+4,true); const body=off+8;
-    if(id==="fmt "){
-      fmt={ tag:dv.getUint16(body,true), ch:dv.getUint16(body+2,true), sr:dv.getUint32(body+4,true), bps:dv.getUint16(body+14,true) };
-    } else if(id==="data"){ dataOff=body; dataLen=sz; break; }
-    off += 8+sz;
-  }
-  if(!fmt||!dataOff) throw new Error(t("errors.invalidWav"));
-  const totalSamples = dataLen / (fmt.bps/8);
-  const out = new Float32Array(totalSamples / fmt.ch);
-  if(fmt.tag===1 && fmt.bps===16){ // PCM 16
-    let j=0;
-    for(let i=0;i<totalSamples;i+=fmt.ch){ const v=dv.getInt16(dataOff + (i*2), true)/32768; out[j++]=v; }
-  }else if(fmt.tag===3 && fmt.bps===32){ // IEEE float32
-    let j=0;
-    for(let i=0;i<totalSamples;i+=fmt.ch){ const v=dv.getFloat32(dataOff + (i*4), true); out[j++]=v; }
-  }else{
-    throw new Error(t("errors.unsupportedWavEncoding"));
-  }
-  return { float32: out, sr: fmt.sr };
-}
 
 // ===== VAD（只「選段」） =====
 function maybeApplyAdaptiveVAD(float32, sr){
