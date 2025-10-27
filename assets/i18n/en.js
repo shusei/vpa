@@ -165,7 +165,9 @@ export default {
   },
   help: {
     dialogHtml: [
-      '<button type="button" id="helpClose" class="help-close" aria-label="Close help">✕</button>'
+      '<div class="help-close-affix">',
+      '<button type="button" id="helpClose" class="help-close" aria-label="Close help">✕</button>',
+      '</div>',
       '<div class="help-hero">'
       '<h2 id="helpTitle">Voice Presentation Analyzer – Help</h2>'
       '<p class="lead">Everything runs locally in your browser, making it ideal for self-practice, class demos, or research prototypes. The sections below cover recording, live monitors, every summary card, and the reasoning behind each coaching cue.</p>'

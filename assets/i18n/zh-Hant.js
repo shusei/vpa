@@ -165,7 +165,9 @@ export default {
   },
   help: {
     dialogHtml: [
+      '<div class="help-close-affix">',
       '<button type="button" id="helpClose" class="help-close" aria-label="關閉使用指南">✕</button>',
+      '</div>',
       '<div class="help-hero">',
       '<h2 id="helpTitle">Voice Presentation Analyzer 使用指南</h2>',
       '<p class="lead">本工具完全在瀏覽器端推論，適合自我練習、課堂示範與研究原型。以下整理從錄音、即時監控，到每張統計卡的重點與練習方法。</p>',

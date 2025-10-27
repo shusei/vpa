@@ -17,8 +17,7 @@ body.help-open{ overflow:hidden; }
   border-radius:28px;
   border:1px solid color-mix(in oklab, var(--panel-border) 78%, transparent 22%);
   box-shadow:0 32px 80px rgba(15,23,42,.38);
-  padding:38px 42px 42px;
-  position:relative;
+  padding:34px 42px 42px;
 }
 .help-dialog h2{ margin:0 0 10px; font-size:26px; letter-spacing:.4px; }
 .help-dialog h3{ margin:0 0 12px; font-size:20px; letter-spacing:.2px; }
@@ -127,14 +126,40 @@ body.help-open{ overflow:hidden; }
 .help-support-link img{ display:block; height:42px; }
 .help-support-link:hover{ transform:translateY(-1px); box-shadow:0 6px 16px rgba(0,0,0,.22); }
 .help-support-link:focus-visible{ outline:2px solid var(--ring); outline-offset:4px; }
-.help-close{
-  position:absolute; top:16px; right:16px;
-  appearance:none; border:0; background:transparent;
-  color:var(--muted); font-size:22px; cursor:pointer;
-  transition:color .15s ease, transform .15s ease;
+.help-close-affix{
+  position:sticky;
+  top:8px;
+  z-index:5;
+  display:flex;
+  justify-content:flex-end;
+  margin:-20px -6px 18px;
+  pointer-events:none;
 }
-.help-close:hover{ color:var(--ink); transform:translateY(-1px); }
-.help-close:focus-visible{ outline:2px solid var(--ring); outline-offset:2px; }
+.help-close{
+  appearance:none;
+  border:0;
+  background:color-mix(in oklab, var(--panel) 72%, rgba(15,23,42,.12) 28%);
+  color:color-mix(in oklab, var(--ink) 82%, var(--muted) 18%);
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:44px;
+  height:44px;
+  border-radius:999px;
+  box-shadow:0 12px 28px rgba(15,23,42,.16);
+  transition:color .15s ease, background .15s ease, transform .15s ease;
+  pointer-events:auto;
+}
+.help-close:hover{
+  color:var(--ink);
+  background:color-mix(in oklab, var(--panel) 58%, rgba(255,255,255,.78) 42%);
+  transform:translateY(-1px);
+}
+.help-close:focus-visible{
+  outline:2px solid var(--ring);
+  outline-offset:2px;
+}
 .help-footer{ margin-top:18px; font-size:13px; color:var(--muted); }
 
 kbd{
