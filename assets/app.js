@@ -2328,11 +2328,41 @@ function estimateSpectralFeatures(frame, sr){
     } else {
       compact.push(p);
     }
-    if (compact.length>=4) break;
   }
-  const f1 = compact[0]?.freq ?? NaN;
-  const f2 = compact[1]?.freq ?? NaN;
-  const f3 = compact[2]?.freq ?? NaN;
+
+  const f0 = detectPitchACF(frame, sr);
+  const harmonicTolerance = f0 ? Math.max(40, f0 * 0.18) : 0;
+  const isLikelyHarmonic = (freq)=>{
+    if (!f0 || !Number.isFinite(f0) || f0 < 50) return false;
+    const harmonic = Math.round(freq / f0) * f0;
+    if (harmonic <= 0) return false;
+    return Math.abs(freq - harmonic) <= harmonicTolerance;
+  };
+
+  function selectPeak(low, high, { allowHarmonic = false, minGap = 0, previousFreq = null } = {}){
+    let best = null;
+    for (const peak of compact){
+      if (peak.freq < low || peak.freq > high) continue;
+      if (!allowHarmonic && isLikelyHarmonic(peak.freq)) continue;
+      if (previousFreq && peak.freq - previousFreq < minGap) continue;
+      if (!best || peak.amp > best.amp) best = peak;
+    }
+    if (!best && !allowHarmonic){
+      for (const peak of compact){
+        if (peak.freq < low || peak.freq > high) continue;
+        if (previousFreq && peak.freq - previousFreq < minGap) continue;
+        if (!best || peak.amp > best.amp) best = peak;
+      }
+    }
+    return best;
+  }
+
+  const f1Peak = selectPeak(180, 900, { allowHarmonic: true });
+  const f1 = f1Peak?.freq ?? NaN;
+  const f2Peak = selectPeak(900, 3000, { previousFreq: f1, minGap: 150 });
+  const f2 = f2Peak?.freq ?? NaN;
+  const f3Peak = selectPeak(1500, 4500, { previousFreq: f2 || f1, minGap: 150 });
+  const f3 = f3Peak?.freq ?? NaN;
 
   let low=0, mid=0, high=0;
   for (let k=0;k<half;k++){
