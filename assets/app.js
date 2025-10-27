@@ -181,7 +181,7 @@ let psRAF=null, psRunning=false;
 let psHz=[], psHzSmooth=[], psDb=[], psVoiced=[]; // 50ms/點
 const PS_INTERVAL_MS = 50;
 const PS_MIN_HZ = 50, PS_MAX_HZ = 450;
-const PS_SMOOTH_BASE_ALPHA = 0.08; // 細微抖動採慢速平滑；統計使用平滑後資料並過濾異常值
+const PS_SMOOTH_BASE_ALPHA = 0.08; // 細微抖動採慢速平滑；統計與即時顯示都使用平滑後資料並過濾諧波異常值
 const PS_SMOOTH_FAST_ALPHA = 0.45; // 真實音高跳動時加速追上
 const PS_SMOOTH_FAST_THRESHOLD_SEMITONES = 1.5;
 const PS_SMOOTH_MAX_STEP_SEMITONES = 2.4;
@@ -872,9 +872,39 @@ function appendPitchSample(rawHz){
   }
 
   const safePrev = Math.min(PS_MAX_HZ, Math.max(PS_MIN_HZ, prev));
-  const safeTarget = Math.min(PS_MAX_HZ, Math.max(PS_MIN_HZ, target));
   const prevLog2 = Math.log2(safePrev);
-  const targetLog2 = Math.log2(safeTarget);
+  const safeTarget = Math.min(PS_MAX_HZ, Math.max(PS_MIN_HZ, target));
+  let targetLog2 = Math.log2(safeTarget);
+  let baseDiffSemitones = Math.abs(targetLog2 - prevLog2) * 12;
+
+  if (Number.isFinite(baseDiffSemitones) && baseDiffSemitones > 3){
+    let bestHz = safeTarget;
+    let bestDiff = baseDiffSemitones;
+    const multipliers = [2, 3, 4];
+    for (const m of multipliers){
+      const up = safeTarget * m;
+      if (up <= PS_MAX_HZ){
+        const diff = Math.abs(Math.log2(up) - prevLog2) * 12;
+        if (diff < bestDiff){
+          bestDiff = diff;
+          bestHz = up;
+        }
+      }
+      const down = safeTarget / m;
+      if (down >= PS_MIN_HZ){
+        const diff = Math.abs(Math.log2(down) - prevLog2) * 12;
+        if (diff < bestDiff){
+          bestDiff = diff;
+          bestHz = down;
+        }
+      }
+    }
+    if (bestHz !== safeTarget && bestDiff <= baseDiffSemitones * 0.6){
+      targetLog2 = Math.log2(bestHz);
+      baseDiffSemitones = bestDiff;
+    }
+  }
+
   const deltaSemitones = Math.abs(targetLog2 - prevLog2) * 12;
   const alpha = deltaSemitones > PS_SMOOTH_FAST_THRESHOLD_SEMITONES
     ? PS_SMOOTH_FAST_ALPHA
@@ -926,14 +956,17 @@ function startPitchStream(userMediaStream){
       if (now - lastTick >= PS_INTERVAL_MS){
         psDb.push(db);
         appendPitchSample(hz ?? null);
+        const displayHz = psHzSmooth.length ? psHzSmooth[psHzSmooth.length-1] : (hz ?? null);
         psVoiced.push(hz!=null);
         const maxN = Math.round(15000 / PS_INTERVAL_MS); // 保留約 15 秒
         if (psDb.length>maxN){ psDb.shift(); psHz.shift(); psHzSmooth.shift(); psVoiced.shift(); }
         lastTick = now;
 
-        if (pitchNowEl) pitchNowEl.textContent = hz ? `${hz.toFixed(1)}Hz` : "— Hz";
+        if (pitchNowEl){
+          pitchNowEl.textContent = Number.isFinite(displayHz) ? `${displayHz.toFixed(1)}Hz` : "— Hz";
+        }
         if (volNowEl)   volNowEl.textContent   = `${db.toFixed(1)} dB`;
-        if (bandNowEl)  bandNowEl.textContent  = bandLabel(hz);
+        if (bandNowEl)  bandNowEl.textContent  = bandLabel(displayHz);
         updateRealtimeMonitor(spectral);
       }
     };
