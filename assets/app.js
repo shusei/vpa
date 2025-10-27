@@ -154,6 +154,8 @@ function initThemeUI(){
   }catch{}
 }
 initThemeUI();
+initHelpOverlay();
+initOnboardingTip();
 
 // ===== 常量 =====
 /** 防呆：剝掉外層花括號或空白（若有） */
@@ -207,6 +209,14 @@ const resBarHead  = document.getElementById("resHead");
 const resValChest = document.getElementById("resChestVal");
 const resValMask  = document.getElementById("resMaskVal");
 const resValHead  = document.getElementById("resHeadVal");
+const helpBtn = document.getElementById("helpBtn");
+const helpOverlay = document.getElementById("helpOverlay");
+const helpCloseBtn = document.getElementById("helpClose");
+const onboardTip = document.getElementById("onboardTip");
+const onboardDismissBtn = document.getElementById("onboardDismiss");
+
+const HELP_KEY = "vpa.helpSeen";
+const ONBOARD_KEY = "vpa.onboardTipDone";
 
 // 播放器（動態建立；並在其下方插入統計卡容器）
 let playBtn = null, audioEl = null, lastAudioUrl = null;
@@ -245,6 +255,97 @@ function setStatus(text, spin=false){
 function log(...a){ try{ console.log(...a);}catch{} }
 function fmtSec(s){ if(!isFinite(s)) return "—"; const m=Math.floor(s/60), ss=Math.round(s%60); return m? `${m}分${ss}秒`:`${ss}秒`; }
 function clamp01(x){ return Math.min(1, Math.max(EPS, x)); }
+
+function resetRealtimePanels(){
+  try{
+    if (pitchNowEl) pitchNowEl.textContent = "— Hz";
+    if (bandNowEl) bandNowEl.textContent = "—";
+    if (volNowEl) volNowEl.textContent = "— dB";
+    if (f1NowEl) f1NowEl.textContent = "— Hz";
+    if (f2NowEl) f2NowEl.textContent = "— Hz";
+    if (f3NowEl) f3NowEl.textContent = "— Hz";
+    if (breathNowEl) breathNowEl.textContent = "—";
+    if (resonanceNowEl) resonanceNowEl.textContent = "—";
+    if (tiltNowEl) tiltNowEl.textContent = "Tilt —";
+    if (resValChest) resValChest.textContent = "胸 0%";
+    if (resValMask)  resValMask.textContent  = "面罩 0%";
+    if (resValHead)  resValHead.textContent  = "頭 0%";
+    if (resBarChest){ resBarChest.style.flexGrow = 1; resBarChest.style.flexBasis = "33%"; }
+    if (resBarMask){  resBarMask.style.flexGrow  = 1; resBarMask.style.flexBasis  = "34%"; }
+    if (resBarHead){  resBarHead.style.flexGrow  = 1; resBarHead.style.flexBasis  = "33%"; }
+  }catch{}
+}
+function setRealtimePanelsActive(active){
+  try{
+    if (pitchWrap){
+      if (active) pitchWrap.removeAttribute("hidden");
+      else pitchWrap.setAttribute("hidden","");
+    }
+    if (formantWrap){
+      if (active) formantWrap.removeAttribute("hidden");
+      else formantWrap.setAttribute("hidden","");
+    }
+    resetRealtimePanels();
+  }catch{}
+}
+function dismissOnboardTip(permanent=false){
+  try{
+    if (onboardTip && !onboardTip.hasAttribute("hidden")){
+      onboardTip.setAttribute("hidden","");
+    }
+    if (permanent){ localStorage.setItem(ONBOARD_KEY, "1"); }
+  }catch{
+    if (onboardTip){ onboardTip.setAttribute("hidden",""); }
+  }
+}
+function initOnboardingTip(){
+  if (!onboardTip) return;
+  let done = false;
+  try{ done = localStorage.getItem(ONBOARD_KEY) === "1"; }catch{}
+  if (!done){
+    setTimeout(()=>{
+      if (!onboardTip) return;
+      onboardTip.removeAttribute("hidden");
+    }, 600);
+  }
+  onboardDismissBtn?.addEventListener("click", ()=>{
+    dismissOnboardTip(true);
+  });
+  recordBtn?.addEventListener("click", ()=> dismissOnboardTip(true));
+  uploadFab?.addEventListener("click", ()=> dismissOnboardTip(true));
+}
+function initHelpOverlay(){
+  if (!helpBtn || !helpOverlay) return;
+  const open = ()=>{
+    try{ localStorage.setItem(HELP_KEY, "1"); }catch{}
+    dismissOnboardTip(true);
+    helpOverlay.removeAttribute("hidden");
+    helpBtn.setAttribute("aria-expanded", "true");
+    document.body.classList.add("help-open");
+    requestAnimationFrame(()=>{ helpCloseBtn?.focus?.(); });
+  };
+  const close = ()=>{
+    helpOverlay.setAttribute("hidden","");
+    helpBtn.setAttribute("aria-expanded", "false");
+    document.body.classList.remove("help-open");
+    helpBtn.focus?.();
+  };
+
+  helpBtn.addEventListener("click", (e)=>{
+    e.stopPropagation();
+    const isOpen = !helpOverlay.hasAttribute("hidden");
+    if (isOpen) close(); else open();
+  });
+  helpCloseBtn?.addEventListener("click", ()=> close());
+  helpOverlay.addEventListener("click", (e)=>{
+    if (e.target === helpOverlay) close();
+  });
+  document.addEventListener("keydown", (e)=>{
+    if (e.key === "Escape" && !helpOverlay.hasAttribute("hidden")){
+      close();
+    }
+  });
+}
 
 // ===== 版本資訊（build 與日期） =====
 (async function fillBuildMeta(){
@@ -294,6 +395,7 @@ fileInput?.addEventListener("change", async (e)=>{
   if (busy) return;
   try{
     const f = e.target.files?.[0]; if(!f) return;
+    dismissOnboardTip(true);
     resetMeter();
     await handleFileOrBlob(f);
     e.target.value = "";
@@ -313,6 +415,7 @@ function pickSupportedMime(){
 async function startRecording(){
   if (typeof MediaRecorder === "undefined"){ setStatus("此瀏覽器不支援錄音，請改用右側上傳", false); return; }
   const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+  dismissOnboardTip(true);
   chunks = [];
   const mimeType = pickSupportedMime();
   mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
@@ -805,6 +908,8 @@ function startPitchStream(userMediaStream){
     psSrc = psCtx.createMediaStreamSource(userMediaStream);
     psProc = psCtx.createScriptProcessor(2048, 1, 1);
 
+    setRealtimePanelsActive(true);
+
     let lastTick = 0;
     psProc.onaudioprocess = (ev)=>{
       const input = ev.inputBuffer.getChannelData(0);
@@ -829,7 +934,7 @@ function startPitchStream(userMediaStream){
     };
 
     psSrc.connect(psProc); psProc.connect(psCtx.destination);
-    psRunning = true; pitchWrap.hidden = false;
+    psRunning = true;
     startDrawLoop();
   }catch(e){ console.error("[startPitchStream]", e); }
 }
@@ -840,7 +945,6 @@ function updateRealtimeMonitor(features){
     if (!features){
       return;
     }
-    formantWrap.hidden = false;
     const { f1, f2, f3, breathiness, tilt, energy } = features;
     if (f1NowEl) f1NowEl.textContent = Number.isFinite(f1) ? `${Math.round(f1)} Hz` : "— Hz";
     if (f2NowEl) f2NowEl.textContent = Number.isFinite(f2) ? `${Math.round(f2)} Hz` : "— Hz";
@@ -878,6 +982,7 @@ function stopPitchStream(){
     psCtx?.close();
   }catch{} finally{
     psProc=null; psSrc=null; psCtx=null;
+    setRealtimePanelsActive(false);
   }
 }
 function detectPitchACF(input, sr){
