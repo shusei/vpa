@@ -592,7 +592,7 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
 
 // ===== 播放器與統計卡容器 =====
 function ensurePlayerUI(){
-  const container = document.querySelector(".container");
+  const container = document.querySelector("main.container");
   if (!container) return;
   if (document.getElementById("playBtn")) return;
 
