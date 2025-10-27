@@ -53,13 +53,11 @@ function migrateLegacyTheme(){
   try{
     const old = localStorage.getItem(LEGACY_KEY);
     if (!old) return;
-    const f = THEME_FACTION[old] || getSystemFaction();
     setSavedLast(old);
     localStorage.removeItem(LEGACY_KEY);
   }catch{}
 }
 
-// 設定目前模式與派系（以 data- 屬性呈現）
 function applyMode(mode){
   const m = (mode==="light"||mode==="dark"||mode==="auto") ? mode : "auto";
   setSavedMode(m);
@@ -284,7 +282,7 @@ function pickSupportedMime(){
   return "";
 }
 async function startRecording(){
-  if (typeof MediaRecorder === "undefined"){ setStatus("此瀏覽器不支援錄音，請改用右下角上傳"); return; }
+  if (typeof MediaRecorder === "undefined"){ setStatus("此瀏覽器不支援錄音，請改用右側上傳", false); return; }
   const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
   chunks = [];
   const mimeType = pickSupportedMime();
@@ -328,6 +326,9 @@ async function handleFileOrBlob(fileOrBlob){
     decoded = await decodeSmartToFloat32(fileOrBlob, TARGET_SR);
     let { float32, sr, durationSec } = decoded;
 
+    // 離線抽樣（供 Statistics / 簡評）。先對原始音檔做一次。
+    offlineExtractStreamMetrics(float32, sr, /*append*/false);
+
     if (durationSec > WARN_LONG_SEC){
       setStatus(`提示：長度 ${fmtSec(durationSec)}，分析可能較久。準備推論…`, true);
       await microYield();
@@ -339,6 +340,8 @@ async function handleFileOrBlob(fileOrBlob){
       const reducedRatio = 1 - (vad.keptSec / durationSec);
       float32 = vad.arr; durationSec = vad.keptSec;
       setStatus(`已去除靜音（約 ${(reducedRatio*100).toFixed(0)}%）→ 有效時長 ${fmtSec(durationSec)}，開始推論…`, true);
+      // 針對「有效語音」再抽樣一次，提升代表性
+      offlineExtractStreamMetrics(float32, sr, /*append*/true);
       await microYield();
     }
 
@@ -348,7 +351,7 @@ async function handleFileOrBlob(fileOrBlob){
       await analyzeStreamed(float32, sr, durationSec, `長度超過 ${MAX_WHOLE_SEC} 秒，自動切換串流分段`);
     }
 
-    // 若這次是錄音流程，有 psHz/psDb 資料，顯示統計卡（含簡評）
+    // 顯示統計（錄音/上傳皆會有）
     finishStreamStats();
   }catch(e){
     console.error("[handleFileOrBlob]", e);
@@ -629,6 +632,7 @@ function ensurePlayerUI(){
   if (!document.getElementById("streamStats")){
     const stats = document.createElement("div");
     stats.id = "streamStats";
+    stats.className = "insight";
     stats.innerHTML = "";
     wrap.insertAdjacentElement("afterend", stats);
   }
@@ -669,38 +673,33 @@ function startHeartbeat(fn){ stopHeartbeat(); heartbeatTimer=setInterval(()=>{ t
 function stopHeartbeat(){ if (heartbeatTimer){ clearInterval(heartbeatTimer); heartbeatTimer=null; } }
 function microYield(){ return new Promise(r=>setTimeout(r,0)); }
 
-// ===== WAV 解析（16-bit PCM） =====
+// ===== WAV 解析（16-bit PCM / float32 支援） =====
 function wavToFloat32(arrayBuffer){
-  const view = new DataView(arrayBuffer);
-  const riff = str(view,0,4), wave = str(view,8,4);
-  if (riff!=="RIFF" || wave!=="WAVE") throw new Error("Not a WAV");
-  let pos=12, fmt={}, dataOffset=-1, dataSize=0;
-  while (pos < view.byteLength){
-    const id = str(view,pos,4); pos+=4;
-    const size = view.getUint32(pos,true); pos+=4;
-    if (id==="fmt "){
-      fmt.audioFormat   = view.getUint16(pos+0,true);
-      fmt.numChannels   = view.getUint16(pos+2,true);
-      fmt.sampleRate    = view.getUint32(pos+4,true);
-      fmt.bitsPerSample = view.getUint16(pos+14,true);
-    } else if (id==="data"){
-      dataOffset=pos; dataSize=size; break;
-    }
-    pos += size;
+  const dv = new DataView(arrayBuffer);
+  function str(o,n){ let s=""; for(let i=0;i<n;i++) s+=String.fromCharCode(dv.getUint8(o+i)); return s; }
+  if(str(0,4)!=="RIFF" || str(8,4)!=="WAVE") throw new Error("Not WAV");
+  let off=12, fmt=null, dataOff=0, dataLen=0;
+  while(off<dv.byteLength){
+    const id=str(off,4); const sz=dv.getUint32(off+4,true); const body=off+8;
+    if(id==="fmt "){
+      fmt={ tag:dv.getUint16(body,true), ch:dv.getUint16(body+2,true), sr:dv.getUint32(body+4,true), bps:dv.getUint16(body+14,true) };
+    } else if(id==="data"){ dataOff=body; dataLen=sz; break; }
+    off += 8+sz;
   }
-  if (dataOffset<0) throw new Error("WAV data not found");
-  if (fmt.audioFormat!==1 || fmt.bitsPerSample!==16) throw new Error("Expect 16-bit PCM");
-  const bytes = fmt.bitsPerSample/8;
-  const frames = dataSize / (bytes * fmt.numChannels);
-  const out = new Float32Array(frames);
-  for (let i=0;i<frames;i++){
-    const off = dataOffset + i*bytes*fmt.numChannels;
-    const s = view.getInt16(off,true);
-    out[i] = s/32768;
+  if(!fmt||!dataOff) throw new Error("Invalid WAV");
+  const totalSamples = dataLen / (fmt.bps/8);
+  const out = new Float32Array(totalSamples / fmt.ch);
+  if(fmt.tag===1 && fmt.bps===16){ // PCM 16
+    let j=0;
+    for(let i=0;i<totalSamples;i+=fmt.ch){ const v=dv.getInt16(dataOff + (i*2), true)/32768; out[j++]=v; }
+  }else if(fmt.tag===3 && fmt.bps===32){ // IEEE float32
+    let j=0;
+    for(let i=0;i<totalSamples;i+=fmt.ch){ const v=dv.getFloat32(dataOff + (i*4), true); out[j++]=v; }
+  }else{
+    throw new Error("Unsupported WAV encoding");
   }
-  return { float32: out, sr: fmt.sampleRate };
+  return { float32: out, sr: fmt.sr };
 }
-function str(v,s,l){ let x=""; for(let i=0;i<l;i++) x+=String.fromCharCode(v.getUint8(s+i)); return x; }
 
 // ===== VAD（只「選段」） =====
 function maybeApplyAdaptiveVAD(float32, sr){
@@ -752,23 +751,17 @@ function percentile(arr, p){
   return a[idx];
 }
 function smoothMask(mask, k=3){
-  // 把長度 < k 的 0 洞補成 1
+  // 把短 0 洞補成 1
   let count=0;
   for (let i=0;i<=mask.length;i++){
     if (i<mask.length && !mask[i]) count++;
-    else {
-      if (count>0 && count<k){ for (let j=i-count; j<i; j++) mask[j]=true; }
-      count=0;
-    }
+    else { if (count>0 && count<k){ for (let j=i-count; j<i; j++) mask[j]=true; } count=0; }
   }
-  // 把長度 < k 的 1 島補成 0
+  // 把短 1 島補成 0
   count=0;
   for (let i=0;i<=mask.length;i++){
     if (i<mask.length && mask[i]) count++;
-    else {
-      if (count>0 && count<k){ for (let j=i-count; j<i; j++) mask[j]=false; }
-      count=0;
-    }
+    else { if (count>0 && count<k){ for (let j=i-count; j<i; j++) mask[j]=false; } count=0; }
   }
 }
 
@@ -919,13 +912,38 @@ function startDrawLoop(){
   draw();
 }
 
+// ===== 離線抽樣（上傳檔用；錄音也會補） =====
+function offlineExtractStreamMetrics(float32, sr, append=false){
+  try{
+    if(!append){ psHz.length=0; psDb.length=0; psVoiced.length=0; }
+    const step = Math.max(1, Math.floor((PS_INTERVAL_MS/1000)*sr));
+    const frame = Math.min(Math.floor(0.08*sr), 8192); // ~80ms ACF 視窗
+    for(let i=0;i+frame<=float32.length; i+=step){
+      const seg = float32.subarray(i, i+frame);
+      const db = 20*Math.log10(Math.max(rms(seg,0,seg.length), 1e-6)) + 100;
+      const hz = detectPitchACF(seg, sr);
+      psDb.push(db);
+      psHz.push(hz ?? null);
+      psVoiced.push(hz!=null);
+    }
+  }catch(e){ console.error("[offlineExtractStreamMetrics]", e); }
+}
+function rms(arr, a, b){ let s=0; for(let i=a;i<b;i++){ const v=arr[i]; s += v*v; } return Math.sqrt(s/Math.max(1,b-a)); }
+
 // ===== 統計卡（停止&分析完成後，含「簡評」與分歧提示） =====
 function finishStreamStats(){
   try{
     const statsEl = document.getElementById("streamStats");
     if (!statsEl) return;
 
-    // 僅對錄音期間的即時資料統計；若是上傳檔而沒有 stream，就不顯示
+    const headerHTML = `
+      <div class="insight-header">
+        <span class="badge">Statistics</span>
+        <div class="tags"></div>
+      </div>
+    `;
+
+    // 僅對有聲點統計；若沒有資料就清空
     const voicedHz = psHz.filter(v => Number.isFinite(v));
     const vols     = psDb.slice();
     if (!voicedHz.length && !vols.length){ statsEl.innerHTML=""; return; }
@@ -946,7 +964,7 @@ function finishStreamStats(){
     // 指標分歧（模型傾向 vs 音高常見區）
     const diverge = isDivergent(pitchStats.med, lastPf, lastPm);
     const divergeBadge = diverge
-      ? `<span class="chip" style="background:rgba(0,0,0,.08);color:inherit">指標分歧</span>`
+      ? `<span class="chip">指標分歧</span>`
       : "";
 
     // 取樣覆蓋率（錄音期間有聲點比例）
@@ -979,9 +997,7 @@ function finishStreamStats(){
       ? `<p class="subline" style="margin:4px 0 0">${voicedHint}</p>`
       : "";
 
-    // ====== 原本 Statistics 卡片 ======
     const statsHTML = `
-      <h3 style="margin:10px 0 8px">Statistics · <small>以有聲點統計；每 50ms 取樣</small></h3>
       <div class="stats-grid">
         <div class="kv"><div class="k">Pitch · Average</div><div class="v">${fmt1(pitchStats.avg)}Hz</div></div>
         <div class="kv"><div class="k">Pitch · Median</div><div class="v">${fmt1(pitchStats.med)}Hz</div></div>
@@ -997,7 +1013,16 @@ function finishStreamStats(){
       <p class="subline" style="margin:8px 0 0">音量波動（σ）：<b>${volSigmaTag}</b>；這些指標是練習回饋，<u>不是性別認定</u>。</p>
     `;
 
-    statsEl.innerHTML = oneLiner + divergeNote + envNote + voicedNote + statsHTML;
+    statsEl.innerHTML = headerHTML + oneLiner + divergeNote + envNote + voicedNote + statsHTML;
+
+    // 標籤列
+    const tags = statsEl.querySelector(".tags");
+    if (tags){
+      tags.innerHTML = `
+        <span class="tag">Pitch band：${band}</span>
+        <span class="tag">環境底噪：約 ${fmt1(envDb)} dB</span>
+      `;
+    }
   }catch(e){ console.error("[finishStreamStats]", e); }
 }
 function bandOf(medHz){
