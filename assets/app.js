@@ -181,7 +181,7 @@ let psRAF=null, psRunning=false;
 let psHz=[], psHzSmooth=[], psDb=[], psVoiced=[]; // 50ms/點
 const PS_INTERVAL_MS = 50;
 const PS_MIN_HZ = 50, PS_MAX_HZ = 450;
-const PS_SMOOTH_BASE_ALPHA = 0.08; // 細微抖動採慢速平滑；統計仍使用原始音高
+const PS_SMOOTH_BASE_ALPHA = 0.08; // 細微抖動採慢速平滑；統計與即時顯示都使用平滑後資料並過濾諧波異常值
 const PS_SMOOTH_FAST_ALPHA = 0.45; // 真實音高跳動時加速追上
 const PS_SMOOTH_FAST_THRESHOLD_SEMITONES = 1.5;
 const PS_SMOOTH_MAX_STEP_SEMITONES = 2.4;
@@ -265,10 +265,49 @@ function pickSupportedMime(){
   try{ if(typeof MediaRecorder!=="undefined" && MediaRecorder.isTypeSupported){ for(const t of cands) if(MediaRecorder.isTypeSupported(t)) return t; } }catch{}
   return "";
 }
+async function requestMicStream(){
+  const base = { audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false } };
+  const fallback = { audio:true };
+  const getUserMedia = navigator?.mediaDevices?.getUserMedia?.bind(navigator.mediaDevices);
+  if (!getUserMedia){ throw new Error("record-unsupported"); }
+  const disableTrackProcessing = async (stream)=>{
+    try{
+      const tracks = stream?.getAudioTracks?.() || [];
+      await Promise.all(tracks.map(async (track)=>{
+        if (!track?.applyConstraints) return;
+        try{
+          await track.applyConstraints({ echoCancellation:false, noiseSuppression:false, autoGainControl:false });
+        }catch(err){ console.warn("[audio track] disable processing failed", err); }
+      }));
+    }catch(err){ console.warn("[audio track] constraints traversal failed", err); }
+  };
+  try{
+    const stream = await getUserMedia(base);
+    await disableTrackProcessing(stream);
+    return stream;
+  }catch(err){
+    console.warn("[getUserMedia] preferred constraints failed", err);
+  }
+  const fallbackStream = await getUserMedia(fallback);
+  await disableTrackProcessing(fallbackStream);
+  return fallbackStream;
+}
+
 async function startRecording(){
   if (typeof MediaRecorder === "undefined"){ setStatus(t("status.recordUnsupported"), false); return; }
   stopPlayback();
-  const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+  let stream;
+  try{
+    stream = await requestMicStream();
+  }catch(err){
+    console.error("[startRecording] getUserMedia failed", err);
+    if (err?.message === "record-unsupported"){
+      setStatus(t("status.recordUnsupported"), false);
+    } else {
+      setStatus(t("status.recordFailed"));
+    }
+    return;
+  }
   dismissOnboardTip(true);
   chunks = [];
   const mimeType = pickSupportedMime();
@@ -872,9 +911,39 @@ function appendPitchSample(rawHz){
   }
 
   const safePrev = Math.min(PS_MAX_HZ, Math.max(PS_MIN_HZ, prev));
-  const safeTarget = Math.min(PS_MAX_HZ, Math.max(PS_MIN_HZ, target));
   const prevLog2 = Math.log2(safePrev);
-  const targetLog2 = Math.log2(safeTarget);
+  const safeTarget = Math.min(PS_MAX_HZ, Math.max(PS_MIN_HZ, target));
+  let targetLog2 = Math.log2(safeTarget);
+  let baseDiffSemitones = Math.abs(targetLog2 - prevLog2) * 12;
+
+  if (Number.isFinite(baseDiffSemitones) && baseDiffSemitones > 3){
+    let bestHz = safeTarget;
+    let bestDiff = baseDiffSemitones;
+    const multipliers = [2, 3, 4];
+    for (const m of multipliers){
+      const up = safeTarget * m;
+      if (up <= PS_MAX_HZ){
+        const diff = Math.abs(Math.log2(up) - prevLog2) * 12;
+        if (diff < bestDiff){
+          bestDiff = diff;
+          bestHz = up;
+        }
+      }
+      const down = safeTarget / m;
+      if (down >= PS_MIN_HZ){
+        const diff = Math.abs(Math.log2(down) - prevLog2) * 12;
+        if (diff < bestDiff){
+          bestDiff = diff;
+          bestHz = down;
+        }
+      }
+    }
+    if (bestHz !== safeTarget && bestDiff <= baseDiffSemitones * 0.6){
+      targetLog2 = Math.log2(bestHz);
+      baseDiffSemitones = bestDiff;
+    }
+  }
+
   const deltaSemitones = Math.abs(targetLog2 - prevLog2) * 12;
   const alpha = deltaSemitones > PS_SMOOTH_FAST_THRESHOLD_SEMITONES
     ? PS_SMOOTH_FAST_ALPHA
@@ -926,14 +995,17 @@ function startPitchStream(userMediaStream){
       if (now - lastTick >= PS_INTERVAL_MS){
         psDb.push(db);
         appendPitchSample(hz ?? null);
+        const displayHz = psHzSmooth.length ? psHzSmooth[psHzSmooth.length-1] : (hz ?? null);
         psVoiced.push(hz!=null);
         const maxN = Math.round(15000 / PS_INTERVAL_MS); // 保留約 15 秒
         if (psDb.length>maxN){ psDb.shift(); psHz.shift(); psHzSmooth.shift(); psVoiced.shift(); }
         lastTick = now;
 
-        if (pitchNowEl) pitchNowEl.textContent = hz ? `${hz.toFixed(1)}Hz` : "— Hz";
+        if (pitchNowEl){
+          pitchNowEl.textContent = Number.isFinite(displayHz) ? `${displayHz.toFixed(1)}Hz` : "— Hz";
+        }
         if (volNowEl)   volNowEl.textContent   = `${db.toFixed(1)} dB`;
-        if (bandNowEl)  bandNowEl.textContent  = bandLabel(hz);
+        if (bandNowEl)  bandNowEl.textContent  = bandLabel(displayHz);
         updateRealtimeMonitor(spectral);
       }
     };
@@ -1208,10 +1280,12 @@ function finishStreamStats(){
     `;
 
     // 僅對有聲點統計；若沒有資料就清空
-    const voicedHz = psHz.filter(v => Number.isFinite(v));
+    const voicedHzRaw = psHzSmooth.filter(v => Number.isFinite(v));
     const vols     = psDb.slice();
-    if (!voicedHz.length && !vols.length){ statsEl.innerHTML=""; return; }
+    if (!voicedHzRaw.length && !vols.length){ statsEl.innerHTML=""; return; }
 
+    const stableVoicedHz = filterPitchForStats(voicedHzRaw);
+    const voicedHz = stableVoicedHz.length ? stableVoicedHz : voicedHzRaw;
     const pitchStats = makeStats(voicedHz);
     const volStats   = makeStats(vols);
     const volsSorted = vols.slice().sort((a,b)=>a-b);
@@ -1970,6 +2044,24 @@ function isDivergent(medHz, pf, pm){
   return false;
 }
 function fmt1(x){ return Number.isFinite(x) ? (Math.round(x*10)/10).toFixed(1) : "—"; }
+function filterPitchForStats(samples){
+  if (!Array.isArray(samples)) return [];
+  const finite = samples.filter(Number.isFinite);
+  if (finite.length < 3) return finite.slice();
+
+  const logVals = finite.map((v)=>Math.log2(Math.max(v, PS_MIN_HZ)));
+  const sortedLog = logVals.slice().sort((a,b)=>a-b);
+  const medianLog = percentileSorted(sortedLog, 50);
+  const diffSemitones = logVals.map((v)=>Math.abs(v - medianLog) * 12);
+  const sortedDiffs = diffSemitones.slice().sort((a,b)=>a-b);
+  const mad = percentileSorted(sortedDiffs, 50);
+  const tolerance = Math.max(0.5, (mad || 0) * 3);
+  const filtered = finite.filter((_, idx)=> diffSemitones[idx] <= tolerance);
+
+  const minKeep = Math.max(3, Math.ceil(finite.length * 0.6));
+  if (filtered.length < minKeep) return finite;
+  return filtered;
+}
 function makeStats(arr){
   if (!arr.length) return { avg:NaN, med:NaN, p95:NaN, p05:NaN, sd:NaN };
   const mean = arr.reduce((a,b)=>a+b,0)/arr.length;
