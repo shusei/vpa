@@ -8,7 +8,7 @@
 html,body{ height:100%; }
 body{
   margin:0; font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", "Hiragino Sans", "Microsoft JhengHei", Arial, sans-serif;
-  color:#fff; background:#0000;
+  color:var(--text); background:#0000;
 }
 a{ color:var(--link); text-decoration: none; }
 a:hover{ text-decoration: underline; }
@@ -342,7 +342,7 @@ html[data-theme="fuchsia"]{
 
 .hero{ padding:42px 0 20px; }
 .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
-.brand{ display:flex; align-items:center; gap:10px; color:#fff; }
+.brand{ display:flex; align-items:center; gap:10px; color:var(--text); }
 .logo{ font-weight:900; letter-spacing:.6px; font-size:18px; }
 .ver{ font-size:12px; opacity:.85; }
 .actions{ display:flex; align-items:center; gap:10px; }
@@ -356,9 +356,10 @@ html[data-theme="fuchsia"]{
   background: var(--hero-title-bg); -webkit-background-clip:text; background-clip:text;
   color: var(--hero-title-color);
 }
-.sub{ color:#fff; opacity:.92; }
-.chip{ display:inline-block; padding:2px 8px; margin-left:8px; border-radius:999px;
-  background:rgba(255,255,255,.14); color:#fff; font-size:12px; }
+.sub{ color:color-mix(in oklab, var(--text) 88%, var(--muted) 12%); }
+.hero .chip{ display:inline-block; padding:2px 8px; margin-left:8px; border-radius:999px;
+  background:color-mix(in oklab, var(--surface) 30%, var(--accent-2) 70%);
+  color:color-mix(in oklab, var(--text) 80%, var(--ink) 20%); font-size:12px; }
 
 /* ---------- Theme menu（含三切） ---------- */
 .theme-menu{
@@ -446,10 +447,12 @@ body.recording .record-btn .rec{ display:inline; }
 
 .upload-btn{
   display:inline-flex; align-items:center; justify-content:center; padding:14px 18px; min-height:48px;
-  border-radius:14px; background:rgba(255,255,255,.16); color:#fff; border:1px solid rgba(255,255,255,.3);
+  border-radius:14px; background:color-mix(in oklab, var(--surface) 45%, var(--accent-2) 55%);
+  color:color-mix(in oklab, var(--text) 85%, var(--ink) 15%);
+  border:1px solid color-mix(in oklab, var(--panel-border) 70%, var(--accent-1) 30%);
   cursor:pointer; font-weight:700; letter-spacing:.2px;
 }
-.upload-btn:hover{ background:rgba(255,255,255,.22); }
+.upload-btn:hover{ background:color-mix(in oklab, var(--surface) 30%, var(--accent-2) 70%); }
 .upload-btn input{ display:none; }
 
 .status{ margin-top:8px; color:var(--muted); font-size:14px; }
@@ -550,7 +553,7 @@ body.recording .record-btn .rec{ display:inline; }
 .docs-body ol{ margin:6px 0 10px 18px; }
 
 /* ---------- Footer / Misc ---------- */
-.footer{ color:#fff; opacity:.85; padding:30px 0; text-align:center; }
+.footer{ color:color-mix(in oklab, var(--text) 70%, var(--muted) 30%); padding:30px 0; text-align:center; }
 .spinner{
   display:inline-block; width:1em; height:1em; border-radius:50%;
   border:2px solid rgba(255,255,255,.35); border-top-color:#fff; margin-right:.5em;
