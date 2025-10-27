@@ -189,19 +189,31 @@ function initHelpOverlay(){
     const closeBtn = helpOverlay.querySelector(".help-close");
     closeBtn?.focus?.();
   };
-  const open = ()=>{
-    try{ localStorage.setItem(HELP_KEY, "1"); }catch{}
-    dismissOnboardTip(true);
-    helpOverlay.removeAttribute("hidden");
-    helpBtn.setAttribute("aria-expanded", "true");
-    document.body.classList.add("help-open");
-    requestAnimationFrame(()=>{ focusClose(); });
-  };
+  const closeButtons = new WeakSet();
   const close = ()=>{
     helpOverlay.setAttribute("hidden","");
     helpBtn.setAttribute("aria-expanded", "false");
     document.body.classList.remove("help-open");
     helpBtn.focus?.();
+  };
+  const ensureCloseButtons = ()=>{
+    helpOverlay.querySelectorAll(".help-close").forEach((btn)=>{
+      if (closeButtons.has(btn)) return;
+      btn.addEventListener("click", (event)=>{
+        event.preventDefault();
+        close();
+      });
+      closeButtons.add(btn);
+    });
+  };
+  const open = ()=>{
+    try{ localStorage.setItem(HELP_KEY, "1"); }catch{}
+    dismissOnboardTip(true);
+    ensureCloseButtons();
+    helpOverlay.removeAttribute("hidden");
+    helpBtn.setAttribute("aria-expanded", "true");
+    document.body.classList.add("help-open");
+    requestAnimationFrame(()=>{ focusClose(); });
   };
 
   helpBtn.addEventListener("click", (e)=>{
@@ -225,6 +237,13 @@ function initHelpOverlay(){
       close();
     }
   });
+  const dialog = helpOverlay.querySelector(".help-dialog");
+  if (dialog){
+    const observer = new MutationObserver(()=> ensureCloseButtons());
+    observer.observe(dialog, { childList:true });
+  }
+  onLocaleChange(()=> ensureCloseButtons());
+  ensureCloseButtons();
 }
 
 function initLocaleMenu(){
