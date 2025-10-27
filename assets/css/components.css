@@ -260,7 +260,9 @@ body.recording .record-btn .rec{ display:inline; }
   margin-bottom:10px;
 }
 .summary-line strong{ font-weight:900; margin-right:4px; }
-.subline{ color:var(--muted); }
+.subline{
+  color: color-mix(in oklab, var(--text) 75%, var(--muted) 25%);
+}
 
 .chip{
   display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:700;
