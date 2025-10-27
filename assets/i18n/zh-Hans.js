@@ -166,125 +166,126 @@ export default {
   },
   help: {
     dialogHtml: [
-      '<button type="button" id="helpClose" class="help-close" aria-label="关闭使用指南">✕</button>'
-      '<div class="help-hero">'
-      '<h2 id="helpTitle">Voice Presentation Analyzer 使用指南</h2>'
-      '<p class="lead">本工具完全在浏览器端推论，适合自我练习、课堂示范与研究原型。以下整理从录音、即时监控，到每张统计卡的重点与练习方法。</p>'
-      '<div class="help-pill-row">'
-      '<span class="help-pill">🎯 自主练习</span>'
-      '<span class="help-pill">🧠 模型解说</span>'
-      '<span class="help-pill">🎨 介面导览</span>'
-      '<span class="help-pill">📚 教学字典</span>'
-      '</div>'
-      '</div>'
-      '<nav class="help-toc" aria-label="指南目录">'
-      '<span>快速索引：</span>'
-      '<a href="#help-start">快速开始</a>'
-      '<a href="#help-live">录音画面</a>'
-      '<a href="#help-panels">分析面板</a>'
-      '<a href="#help-practice">练习情境</a>'
-      '<a href="#help-glossary">名词解释</a>'
-      '</nav>'
-      '<section id="help-start" class="help-section accent">'
-      '<h3>快速开始</h3>'
-      '<ol>'
-      '<li>确认环境安静、麦克风距离 10–15 公分，维持日常对话音量。</li>'
-      '<li>按下 <strong>🎙️ 开始录音</strong> 说话 5–10 秒，或点右下角 <strong>⬆︎</strong> 上传 mp3 / m4a / mp4 / mov。</li>'
-      '<li><strong>iPhone Safari 上传语音备忘录：</strong>打开“语音备忘录”→ 选择录音 → 点右下角 <em>···</em> 分享 → 选择“储存到文件”，再回到本页从 ⬆︎ 按钮挑选该 m4a。</li>'
-      '<li>录音时画面会显示 Hz Stream（音高走势）与 Formant / Resonance 即时监控；停止后耐心等待状态列完成解码与推论。</li>'
-      '<li>分析完成后可查看倾向仪表、统计卡与一行简评，并回放最新一段音讯。</li>'
-      '</ol>'
-      '<div class="help-why"><strong>为什么要录满 5–10 秒？</strong> 模型与统计需要足够的母音与稳定语音，样本越多，「元音聚焦」或「气声比例」等指标才不会显示 0% 或资料不足。</div>'
-      '</section>'
-      '<section id="help-live" class="help-section">'
-      '<h3>录音时会看到什么？</h3>'
-      '<ul>'
-      '<li><strong>Hz Stream（音高走势）：</strong>以 50 ms 更新 50–450 Hz 音高与瞬时音量，色带标示常见音高区，方便判断语尾是否上扬或落在女性常见带。</li>'
-      '<li><strong>Formant / Resonance 即时监控：</strong>估计 F1–F3、气声比例与胸 / 面罩 / 头腔共鸣分布，横条颜色依序为胸（桃色）、面罩（粉色）、头腔（浅灰蓝）。</li>'
-      '<li><strong>状态列：</strong>显示当前流程（录音中、解析、推论、整理统计等），若遇到长档也会提示串流分段策略。</li>'
-      '</ul>'
-      '<div class="help-why"><strong>为什么横条或曲线会先空白？</strong> 需要至少数百毫秒的有效语音，若开头全是噪音或咳嗽，系统会等待抓到稳定语音后再绘制。</div>'
-      '</section>'
-      '<section id="help-panels" class="help-section">'
-      '<h3>分析面板怎么读？</h3>'
-      '<h4>倾向仪表与统计卡</h4>'
-      '<ul>'
-      '<li><strong>倾向仪表：</strong>显示模型感知的女性化 / 男性化百分比，可搭配录音内容比较不同技巧。</li>'
-      '<li><strong>统计卡：</strong>汇整 Pitch / Volume 百分位数、环境噪音、SNR 与个别练习提醒。</li>'
-      '<li><strong>简评：</strong>整合模型结果与统计指标，指出指标分歧或收音环境问题。</li>'
-      '</ul>'
-      '<h4>Formant 与共鸣卡</h4>'
-      '<ul>'
-      '<li><strong>F1 / F2 / F3：</strong>取录音期间的中位数，对照建议范围可判断母音开口、舌头位置与声音明亮度。</li>'
-      '<li><strong>共鸣横条：</strong>胸 / 面罩 / 头腔三段百分比填满同一条带，代表能量聚焦位置。面罩 + 头腔越稳定，声线越明亮。</li>'
-      '<li><strong>Spectral Tilt：</strong>监控高频能量是否充足，可搭配共鸣横条调整嘴型或支撑。</li>'
-      '</ul>'
-      '<h4>语调与语速卡</h4>'
-      '<ul>'
-      '<li><strong>语调曲线：</strong>粉色折线显示每 120 ms 的音高走势，可判断语尾上扬、平稳或下降。Safari 若未载入，请确认网页无缩放后重新整理。</li>'
-      '<li><strong>语调趋势与音高动态：</strong>汇整曲线斜率与跨距，提示是否需要增加语尾上扬或控制抑扬幅度。</li>'
-      '<li><strong>语速估计与连音比例：</strong>换算音节 / 秒与字数 / 分钟，并显示句子连贯度。</li>'
-      '</ul>'
-      '<h4>元音聚焦与气声卡</h4>'
-      '<p><strong>元音聚焦</strong> 追踪母音落在女性常见音高区的比例，<strong>气声比例</strong> 估计气流外泄程度，<strong>共鸣倾向</strong> 则来自频谱倾斜度。此卡把母音舌位、声带闭合与共鸣亮度放在同一视图。</p>'
-      '<ul>'
-      '<li><strong>聚焦良好：</strong>60% 以上母音落在女性常见区，记下当时的字词与口腔形状。</li>'
-      '<li><strong>可再集中：</strong>约一半达标，可拉长“依——”、“耶——”让舌面前上，再把同样的舌位带回句子。</li>'
-      '<li><strong>需加强：</strong>比例偏低。先练习持续 5 秒的前母音（依、耶、衣衣衣），确认喉咙放松、舌尖贴在下门牙，再回到句子。</li>'
-      '<li><strong>气声比例：</strong>落在 8%–18% 最稳定；过低代表声带贴得很紧，可加一个轻柔的 h 音；过高则做几次“zzz”感受声带闭合。</li>'
-      '</ul>'
-      '<div class="help-why"><strong>为什么常看到 0% 或“需加强”？</strong> 录音不到 5 秒或母音太少时，系统抓不到足够样本。持续拉长前母音 5–10 秒、维持嘴角微笑，再回到句子通常就能提升聚焦比例。</div>'
-      '</section>'
-      '<section id="help-practice" class="help-section">'
-      '<h3>练习情境与暖身</h3>'
-      '<h4>暖身三步骤</h4>'
-      '<ul>'
-      '<li><strong>1. 嗯：</strong>轻哼把震动带到鼻梁，对应共鸣卡的“胸腔偏重”提示。</li>'
-      '<li><strong>2. 依——：</strong>拉长前母音让舌头前放，提升元音聚焦指标。</li>'
-      '<li><strong>3. 呼：</strong>慢慢吐气放松喉头，稳定气声比例与频谱倾斜度。</li>'
-      '</ul>'
-      '<h4>常见提示对应的练习</h4>'
-      '<ul>'
-      '<li><strong>声音偏厚：</strong>哼“嗯”→ 嘴角微笑→ 接句子，想像声音从牙齿前方推出。</li>'
-      '<li><strong>声音太尖：</strong>先吐一个慢速“呼”，嘴型转成圆的“喔”，让气息平稳前送。</li>'
-      '<li><strong>需要更多气声：</strong>在母音前加轻柔的 h，肩膀放松；若气声过多，就做几次“zzz”建立声带闭合感。</li>'
-      '</ul>'
-      '<h4>实际使用情境</h4>'
-      '<ul>'
-      '<li><strong>第一次练习：</strong>先录短句确认设备，再延长到 15–20 秒获得稳定统计。</li>'
-      '<li><strong>比较技巧：</strong>连续录多次，记下统计卡与仪表差异，观察音高、共鸣与气声变化。</li>'
-      '<li><strong>汇入旧档：</strong>右下角 ⬆︎ 支援 mp3 / m4a / mp4 / mov；影片仅取音轨，必要时自动切换 ffmpeg.wasm。</li>'
-      '<li><strong>主题与环境：</strong>齿轮可切换主题并记住偏好；若背景噪音偏高，统计卡会提醒降低噪音或靠近麦克风。</li>'
-      '</ul>'
-      '<div class="help-why"><strong>把练习写下来</strong>：每次录音都记录“先做了哪些动作”与“指标怎么变”，下一次就能快速复制成功的流程。</div>'
-      '</section>'
-      '<section id="help-glossary" class="help-section accent">'
-      '<h3>名词解释</h3>'
-      '<div class="term-grid">'
-      '<div class="term-card"><h4>Formant（共振峰）</h4><p>声道不同腔室产生的共鸣频率，F1 代表口腔开口大小，F2 代表舌头前后位置，F3 与声音明亮度相关。</p></div>'
-      '<div class="term-card"><h4>Resonance（共鸣）</h4><p>胸、面罩、头腔的能量分布。更多面罩与头腔会让声音更明亮；胸腔占比高则声音厚实。</p></div>'
-      '<div class="term-card"><h4>Vowel Focus（元音聚焦）</h4><p>统计母音是否落在女性常见音高区。聚焦越高，代表舌面前上、母音更集中。</p></div>'
-      '<div class="term-card"><h4>Breathiness（气声）</h4><p>估计气流外泄的比例。适度气声让声音柔和，过多会失去支撑，过少会变得紧。</p></div>'
-      '<div class="term-card"><h4>Spectral Tilt（频谱倾斜度）</h4><p>比较高频与低频能量，用来判断声音是偏暖还是明亮。</p></div>'
-      '<div class="term-card"><h4>Speech Rate（语速）</h4><p>换算为音节 / 秒与字数 / 分钟，帮助对照教材或演讲节奏。</p></div>'
-      '<div class="term-card"><h4>Liaison Ratio（连音比例）</h4><p>有声段之间是否顺畅连接，太低代表句子被切得太碎。</p></div>'
-      '<div class="term-card"><h4>SNR（讯噪比）</h4><p>语音与背景噪音的差距。SNR 越高，收音越干净、分析越稳定。</p></div>'
-      '</div>'
-      '<h4>来源、伦理与安全</h4>'
-      '<ul>'
-      '<li><strong>来源：</strong>指标整理自语言治疗共鸣训练、跨性别声音教材与社群经验，专注在可重复的身体感觉。</li>'
-      '<li><strong>伦理：</strong>倾向分数代表模型对声音表现的判断，<u>不是</u>性别认同或医疗诊断。</li>'
-      '<li><strong>安全：</strong>维持舒适音量与自然呼吸，若喉咙疼痛、沙哑或疲劳请休息并寻求专业协助。</li>'
-      '</ul>'
-      '</section>'
-      '<div class="help-support">'
-      '<p class="help-support-note">觉得 VPA 有帮助吗？欢迎请作者喝杯咖啡，让项目能够持续维护与改进。</p>'
-      '<a class="help-support-link" href="https://buymeacoffee.com/shusei" target="_blank" rel="noopener">'
-      '<img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy" />'
-      '</a>'
-      '</div>'
-      '<p class="help-footer">若需要重置偏好，可清除浏览器的网站数据；模型与音讯皆不会离开设备。所有界面文字皆以尊重与包容为原则，若发现需要调整的地方，欢迎回报。</p>'
-    ].join(""),
+      '<div class="help-close-affix">',
+      '<button type="button" id="helpClose" class="help-close" aria-label="关闭使用指南">✕</button>',
+      '</div>',
+      '<div class="help-hero">',
+      '<h2 id="helpTitle">Voice Presentation Analyzer 使用指南</h2>',
+      '<p class="lead">本工具完全在浏览器端推论，适合自我练习、课堂示范与研究原型。以下整理从录音、即时监控，到每张统计卡的重点与练习方法。</p>',
+      '<div class="help-pill-row">',
+      '<span class="help-pill">🎯 自主练习</span>',
+      '<span class="help-pill">🧠 模型解说</span>',
+      '<span class="help-pill">🎨 介面导览</span>',
+      '<span class="help-pill">📚 教学字典</span>',
+      '</div>',
+      '</div>',
+      '<nav class="help-toc" aria-label="指南目录">',
+      '<span>快速索引：</span>',
+      '<a href="#help-start">快速开始</a>',
+      '<a href="#help-live">录音画面</a>',
+      '<a href="#help-panels">分析面板</a>',
+      '<a href="#help-practice">练习情境</a>',
+      '<a href="#help-glossary">名词解释</a>',
+      '</nav>',
+      '<section id="help-start" class="help-section accent">',
+      '<h3>快速开始</h3>',
+      '<ol>',
+      '<li>确认环境安静、麦克风距离 10–15 公分，维持日常对话音量。</li>',
+      '<li>按下 <strong>🎙️ 开始录音</strong> 说话 5–10 秒，或点右下角 <strong>⬆︎</strong> 上传 mp3 / m4a / mp4 / mov。</li>',
+      '<li><strong>iPhone Safari 上传语音备忘录：</strong>打开“语音备忘录”→ 选择录音 → 点右下角 <em>···</em> 分享 → 选择“储存到文件”，再回到本页从 ⬆︎ 按钮挑选该 m4a。</li>',
+      '<li>录音时画面会显示 Hz Stream（音高走势）与 Formant / Resonance 即时监控；停止后耐心等待状态列完成解码与推论。</li>',
+      '<li>分析完成后可查看倾向仪表、统计卡与一行简评，并回放最新一段音讯。</li>',
+      '</ol>',
+      '<div class="help-why"><strong>为什么要录满 5–10 秒？</strong> 模型与统计需要足够的母音与稳定语音，样本越多，「元音聚焦」或「气声比例」等指标才不会显示 0% 或资料不足。</div>',
+      '</section>',
+      '<section id="help-live" class="help-section">',
+      '<h3>录音时会看到什么？</h3>',
+      '<ul>',
+      '<li><strong>Hz Stream（音高走势）：</strong>以 50 ms 更新 50–450 Hz 音高与瞬时音量，色带标示常见音高区，方便判断语尾是否上扬或落在女性常见带。</li>',
+      '<li><strong>Formant / Resonance 即时监控：</strong>估计 F1–F3、气声比例与胸 / 面罩 / 头腔共鸣分布，横条颜色依序为胸（桃色）、面罩（粉色）、头腔（浅灰蓝）。</li>',
+      '<li><strong>状态列：</strong>显示当前流程（录音中、解析、推论、整理统计等），若遇到长档也会提示串流分段策略。</li>',
+      '</ul>',
+      '<div class="help-why"><strong>为什么横条或曲线会先空白？</strong> 需要至少数百毫秒的有效语音，若开头全是噪音或咳嗽，系统会等待抓到稳定语音后再绘制。</div>',
+      '</section>',
+      '<section id="help-panels" class="help-section">',
+      '<h3>分析面板怎么读？</h3>',
+      '<h4>倾向仪表与统计卡</h4>',
+      '<ul>',
+      '<li><strong>倾向仪表：</strong>显示模型感知的女性化 / 男性化百分比，可搭配录音内容比较不同技巧。</li>',
+      '<li><strong>统计卡：</strong>汇整 Pitch / Volume 百分位数、环境噪音、SNR 与个别练习提醒。</li>',
+      '<li><strong>简评：</strong>整合模型结果与统计指标，指出指标分歧或收音环境问题。</li>',
+      '</ul>',
+      '<h4>Formant 与共鸣卡</h4>',
+      '<ul>',
+      '<li><strong>F1 / F2 / F3：</strong>取录音期间的中位数，对照建议范围可判断母音开口、舌头位置与声音明亮度。</li>',
+      '<li><strong>共鸣横条：</strong>胸 / 面罩 / 头腔三段百分比填满同一条带，代表能量聚焦位置。面罩 + 头腔越稳定，声线越明亮。</li>',
+      '<li><strong>Spectral Tilt：</strong>监控高频能量是否充足，可搭配共鸣横条调整嘴型或支撑。</li>',
+      '</ul>',
+      '<h4>语调与语速卡</h4>',
+      '<ul>',
+      '<li><strong>语调曲线：</strong>粉色折线显示每 120 ms 的音高走势，可判断语尾上扬、平稳或下降。Safari 若未载入，请确认网页无缩放后重新整理。</li>',
+      '<li><strong>语调趋势与音高动态：</strong>汇整曲线斜率与跨距，提示是否需要增加语尾上扬或控制抑扬幅度。</li>',
+      '<li><strong>语速估计与连音比例：</strong>换算音节 / 秒与字数 / 分钟，并显示句子连贯度。</li>',
+      '</ul>',
+      '<h4>元音聚焦与气声卡</h4>',
+      '<p><strong>元音聚焦</strong> 追踪母音落在女性常见音高区的比例，<strong>气声比例</strong> 估计气流外泄程度，<strong>共鸣倾向</strong> 则来自频谱倾斜度。此卡把母音舌位、声带闭合与共鸣亮度放在同一视图。</p>',
+      '<ul>',
+      '<li><strong>聚焦良好：</strong>60% 以上母音落在女性常见区，记下当时的字词与口腔形状。</li>',
+      '<li><strong>可再集中：</strong>约一半达标，可拉长“依——”、“耶——”让舌面前上，再把同样的舌位带回句子。</li>',
+      '<li><strong>需加强：</strong>比例偏低。先练习持续 5 秒的前母音（依、耶、衣衣衣），确认喉咙放松、舌尖贴在下门牙，再回到句子。</li>',
+      '<li><strong>气声比例：</strong>落在 8%–18% 最稳定；过低代表声带贴得很紧，可加一个轻柔的 h 音；过高则做几次“zzz”感受声带闭合。</li>',
+      '</ul>',
+      '<div class="help-why"><strong>为什么常看到 0% 或“需加强”？</strong> 录音不到 5 秒或母音太少时，系统抓不到足够样本。持续拉长前母音 5–10 秒、维持嘴角微笑，再回到句子通常就能提升聚焦比例。</div>',
+      '</section>',
+      '<section id="help-practice" class="help-section">',
+      '<h3>练习情境与暖身</h3>',
+      '<h4>暖身三步骤</h4>',
+      '<ul>',
+      '<li><strong>1. 嗯：</strong>轻哼把震动带到鼻梁，对应共鸣卡的“胸腔偏重”提示。</li>',
+      '<li><strong>2. 依——：</strong>拉长前母音让舌头前放，提升元音聚焦指标。</li>',
+      '<li><strong>3. 呼：</strong>慢慢吐气放松喉头，稳定气声比例与频谱倾斜度。</li>',
+      '</ul>',
+      '<h4>常见提示对应的练习</h4>',
+      '<ul>',
+      '<li><strong>声音偏厚：</strong>哼“嗯”→ 嘴角微笑→ 接句子，想像声音从牙齿前方推出。</li>',
+      '<li><strong>声音太尖：</strong>先吐一个慢速“呼”，嘴型转成圆的“喔”，让气息平稳前送。</li>',
+      '<li><strong>需要更多气声：</strong>在母音前加轻柔的 h，肩膀放松；若气声过多，就做几次“zzz”建立声带闭合感。</li>',
+      '</ul>',
+      '<h4>实际使用情境</h4>',
+      '<ul>',
+      '<li><strong>第一次练习：</strong>先录短句确认设备，再延长到 15–20 秒获得稳定统计。</li>',
+      '<li><strong>比较技巧：</strong>连续录多次，记下统计卡与仪表差异，观察音高、共鸣与气声变化。</li>',
+      '<li><strong>汇入旧档：</strong>右下角 ⬆︎ 支援 mp3 / m4a / mp4 / mov；影片仅取音轨，必要时自动切换 ffmpeg.wasm。</li>',
+      '<li><strong>主题与环境：</strong>齿轮可切换主题并记住偏好；若背景噪音偏高，统计卡会提醒降低噪音或靠近麦克风。</li>',
+      '</ul>',
+      '<div class="help-why"><strong>把练习写下来</strong>：每次录音都记录“先做了哪些动作”与“指标怎么变”，下一次就能快速复制成功的流程。</div>',
+      '</section>',
+      '<section id="help-glossary" class="help-section accent">',
+      '<h3>名词解释</h3>',
+      '<div class="term-grid">',
+      '<div class="term-card"><h4>Formant（共振峰）</h4><p>声道不同腔室产生的共鸣频率，F1 代表口腔开口大小，F2 代表舌头前后位置，F3 与声音明亮度相关。</p></div>',
+      '<div class="term-card"><h4>Resonance（共鸣）</h4><p>胸、面罩、头腔的能量分布。更多面罩与头腔会让声音更明亮；胸腔占比高则声音厚实。</p></div>',
+      '<div class="term-card"><h4>Vowel Focus（元音聚焦）</h4><p>统计母音是否落在女性常见音高区。聚焦越高，代表舌面前上、母音更集中。</p></div>',
+      '<div class="term-card"><h4>Breathiness（气声）</h4><p>估计气流外泄的比例。适度气声让声音柔和，过多会失去支撑，过少会变得紧。</p></div>',
+      '<div class="term-card"><h4>Spectral Tilt（频谱倾斜度）</h4><p>比较高频与低频能量，用来判断声音是偏暖还是明亮。</p></div>',
+      '<div class="term-card"><h4>Speech Rate（语速）</h4><p>换算为音节 / 秒与字数 / 分钟，帮助对照教材或演讲节奏。</p></div>',
+      '<div class="term-card"><h4>Liaison Ratio（连音比例）</h4><p>有声段之间是否顺畅连接，太低代表句子被切得太碎。</p></div>',
+      '<div class="term-card"><h4>SNR（讯噪比）</h4><p>语音与背景噪音的差距。SNR 越高，收音越干净、分析越稳定。</p></div>',
+      '</div>',
+      '<h4>来源、伦理与安全</h4>',
+      '<ul>',
+      '<li><strong>来源：</strong>指标整理自语言治疗共鸣训练、跨性别声音教材与社群经验，专注在可重复的身体感觉。</li>',
+      '<li><strong>伦理：</strong>倾向分数代表模型对声音表现的判断，<u>不是</u>性别认同或医疗诊断。</li>',
+      '<li><strong>安全：</strong>维持舒适音量与自然呼吸，若喉咙疼痛、沙哑或疲劳请休息并寻求专业协助。</li>',
+      '</ul>',
+      '</section>',
+      '<div class="help-support">',
+      '<p class="help-support-note">觉得 VPA 有帮助吗？欢迎请作者喝杯咖啡，让项目能够持续维护与改进。</p>',
+      '<a class="help-support-link" href="https://buymeacoffee.com/shusei" target="_blank" rel="noopener">',
+      '<img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy" />',
+      '</a>',
+      '</div>',
+      '<p class="help-footer">若需要重置偏好，可清除浏览器的网站数据；模型与音讯皆不会离开设备。所有界面文字皆以尊重与包容为原则，若发现需要调整的地方，欢迎回报。</p>',    ].join(""),
   },
   footer: {
     note: "Demo only．模型倾向分数仅供自我练习参考",
