@@ -207,9 +207,12 @@ let clf = null, busy = false, heartbeatTimer = null;
 // Pitch Stream 狀態
 let psCtx=null, psSrc=null, psProc=null;
 let psRAF=null, psRunning=false;
-let psHz=[], psDb=[], psVoiced=[];
+let psHz=[], psDb=[], psVoiced=[]; // 50ms/點
 const PS_INTERVAL_MS = 50;
 const PS_MIN_HZ = 50, PS_MAX_HZ = 450;
+
+// 追蹤最新模型傾向（供簡評用）
+let lastPf = 0, lastPm = 0;
 
 // ===== UI 工具 =====
 function setStatus(text, spin=false){
@@ -345,7 +348,7 @@ async function handleFileOrBlob(fileOrBlob){
       await analyzeStreamed(float32, sr, durationSec, `長度超過 ${MAX_WHOLE_SEC} 秒，自動切換串流分段`);
     }
 
-    // 若這次是錄音流程，有 psHz/psDb 資料，顯示統計卡
+    // 若這次是錄音流程，有 psHz/psDb 資料，顯示統計卡（含簡評）
     finishStreamStats();
   }catch(e){
     console.error("[handleFileOrBlob]", e);
@@ -651,12 +654,16 @@ function toMap(arr){
   return m;
 }
 function render(pf, pm){
+  // 儀表
   const barF = document.querySelector(".bar.female");
   const barM = document.querySelector(".bar.male");
   if (barF){ barF.style.setProperty("--p", pf??0); barF.setAttribute("aria-valuenow", Math.round(((pf??0)*100))); }
   if (barM){ barM.style.setProperty("--p", pm??0); barM.setAttribute("aria-valuenow", Math.round(((pm??0)*100))); }
   if (femaleVal) femaleVal.textContent = `${((pf??0)*100).toFixed(1)}%`;
   if (maleVal)   maleVal.textContent   = `${((pm??0)*100).toFixed(1)}%`;
+
+  // 記錄供簡評使用
+  lastPf = pf ?? 0; lastPm = pm ?? 0;
 }
 function startHeartbeat(fn){ stopHeartbeat(); heartbeatTimer=setInterval(()=>{ try{ fn(); }catch{} }, 1000); }
 function stopHeartbeat(){ if (heartbeatTimer){ clearInterval(heartbeatTimer); heartbeatTimer=null; } }
@@ -912,7 +919,7 @@ function startDrawLoop(){
   draw();
 }
 
-// ===== 統計卡（停止&分析完成後） =====
+// ===== 統計卡（停止&分析完成後，含「簡評」與分歧提示） =====
 function finishStreamStats(){
   try{
     const statsEl = document.getElementById("streamStats");
@@ -925,10 +932,56 @@ function finishStreamStats(){
 
     const pitchStats = makeStats(voicedHz);
     const volStats   = makeStats(vols);
-    const envDb      = percentileSorted(vols.slice().sort((a,b)=>a-b), 10);
+    const volsSorted = vols.slice().sort((a,b)=>a-b);
+    const envDb      = percentileSorted(volsSorted, 10); // 10th 近似環境底噪
+    const snr        = Number.isFinite(volStats.med) && Number.isFinite(envDb) ? (volStats.med - envDb) : NaN;
 
-    statsEl.innerHTML = `
-      <h3>Statistics</h3>
+    // ====== 簡評（可一眼看懂）======
+    const band = bandOf(pitchStats.med);                 // 常見音高區（依 Median）
+    const spread = (pitchStats.p95 - pitchStats.p05);    // 變化幅度
+    const stability = (isFinite(spread) ? (spread < 40 ? "穩定" : spread <= 80 ? "中等變化" : "變化較大") : "—");
+    const snrTag = (isFinite(snr) ? (snr >= 20 ? "安靜／很清楚" : snr >= 12 ? "可用／一般" : "偏吵／建議換環境") : "—");
+    const volSigmaTag = (isFinite(volStats.sd) ? (volStats.sd < 6 ? "穩定" : volStats.sd <= 12 ? "中等" : "波動大") : "—");
+
+    // 指標分歧（模型傾向 vs 音高常見區）
+    const diverge = isDivergent(pitchStats.med, lastPf, lastPm);
+    const divergeBadge = diverge
+      ? `<span class="chip" style="background:rgba(0,0,0,.08);color:inherit">指標分歧</span>`
+      : "";
+
+    // 取樣覆蓋率（錄音期間有聲點比例）
+    const voicedRatio = psVoiced.length ? (psVoiced.filter(Boolean).length / psVoiced.length) : NaN;
+    const voicedHint = (!isFinite(voicedRatio) || voicedRatio < 0.25)
+      ? "取樣偏少，建議 5–10 秒連續語句。"
+      : (voicedRatio < 0.5 ? "取樣略少，可再多說一點讓統計更穩。" : "");
+
+    const oneLiner = `
+      <div class="summary-line">
+        <strong>簡評：</strong>
+        模型傾向（多特徵） F ${(lastPf*100).toFixed(1)}% / M ${(lastPm*100).toFixed(1)}% ｜
+        音高（單一特徵）Median ${fmt1(pitchStats.med)} Hz（常見音高區：${band}；${stability}）｜
+        SNR：${isFinite(snr)? fmt1(snr) + " dB" : "—"}（${snrTag}） ${divergeBadge}
+      </div>
+    `;
+
+    const divergeNote = diverge
+      ? `<p class="subline" style="margin:6px 0 0">
+          <b>指標分歧</b>：音高落在 <b>${band}</b>，但模型仍偏向 <b>${lastPf>=lastPm?"女性化":"男性化"}</b>。
+          兩者量測不同面向（模型含共鳴、音色、發音模式等；音高僅看 Hz），屬正常情形。
+        </p>`
+      : "";
+
+    const envNote = isFinite(snr) && snr < 12
+      ? `<p class="subline" style="margin:4px 0 0">環境偏吵（SNR 低於 12 dB），建議更安靜場景或拉近麥克風。</p>`
+      : "";
+
+    const voicedNote = voicedHint
+      ? `<p class="subline" style="margin:4px 0 0">${voicedHint}</p>`
+      : "";
+
+    // ====== 原本 Statistics 卡片 ======
+    const statsHTML = `
+      <h3 style="margin:10px 0 8px">Statistics · <small>以有聲點統計；每 50ms 取樣</small></h3>
       <div class="stats-grid">
         <div class="kv"><div class="k">Pitch · Average</div><div class="v">${fmt1(pitchStats.avg)}Hz</div></div>
         <div class="kv"><div class="k">Pitch · Median</div><div class="v">${fmt1(pitchStats.med)}Hz</div></div>
@@ -941,16 +994,37 @@ function finishStreamStats(){
         <div class="kv"><div class="k">Volume · Low (5th)</div><div class="v">${fmt1(volStats.p05)}dB</div></div>
       </div>
       <div class="kv" style="margin-top:10px"><div class="k">Environment</div><div class="v">${fmt1(envDb)}dB</div></div>
+      <p class="subline" style="margin:8px 0 0">音量波動（σ）：<b>${volSigmaTag}</b>；這些指標是練習回饋，<u>不是性別認定</u>。</p>
     `;
+
+    statsEl.innerHTML = oneLiner + divergeNote + envNote + voicedNote + statsHTML;
   }catch(e){ console.error("[finishStreamStats]", e); }
+}
+function bandOf(medHz){
+  if (!isFinite(medHz)) return "—";
+  if (medHz < 85) return "低域（<85Hz）";
+  if (medHz < 165) return "男性常見區（85–165Hz）";
+  if (medHz < 180) return "重疊帶（中性 165–180Hz）";
+  if (medHz < 310) return "女性常見區（180–310Hz）";
+  if (medHz <= 450) return "高域（>310Hz）";
+  return "超出範圍";
+}
+function isDivergent(medHz, pf, pm){
+  if (!isFinite(medHz)) return false;
+  // 165–180 的重疊帶不算分歧
+  if (medHz >= 165 && medHz < 180) return false;
+  // 音高偏高但模型偏男性；或音高偏低但模型偏女性
+  if ((medHz >= 180 && pm >= 0.60) || (medHz <= 165 && pf >= 0.60)) return true;
+  return false;
 }
 function fmt1(x){ return Number.isFinite(x) ? (Math.round(x*10)/10).toFixed(1) : "—"; }
 function makeStats(arr){
   if (!arr.length) return { avg:NaN, med:NaN, p95:NaN, p05:NaN, sd:NaN };
   const mean = arr.reduce((a,b)=>a+b,0)/arr.length;
-  const med  = percentileSorted(arr.slice().sort((x,y)=>x-y), 50);
-  const p95  = percentileSorted(arr.slice().sort((x,y)=>x-y), 95);
-  const p05  = percentileSorted(arr.slice().sort((x,y)=>x-y), 5);
+  const sorted = arr.slice().sort((x,y)=>x-y);
+  const med  = percentileSorted(sorted, 50);
+  const p95  = percentileSorted(sorted, 95);
+  const p05  = percentileSorted(sorted, 5);
   const sd   = Math.sqrt(arr.reduce((a,v)=> a + (v-mean)*(v-mean), 0) / arr.length);
   return { avg:mean, med, p95, p05, sd };
 }
@@ -960,8 +1034,3 @@ function percentileSorted(sorted, p){
   const i0 = Math.floor(i), i1 = Math.min(sorted.length-1, i0+1), t = i - i0;
   return sorted[i0]*(1-t) + sorted[i1]*t;
 }
-
-// ===== 離站清理 =====
-window.addEventListener("beforeunload", ()=>{
-  if (lastAudioUrl){ try{ URL.revokeObjectURL(lastAudioUrl); }catch{} }
-});
