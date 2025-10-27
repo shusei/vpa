@@ -92,7 +92,7 @@
       </div>
 
       <p class="subline">
-        溫柔提醒：這裡顯示的是「模型對聲音表現的感知傾向」，不是性別認同的結論。請把它當作練習回饋；右上齒輪可切換主題、會記住。
+        溫柔提醒：這裡顯示的是「模型對聲音表現的感知傾向」，不是性別認同的結論。請把它當作練習回饋；右上齒輪可切換主題。
       </p>
 
       <!-- Start -->
@@ -101,6 +101,19 @@
           <span class="idle">● 開始錄音</span>
           <span class="rec">■ 停止錄音</span>
         </button>
+      </section>
+
+      <!-- Pitch Stream（錄音中顯示；最右即時） -->
+      <section id="pitchWrap" class="pitch-wrap" hidden>
+        <div class="pitch-head">
+          <div class="now">
+            <span id="pitchNow">— Hz</span>
+            <span id="bandNow" class="band-tag">—</span>
+          </div>
+          <div class="now"><span id="volNow">— dB</span></div>
+        </div>
+        <canvas id="pitchCanvas" width="900" height="220" aria-label="Pitch stream"></canvas>
+        <div class="pitch-scale">50 ↔︎ 450 Hz</div>
       </section>
 
       <p class="subline mt-10">
