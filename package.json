@@ -1,0 +1,11 @@
+{
+  "name": "vpa",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "npm run test:syntax && npm run test:markup",
+    "test:syntax": "node --check assets/app.js",
+    "test:markup": "node scripts/check-static.js"
+  }
+}

@@ -21,7 +21,8 @@
         <div class="actions">
           <div id="themeTip" class="tip" hidden>齒輪可切換主題（會記住）</div>
 
-          <button id="settingsBtn" class="gear" aria-label="主題設定" aria-expanded="false" title="主題設定">⚙️</button>
+          <button id="helpBtn" class="help-btn" type="button" aria-label="使用指南" aria-haspopup="dialog" aria-controls="helpOverlay" aria-expanded="false" title="使用指南">❓</button>
+          <button id="settingsBtn" class="gear" type="button" aria-label="主題設定" aria-expanded="false" title="主題設定">⚙️</button>
           <div id="themeMenu" class="theme-menu" hidden>
             <div class="mode-tabs" role="tablist">
               <button id="tabAuto"  role="tab" aria-selected="true">Auto</button>
@@ -77,13 +78,21 @@
       </div>
 
       <h1 class="hero-title">Voice Presentation Analyzer</h1>
-      <p class="sub">在瀏覽器本地推論，快速查看傾向（女性化 / 男性化）。<span class="chip">可換主題</span><span class="chip">即時音高 Stream</span><span class="chip">統計＋簡評</span></p>
+      <p class="sub">在瀏覽器本地推論，搭配即時音高與共鳴監控，掌握聲線被模型感知的女性化 / 男性化傾向。<span class="chip">本地推論</span><span class="chip">即時監控</span><span class="chip">統計＋簡評</span><span class="chip">30+ 主題</span></p>
     </div>
   </header>
 
   <main class="container">
     <!-- Start -->
     <section class="start-wrap">
+      <div id="onboardTip" class="onboard-tip" hidden>
+        <h3>第一次使用？</h3>
+        <p>按下「開始錄音」練習 5–10 秒，或點右下角 ⬆︎ 上傳音檔。錄音時會打開即時 Hz Stream 與共鳴監控。</p>
+        <p>若還不熟悉，可以先點右上角的 <b>❓</b> 查看完整指南。</p>
+        <div class="tip-actions">
+          <button type="button" id="onboardDismiss">知道了</button>
+        </div>
+      </div>
       <button id="recordBtn" class="record-btn" type="button">
         <span class="idle">🎙️ 開始錄音</span>
         <span class="rec">⏹ 停止錄音</span>
@@ -156,18 +165,30 @@
 
     <!-- 播放器會由 JS 動態插入；Statistics / 簡評卡會插在它下面 -->
     <div class="callout">
-      <p>提示：可錄音或上傳 mp3 / m4a / mp4 / mov；分析完成會提供回放、傾向儀表與統計簡評。</p>
+      <p>提示：可錄音或上傳 mp3 / m4a / mp4 / mov。錄音期間會顯示即時 Hz Stream 與共鳴監控，分析完成提供回放、傾向儀表與統計簡評。需要導覽請點右上角 <b>❓</b>。</p>
     </div>
 
     <!-- ===== 舊版完整說明（恢復） ===== -->
     <section class="info">
       <details open>
-        <summary>如何錄比較準？（快速）</summary>
+        <summary>快速開始（第一次使用先看這裡）</summary>
         <ul class="bullets">
-          <li>錄 <b>5–10 秒「說話」</b>（非唱歌），環境安靜、避免背景音與回音。</li>
-          <li>麥克風距離 <b>10–15 cm</b>，平常對話音量與語速。</li>
-          <li>要上傳既有錄音：點右下角 <b>⬆︎</b>（支援 mp3/m4a/mp4/mov）。</li>
-          <li>iPhone 語音備忘錄：先「分享 → 存到檔案 (Files)」，回本頁選「瀏覽」上傳。</li>
+          <li>按下上方的 <b>🎙️ 開始錄音</b>，以平常說話聲調錄 5–10 秒；或點右下角 <b>⬆︎</b> 上傳 mp3 / m4a / mp4 / mov。</li>
+          <li>錄音期間會顯示 <b>Hz Stream</b> 與 <b>Formant / Resonance</b> 即時監控；停止後等候模型分析。</li>
+          <li>完成後可播放剛剛那段、查看女性化 / 男性化儀表、統計卡與一行簡評。</li>
+          <li>第一次用？點右上角的 <b>❓</b> 查看圖解指南，或關閉上方提示泡泡繼續。</li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>介面導覽與即時監控</summary>
+        <ul class="bullets">
+          <li><b>❓ 使用指南：</b>整理快速開始、面板解說與常見錄音情境，支援鍵盤 <kbd>Esc</kbd> 關閉。</li>
+          <li><b>錄音鍵：</b>支援 MediaRecorder 並顯示狀態提示；停止後自動進入解碼與推論流程。</li>
+          <li><b>Hz Stream：</b>僅在錄音期間顯示，追蹤 50–450 Hz 音高與音量；統計會沿用錄音及上傳抽樣。</li>
+          <li><b>Formant / Resonance：</b>同步估計 F1–F3、氣聲比例與共鳴分佈，協助判讀聲音質地。</li>
+          <li><b>統計卡：</b>整合 Pitch / Volume 百分位數、環境噪音、SNR 與傾向簡評，可對照練習成果。</li>
+          <li><b>主題設定：</b>齒輪可切換 Auto / 淺色 / 深色派並記住每派最後一次的主題。</li>
         </ul>
       </details>
 
@@ -198,11 +219,13 @@
       <details>
         <summary>方法簡述（本頁實作）</summary>
         <ul class="bullets">
-          <li><b>推論引擎：</b>Transformers.js + ONNX Runtime；<b>有 WebGPU 就用 GPU</b>，否則回退 WASM。</li>
-          <li><b>前處理（最小化）：</b>立體混單聲道＋<b>16 kHz</b> 重採樣；不去靜音、不調音量。</li>
-          <li><b>長檔策略：</b>≤150 秒整段；更長改「串流分段」並 <b>log-odds 加權</b>聚合。</li>
-          <li><b>可選 VAD（只「選段」）：</b>偵測語音段落以略過長靜音；<u>不動原音</u>。</li>
-          <li><b>隱私：</b>100% 本地推論；音檔不離開裝置。只保留「最新一段」的回放 URL，換檔即釋放。</li>
+          <li><b>推論引擎：</b>Transformers.js + ONNX Runtime；優先 WebGPU，無 GPU 時自動回落至 WASM。</li>
+          <li><b>前處理：</b>立體聲混成單聲道並重採樣至 <b>16 kHz</b>。若 WebAudio 解不動，自動改由 ffmpeg.wasm 轉檔。</li>
+          <li><b>錄音與即時監控：</b>MediaRecorder + WebAudio ScriptProcessor，每 50 ms 抽樣 ACF 音高、音量與頻譜特徵。</li>
+          <li><b>長檔策略：</b>≤150 秒直接整段推論；更長採 12s 窗 / 3s 位移串流，必要時自動降載至 8 / 6 / 4 秒避免 OOM。</li>
+          <li><b>自適應 VAD：</b>長檔偵測靜音，只裁出語音片段再分析；<u>不改變原始音訊</u>。</li>
+          <li><b>聚合與統計：</b>長檔以 log-odds 加權聚合結果；同時保存 Pitch / Volume / Formant / SNR 百分位數供統計卡與簡評。</li>
+          <li><b>隱私與資源管理：</b>推論全在瀏覽器完成，只保留最新一段回放 URL；換檔會釋放快取與 AudioContext。</li>
         </ul>
       </details>
 
@@ -235,6 +258,47 @@
       </details>
     </section>
   </main>
+
+  <div id="helpOverlay" class="help-overlay" hidden tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="help-dialog">
+      <button type="button" id="helpClose" class="help-close" aria-label="關閉使用指南">✕</button>
+      <h2 id="helpTitle">Voice Presentation Analyzer 使用指南</h2>
+      <p>本工具在瀏覽器端完成推論，適合自我練習或教學示範。以下整理常見操作與每個面板的重點。</p>
+
+      <h3>快速開始</h3>
+      <ol>
+        <li>確認環境安靜、麥克風距離 10–15 公分，維持日常對話音量。</li>
+        <li>按下 <strong>🎙️ 開始錄音</strong> 說話 5–10 秒，或點右下角 <strong>⬆︎</strong> 上傳 mp3 / m4a / mp4 / mov。</li>
+        <li>錄音時畫面會顯示 Hz Stream 與 Formant / Resonance；停止後耐心等待狀態列完成解碼與推論。</li>
+        <li>結果會展示傾向儀表、統計卡與一行簡評，並保留最新一段的回放按鈕。</li>
+      </ol>
+
+      <h3>錄音期間會顯示什麼？</h3>
+      <ul>
+        <li><strong>Hz Stream：</strong>50–450 Hz 音高走勢與瞬時音量；色帶標示常見音高區。</li>
+        <li><strong>Formant / Resonance：</strong>每 50 ms 估計 F1–F3、氣聲比例，以及胸 / 面罩 / 頭腔共鳴分佈。</li>
+        <li><strong>狀態列：</strong>提示目前流程（錄音中、解析、推論、整理統計等）。</li>
+      </ul>
+
+      <h3>分析完成之後</h3>
+      <ul>
+        <li><strong>傾向儀表：</strong>顯示模型感知的女性化 / 男性化百分比。</li>
+        <li><strong>統計卡：</strong>彙整 Pitch / Volume 百分位數、環境底噪、SNR 與練習提醒。</li>
+        <li><strong>簡評：</strong>整合模型結果與統計指標，指出指標分歧或環境問題。</li>
+        <li><strong>回放：</strong>保留最新一段音訊供複聽；重新錄音或上傳會釋放舊連結。</li>
+      </ul>
+
+      <h3>常見情境</h3>
+      <ul>
+        <li><strong>第一次練習：</strong>先錄短句確認設備，接著延長到 15–20 秒以獲得更穩定的統計。</li>
+        <li><strong>比較不同技巧：</strong>可連續錄多次，記下統計卡與儀表差異，觀察音高、共鳴與氣聲變化。</li>
+        <li><strong>匯入舊檔：</strong>右下角 ⬆︎ 支援 mp3 / m4a / mp4 / mov；影片檔僅取音軌，失敗會自動改用 ffmpeg.wasm。</li>
+        <li><strong>主題與環境：</strong>齒輪可切換主題並記住偏好；若背景噪音偏高，統計卡會提醒降低噪音或靠近麥克風。</li>
+      </ul>
+
+      <p class="help-footer">若需要重置偏好，可清除瀏覽器的網站資料；模型與音訊皆不會離開裝置。</p>
+    </div>
+  </div>
 
   <!-- 右下角浮動上傳（沿用舊版互動） -->
   <input id="fileInput" type="file" accept="audio/*,audio/mp4,video/mp4,video/quicktime,.m4a,.mp4,.mov" hidden />
