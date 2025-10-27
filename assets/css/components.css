@@ -130,6 +130,27 @@ body.recording .record-btn .rec{ display:inline; }
   filter:none;
 }
 .player .hint{ font-size:12px; color:color-mix(in oklab, var(--ink) 80%, var(--muted) 20%); }
+.player .replay-button{
+  appearance:none;
+  border:0;
+  padding:0;
+  margin:0;
+  background:none;
+  font:inherit;
+  color:color-mix(in oklab, var(--accent-2) 72%, var(--ink) 28%);
+  cursor:pointer;
+  text-decoration:underline;
+  text-decoration-thickness:from-font;
+  text-underline-offset:2px;
+}
+.player .replay-button:hover{
+  text-decoration:underline;
+}
+.player .replay-button:focus-visible{
+  outline:2px solid var(--ring);
+  outline-offset:2px;
+  border-radius:6px;
+}
 
 /* ---------- Meter（傾向儀表） ---------- */
 .meter{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:18px 0; }
