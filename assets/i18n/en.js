@@ -300,6 +300,7 @@ export default {
     replayHintSuffix: "",
     replayHintAria: "Replay the last take",
     ariaPlay: "Play the last take",
+    ariaPause: "Pause playback",
   },
   errors: {
     ffmpegModuleLoadFailed: "Failed to load ffmpeg module: {{message}}",
