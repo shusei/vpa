@@ -190,11 +190,21 @@ function initHelpOverlay(){
     closeBtn?.focus?.();
   };
   const closeButtons = new WeakSet();
+  const topButtons = new WeakSet();
   const close = ()=>{
     helpOverlay.setAttribute("hidden","");
     helpBtn.setAttribute("aria-expanded", "false");
     document.body.classList.remove("help-open");
     helpBtn.focus?.();
+  };
+  const scrollTop = ()=>{
+    const dialog = helpOverlay.querySelector(".help-dialog");
+    if (!dialog) return;
+    if (typeof dialog.scrollTo === "function"){
+      dialog.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      dialog.scrollTop = 0;
+    }
   };
   const ensureCloseButtons = ()=>{
     helpOverlay.querySelectorAll(".help-close").forEach((btn)=>{
@@ -206,10 +216,21 @@ function initHelpOverlay(){
       closeButtons.add(btn);
     });
   };
+  const ensureTopButtons = ()=>{
+    helpOverlay.querySelectorAll(".help-top").forEach((btn)=>{
+      if (topButtons.has(btn)) return;
+      btn.addEventListener("click", (event)=>{
+        event.preventDefault();
+        scrollTop();
+      });
+      topButtons.add(btn);
+    });
+  };
   const open = ()=>{
     try{ localStorage.setItem(HELP_KEY, "1"); }catch{}
     dismissOnboardTip(true);
     ensureCloseButtons();
+    ensureTopButtons();
     helpOverlay.removeAttribute("hidden");
     helpBtn.setAttribute("aria-expanded", "true");
     document.body.classList.add("help-open");
@@ -231,6 +252,11 @@ function initHelpOverlay(){
       e.preventDefault();
       close();
     }
+    const topTrigger = e.target.closest?.(".help-top");
+    if (topTrigger){
+      e.preventDefault();
+      scrollTop();
+    }
   });
   document.addEventListener("keydown", (e)=>{
     if (e.key === "Escape" && !helpOverlay.hasAttribute("hidden")){
@@ -239,11 +265,18 @@ function initHelpOverlay(){
   });
   const dialog = helpOverlay.querySelector(".help-dialog");
   if (dialog){
-    const observer = new MutationObserver(()=> ensureCloseButtons());
+    const observer = new MutationObserver(()=>{
+      ensureCloseButtons();
+      ensureTopButtons();
+    });
     observer.observe(dialog, { childList:true });
   }
-  onLocaleChange(()=> ensureCloseButtons());
+  onLocaleChange(()=>{
+    ensureCloseButtons();
+    ensureTopButtons();
+  });
   ensureCloseButtons();
+  ensureTopButtons();
 }
 
 function initLocaleMenu(){

@@ -166,6 +166,7 @@ export default {
   help: {
     dialogHtml: [
       '<div class="help-close-affix">',
+      '<button type="button" id="helpTop" class="help-top" aria-label="回到頁首">⇧</button>',
       '<button type="button" id="helpClose" class="help-close" aria-label="關閉使用指南">✕</button>',
       '</div>',
       '<div class="help-hero">',
