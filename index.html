@@ -4,18 +4,18 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Voice Presentation Analyzer</title>
-  <meta name="description" content="在瀏覽器本地推論，快速查看聲音被模型感知為女性化／男性化的傾向，並提供即時音高 Stream 與統計簡評。">
+  <meta name="description" content="在瀏覽器本地推論，快速查看聲音被模型感知為女性化／男性化的傾向，並提供即時音高 Stream、統計與簡評。">
   <link rel="stylesheet" href="assets/styles.css" />
 </head>
 <body>
   <div class="bg"></div>
 
+  <!-- Hero / Topbar（新版外觀保留；移除頂部版號，避免與下方版本區重複 ID） -->
   <header class="hero">
     <div class="container">
       <div class="topbar">
         <div class="brand">
           <span class="logo">VPA</span>
-          <span class="ver"><span id="ver">build</span> · <span id="updatedAt">—</span></span>
         </div>
 
         <div class="actions">
@@ -77,20 +77,17 @@
       </div>
 
       <h1 class="hero-title">Voice Presentation Analyzer</h1>
-      <p class="sub">在瀏覽器本地推論，快速查看傾向（女性化 / 男性化）。<span class="chip">可換主題</span><span class="chip">即時音高 Stream</span></p>
+      <p class="sub">在瀏覽器本地推論，快速查看傾向（女性化 / 男性化）。<span class="chip">可換主題</span><span class="chip">即時音高 Stream</span><span class="chip">統計＋簡評</span></p>
     </div>
   </header>
 
   <main class="container">
+    <!-- Start -->
     <section class="start-wrap">
       <button id="recordBtn" class="record-btn" type="button">
         <span class="idle">🎙️ 開始錄音</span>
         <span class="rec">⏹ 停止錄音</span>
       </button>
-      <label class="upload-btn">
-        <input id="fileInput" type="file" accept="audio/*,video/mp4,video/quicktime" hidden />
-        ⬆︎ 上傳檔案
-      </label>
       <div class="status" id="status">準備就緒</div>
     </section>
 
@@ -104,15 +101,15 @@
         <div class="now"><span id="volNow">— dB</span></div>
       </div>
       <canvas id="pitchCanvas" width="900" height="220" aria-label="Pitch stream"></canvas>
-      <div class="pitch-scale">50 ↔︎ 450 Hz（底色帶：灰50–85 / 藍85–165 / 灰165–180 / 粉180–310 / 灰310–450）</div>
+      <div class="pitch-scale">50 ↔︎ 450 Hz（色帶：灰50–85 / 藍85–165 / 灰165–180 / 粉180–310 / 灰310–450）</div>
     </section>
 
     <!-- 播放器會由 JS 動態插入；Statistics / 簡評卡會插在它下面 -->
     <div class="callout">
-      <p>提示：支援錄音或上傳 mp3 / m4a / mp4 / mov；分析完成會提供回放、傾向儀表與統計簡評。</p>
+      <p>提示：可錄音或上傳 mp3 / m4a / mp4 / mov；分析完成會提供回放、傾向儀表與統計簡評。</p>
     </div>
 
-    <!-- 傾向儀表：模型結果（保留原本功能） -->
+    <!-- 傾向儀表：模型結果 -->
     <section id="meter" class="meter hidden" aria-live="polite">
       <div class="bar female" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Female">
         <span class="label">Feminine</span>
@@ -124,39 +121,88 @@
       </div>
     </section>
 
-    <!-- 詳細說明（保留／更新，收摺） -->
-    <details class="docs" open>
-      <summary>說明 / 隱私 / 模型與方法</summary>
-      <div class="docs-body">
-        <h3>特色</h3>
-        <ul>
-          <li><b>隱私</b>：100% 本地推論，音檔不離開裝置。</li>
-          <li><b>即時</b>：錄完立刻分析；支援上傳 mp3 / m4a / mp4 / mov。</li>
-          <li><b>長檔穩定</b>：&gt;150s 自動串流分段（預設 12s / 3s），避免 WASM OOM。</li>
-          <li><b>最小前處理</b>：僅混單聲道 + 16kHz 重採樣；不改內容。</li>
-          <li><b>進度與 ETA</b>：長檔顯示片段進度、百分比、預估剩餘。</li>
-          <li><b>回放與統計</b>：提供「播放剛才的聲音」、音高/音量統計與簡評。</li>
+    <!-- ===== 舊版完整說明（恢復） ===== -->
+    <section class="info">
+      <details open>
+        <summary>如何錄比較準？（快速）</summary>
+        <ul class="bullets">
+          <li>錄 <b>5–10 秒「說話」</b>（非唱歌），環境安靜、避免背景音與回音。</li>
+          <li>麥克風距離 <b>10–15 cm</b>，平常對話音量與語速。</li>
+          <li>要上傳既有錄音：點右下角 <b>⬆︎</b>（支援 mp3/m4a/mp4/mov）。</li>
+          <li>iPhone 語音備忘錄：先「分享 → 存到檔案 (Files)」，回本頁選「瀏覽」上傳。</li>
         </ul>
+      </details>
 
-        <h3>模型與方法</h3>
-        <ul>
-          <li>模型：prithivMLmods/Common-Voice-Gender-Detection-ONNX（Apache-2.0）</li>
-          <li>引擎：@xenova/transformers（Transformers.js，瀏覽器 ONNX / WASM / WebGPU）</li>
-          <li>推論策略：≤150s 整段一次；&gt;150s 串流分段聚合（對數勝算加權）。</li>
-          <li>音高偵測：ACF（50–450Hz）；Stream 區帶：灰/藍/灰/粉/灰。</li>
+      <details>
+        <summary>模型概覽</summary>
+        <div class="kv">
+          <div>名稱：</div>
+          <div><a href="https://huggingface.co/prithivMLmods/Common-Voice-Gender-Detection" target="_blank" rel="noopener">Common-Voice-Gender-Detection</a>（ONNX）</div>
+          <div>架構：</div>
+          <div>Wav2Vec2（<a href="https://arxiv.org/pdf/2006.11477" target="_blank" rel="noopener">Self-Supervised Learning for Speech Recognition</a>）</div>
+          <div>標籤空間：</div><div>二分類（<code>female</code> / <code>male</code>）</div>
+          <div>來源資料：</div><div>Mozilla Common Voice 等語料（以英語朗讀為主）</div>
+          <div>授權：</div><div>Apache-2.0（模型）；本頁程式碼依你的 repo 授權</div>
+          <div>DOI：</div><div><a href="https://doi.org/10.57967/hf/5684" target="_blank" rel="noopener">10.57967/hf/5684</a></div>
+        </div>
+      </details>
+
+      <details>
+        <summary>準確度（開發者報告）</summary>
+        <ul class="bullets" style="margin-top:6px;">
+          <li>整體準確率：<b>98.46%</b>（6545 筆）</li>
+          <li>female：precision <b>0.9705</b>、recall <b>0.9916</b>、F1 <b>0.9809</b>（2622 筆）</li>
+          <li>male：precision <b>0.9943</b>、recall <b>0.9799</b>、F1 <b>0.9870</b>（3923 筆）</li>
         </ul>
+        <p class="subline">說明：上述為作者資料分佈下的離線評估；不同語言、環境、內容（如唱歌）可能與此有落差。</p>
+      </details>
 
-        <h3>用途定位與免責</h3>
-        <p>本工具回饋的是模型對語音表現的傾向（feminine/masculine），不是性別認同，也不是醫療／法律判定。請把它當作自我練習回饋。</p>
+      <details>
+        <summary>方法簡述（本頁實作）</summary>
+        <ul class="bullets">
+          <li><b>推論引擎：</b>Transformers.js + ONNX Runtime；<b>有 WebGPU 就用 GPU</b>，否則回退 WASM。</li>
+          <li><b>前處理（最小化）：</b>立體混單聲道＋<b>16 kHz</b> 重採樣；不去靜音、不調音量。</li>
+          <li><b>長檔策略：</b>≤150 秒整段；更長改「串流分段」並 <b>log-odds 加權</b>聚合。</li>
+          <li><b>可選 VAD（只「選段」）：</b>偵測語音段落以略過長靜音；<u>不動原音</u>。</li>
+          <li><b>隱私：</b>100% 本地推論；音檔不離開裝置。只保留「最新一段」的回放 URL，換檔即釋放。</li>
+        </ul>
+      </details>
 
-        <h3>快速開始</h3>
-        <ol>
-          <li>按「開始錄音」說話 5–10 秒（非唱歌），再按停止；或右側上傳檔案。</li>
-          <li>查看上方儀表與下方 Statistics / 簡評；可「播放剛才的聲音」。</li>
-        </ol>
-      </div>
-    </details>
+      <details>
+        <summary>用途定位與倫理提醒</summary>
+        <ul class="bullets">
+          <li>定位：自我練習回饋、教學示範、資料標註輔助、研究原型。</li>
+          <li>限制：此分數是「模型對聲音表現的傾向」，<b>不是性別認同、醫療或法律判定</b>。</li>
+          <li>請勿：用於歧視、排除、或任何影響權益的自動決策。</li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>版本與授權</summary>
+        <div class="kv">
+          <div>版本：</div><div><code id="ver">build</code></div>
+          <div>更新：</div><div><code id="updatedAt">—</code></div>
+          <div>授權：</div><div>模型 <code>Apache-2.0</code>；網站程式碼依你的 repo 授權</div>
+          <div>原始碼：</div><div><a href="https://github.com/shusei/vpa" target="_blank" rel="noopener">GitHub / vpa</a></div>
+        </div>
+      </details>
+
+      <details>
+        <summary>相容性與效能</summary>
+        <ul class="bullets">
+          <li>瀏覽器：近期 Chrome / Edge / Firefox / Safari；<b>開啟 WebGPU 更快</b>。</li>
+          <li>格式：audio/*、.m4a、.mp3、.wav、.mp4、.mov（影片僅取音軌）。</li>
+          <li>備援：WebAudio 解不動時自動落到 ffmpeg.wasm，轉完即釋放記憶體。</li>
+        </ul>
+      </details>
+    </section>
   </main>
+
+  <!-- 右下角浮動上傳（沿用舊版互動） -->
+  <label class="fab" title="上傳音檔（mp3 / m4a / mp4 / mov）" aria-label="上傳音檔（mp3 / m4a / mp4 / mov）">
+    ⬆︎
+    <input id="fileInput" type="file" accept="audio/*,audio/mp4,video/mp4,video/quicktime,.m4a,.mp4,.mov" hidden />
+  </label>
 
   <footer class="footer">
     <div class="container">
