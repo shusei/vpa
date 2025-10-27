@@ -257,6 +257,7 @@ export default {
     uploadFailed: "Upload processing failed",
     recordProcessingFailed: "Recording processing failed",
     recording: "Recording… tap again to stop",
+    uploadWhileRecording: "Stop recording before uploading a file.",
     processingAudio: "Processing audio…",
     decoding: "Decoding file…",
     warnLong: "Heads-up: duration {{duration}}, this may take a little longer. Preparing inference…",
