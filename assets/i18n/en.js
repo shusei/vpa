@@ -13,6 +13,9 @@ export default {
     localeAria: "Change language",
     localeTitle: "Change language",
     localeMenuAria: "Select language",
+    exportJson: "Export analysis (JSON)",
+    exportJsonAria: "Export the latest analysis as JSON",
+    exportJsonHint: "Download every metric from the most recent run as a JSON file.",
     localeNames: {
       zhHant: "Traditional Chinese (繁體中文)",
       zhHans: "Simplified Chinese (简体中文)",
@@ -345,6 +348,8 @@ export default {
     strategyGpu4: "Acceleration: WebGPU hop=4s",
     strategyCpu4: "Acceleration: CPU hop=4s",
     strategyCpu35: "Acceleration: CPU hop=3.5s",
+    exportUnavailable: "No analysis available to export yet",
+    exportReady: "Downloaded the latest analysis (JSON)",
   },
   time: {
     minutesSeconds: "{{minutes}}m {{seconds}}s",
@@ -399,7 +404,7 @@ export default {
       },
       gentleWarm: {
         label: "Gently warm",
-        hint: "Low end is slightly elevated. Keep the current support and imagine the sound sliding over your front teeth.",
+        hint: "Low end is slightly elevated, adding warmth. If you want extra shimmer, keep the current support and imagine the sound sliding over your front teeth.",
       },
       balanced: { label: "Neutral", hint: "Tilt is even. Log how you’re breathing and shaping vowels so you can revisit this reference." },
       bright: {
@@ -457,11 +462,11 @@ export default {
       insufficient: { label: "Not enough data", hint: "Record more stable vowels to evaluate focus." },
       strong: {
         label: "Well focused",
-        hint: "Over 60% of vowels land in the typical feminine range. Keep the current tongue placement and note the words you used.",
+        hint: "Over 50% of vowels land in the typical feminine range. Keep the current tongue placement and note the words you used.",
       },
       medium: {
         label: "Can tighten further",
-        hint: "About half of the vowels meet the target. Stretch the vowels—hold “ee” or “yay” longer—and keep the tongue forward.",
+        hint: "Roughly 30–50% of vowels meet the target. Stretch the vowels—hold “ee” or “yay” longer—and keep the tongue forward.",
       },
       weak: {
         label: "Needs work",
