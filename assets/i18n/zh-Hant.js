@@ -13,6 +13,9 @@ export default {
     localeAria: "切換語言",
     localeTitle: "切換語言",
     localeMenuAria: "選擇語言",
+    exportJson: "匯出分析（JSON）",
+    exportJsonAria: "匯出分析（JSON）",
+    exportJsonHint: "下載最近一次分析的所有指標為 JSON 檔案。",
     localeNames: {
       zhHant: "繁體中文",
       zhHans: "簡體中文",
@@ -345,6 +348,8 @@ export default {
     strategyGpu4: "提速策略：WebGPU hop=4s",
     strategyCpu4: "提速策略：CPU hop=4s",
     strategyCpu35: "提速策略：CPU hop=3.5s",
+    exportUnavailable: "尚未有分析結果可匯出",
+    exportReady: "已下載最新分析（JSON）",
   },
   time: {
     minutesSeconds: "{{minutes}}分{{seconds}}秒",
@@ -399,7 +404,7 @@ export default {
       },
       gentleWarm: {
         label: "平衡偏暖",
-        hint: "低頻略多。做法：保留現在的支撐，嘴角輕提、想像把聲音從牙齒前方推出。",
+        hint: "低頻略多，已帶點溫暖。如果想再亮些：保留現在的支撐，嘴角輕提、想像把聲音從牙齒前方推出。",
       },
       balanced: { label: "平衡", hint: "頻譜傾斜度均衡。做法：記下現在的呼吸與口形，往後練習可以把它當作標準參考。" },
       bright: {
@@ -457,15 +462,15 @@ export default {
       insufficient: { label: "資料不足", hint: "需要更多穩定母音才能評估聚焦程度。" },
       strong: {
         label: "聚焦良好",
-        hint: "超過 60% 母音落在女性常見區。做法：維持現在的舌位，並記錄下你使用的字詞。",
+        hint: "超過 50% 母音落在女性常見區。做法：維持現在的舌位，並記錄下你使用的字詞。",
       },
       medium: {
         label: "可再集中",
-        hint: "約一半母音達標。做法：把句子改成拉長母音的版本，例如多拖長『衣』或『耶』，讓舌尖保持前放。",
+        hint: "約三到五成母音達標。做法：把句子改成拉長母音的版本，例如多拖長『衣』或『耶』，讓舌尖保持前放。",
       },
       weak: {
         label: "需加強",
-        hint: "聚焦比例低。做法：先練習持續 5 秒的『依——』、『耶——』，再把同樣的舌位帶回句子。",
+        hint: "聚焦比例偏低。做法：先練習持續 5 秒的『依——』、『耶——』，再把同樣的舌位帶回句子。",
       },
     },
     speechRate: {
