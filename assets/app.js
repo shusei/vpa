@@ -102,6 +102,78 @@ ensurePlayerUI();
 let mediaRecorder = null, chunks = [];
 let clf = null, busy = false, heartbeatTimer = null;
 let currentDevice = "wasm";
+let isRecording = false;
+
+let analysisSeq = 0;
+let activeAnalysisToken = 0;
+
+function startAnalysisRun(){
+  analysisSeq += 1;
+  activeAnalysisToken = analysisSeq;
+  busy = true;
+  updateUploadAvailability();
+  updatePlaybackAvailability();
+  updateRecordAvailability();
+  return activeAnalysisToken;
+}
+
+function isAnalysisActive(token){
+  return token === activeAnalysisToken;
+}
+
+function finishAnalysisRun(token){
+  if (!isAnalysisActive(token)) return false;
+  busy = false;
+  updateUploadAvailability();
+  updatePlaybackAvailability();
+  updateRecordAvailability();
+  return true;
+}
+
+function updateUploadAvailability(){
+  const disable = isRecording;
+  if (fileInput){
+    fileInput.disabled = disable;
+  }
+  if (uploadFab){
+    if (disable){
+      uploadFab.setAttribute("disabled", "true");
+      uploadFab.setAttribute("aria-disabled", "true");
+    } else {
+      uploadFab.removeAttribute("disabled");
+      uploadFab.removeAttribute("aria-disabled");
+    }
+  }
+}
+
+function updatePlaybackAvailability(){
+  if (!playBtn) return;
+  const hasSource = !!(audioEl && audioEl.src);
+  const disable = !hasSource || isRecording || busy;
+  if (disable){
+    playBtn.setAttribute("disabled", "true");
+    playBtn.setAttribute("aria-disabled", "true");
+  } else {
+    playBtn.removeAttribute("disabled");
+    playBtn.removeAttribute("aria-disabled");
+  }
+}
+
+function updateRecordAvailability(){
+  if (!recordBtn) return;
+  const disable = busy && !isRecording;
+  if (disable){
+    recordBtn.setAttribute("disabled", "true");
+    recordBtn.setAttribute("aria-disabled", "true");
+  } else {
+    recordBtn.removeAttribute("disabled");
+    recordBtn.removeAttribute("aria-disabled");
+  }
+}
+
+updateUploadAvailability();
+updatePlaybackAvailability();
+updateRecordAvailability();
 
 // Pitch Stream 狀態
 let psCtx=null, psSrc=null, psProc=null;
@@ -155,7 +227,7 @@ let lastPf = 0, lastPm = 0;
 
 // ===== 事件 =====
 recordBtn?.addEventListener("click", async ()=>{
-  if (busy) return;
+  if (busy && !isRecording) return;
   try{
     if (!mediaRecorder || mediaRecorder.state==="inactive"){
       resetMeter();
@@ -166,17 +238,24 @@ recordBtn?.addEventListener("click", async ()=>{
   }catch(err){ console.error("[recordBtn]", err); setStatus(t("status.recordFailed")); }
 });
 fileInput?.addEventListener("change", async (e)=>{
-  if (busy) return;
+  if (isRecording){
+    setStatus(t("status.uploadWhileRecording"));
+    if (e.target) e.target.value = "";
+    return;
+  }
   try{
     const f = e.target.files?.[0]; if(!f) return;
     dismissOnboardTip(true);
     resetMeter();
-    await handleFileOrBlob(f);
+    stopPlayback();
+    await handleFileOrBlob(f, "upload");
     e.target.value = "";
   }catch(err){ console.error("[fileInput]", err); setStatus(t("status.uploadFailed")); }
 });
 
 uploadFab?.addEventListener("click", ()=>{
+  if (isRecording) return;
+  stopPlayback();
   fileInput?.click();
 });
 
@@ -188,6 +267,7 @@ function pickSupportedMime(){
 }
 async function startRecording(){
   if (typeof MediaRecorder === "undefined"){ setStatus(t("status.recordUnsupported"), false); return; }
+  stopPlayback();
   const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
   dismissOnboardTip(true);
   chunks = [];
@@ -199,7 +279,7 @@ async function startRecording(){
       const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
       chunks.length = 0;
       stopPitchStream();                 // 停止即時圖，但保留資料做統計
-      await handleFileOrBlob(blob);      // 分析完成後會呼叫 finishStreamStats()
+      await handleFileOrBlob(blob, "recording");      // 分析完成後會呼叫 finishStreamStats()
     }catch(e){ console.error("[onstop]", e); setStatus(t("status.recordProcessingFailed")); }
     finally{ stream.getTracks().forEach(t=>t.stop()); }
   };
@@ -207,29 +287,59 @@ async function startRecording(){
   document.body.classList.add("recording");
   document.querySelector(".container")?.classList.add("recording");
   setStatus(t("status.recording"));
-  mediaRecorder.start();
+  isRecording = true;
+  updateUploadAvailability();
+  updatePlaybackAvailability();
+  updateRecordAvailability();
+  try {
+    mediaRecorder.start();
+  } catch (err) {
+    isRecording = false;
+    updateUploadAvailability();
+    updatePlaybackAvailability();
+    updateRecordAvailability();
+    document.body.classList.remove("recording");
+    document.querySelector(".container")?.classList.remove("recording");
+    stream.getTracks().forEach(t=>t.stop());
+    throw err;
+  }
 
   // 啟動 Pitch Stream
   startPitchStream(stream);
 }
 async function stopRecording(){
   if (mediaRecorder && mediaRecorder.state!=="inactive"){
+    busy = true;
+    isRecording = false;
+    updateUploadAvailability();
+    updatePlaybackAvailability();
+    updateRecordAvailability();
     setStatus(t("status.processingAudio"), true);
-    mediaRecorder.stop();
+    try {
+      mediaRecorder.stop();
+    } catch (err) {
+      busy = false;
+      updateUploadAvailability();
+      updatePlaybackAvailability();
+      updateRecordAvailability();
+      throw err;
+    }
   }
   document.body.classList.remove("recording");
   document.querySelector(".container")?.classList.remove("recording");
 }
 
 // ===== 主流程 =====
-async function handleFileOrBlob(fileOrBlob){
-  busy = true;
+async function handleFileOrBlob(fileOrBlob, source = "upload"){
+  const token = startAnalysisRun(source);
   let decoded = null;
   try{
     setPlaybackSource(fileOrBlob);
+    updatePlaybackAvailability();
 
     setStatus(t("status.decoding"), true);
     decoded = await decodeSmartToFloat32(fileOrBlob, TARGET_SR);
+    if (!isAnalysisActive(token)) return;
     let { float32, sr, durationSec } = decoded;
 
     // 離線抽樣（供 Statistics / 簡評）。先對原始音檔做一次。
@@ -238,6 +348,7 @@ async function handleFileOrBlob(fileOrBlob){
     if (durationSec > WARN_LONG_SEC){
       setStatus(t("status.warnLong", { duration: fmtSec(durationSec) }), true);
       await microYield();
+      if (!isAnalysisActive(token)) return;
     }
 
     // VAD（只選段）
@@ -249,27 +360,35 @@ async function handleFileOrBlob(fileOrBlob){
       // 針對「有效語音」再抽樣一次，提升代表性
       offlineExtractStreamMetrics(float32, sr, /*append*/true);
       await microYield();
+      if (!isAnalysisActive(token)) return;
     }
 
+    if (!isAnalysisActive(token)) return;
+
     if (durationSec <= MAX_WHOLE_SEC){
-      await analyzeWhole(float32, sr, durationSec);
+      await analyzeWhole(float32, sr, durationSec, token);
     } else {
       await analyzeStreamed(
         float32,
         sr,
         durationSec,
-        t("status.streamingSwitch", { limit: MAX_WHOLE_SEC })
+        t("status.streamingSwitch", { limit: MAX_WHOLE_SEC }),
+        token
       );
     }
 
     // 顯示統計（錄音/上傳皆會有）
+    if (!isAnalysisActive(token)) return;
     finishStreamStats();
   }catch(e){
     console.error("[handleFileOrBlob]", e);
-    setStatus(t("status.errorPrefix", { message: e?.message || t("status.decodeFailure") }));
+    if (isAnalysisActive(token)){
+      setStatus(t("status.errorPrefix", { message: e?.message || t("status.decodeFailure") }));
+    }
   }finally{
     if (decoded) decoded.float32 = null;
-    decoded = null; busy = false;
+    decoded = null;
+    finishAnalysisRun(token);
   }
 }
 
@@ -348,35 +467,46 @@ async function ensurePipeline(){
 }
 
 // ===== 分析（整段） =====
-async function analyzeWhole(float32, sr, durationSec){
+async function analyzeWhole(float32, sr, durationSec, token){
+  if (!isAnalysisActive(token)) return;
   const model = await ensurePipeline();
+  if (!isAnalysisActive(token)) return;
   meter?.classList.remove("hidden");
 
   const started = performance.now();
   startHeartbeat(()=>{
+    if (!isAnalysisActive(token)) return;
     const elapsed=(performance.now()-started)/1000;
     setStatus(t("status.analyzeWhole", { duration: fmtSec(durationSec), elapsed: fmtSec(elapsed) }), true);
   });
 
   try{
     const res = await model(float32, { sampling_rate: sr, topk: 2 });
+    if (!isAnalysisActive(token)) { stopHeartbeat(); return; }
     const map = toMap(res);
     render(map.female||0, map.male||0);
     setStatus(t("status.analyzeWholeDone"));
   }catch(err){
     if (isOOMError(err)){
       console.warn("[analyzeWhole] OOM → switch to streamed mode…");
-      await analyzeStreamed(float32, sr, durationSec, t("status.analyzeWholeOOM"));
+      stopHeartbeat();
+      if (isAnalysisActive(token)){
+        await analyzeStreamed(float32, sr, durationSec, t("status.analyzeWholeOOM"), token);
+      }
       return;
     }
     console.error("[analyzeWhole]", err);
-    setStatus(t("status.analyzeWholeFailed"));
+    if (isAnalysisActive(token)){
+      setStatus(t("status.analyzeWholeFailed"));
+    }
   }finally{ stopHeartbeat(); }
 }
 
 // ===== 分析（串流分段） =====
-async function analyzeStreamed(float32, sr, durationSec, reason = t("status.streamingDefaultReason")){
+async function analyzeStreamed(float32, sr, durationSec, reason = t("status.streamingDefaultReason"), token){
+  if (!isAnalysisActive(token)) return;
   const model = await ensurePipeline();
+  if (!isAnalysisActive(token)) return;
   meter?.classList.remove("hidden");
 
   const strategy = pickStreamStrategy(durationSec);
@@ -386,7 +516,8 @@ async function analyzeStreamed(float32, sr, durationSec, reason = t("status.stre
   let lastErr=null;
   for (const winSec of strategy.wins){
     try{
-      await runStreamedWithWindow(model, float32, sr, durationSec, winSec, strategy.hop, reasonLabel || reason);
+      await runStreamedWithWindow(model, float32, sr, durationSec, winSec, strategy.hop, reasonLabel || reason, token);
+      if (!isAnalysisActive(token)) return;
       return;
     }catch(e){
       lastErr=e;
@@ -395,9 +526,12 @@ async function analyzeStreamed(float32, sr, durationSec, reason = t("status.stre
     }
   }
   console.error("[analyzeStreamed] failed", lastErr);
-  setStatus(t("status.analyzeStreamFailed"));
+  if (isAnalysisActive(token)){
+    setStatus(t("status.analyzeStreamFailed"));
+  }
 }
-async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP_S, reason){
+async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP_S, reason, token){
+  if (!isAnalysisActive(token)) return;
   const win = Math.max(1, Math.floor(WIN_S * sr));
   const hop = Math.max(1, Math.floor(HOP_S * sr));
 
@@ -415,6 +549,7 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
 
   const started = performance.now();
   startHeartbeat(()=>{
+    if (!isAnalysisActive(token)) return;
     const elapsed=(performance.now()-started)/1000;
     const pct = processedSec>0 ? Math.min(99, Math.round((processedSec/durationSec)*100)) : 0;
     setStatus(t("status.analyzeStream", { win: WIN_S, step: HOP_S, reason, progress: pct, elapsed: fmtSec(elapsed) }), true);
@@ -422,12 +557,14 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
 
   try{
     for (let i=0;i<chunks.length;i++){
+      if (!isAnalysisActive(token)) { stopHeartbeat(); return; }
       const [s0,s1] = chunks[i];
       const seg = float32.subarray(s0, s1);
       const dur = (s1 - s0) / sr;
 
       const t0 = performance.now();
       const out = await model(seg, { sampling_rate: sr, topk: 2 });
+      if (!isAnalysisActive(token)) { stopHeartbeat(); return; }
       const dt = performance.now() - t0;
       avgMs = avgMs===0 ? dt : (avgMs*0.65 + dt*0.35);
 
@@ -449,12 +586,15 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
       const pct = Math.round(((i+1)/chunks.length)*100);
       setStatus(t("status.analyzeStreamChunk", { win: WIN_S, current: i+1, total: chunks.length, progress: pct, done: fmtSec(processedSec), totalDuration: fmtSec(durationSec), eta: fmtSec(etaSec) }), true);
       await microYield();
+      if (!isAnalysisActive(token)) { stopHeartbeat(); return; }
     }
     const logitAvg = logitSum / Math.max(wSum, EPS);
     const pf = 1 / (1 + Math.exp(-logitAvg));
     const pm = 1 - pf;
     render(pf, pm);
-    setStatus(t("status.analyzeStreamDone"));
+    if (isAnalysisActive(token)){
+      setStatus(t("status.analyzeStreamDone"));
+    }
   } finally { stopHeartbeat(); }
 }
 
@@ -528,6 +668,7 @@ function ensurePlayerUI(){
 
   playBtn = btn; audioEl = audio; playerHintEl = hint;
   updatePlayerCopy(false);
+  updatePlaybackAvailability();
 
   playBtn.onclick = async ()=>{
     if (!audioEl.src) return;
@@ -551,13 +692,23 @@ function ensurePlayerUI(){
     wrap.insertAdjacentElement("afterend", stats);
   }
 }
+function stopPlayback(){
+  try{
+    if (audioEl && !audioEl.paused){
+      audioEl.pause();
+      audioEl.currentTime = 0;
+    }
+  }catch(e){ console.error("[stopPlayback]", e); }
+  updatePlayerCopy(false);
+}
 function setPlaybackSource(blob){
   try{
     if(!audioEl || !playBtn) return;
     if(lastAudioUrl){ try{ URL.revokeObjectURL(lastAudioUrl);}catch{} }
     lastAudioUrl = URL.createObjectURL(blob);
     audioEl.src = lastAudioUrl; audioEl.load();
-    playBtn.disabled = false; updatePlayerCopy(false);
+    updatePlaybackAvailability();
+    updatePlayerCopy(false);
   }catch(e){ console.error("[setPlaybackSource]", e); }
 }
 
