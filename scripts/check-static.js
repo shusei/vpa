@@ -7,7 +7,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, '..');
 
 const DEFAULT_HTML_FILES = ['index.html'];
-const DEFAULT_CSS_FILES = ['assets/styles.css'];
+const DEFAULT_CSS_FILES = [
+  'assets/css/base.css',
+  'assets/css/layout.css',
+  'assets/css/components.css',
+  'assets/css/overlays.css',
+];
 
 function readSource(relativePath) {
   const filePath = resolve(projectRoot, relativePath);

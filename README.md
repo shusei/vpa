@@ -111,10 +111,10 @@ npm test      # 依序檢查 JS（node --check）與 HTML/CSS 結構配對（自
 若額外新增靜態檔案，可直接把路徑加在 `npm run test:markup -- <path>` 後方：
 
 ```bash
-npm run test:markup -- index.html assets/styles.css docs/landing.html
+npm run test:markup -- index.html assets/css/base.css docs/landing.html
 ```
 
-指令會自動連同預設的 `index.html` 與 `assets/styles.css` 一起檢查；若輸入不支援的副檔名會立即失敗並提示。
+指令會自動連同預設的 `index.html` 與 `assets/css/*.css` 一起檢查；若輸入不支援的副檔名會立即失敗並提示。
 
 若要做進一步的手動驗證，可以於本地啟動任意靜態伺服器（例如 `npx serve .`）並在瀏覽器操作流程。
 
@@ -140,7 +140,16 @@ npm run test:markup -- index.html assets/styles.css docs/landing.html
 .
 ├─ index.html            # UI / 主題設定 / 說明 / 免責 / 統計卡
 ├─ assets/
-│  ├─ styles.css         # 造型（主題色盤、儀表、Pitch Stream、Statistics 卡）
+│  ├─ css/
+│  │  ├─ base.css        # 重置、變數、基礎樣式
+│  │  ├─ layout.css      # 網格配置、導航、面板排版
+│  │  ├─ components.css  # 儀表、統計卡、控制元件
+│  │  └─ overlays.css    # 導覽提示、模態、浮層效果
+│  ├─ js/
+│  │  ├─ constants.js    # 共用常數與旗標
+│  │  ├─ dom.js          # DOM 快取與查找工具
+│  │  ├─ theme.js        # 主題、導覽與偏好儲存
+│  │  └─ ui.js           # UI 輔助函式與互動邏輯
 │  └─ app.js             # 錄音、即時 Pitch Stream、解碼備援、
 │                        #   自適應 VAD、整段推論（≤150s）、長檔串流分段、
 │                        #   對數勝算聚合、統計與簡評、回放、GC、安全釋放、進度心跳
