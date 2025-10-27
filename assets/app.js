@@ -340,6 +340,18 @@ async function loadFFmpegModule(){
       core: "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js",
     },
     {
+      label: "fastly.jsdelivr",
+      esm: "https://fastly.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/+esm",
+      umd: "https://fastly.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js",
+      core: "https://fastly.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js",
+    },
+    {
+      label: "esm.sh/elemecdn",
+      esm: "https://esm.sh/@ffmpeg/ffmpeg@0.12.6?target=es2020",
+      umd: "https://npm.elemecdn.com/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js",
+      core: "https://npm.elemecdn.com/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js",
+    },
+    {
       label: "esm.run/unpkg",
       esm: "https://esm.run/@ffmpeg/ffmpeg@0.12.6",
       umd: "https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js",
