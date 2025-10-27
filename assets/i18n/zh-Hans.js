@@ -299,6 +299,7 @@ export default {
     replayHintSuffix: "。",
     replayHintAria: "重新播放刚才的声音",
     ariaPlay: "播放刚才的声音",
+    ariaPause: "暂停播放",
   },
   errors: {
     ffmpegModuleLoadFailed: "FFmpeg 模组载入失败：{{message}}",
