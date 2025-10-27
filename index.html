@@ -225,7 +225,7 @@
           <li><b>推論引擎：</b>Transformers.js + ONNX Runtime；優先 WebGPU，無 GPU 時自動回落至 WASM。</li>
           <li><b>前處理：</b>立體聲混成單聲道並重採樣至 <b>16 kHz</b>。若 WebAudio 解不動，自動改由 ffmpeg.wasm 轉檔。</li>
           <li><b>錄音與即時監控：</b>MediaRecorder + WebAudio ScriptProcessor，每 50 ms 抽樣 ACF 音高、音量與頻譜特徵。</li>
-          <li><b>長檔策略：</b>≤150 秒直接整段推論；更長採 12s 窗 / 3s 位移串流，必要時自動降載至 8 / 6 / 4 秒避免 OOM。</li>
+          <li><b>長檔策略：</b>≤150 秒直接整段推論；>150 秒依實際推論裝置自動挑選串流視窗與步長（WebGPU：&lt;600 秒 hop 4 秒、視窗 18/12/8/6/4；≥600 秒 hop 6 秒、視窗 24/18/12/8/6/4。WASM：&lt;240 秒 hop 3 秒；240–419 秒 hop 3.5 秒；≥420 秒 hop 4 秒，均保留 12/8/6/4 備援）。</li>
           <li><b>自適應 VAD：</b>長檔偵測靜音，只裁出語音片段再分析；<u>不改變原始音訊</u>。</li>
           <li><b>聚合與統計：</b>長檔以 log-odds 加權聚合結果；同時保存 Pitch / Volume / Formant / SNR 百分位數供統計卡與簡評。</li>
           <li><b>隱私與資源管理：</b>推論全在瀏覽器完成，只保留最新一段回放 URL；換檔會釋放快取與 AudioContext。</li>
