@@ -1083,14 +1083,10 @@ function updateRealtimeMonitor(features){
       ? t("realtime.resonance.tiltValue", { value: fmt1(tilt) })
       : t("realtime.resonance.tiltPlaceholder");
 
-    const total = Math.max(energy?.total || 0, EPS);
-    const chest = Math.max(0, Math.min(1, (energy?.low || 0) / total));
-    const mask  = Math.max(0, Math.min(1, (energy?.mid || 0) / total));
-    const head  = Math.max(0, Math.min(1, (energy?.high || 0) / total));
-    const sum   = Math.max(chest + mask + head, EPS);
-    const chestPct = chest / sum;
-    const maskPct  = mask / sum;
-    const headPct  = head / sum;
+    const pct = desc.pct || normalizeResonanceBands(energy);
+    const chestPct = Math.max(0, Math.min(1, pct?.chest ?? 0));
+    const maskPct  = Math.max(0, Math.min(1, pct?.mask ?? 0));
+    const headPct  = Math.max(0, Math.min(1, pct?.head ?? 0));
 
     if (resBarChest){ resBarChest.style.flexGrow = Math.max(chestPct, 0.001); resBarChest.style.flexBasis = `${(chestPct*100).toFixed(1)}%`; }
     if (resBarMask){ resBarMask.style.flexGrow = Math.max(maskPct, 0.001); resBarMask.style.flexBasis = `${(maskPct*100).toFixed(1)}%`; }
@@ -1450,7 +1446,8 @@ function finishStreamStats(){
         <span class="tag">${summaryString("tags.noise", { noise: fmt1(envDb) })}</span>
       `;
       if (advSummary){
-        if (advSummary.resonanceLabel) tagHTML += `<span class="tag">${summaryString("tags.resonance", { label: advSummary.resonanceLabel })}</span>`;
+        const resonanceTag = advSummary.resonanceDisplay || advSummary.resonanceLabel;
+        if (resonanceTag) tagHTML += `<span class="tag">${summaryString("tags.resonance", { label: resonanceTag })}</span>`;
         if (advSummary.speechRateLabel) tagHTML += `<span class="tag">${summaryString("tags.speechRate", { label: advSummary.speechRateLabel })}</span>`;
         if (advSummary.breathinessLabel) tagHTML += `<span class="tag">${summaryString("tags.breathiness", { label: advSummary.breathinessLabel })}</span>`;
       }
@@ -1481,6 +1478,14 @@ function computeAdvancedSummary(){
   const f1Stats = f1Vals.length ? makeStats(f1Vals) : null;
   const f2Stats = f2Vals.length ? makeStats(f2Vals) : null;
   const f3Stats = f3Vals.length ? makeStats(f3Vals) : null;
+  const formantSummary = summarizeFormantTrends(store, {
+    f1: f1Stats,
+    f2: f2Stats,
+    f3: f3Stats,
+    f1Vals,
+    f2Vals,
+    f3Vals,
+  });
 
   const energyAvg = averageEnergy(store.energy);
   const resonanceDesc = describeResonanceFromEnergy(energyAvg);
@@ -1494,13 +1499,9 @@ function computeAdvancedSummary(){
   const intonation = analyzeIntonation(store.pitch, store.voiced, hopSec);
 
   return {
-    f1Med: f1Stats?.med ?? NaN,
-    f2Med: f2Stats?.med ?? NaN,
-    f3Med: f3Stats?.med ?? NaN,
-    f1Hint: makeFormantHint("F1", f1Stats?.med, 180, 350),
-    f2Hint: makeFormantHint("F2", f2Stats?.med, 1600, 2500),
-    f3Hint: makeFormantHint("F3", f3Stats?.med, 2500, 3200),
+    formants: formantSummary,
     resonanceLabel: resonanceDesc.label,
+    resonanceDisplay: resonanceDesc.display || resonanceDesc.label,
     resonanceHint: resonanceDesc.hint,
     energyPct: resonanceDesc.pct,
     tiltAvg,
@@ -1533,6 +1534,16 @@ function renderAdvancedSummary(summary){
   const chestPct = Math.round((summary.energyPct?.chest ?? 0.33)*100);
   const maskPct  = Math.round((summary.energyPct?.mask ?? 0.33)*100);
   const headPct  = Math.round((summary.energyPct?.head ?? 0.34)*100);
+  const formants = summary.formants || {};
+  const f1Trend = formants.f1 || {};
+  const f2Trend = formants.f2 || {};
+  const f3Trend = formants.f3 || {};
+  const f1Value = f1Trend.display || fmt1(f1Trend.median);
+  const f2Value = f2Trend.display || fmt1(f2Trend.median);
+  const f3Value = f3Trend.display || fmt1(f3Trend.median);
+  const f1Hint = f1Trend.hint || makeFormantHint("F1", NaN, 180, 350);
+  const f2Hint = f2Trend.hint || makeFormantHint("F2", NaN, 1600, 2500);
+  const f3Hint = f3Trend.hint || makeFormantHint("F3", NaN, 2500, 3200);
   const speechRateDisplay = Number.isFinite(summary.speechRate?.syllPerSec)
     ? summaryString("speechRateDisplay", { value: fmt1(summary.speechRate.syllPerSec) })
     : "—";
@@ -1568,9 +1579,9 @@ function renderAdvancedSummary(summary){
     <div class="advanced-section">
       <h3 class="adv-title">${formantTitle}</h3>
       <div class="advanced-grid advanced-grid--four">
-        <div class="adv-card"><div class="k">${formantCards.f1 || t("summary.advanced.formantCards.f1")}</div><div class="v">${fmt1(summary.f1Med)}Hz</div><div class="hint">${summary.f1Hint}</div></div>
-        <div class="adv-card"><div class="k">${formantCards.f2 || t("summary.advanced.formantCards.f2")}</div><div class="v">${fmt1(summary.f2Med)}Hz</div><div class="hint">${summary.f2Hint}</div></div>
-        <div class="adv-card"><div class="k">${formantCards.f3 || t("summary.advanced.formantCards.f3")}</div><div class="v">${fmt1(summary.f3Med)}Hz</div><div class="hint">${summary.f3Hint}</div></div>
+        <div class="adv-card"><div class="k">${formantCards.f1 || t("summary.advanced.formantCards.f1")}</div><div class="v">${f1Value}</div><div class="hint">${f1Hint}</div></div>
+        <div class="adv-card"><div class="k">${formantCards.f2 || t("summary.advanced.formantCards.f2")}</div><div class="v">${f2Value}</div><div class="hint">${f2Hint}</div></div>
+        <div class="adv-card"><div class="k">${formantCards.f3 || t("summary.advanced.formantCards.f3")}</div><div class="v">${f3Value}</div><div class="hint">${f3Hint}</div></div>
         <div class="adv-card"><div class="k">${formantCards.tilt || t("summary.advanced.formantCards.tilt")}</div><div class="v">${fmt1(summary.tiltAvg)} dB</div><div class="hint">${summary.tiltHint}</div></div>
       </div>
       <div class="resonance-summary">
@@ -1610,8 +1621,8 @@ function averageFinite(arr){
 }
 
 function averageEnergy(arr){
-  if (!Array.isArray(arr) || !arr.length) return { low:0, mid:0, high:0, total:0 };
-  let low=0, mid=0, high=0, count=0;
+  if (!Array.isArray(arr) || !arr.length) return { low:0, mid:0, high:0, total:0, coverage:0, validCount:0 };
+  let low=0, mid=0, high=0, valid=0;
   for (const v of arr){
     if (!Array.isArray(v)) continue;
     const [l,m,h] = v;
@@ -1619,41 +1630,133 @@ function averageEnergy(arr){
     low += Number.isFinite(l) ? l : 0;
     mid += Number.isFinite(m) ? m : 0;
     high += Number.isFinite(h) ? h : 0;
-    count++;
+    valid++;
   }
-  if (!count) return { low:0, mid:0, high:0, total:0 };
-  return { low:low/count, mid:mid/count, high:high/count, total:(low+mid+high)/count };
+  if (!valid) return { low:0, mid:0, high:0, total:0, coverage:0, validCount:0 };
+  const avgLow = low / valid;
+  const avgMid = mid / valid;
+  const avgHigh = high / valid;
+  return {
+    low: avgLow,
+    mid: avgMid,
+    high: avgHigh,
+    total: avgLow + avgMid + avgHigh,
+    coverage: valid / arr.length,
+    validCount: valid,
+  };
+}
+
+const RESONANCE_PRIOR_WEIGHT = 6;
+const RESONANCE_DOMINANCE_DELTA = 0.22;
+const RESONANCE_HEAD_MIN = 0.40;
+const RESONANCE_MASK_MIN = 0.38;
+const RESONANCE_CHEST_MIN = 0.52;
+const RESONANCE_MIN_SAMPLES = 18;
+const RESONANCE_MIN_COVERAGE = 0.2;
+const RESONANCE_COVERAGE_GOOD = 0.35;
+
+const FORMANT_MIN_SAMPLES = 24;
+const FORMANT_MIN_COVERAGE = 0.18;
+const FORMANT_GOOD_COVERAGE = 0.32;
+const FORMANT_MIN_SPREAD = 70;
+
+function normalizeResonanceBands(energy){
+  if (!energy) return { chest: NaN, mask: NaN, head: NaN, total: 0, coverage: 0 };
+  const low = Math.max(0, Number.isFinite(energy.low) ? energy.low : 0);
+  const mid = Math.max(0, Number.isFinite(energy.mid) ? energy.mid : 0);
+  const high = Math.max(0, Number.isFinite(energy.high) ? energy.high : 0);
+  const total = low + mid + high;
+  if (!Number.isFinite(total) || total <= EPS){
+    return { chest: NaN, mask: NaN, head: NaN, total: 0, coverage: Number.isFinite(energy.coverage) ? energy.coverage : 0 };
+  }
+  const prior = total * RESONANCE_PRIOR_WEIGHT;
+  const perBand = prior / 3;
+  const denom = total + prior;
+  return {
+    chest: ((low + perBand) / denom),
+    mask:  ((mid + perBand) / denom),
+    head:  ((high + perBand) / denom),
+    total,
+    coverage: Number.isFinite(energy.coverage) ? energy.coverage : 0,
+  };
 }
 
 function describeResonanceFromEnergy(energy){
   const pctFallback = { chest: 1 / 3, mask: 1 / 3, head: 1 / 3 };
-  if (!energy || (!Number.isFinite(energy.low) && !Number.isFinite(energy.mid) && !Number.isFinite(energy.high))){
+  const normalized = normalizeResonanceBands(energy);
+  const { chest, mask, head, total } = normalized;
+  const hasAggregate = energy && (Number.isFinite(energy.coverage) || Number.isFinite(energy.validCount));
+  const coverage = hasAggregate ? (Number.isFinite(energy.coverage) ? energy.coverage : 0) : NaN;
+  const validCount = hasAggregate ? (Number.isFinite(energy.validCount) ? energy.validCount : 0) : 0;
+
+  const insufficientEntry = () => {
     const insufficient = analysisText?.resonanceBalance?.insufficient;
     return {
       label: insufficient?.label || t("analysis.resonanceBalance.insufficient.label"),
       hint: insufficient?.hint || t("analysis.resonanceBalance.insufficient.hint"),
       pct: pctFallback,
       total: 0,
+      coverage: hasAggregate ? coverage : NaN,
+      display: insufficient?.label || t("analysis.resonanceBalance.insufficient.label"),
     };
+  };
+
+  if (hasAggregate){
+    if (!Number.isFinite(coverage) || coverage < RESONANCE_MIN_COVERAGE || validCount < RESONANCE_MIN_SAMPLES){
+      const base = insufficientEntry();
+      const coverageNote = t("analysis.resonanceBalance.coverageLowHint", { value: Math.round((coverage || 0) * 100) });
+      if (coverageNote) base.hint = `${base.hint} ${coverageNote}`.trim();
+      if (Number.isFinite(coverage)){
+        const suffix = t("analysis.resonanceBalance.coverageLowSuffix", { value: Math.round(coverage * 100) });
+        base.display = suffix ? `${base.label}${suffix}` : base.label;
+      }
+      return base;
+    }
   }
-  const total = Math.max((energy.low||0) + (energy.mid||0) + (energy.high||0), EPS);
-  const chestPct = Math.max(0, (energy.low||0) / total);
-  const maskPct  = Math.max(0, (energy.mid||0) / total);
-  const headPct  = Math.max(0, (energy.high||0) / total);
+
+  if (!Number.isFinite(chest) || !Number.isFinite(mask) || !Number.isFinite(head)){
+    return insufficientEntry();
+  }
+
+  const sorted = [
+    { key: "chest", value: chest },
+    { key: "mask", value: mask },
+    { key: "head", value: head },
+  ].sort((a,b)=>b.value - a.value);
+  const dominance = sorted[0].value - sorted[2].value;
+
   let key = "balanced";
-  if (headPct >= 0.32){
-    key = "headBright";
-  } else if (chestPct >= 0.45){
-    key = "chestHeavy";
-  } else if (maskPct >= chestPct && maskPct >= headPct){
-    key = "maskLead";
+  if (dominance >= RESONANCE_DOMINANCE_DELTA){
+    if (sorted[0].key === "head" && sorted[0].value >= RESONANCE_HEAD_MIN){
+      key = "headBright";
+    } else if (sorted[0].key === "mask" && sorted[0].value >= RESONANCE_MASK_MIN){
+      key = "maskLead";
+    } else if (sorted[0].key === "chest" && sorted[0].value >= RESONANCE_CHEST_MIN){
+      key = "chestHeavy";
+    } else {
+      key = "balanced";
+    }
   }
+
   const entry = analysisText?.resonanceBalance?.[key];
+  const label = entry?.label || t(`analysis.resonanceBalance.${key}.label`);
+  let hint = entry?.hint || t(`analysis.resonanceBalance.${key}.hint`);
+  let display = label;
+  if (hasAggregate && Number.isFinite(coverage)){
+    const coverageKey = coverage < RESONANCE_COVERAGE_GOOD ? "coverageLowHint" : "coverageHint";
+    const hintNote = t(`analysis.resonanceBalance.${coverageKey}`, { value: Math.round(coverage * 100) });
+    if (hintNote) hint = `${hint} ${hintNote}`.trim();
+    const suffixKey = coverage < RESONANCE_COVERAGE_GOOD ? "coverageLowSuffix" : "coverageSuffix";
+    const suffix = t(`analysis.resonanceBalance.${suffixKey}`, { value: Math.round(coverage * 100) });
+    if (suffix) display = `${label}${suffix}`;
+  }
   return {
-    label: entry?.label || t(`analysis.resonanceBalance.${key}.label`),
-    hint: entry?.hint || t(`analysis.resonanceBalance.${key}.hint`),
-    pct:{ chest:chestPct, mask:maskPct, head:headPct },
+    label,
+    display,
+    hint,
+    pct:{ chest, mask, head },
     total,
+    coverage: hasAggregate ? coverage : NaN,
   };
 }
 
@@ -1713,6 +1816,74 @@ function makeFormantHint(label, value, low, high){
     return msg || `${labelWithName} ${highHint}`;
   }
   return t("analysis.formant.inRange", { label: labelWithName });
+}
+
+function summarizeFormantTrends(store, statsBundle){
+  const voicedTotal = Array.isArray(store.voiced)
+    ? store.voiced.reduce((acc, flag)=> acc + (flag ? 1 : 0), 0)
+    : 0;
+
+  const makeEntry = (label, stats, values, low, high)=>{
+    const sampleCount = values.length;
+    const coverage = voicedTotal ? (sampleCount / voicedTotal) : 0;
+    const hasAggregate = voicedTotal > 0;
+    const spread = stats ? (stats.p95 - stats.p05) : NaN;
+    const reliable = hasAggregate
+      && sampleCount >= FORMANT_MIN_SAMPLES
+      && coverage >= FORMANT_MIN_COVERAGE
+      && Number.isFinite(spread)
+      && spread >= FORMANT_MIN_SPREAD
+      && Number.isFinite(stats?.med);
+
+    const trendKey = reliable
+      ? (stats.med < low ? "low" : (stats.med > high ? "high" : "inRange"))
+      : "insufficient";
+
+    const baseHint = reliable
+      ? makeFormantHint(label, stats.med, low, high)
+      : makeFormantHint(label, NaN, low, high);
+
+    const extraHints = [];
+    if (hasAggregate && sampleCount < FORMANT_MIN_SAMPLES){
+      const msg = t("analysis.formant.moreSamplesHint");
+      if (msg) extraHints.push(msg);
+    }
+    if (hasAggregate && coverage < FORMANT_MIN_COVERAGE){
+      const msg = t("analysis.formant.coverageLowHint", { value: Math.round(coverage * 100) });
+      if (msg) extraHints.push(msg);
+    }
+
+    const hint = [baseHint, ...extraHints].filter(Boolean).join(" ").trim();
+    const display = buildFormantTrendDisplay(trendKey, coverage, hasAggregate);
+
+    return {
+      trend: trendKey,
+      median: reliable ? stats.med : NaN,
+      display,
+      hint,
+      coverage: hasAggregate ? coverage : NaN,
+      samples: sampleCount,
+    };
+  };
+
+  return {
+    f1: makeEntry("F1", statsBundle.f1, statsBundle.f1Vals || [], 180, 350),
+    f2: makeEntry("F2", statsBundle.f2, statsBundle.f2Vals || [], 1600, 2500),
+    f3: makeEntry("F3", statsBundle.f3, statsBundle.f3Vals || [], 2500, 3200),
+  };
+}
+
+function buildFormantTrendDisplay(trendKey, coverage, hasAggregate){
+  const trendLabels = analysisText?.formant?.trendLabels;
+  const baseRaw = (trendLabels && trendLabels[trendKey]) || t(`analysis.formant.trendLabels.${trendKey}`);
+  const base = baseRaw || "—";
+  if (!hasAggregate || !Number.isFinite(coverage) || coverage <= 0){
+    return base;
+  }
+  const key = coverage < FORMANT_GOOD_COVERAGE ? "coverageLowSuffix" : "coverageSuffix";
+  const suffix = t(`analysis.formant.${key}`, { value: Math.round(coverage * 100) });
+  if (!suffix) return base;
+  return `${base}${suffix}`;
 }
 
 function analyzeVowelFocus(store){

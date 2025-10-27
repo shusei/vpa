@@ -381,6 +381,10 @@ export default {
         label: "面罩共鸣主导",
         hint: "面罩区域占比最高。做法：保持牙齿轻松分开，让气息像哈气一样往前喷，同时喉部放松，避免紧张。",
       },
+      coverageHint: "有效片段约 {{value}}%，趋势仅供参考。",
+      coverageLowHint: "有效片段不足（{{value}}%），建议延长录音或提高音量。",
+      coverageSuffix: "（有效片段 {{value}}%）",
+      coverageLowSuffix: "（有效片段仅 {{value}}%）",
     },
     resonanceBar: {
       default: { chest: "胸 0%", mask: "面罩 0%", head: "头 0%" },
@@ -422,6 +426,16 @@ export default {
     },
     formant: {
       rangeLabels: { F1: "第一共振峰", F2: "第二共振峰", F3: "第三共振峰" },
+      trendLabels: {
+        insufficient: "资料不足",
+        low: "偏低趋势",
+        inRange: "常见范围",
+        high: "偏高趋势",
+      },
+      coverageSuffix: "（有效片段 {{value}}%）",
+      coverageLowSuffix: "（有效片段仅 {{value}}%）",
+      coverageLowHint: "有效片段偏少（{{value}}%），建议延长录音或提高音量。",
+      moreSamplesHint: "需要更多稳定母音才能评估趋势。",
       insufficient: "{{label}} 无法估计，录音过短或噪音过高。",
       inRange: "{{label}} 落在建议范围，维持目前的发声位置并记下感觉。",
       lowMessage: "{{label}} 偏低。{{hint}}",
