@@ -383,6 +383,10 @@ export default {
         label: "Mask-focused",
         hint: "Most energy sits in the mask area. Keep the teeth relaxed, let the airflow feel like a gentle sigh forward, and relax the throat to avoid tension.",
       },
+      coverageHint: "About {{value}}% of voiced frames were usable; treat this trend as indicative only.",
+      coverageLowHint: "Only {{value}}% of voiced frames were usable—record longer or increase the input level for a clearer result.",
+      coverageSuffix: " (valid frames {{value}}%)",
+      coverageLowSuffix: " (only {{value}}% valid frames)",
     },
     resonanceBar: {
       default: { chest: "Chest 0%", mask: "Mask 0%", head: "Head 0%" },
@@ -424,6 +428,16 @@ export default {
     },
     formant: {
       rangeLabels: { F1: "First formant", F2: "Second formant", F3: "Third formant" },
+      trendLabels: {
+        insufficient: "Not enough data",
+        low: "Lower trend",
+        inRange: "Typical range",
+        high: "Higher trend",
+      },
+      coverageSuffix: " (valid frames {{value}}%)",
+      coverageLowSuffix: " (only {{value}}% valid frames)",
+      coverageLowHint: "Only {{value}}% of voiced frames were usable—record longer or raise the input level.",
+      moreSamplesHint: "Capture more steady vowels to establish a clear trend.",
       insufficient: "{{label}} can’t be estimated—record was too short or noisy.",
       inRange: "{{label}} is within the suggested range. Keep the current vocal tract shape and note the sensation.",
       lowMessage: "{{label}} is low. {{hint}}",
