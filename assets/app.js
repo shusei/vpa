@@ -181,7 +181,7 @@ let psRAF=null, psRunning=false;
 let psHz=[], psHzSmooth=[], psDb=[], psVoiced=[]; // 50ms/點
 const PS_INTERVAL_MS = 50;
 const PS_MIN_HZ = 50, PS_MAX_HZ = 450;
-const PS_SMOOTH_BASE_ALPHA = 0.08; // 細微抖動採慢速平滑；統計仍使用原始音高
+const PS_SMOOTH_BASE_ALPHA = 0.08; // 細微抖動採慢速平滑；統計使用平滑後資料並過濾異常值
 const PS_SMOOTH_FAST_ALPHA = 0.45; // 真實音高跳動時加速追上
 const PS_SMOOTH_FAST_THRESHOLD_SEMITONES = 1.5;
 const PS_SMOOTH_MAX_STEP_SEMITONES = 2.4;
@@ -1208,10 +1208,12 @@ function finishStreamStats(){
     `;
 
     // 僅對有聲點統計；若沒有資料就清空
-    const voicedHz = psHz.filter(v => Number.isFinite(v));
+    const voicedHzRaw = psHzSmooth.filter(v => Number.isFinite(v));
     const vols     = psDb.slice();
-    if (!voicedHz.length && !vols.length){ statsEl.innerHTML=""; return; }
+    if (!voicedHzRaw.length && !vols.length){ statsEl.innerHTML=""; return; }
 
+    const stableVoicedHz = filterPitchForStats(voicedHzRaw);
+    const voicedHz = stableVoicedHz.length ? stableVoicedHz : voicedHzRaw;
     const pitchStats = makeStats(voicedHz);
     const volStats   = makeStats(vols);
     const volsSorted = vols.slice().sort((a,b)=>a-b);
@@ -1970,6 +1972,24 @@ function isDivergent(medHz, pf, pm){
   return false;
 }
 function fmt1(x){ return Number.isFinite(x) ? (Math.round(x*10)/10).toFixed(1) : "—"; }
+function filterPitchForStats(samples){
+  if (!Array.isArray(samples)) return [];
+  const finite = samples.filter(Number.isFinite);
+  if (finite.length < 3) return finite.slice();
+
+  const logVals = finite.map((v)=>Math.log2(Math.max(v, PS_MIN_HZ)));
+  const sortedLog = logVals.slice().sort((a,b)=>a-b);
+  const medianLog = percentileSorted(sortedLog, 50);
+  const diffSemitones = logVals.map((v)=>Math.abs(v - medianLog) * 12);
+  const sortedDiffs = diffSemitones.slice().sort((a,b)=>a-b);
+  const mad = percentileSorted(sortedDiffs, 50);
+  const tolerance = Math.max(0.5, (mad || 0) * 3);
+  const filtered = finite.filter((_, idx)=> diffSemitones[idx] <= tolerance);
+
+  const minKeep = Math.max(3, Math.ceil(finite.length * 0.6));
+  if (filtered.length < minKeep) return finite;
+  return filtered;
+}
 function makeStats(arr){
   if (!arr.length) return { avg:NaN, med:NaN, p95:NaN, p05:NaN, sd:NaN };
   const mean = arr.reduce((a,b)=>a+b,0)/arr.length;
