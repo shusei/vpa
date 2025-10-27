@@ -136,7 +136,7 @@ body.recording .record-btn .rec{ display:inline; }
 .bar{ --p:0; position:relative; padding:12px 12px 14px; border-radius:12px; background:var(--surface-strong); border:1px solid var(--border); }
 .bar::after{ content:""; position:absolute; left:0; bottom:0; height:6px; width:calc(var(--p) * 100%); border-radius:0 0 0 12px;
   background:linear-gradient(90deg, var(--female), var(--male)); }
-.bar .label{ display:block; font-size:12px; color:color-mix(in oklab, var(--ink) 80%, var(--muted) 20%); margin-bottom:4px; }
+.bar .label{ display:block; font-size:12px; color:color-mix(in oklab, var(--ink) 92%, var(--muted) 8%); margin-bottom:4px; }
 .bar .value{ font-weight:800; }
 
 /* ---------- Pitch Stream ---------- */
@@ -146,7 +146,7 @@ body.recording .record-btn .rec{ display:inline; }
 .pitch-head .now{ display:flex; align-items:center; gap:8px; font-weight:800; }
 .band-tag{ padding:2px 8px; border-radius:999px; background: color-mix(in oklab, var(--panel) 70%, var(--accent-2) 30%); color:var(--ink); }
 #pitchCanvas{ width:100%; height:220px; display:block; border-radius:10px; background:linear-gradient(180deg, #f7f7f7, #f0f0f0); }
-.pitch-scale{ margin-top:4px; font-size:12px; color:color-mix(in oklab, var(--ink) 80%, var(--muted) 20%); }
+.pitch-scale{ margin-top:4px; font-size:12px; color:color-mix(in oklab, var(--ink) 92%, var(--muted) 8%); }
 
 /* ---------- Formant / Resonance Monitor ---------- */
 .formant-wrap{
@@ -326,4 +326,21 @@ body.recording .record-btn .rec{ display:inline; }
 .adv-card .hint{ font-size:12px; color:color-mix(in oklab, var(--ink) 78%, var(--muted) 22%); }
 .resonance-summary .resonance-bar{ height:28px; }
 .resonance-bar--summary .res-part{ font-size:12px; }
+
+html[data-faction="dark"] .status,
+html[data-faction="dark"] .player .hint,
+html[data-faction="dark"] .bar .label,
+html[data-faction="dark"] .pitch-scale,
+html[data-faction="dark"] .formant-note,
+html[data-faction="dark"] .formant-card .label,
+html[data-faction="dark"] .formant-card .range,
+html[data-faction="dark"] .resonance-panel .label,
+html[data-faction="dark"] .resonance-panel .range,
+html[data-faction="dark"] .summary-line .subline,
+html[data-faction="dark"] .kv .k,
+html[data-faction="dark"] .adv-card .k,
+html[data-faction="dark"] .adv-card .hint,
+html[data-faction="dark"] .note{
+  color:color-mix(in oklab, var(--ink) 96%, var(--muted) 4%);
+}
 
