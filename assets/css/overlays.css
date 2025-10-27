@@ -25,6 +25,12 @@ body.help-open{ overflow:hidden; }
 .help-dialog p{ margin:0 0 14px; line-height:1.7; font-size:15px; }
 .help-dialog ul, .help-dialog ol{ margin:0 0 18px 20px; line-height:1.65; font-size:15px; }
 .help-dialog li + li{ margin-top:8px; }
+.help-support{ margin:24px 0 0; text-align:center; }
+.help-support-note{ margin-bottom:12px; font-size:14px; color:var(--muted); }
+.help-support-link{ display:inline-flex; align-items:center; justify-content:center; border-radius:999px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,.18); transition:transform .2s ease, box-shadow .2s ease; }
+.help-support-link img{ display:block; height:42px; }
+.help-support-link:hover{ transform:translateY(-1px); box-shadow:0 6px 16px rgba(0,0,0,.22); }
+.help-support-link:focus-visible{ outline:2px solid var(--ring); outline-offset:4px; }
 .help-close{
   position:absolute; top:16px; right:16px;
   appearance:none; border:0; background:transparent;

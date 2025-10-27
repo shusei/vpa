@@ -1,12 +1,14 @@
 import {
   helpBtn,
   helpOverlay,
-  helpCloseBtn,
+  localeBtn,
+  localeMenu,
   onboardTip,
   onboardDismissBtn,
   recordBtn,
   uploadFab,
 } from "./dom.js";
+import { setLocale, getCurrentLocale, onLocaleChange } from "./i18n.js";
 
 const MODE_KEY = "vpa.themeMode";          // 'auto' | 'light' | 'dark'
 const LAST_LIGHT_KEY = "vpa.lastLight";    // ex: 'day'
@@ -183,13 +185,17 @@ function initOnboardingTip(){
 
 function initHelpOverlay(){
   if (!helpBtn || !helpOverlay) return;
+  const focusClose = ()=>{
+    const closeBtn = helpOverlay.querySelector(".help-close");
+    closeBtn?.focus?.();
+  };
   const open = ()=>{
     try{ localStorage.setItem(HELP_KEY, "1"); }catch{}
     dismissOnboardTip(true);
     helpOverlay.removeAttribute("hidden");
     helpBtn.setAttribute("aria-expanded", "true");
     document.body.classList.add("help-open");
-    requestAnimationFrame(()=>{ helpCloseBtn?.focus?.(); });
+    requestAnimationFrame(()=>{ focusClose(); });
   };
   const close = ()=>{
     helpOverlay.setAttribute("hidden","");
@@ -203,9 +209,16 @@ function initHelpOverlay(){
     const isOpen = !helpOverlay.hasAttribute("hidden");
     if (isOpen) close(); else open();
   });
-  helpCloseBtn?.addEventListener("click", ()=> close());
   helpOverlay.addEventListener("click", (e)=>{
-    if (e.target === helpOverlay) close();
+    if (e.target === helpOverlay) {
+      close();
+      return;
+    }
+    const closeTrigger = e.target.closest?.(".help-close");
+    if (closeTrigger){
+      e.preventDefault();
+      close();
+    }
   });
   document.addEventListener("keydown", (e)=>{
     if (e.key === "Escape" && !helpOverlay.hasAttribute("hidden")){
@@ -214,8 +227,63 @@ function initHelpOverlay(){
   });
 }
 
+function initLocaleMenu(){
+  if (!localeBtn || !localeMenu) return;
+  const items = ()=> Array.from(localeMenu.querySelectorAll("[data-locale]"));
+  const setActive = (locale)=>{
+    items().forEach((item)=>{
+      const isActive = item.dataset.locale === locale;
+      item.setAttribute("aria-checked", isActive ? "true" : "false");
+      item.classList.toggle("active", isActive);
+    });
+  };
+  const open = ()=>{
+    localeMenu.removeAttribute("hidden");
+    localeBtn.setAttribute("aria-expanded", "true");
+    const current = localeMenu.querySelector(`[data-locale="${getCurrentLocale()}"]`);
+    requestAnimationFrame(()=> current?.focus?.());
+  };
+  const close = ()=>{
+    if (localeMenu.hasAttribute("hidden")) return;
+    localeMenu.setAttribute("hidden","");
+    localeBtn.setAttribute("aria-expanded", "false");
+  };
+
+  localeBtn.addEventListener("click", (e)=>{
+    e.stopPropagation();
+    const isOpen = !localeMenu.hasAttribute("hidden");
+    if (isOpen) close(); else open();
+  });
+  document.addEventListener("click", (e)=>{
+    if (!localeMenu.contains(e.target) && e.target !== localeBtn && !localeBtn.contains(e.target)){
+      close();
+    }
+  });
+  document.addEventListener("keydown", (e)=>{
+    if (e.key === "Escape" && !localeMenu.hasAttribute("hidden")){
+      close();
+      localeBtn.focus?.();
+    }
+  });
+  localeMenu.addEventListener("click", async (e)=>{
+    const item = e.target.closest?.("[data-locale]");
+    if (!item) return;
+    e.preventDefault();
+    const target = item.dataset.locale;
+    if (!target) return;
+    setActive(target);
+    await setLocale(target);
+    close();
+    localeBtn.focus?.();
+  });
+
+  setActive(getCurrentLocale());
+  onLocaleChange((locale)=> setActive(locale));
+}
+
 function initializeTheme(){
   initThemeUI();
+  initLocaleMenu();
   initHelpOverlay();
   initOnboardingTip();
 }
