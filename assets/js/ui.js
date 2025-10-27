@@ -1,3 +1,4 @@
+import { t } from "./i18n.js";
 import {
   statusEl,
   pitchWrap,
@@ -40,7 +41,8 @@ export function fmtSec(seconds) {
   if (!isFinite(seconds)) return "—";
   const minutes = Math.floor(seconds / 60);
   const secs = Math.round(seconds % 60);
-  return minutes ? `${minutes}分${secs}秒` : `${secs}秒`;
+  if (minutes) return t("time.minutesSeconds", { minutes, seconds: secs });
+  return t("time.seconds", { seconds: secs });
 }
 
 export function clamp01(value) {
@@ -57,10 +59,10 @@ export function resetRealtimePanels() {
     if (f3NowEl) f3NowEl.textContent = "— Hz";
     if (breathNowEl) breathNowEl.textContent = "—";
     if (resonanceNowEl) resonanceNowEl.textContent = "—";
-    if (tiltNowEl) tiltNowEl.textContent = "Tilt —";
-    if (resValChest) resValChest.textContent = "胸 0%";
-    if (resValMask) resValMask.textContent = "面罩 0%";
-    if (resValHead) resValHead.textContent = "頭 0%";
+    if (tiltNowEl) tiltNowEl.textContent = t("realtime.resonance.tiltPlaceholder");
+    if (resValChest) resValChest.textContent = t("analysis.resonanceBar.default.chest");
+    if (resValMask) resValMask.textContent = t("analysis.resonanceBar.default.mask");
+    if (resValHead) resValHead.textContent = t("analysis.resonanceBar.default.head");
     if (resBarChest) {
       resBarChest.style.flexGrow = 1;
       resBarChest.style.flexBasis = "33%";
