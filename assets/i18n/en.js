@@ -400,16 +400,16 @@ export default {
       insufficient: { label: "Not enough data", hint: "Record more steady voice segments to estimate spectral tilt." },
       warm: {
         label: "Warm and dense",
-        hint: "Low frequencies are strong, sticking close to the chest. Hum “mm” before speaking and keep a subtle smile to brighten the tone.",
+        hint: "Low frequencies are strong, sticking close to the chest. This reflects spectral brightness, not vocal pitch. Hum “mm” before speaking and keep a subtle smile to brighten the tone.",
       },
       gentleWarm: {
         label: "Gently warm",
-        hint: "Low end is slightly elevated, adding warmth. If you want extra shimmer, keep the current support and imagine the sound sliding over your front teeth.",
+        hint: "Low end is slightly elevated, adding warmth. This reflects spectral brightness, not vocal pitch. If you want extra shimmer, keep the current support and imagine the sound sliding over your front teeth.",
       },
       balanced: { label: "Neutral", hint: "Tilt is even. Log how you’re breathing and shaping vowels so you can revisit this reference." },
       bright: {
         label: "Bright and sharp",
-        hint: "High frequencies dominate. Relax the larynx with a soft “hoo” sigh, then keep the airflow steady as you speak.",
+        hint: "High frequencies dominate. This reflects spectral brightness, not vocal pitch. Relax the larynx with a soft “hoo” sigh, then keep the airflow steady as you speak.",
       },
     },
     breathiness: {
