@@ -103,7 +103,7 @@ body.recording .record-btn .rec{ display:inline; }
   .help-dialog h3{ font-size:16px; }
 }
 
-.status{ margin-top:8px; color:var(--muted); font-size:14px; }
+.status{ margin-top:8px; color:color-mix(in oklab, var(--ink) 82%, var(--muted) 18%); font-size:14px; }
 
 /* ---------- Player ---------- */
 .player{
@@ -129,14 +129,14 @@ body.recording .record-btn .rec{ display:inline; }
   transform:none;
   filter:none;
 }
-.player .hint{ font-size:12px; color:var(--muted); }
+.player .hint{ font-size:12px; color:color-mix(in oklab, var(--ink) 80%, var(--muted) 20%); }
 
 /* ---------- Meter（傾向儀表） ---------- */
 .meter{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:18px 0; }
 .bar{ --p:0; position:relative; padding:12px 12px 14px; border-radius:12px; background:var(--surface-strong); border:1px solid var(--border); }
 .bar::after{ content:""; position:absolute; left:0; bottom:0; height:6px; width:calc(var(--p) * 100%); border-radius:0 0 0 12px;
   background:linear-gradient(90deg, var(--female), var(--male)); }
-.bar .label{ display:block; font-size:12px; color:var(--muted); margin-bottom:4px; }
+.bar .label{ display:block; font-size:12px; color:color-mix(in oklab, var(--ink) 80%, var(--muted) 20%); margin-bottom:4px; }
 .bar .value{ font-weight:800; }
 
 /* ---------- Pitch Stream ---------- */
@@ -146,7 +146,7 @@ body.recording .record-btn .rec{ display:inline; }
 .pitch-head .now{ display:flex; align-items:center; gap:8px; font-weight:800; }
 .band-tag{ padding:2px 8px; border-radius:999px; background: color-mix(in oklab, var(--panel) 70%, var(--accent-2) 30%); color:var(--ink); }
 #pitchCanvas{ width:100%; height:220px; display:block; border-radius:10px; background:linear-gradient(180deg, #f7f7f7, #f0f0f0); }
-.pitch-scale{ margin-top:4px; font-size:12px; color:var(--muted); }
+.pitch-scale{ margin-top:4px; font-size:12px; color:color-mix(in oklab, var(--ink) 80%, var(--muted) 20%); }
 
 /* ---------- Formant / Resonance Monitor ---------- */
 .formant-wrap{
@@ -173,7 +173,7 @@ body.recording .record-btn .rec{ display:inline; }
 .formant-note{
   margin:0;
   font-size:13px;
-  color:var(--muted);
+  color:color-mix(in oklab, var(--ink) 82%, var(--muted) 18%);
 }
 .formant-grid{
   display:grid;
@@ -189,9 +189,12 @@ body.recording .record-btn .rec{ display:inline; }
   flex-direction:column;
   gap:4px;
 }
-.formant-card .label{ font-size:12px; color:var(--muted); }
+.formant-card .label,
+.formant-card .range{
+  font-size:12px;
+  color:color-mix(in oklab, var(--ink) 84%, var(--muted) 16%);
+}
 .formant-card .value{ font-size:18px; font-weight:900; }
-.formant-card .range{ font-size:12px; color:var(--muted); }
 
 .resonance-panel{
   margin-top:14px;
@@ -203,9 +206,12 @@ body.recording .record-btn .rec{ display:inline; }
   flex-direction:column;
   gap:6px;
 }
-.resonance-panel .label{ font-size:12px; color:var(--muted); }
+.resonance-panel .label,
+.resonance-panel .range{
+  font-size:12px;
+  color:color-mix(in oklab, var(--ink) 84%, var(--muted) 16%);
+}
 .resonance-panel .value{ font-size:16px; font-weight:800; }
-.resonance-panel .range{ font-size:12px; color:var(--muted); }
 .resonance-bar{
   position:relative;
   display:flex;
@@ -260,7 +266,9 @@ body.recording .record-btn .rec{ display:inline; }
   margin-bottom:10px;
 }
 .summary-line strong{ font-weight:900; margin-right:4px; }
-.subline{ color:var(--muted); }
+.subline{
+  color:color-mix(in oklab, var(--ink) 82%, var(--muted) 18%);
+}
 
 .chip{
   display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:700;
@@ -272,7 +280,7 @@ body.recording .record-btn .rec{ display:inline; }
   margin:10px 0 0;
 }
 .kv{ background:var(--surface-strong); border:1px solid var(--border); border-radius:12px; padding:12px; }
-.kv .k{ font-size:12px; color:var(--muted); }
+.kv .k{ font-size:12px; color:color-mix(in oklab, var(--ink) 80%, var(--muted) 20%); }
 .kv .v{ font-weight:900; }
 
 .note{
@@ -313,9 +321,9 @@ body.recording .record-btn .rec{ display:inline; }
   flex-direction:column;
   gap:4px;
 }
-.adv-card .k{ font-size:12px; color:var(--muted); }
+.adv-card .k{ font-size:12px; color:color-mix(in oklab, var(--ink) 80%, var(--muted) 20%); }
 .adv-card .v{ font-weight:800; font-size:16px; color:var(--ink); }
-.adv-card .hint{ font-size:12px; color:var(--muted); }
+.adv-card .hint{ font-size:12px; color:color-mix(in oklab, var(--ink) 78%, var(--muted) 22%); }
 .resonance-summary .resonance-bar{ height:28px; }
 .resonance-bar--summary .res-part{ font-size:12px; }
 
