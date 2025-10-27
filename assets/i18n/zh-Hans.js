@@ -34,7 +34,8 @@ export default {
       '<span class="chip">即时监控</span>',
       '<span class="chip">统计＋简要评价</span>',
       '<span class="chip">30+ 主题</span>',
-    ].join(""),
+    ].join("")
+    ,,
   },
   onboarding: {
     title: "第一次使用？",
