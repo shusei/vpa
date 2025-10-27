@@ -294,7 +294,11 @@ export default {
   player: {
     play: "▶︎ Play the last take",
     pause: "⏸ Pause playback",
-    replayHintHtml: 'Want to hear it again? <a href="#" id="replayLink">Click here</a>.',
+    replayHintPrefix: "Want to hear it again?",
+    replayHintSpacer: " ",
+    replayHintAction: "Replay the last take",
+    replayHintSuffix: "",
+    replayHintAria: "Replay the last take",
     ariaPlay: "Play the last take",
   },
   errors: {

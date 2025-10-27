@@ -293,7 +293,11 @@ export default {
   player: {
     play: "▶︎ 播放刚才的声音",
     pause: "⏸ 暂停播放",
-    replayHintHtml: '想再听一次刚才那段吗？<a href="#" id="replayLink">点这里</a>。',
+    replayHintPrefix: "想再听一次刚才那段吗？",
+    replayHintSpacer: "",
+    replayHintAction: "立即重播",
+    replayHintSuffix: "。",
+    replayHintAria: "重新播放刚才的声音",
     ariaPlay: "播放刚才的声音",
   },
   errors: {
