@@ -341,6 +341,6 @@ html[data-faction="dark"] .kv .k,
 html[data-faction="dark"] .adv-card .k,
 html[data-faction="dark"] .adv-card .hint,
 html[data-faction="dark"] .note{
-  color:color-mix(in oklab, var(--ink) 96%, var(--muted) 4%);
+  color:color-mix(in oklab, var(--text) 72%, var(--ink) 28%);
 }
 
