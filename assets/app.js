@@ -1,222 +1,66 @@
 // ===== Transformers pipeline =====
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
 
+import {
+  recordBtn,
+  fileInput,
+  uploadFab,
+  statusEl,
+  meter,
+  femaleVal,
+  maleVal,
+  pitchWrap,
+  pitchCanvas,
+  pitchNowEl,
+  bandNowEl,
+  volNowEl,
+  formantWrap,
+  f1NowEl,
+  f2NowEl,
+  f3NowEl,
+  breathNowEl,
+  resonanceNowEl,
+  tiltNowEl,
+  resBarChest,
+  resBarMask,
+  resBarHead,
+  resValChest,
+  resValMask,
+  resValHead,
+} from "./js/dom.js";
+import { dismissOnboardTip } from "./js/theme.js";
+import {
+  MODEL_ID,
+  TARGET_SR,
+  MAX_WHOLE_SEC,
+  WARN_LONG_SEC,
+  STREAM_WIN_CAND,
+  STREAM_HOP_S,
+  EPS,
+  VAD_MIN_APPLY_SEC,
+  VAD_FRAME_MS,
+  VAD_HOP_MS,
+  VAD_PAD_MS,
+  VAD_MIN_SEG_MS,
+  VAD_MIN_VOICED_SEC,
+  VAD_SILENCE_RATIO_TO_APPLY,
+  IS_SAFARI,
+} from "./js/constants.js";
+import {
+  setStatus,
+  log,
+  fmtSec,
+  clamp01,
+  setRealtimePanelsActive,
+  resetMeter,
+  isOOMError,
+} from "./js/ui.js";
+
 /** 只用遠端（Hugging Face Hub），停用本機 /models 尋址 */
 env.allowLocalModels = false;
 env.allowRemoteModels = true;
 /** 視需要可調整：WASM 執行緒數 */
 env.backends.onnx.wasm.numThreads = 1;
-
-// ===== Theme（三切 + 每派記憶 + 一次性提示） =====
-const MODE_KEY = "vpa.themeMode";          // 'auto' | 'light' | 'dark'
-const LAST_LIGHT_KEY = "vpa.lastLight";    // ex: 'day'
-const LAST_DARK_KEY  = "vpa.lastDark";     // ex: 'night'
-const LEGACY_KEY     = "vpa.theme";        // 舊版單一主題鍵（會自動遷移）
-const TIP_KEY        = "vpa.themeTipDone"; // 一次性齒輪提示
-
-// 主題清單（需與 index.html data-theme 對齊）
-const THEMES = [
-  "warm","lavender","peach","ink","day","night","contrast","slate","graphite","sand","latte","clay",
-  "rose","blush","coral","amber","gold","cocoa","olive","emerald","teal","aqua","cyan","sky","azure",
-  "cobalt","indigo","violet","grape","plum","magenta","fuchsia"
-];
-
-// 兩派：背景白（light）與背景深（dark）
-const THEME_FACTION = {
-  day:"light", sand:"light", latte:"light", blush:"light", amber:"light",
-  aqua:"light", sky:"light", azure:"light", fuchsia:"light",
-
-  warm:"dark", lavender:"dark", peach:"dark", ink:"dark", night:"dark", contrast:"dark",
-  slate:"dark", graphite:"dark", clay:"dark", rose:"dark", coral:"dark", gold:"dark", cocoa:"dark",
-  olive:"dark", emerald:"dark", teal:"dark", cyan:"dark", cobalt:"dark", indigo:"dark",
-  violet:"dark", grape:"dark", plum:"dark", magenta:"dark"
-};
-
-function getSystemFaction(){
-  try { return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; }
-  catch { return "light"; }
-}
-function getSavedMode(){ try{ return (localStorage.getItem(MODE_KEY) || "auto"); }catch{ return "auto"; } }
-function setSavedMode(m){ try{ localStorage.setItem(MODE_KEY, m);}catch{} }
-function getSavedLast(faction){
-  const key = faction === "light" ? LAST_LIGHT_KEY : LAST_DARK_KEY;
-  let v = null; try{ v = localStorage.getItem(key);}catch{}
-  if (!v || !THEMES.includes(v) || THEME_FACTION[v] !== faction) v = faction==="light" ? "day" : "night";
-  return v;
-}
-function setSavedLast(theme){
-  const faction = THEME_FACTION[theme] || "dark";
-  const key = faction === "light" ? LAST_LIGHT_KEY : LAST_DARK_KEY;
-  try{ localStorage.setItem(key, theme);}catch{}
-}
-function migrateLegacyTheme(){
-  try{
-    const old = localStorage.getItem(LEGACY_KEY);
-    if (!old) return;
-    setSavedLast(old);
-    localStorage.removeItem(LEGACY_KEY);
-  }catch{}
-}
-
-function applyMode(mode){
-  const m = (mode==="light"||mode==="dark"||mode==="auto") ? mode : "auto";
-  setSavedMode(m);
-  document.documentElement.setAttribute("data-mode", m);
-
-  const faction = (m==="auto") ? getSystemFaction() : m;
-  document.documentElement.setAttribute("data-faction", faction);
-
-  // 若現行主題不屬於該派，切回該派上次使用的主題
-  const now = document.documentElement.getAttribute("data-theme");
-  if (!now || THEME_FACTION[now] !== faction){
-    applyTheme(getSavedLast(faction), false);
-  }
-  refreshThemeChecks();
-  refreshTabUI();
-}
-function applyTheme(t, persist=true){
-  if (!THEMES.includes(t)) t = getSavedLast(getSystemFaction());
-  const faction = THEME_FACTION[t] || getSystemFaction();
-  document.documentElement.setAttribute("data-theme", t);
-  document.documentElement.setAttribute("data-faction", faction);
-  if (persist) setSavedLast(t);
-  refreshThemeChecks();
-}
-function refreshThemeChecks(){
-  document.querySelectorAll(".theme-item").forEach(btn=>{
-    const checked = btn.dataset.theme === document.documentElement.getAttribute("data-theme");
-    btn.setAttribute("aria-checked", checked ? "true" : "false");
-  });
-}
-function refreshTabUI(){
-  const mode = document.documentElement.getAttribute("data-mode") || "auto";
-  const map = { auto:"#tabAuto", light:"#tabLight", dark:"#tabDark" };
-  for (const [k, sel] of Object.entries(map)){
-    const el = document.querySelector(sel); if (!el) continue;
-    el.setAttribute("aria-selected", k===mode ? "true" : "false");
-    el.classList.toggle("active", k===mode);
-  }
-}
-function initThemeUI(){
-  migrateLegacyTheme();
-  applyMode(getSavedMode());
-
-  const gear = document.getElementById("settingsBtn");
-  const menu = document.getElementById("themeMenu");
-  const tip  = document.getElementById("themeTip");
-
-  if (gear && menu){
-    gear.addEventListener("click",(e)=>{
-      e.stopPropagation();
-      const open = !menu.hasAttribute("hidden");
-      if (open){ menu.setAttribute("hidden",""); gear.setAttribute("aria-expanded","false"); }
-      else {
-        menu.removeAttribute("hidden"); gear.setAttribute("aria-expanded","true");
-        if (tip && !tip.hasAttribute("hidden")){
-          tip.setAttribute("hidden",""); try{ localStorage.setItem(TIP_KEY,"1"); }catch{}
-        }
-      }
-    });
-    document.addEventListener("click",(e)=>{
-      if (!menu.contains(e.target) && e.target!==gear && !gear.contains(e.target)){
-        if (!menu.hasAttribute("hidden")){ menu.setAttribute("hidden",""); gear.setAttribute("aria-expanded","false"); }
-      }
-      if (tip && !tip.hasAttribute("hidden")){
-        tip.setAttribute("hidden",""); try{ localStorage.setItem(TIP_KEY,"1"); }catch{}
-      }
-    });
-    menu.querySelectorAll(".theme-item").forEach(btn=>{
-      btn.addEventListener("click", ()=>{
-        applyTheme(btn.dataset.theme, true);
-        menu.setAttribute("hidden",""); gear.setAttribute("aria-expanded","false");
-      });
-    });
-    [["auto","#tabAuto"],["light","#tabLight"],["dark","#tabDark"]].forEach(([name, sel])=>{
-      const el = document.querySelector(sel); if (!el) return;
-      el.addEventListener("click", ()=> applyMode(name));
-    });
-
-    try{
-      const mq = matchMedia("(prefers-color-scheme: dark)");
-      mq.addEventListener?.("change", ()=>{
-        if ((localStorage.getItem(MODE_KEY)||"auto")==="auto") applyMode("auto");
-      });
-    }catch{}
-  }
-
-  // 一次性提示（齒輪）
-  try{
-    const done = localStorage.getItem(TIP_KEY)==="1";
-    if (!done && tip){
-      tip.removeAttribute("hidden");
-      setTimeout(()=>{ try{ tip.setAttribute("hidden",""); localStorage.setItem(TIP_KEY,"1"); }catch{} }, 4000);
-    }
-  }catch{}
-}
-initThemeUI();
-initHelpOverlay();
-initOnboardingTip();
-
-// ===== 常量 =====
-/** 防呆：剝掉外層花括號或空白（若有） */
-const RAW_MODEL_ID = (window.ONNX_MODEL_ID || "prithivMLmods/Common-Voice-Gender-Detection-ONNX");
-const MODEL_ID     = String(RAW_MODEL_ID).trim().replace(/^\{+|\}+$/g, "");
-
-const TARGET_SR       = 16000;
-const MAX_WHOLE_SEC   = 150;
-const WARN_LONG_SEC   = 180;
-const STREAM_WIN_CAND = [12,8,6,4];
-const STREAM_HOP_S    = 3;
-const EPS             = 1e-9;
-
-// VAD（自適應，只「選段」）
-const VAD_MIN_APPLY_SEC   = 20;
-const VAD_FRAME_MS        = 30;
-const VAD_HOP_MS          = 10;
-const VAD_PAD_MS          = 60;
-const VAD_MIN_SEG_MS      = 200;
-const VAD_MIN_VOICED_SEC  = 2;
-const VAD_SILENCE_RATIO_TO_APPLY = 0.15;
-
-// Safari 檢測
-const IS_SAFARI = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-
-// ===== DOM =====
-const recordBtn = document.getElementById("recordBtn");
-const fileInput = document.getElementById("fileInput");
-const uploadFab = document.getElementById("uploadFab");
-const statusEl  = document.getElementById("status");
-const meter     = document.getElementById("meter");
-const femaleVal = document.getElementById("femaleVal");
-const maleVal   = document.getElementById("maleVal");
-
-// Pitch Stream DOM
-const pitchWrap   = document.getElementById("pitchWrap");
-const pitchCanvas = document.getElementById("pitchCanvas");
-const pitchNowEl  = document.getElementById("pitchNow");
-const bandNowEl   = document.getElementById("bandNow");
-const volNowEl    = document.getElementById("volNow");
-const formantWrap = document.getElementById("formantWrap");
-const f1NowEl     = document.getElementById("f1Now");
-const f2NowEl     = document.getElementById("f2Now");
-const f3NowEl     = document.getElementById("f3Now");
-const breathNowEl = document.getElementById("breathNow");
-const resonanceNowEl = document.getElementById("resonanceNow");
-const tiltNowEl   = document.getElementById("tiltNow");
-const resBarChest = document.getElementById("resChest");
-const resBarMask  = document.getElementById("resMask");
-const resBarHead  = document.getElementById("resHead");
-const resValChest = document.getElementById("resChestVal");
-const resValMask  = document.getElementById("resMaskVal");
-const resValHead  = document.getElementById("resHeadVal");
-const helpBtn = document.getElementById("helpBtn");
-const helpOverlay = document.getElementById("helpOverlay");
-const helpCloseBtn = document.getElementById("helpClose");
-const onboardTip = document.getElementById("onboardTip");
-const onboardDismissBtn = document.getElementById("onboardDismiss");
-
-const HELP_KEY = "vpa.helpSeen";
-const ONBOARD_KEY = "vpa.onboardTipDone";
 
 // 播放器（動態建立；並在其下方插入統計卡容器）
 let playBtn = null, audioEl = null, lastAudioUrl = null;
@@ -247,106 +91,6 @@ const offlineFeatureStore = {
 // 追蹤最新模型傾向（供簡評用）
 let lastPf = 0, lastPm = 0;
 
-// ===== UI 工具 =====
-function setStatus(text, spin=false){
-  if (!statusEl) return;
-  statusEl.innerHTML = spin ? `<span class="spinner"></span> ${text}` : text;
-}
-function log(...a){ try{ console.log(...a);}catch{} }
-function fmtSec(s){ if(!isFinite(s)) return "—"; const m=Math.floor(s/60), ss=Math.round(s%60); return m? `${m}分${ss}秒`:`${ss}秒`; }
-function clamp01(x){ return Math.min(1, Math.max(EPS, x)); }
-
-function resetRealtimePanels(){
-  try{
-    if (pitchNowEl) pitchNowEl.textContent = "— Hz";
-    if (bandNowEl) bandNowEl.textContent = "—";
-    if (volNowEl) volNowEl.textContent = "— dB";
-    if (f1NowEl) f1NowEl.textContent = "— Hz";
-    if (f2NowEl) f2NowEl.textContent = "— Hz";
-    if (f3NowEl) f3NowEl.textContent = "— Hz";
-    if (breathNowEl) breathNowEl.textContent = "—";
-    if (resonanceNowEl) resonanceNowEl.textContent = "—";
-    if (tiltNowEl) tiltNowEl.textContent = "Tilt —";
-    if (resValChest) resValChest.textContent = "胸 0%";
-    if (resValMask)  resValMask.textContent  = "面罩 0%";
-    if (resValHead)  resValHead.textContent  = "頭 0%";
-    if (resBarChest){ resBarChest.style.flexGrow = 1; resBarChest.style.flexBasis = "33%"; }
-    if (resBarMask){  resBarMask.style.flexGrow  = 1; resBarMask.style.flexBasis  = "34%"; }
-    if (resBarHead){  resBarHead.style.flexGrow  = 1; resBarHead.style.flexBasis  = "33%"; }
-  }catch{}
-}
-function setRealtimePanelsActive(active){
-  try{
-    if (pitchWrap){
-      if (active) pitchWrap.removeAttribute("hidden");
-      else pitchWrap.setAttribute("hidden","");
-    }
-    if (formantWrap){
-      if (active) formantWrap.removeAttribute("hidden");
-      else formantWrap.setAttribute("hidden","");
-    }
-    resetRealtimePanels();
-  }catch{}
-}
-function dismissOnboardTip(permanent=false){
-  try{
-    if (onboardTip && !onboardTip.hasAttribute("hidden")){
-      onboardTip.setAttribute("hidden","");
-    }
-    if (permanent){ localStorage.setItem(ONBOARD_KEY, "1"); }
-  }catch{
-    if (onboardTip){ onboardTip.setAttribute("hidden",""); }
-  }
-}
-function initOnboardingTip(){
-  if (!onboardTip) return;
-  let done = false;
-  try{ done = localStorage.getItem(ONBOARD_KEY) === "1"; }catch{}
-  if (!done){
-    setTimeout(()=>{
-      if (!onboardTip) return;
-      onboardTip.removeAttribute("hidden");
-    }, 600);
-  }
-  onboardDismissBtn?.addEventListener("click", ()=>{
-    dismissOnboardTip(true);
-  });
-  recordBtn?.addEventListener("click", ()=> dismissOnboardTip(true));
-  uploadFab?.addEventListener("click", ()=> dismissOnboardTip(true));
-}
-function initHelpOverlay(){
-  if (!helpBtn || !helpOverlay) return;
-  const open = ()=>{
-    try{ localStorage.setItem(HELP_KEY, "1"); }catch{}
-    dismissOnboardTip(true);
-    helpOverlay.removeAttribute("hidden");
-    helpBtn.setAttribute("aria-expanded", "true");
-    document.body.classList.add("help-open");
-    requestAnimationFrame(()=>{ helpCloseBtn?.focus?.(); });
-  };
-  const close = ()=>{
-    helpOverlay.setAttribute("hidden","");
-    helpBtn.setAttribute("aria-expanded", "false");
-    document.body.classList.remove("help-open");
-    helpBtn.focus?.();
-  };
-
-  helpBtn.addEventListener("click", (e)=>{
-    e.stopPropagation();
-    const isOpen = !helpOverlay.hasAttribute("hidden");
-    if (isOpen) close(); else open();
-  });
-  helpCloseBtn?.addEventListener("click", ()=> close());
-  helpOverlay.addEventListener("click", (e)=>{
-    if (e.target === helpOverlay) close();
-  });
-  document.addEventListener("keydown", (e)=>{
-    if (e.key === "Escape" && !helpOverlay.hasAttribute("hidden")){
-      close();
-    }
-  });
-}
-
 // ===== 版本資訊（build 與日期） =====
 (async function fillBuildMeta(){
   try{
@@ -362,22 +106,6 @@ function initHelpOverlay(){
     if (verEl) verEl.textContent = `build-${y}${m}${day}-${hh}${mm}`;
   }catch{}
 })();
-
-// ===== Meter 工具 =====
-function resetMeter(){
-  try{
-    meter?.classList.remove("hidden");
-    const barF = document.querySelector(".bar.female");
-    const barM = document.querySelector(".bar.male");
-    if (barF){ barF.style.setProperty("--p", 0); barF.setAttribute("aria-valuenow","0"); }
-    if (barM){ barM.style.setProperty("--p", 0); barM.setAttribute("aria-valuenow","0"); }
-    if (femaleVal) femaleVal.textContent = "0.0%";
-    if (maleVal)   maleVal.textContent   = "0.0%";
-  }catch{}
-}
-
-// OOM 檢查
-function isOOMError(err){ const msg=String(err?.message||err||""); return /OrtRun|bad_alloc|out of memory|memory|alloc/i.test(msg); }
 
 // ===== 事件 =====
 recordBtn?.addEventListener("click", async ()=>{
