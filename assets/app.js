@@ -29,6 +29,7 @@ import {
   resValChest,
   resValMask,
   resValHead,
+  exportBtn,
 } from "./js/dom.js";
 import { dismissOnboardTip } from "./js/theme.js";
 import {
@@ -120,6 +121,7 @@ function updatePlayerCopy(forcePlaying){
   }
 }
 ensurePlayerUI();
+setupExportButton();
 
 // ===== 狀態 =====
 let mediaRecorder = null, chunks = [];
@@ -228,6 +230,8 @@ const offlineFeatureStore = {
   energy: [],
   zcr: [],
 };
+
+let latestAnalysisExport = null;
 
 // 追蹤最新模型傾向（供簡評用）
 let lastPf = 0, lastPm = 0;
@@ -777,6 +781,40 @@ function ensurePlayerUI(){
     wrap.insertAdjacentElement("afterend", stats);
   }
 }
+function setupExportButton(){
+  if (!exportBtn) return;
+  exportBtn.addEventListener("click", ()=>{
+    try{
+      const menu = document.getElementById("themeMenu");
+      const gear = document.getElementById("settingsBtn");
+      if (menu && !menu.hasAttribute("hidden")){
+        menu.setAttribute("hidden", "");
+        gear?.setAttribute("aria-expanded", "false");
+      }
+      exportBtn.blur?.();
+      if (!latestAnalysisExport){
+        setStatus(t("status.exportUnavailable"));
+        return;
+      }
+      const payload = latestAnalysisExport;
+      const json = JSON.stringify(payload, null, 2);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      link.href = url;
+      link.download = `vpa-analysis-${timestamp}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(()=> URL.revokeObjectURL(url), 5000);
+      setStatus(t("status.exportReady"));
+    }catch(err){
+      console.error("[export]", err);
+      setStatus(t("status.errorPrefix", { message: err?.message || "export failed" }));
+    }
+  });
+}
 function stopPlayback(){
   try{
     if (audioEl && !audioEl.paused){
@@ -1325,7 +1363,11 @@ function finishStreamStats(){
     // 僅對有聲點統計；若沒有資料就清空
     const voicedHzRaw = psHzSmooth.filter(v => Number.isFinite(v));
     const vols     = psDb.slice();
-    if (!voicedHzRaw.length && !vols.length){ statsEl.innerHTML=""; return; }
+    if (!voicedHzRaw.length && !vols.length){
+      statsEl.innerHTML="";
+      setLatestAnalysisExport(null);
+      return;
+    }
 
     const stableVoicedHz = filterPitchForStats(voicedHzRaw);
     const voicedHz = stableVoicedHz.length ? stableVoicedHz : voicedHzRaw;
@@ -1420,10 +1462,11 @@ function finishStreamStats(){
       { key: "volumeHigh", value: `${fmt1(volStats.p95)}dB` },
       { key: "volumeLow", value: `${fmt1(volStats.p05)}dB` },
     ];
-    const statsRowsHtml = statsRows.map(({ key, value }) => {
+    const statsTable = statsRows.map(({ key, value }) => {
       const label = statsLabels[key] || t(`summary.statsLabels.${key}`);
-      return `<div class="kv"><div class="k">${label}</div><div class="v">${value}</div></div>`;
-    }).join("");
+      return { key, label, value };
+    });
+    const statsRowsHtml = statsTable.map(({ label, value }) => `<div class="kv"><div class="k">${label}</div><div class="v">${value}</div></div>`).join("");
     const envLabel = statsLabels.env || t("summary.statsLabels.env");
     const statsIntro = summaryString("statsIntro", { sigma: volSigmaLabel });
     const statsHTML = `
@@ -1440,17 +1483,34 @@ function finishStreamStats(){
 
     // 標籤列
     const tags = statsEl.querySelector(".tags");
+    const pitchTagLabel = summaryString("tags.pitchBand", { band });
+    const noiseTagLabel = summaryString("tags.noise", { noise: fmt1(envDb) });
+    let resonanceTagLabel = null;
+    let speechRateTagLabel = null;
+    let breathinessTagLabel = null;
+    if (advSummary){
+      const resonanceTag = advSummary.resonanceDisplay || advSummary.resonanceLabel;
+      if (resonanceTag) resonanceTagLabel = summaryString("tags.resonance", { label: resonanceTag });
+      if (advSummary.speechRateLabel) speechRateTagLabel = summaryString("tags.speechRate", { label: advSummary.speechRateLabel });
+      if (advSummary.breathinessLabel) breathinessTagLabel = summaryString("tags.breathiness", { label: advSummary.breathinessLabel });
+    }
+
+    const summaryTags = {
+      pitchBand: pitchTagLabel,
+      noise: noiseTagLabel,
+      resonance: resonanceTagLabel,
+      speechRate: speechRateTagLabel,
+      breathiness: breathinessTagLabel,
+    };
+
     if (tags){
       let tagHTML = `
-        <span class="tag">${summaryString("tags.pitchBand", { band })}</span>
-        <span class="tag">${summaryString("tags.noise", { noise: fmt1(envDb) })}</span>
+        <span class="tag">${pitchTagLabel}</span>
+        <span class="tag">${noiseTagLabel}</span>
       `;
-      if (advSummary){
-        const resonanceTag = advSummary.resonanceDisplay || advSummary.resonanceLabel;
-        if (resonanceTag) tagHTML += `<span class="tag">${summaryString("tags.resonance", { label: resonanceTag })}</span>`;
-        if (advSummary.speechRateLabel) tagHTML += `<span class="tag">${summaryString("tags.speechRate", { label: advSummary.speechRateLabel })}</span>`;
-        if (advSummary.breathinessLabel) tagHTML += `<span class="tag">${summaryString("tags.breathiness", { label: advSummary.breathinessLabel })}</span>`;
-      }
+      if (resonanceTagLabel) tagHTML += `<span class="tag">${resonanceTagLabel}</span>`;
+      if (speechRateTagLabel) tagHTML += `<span class="tag">${speechRateTagLabel}</span>`;
+      if (breathinessTagLabel) tagHTML += `<span class="tag">${breathinessTagLabel}</span>`;
       tags.innerHTML = tagHTML;
     }
 
@@ -1458,7 +1518,107 @@ function finishStreamStats(){
       const canvas = document.getElementById("intonationCanvas");
       if (canvas) drawIntonationCurve(canvas, advSummary.intonation);
     }
+
+    const voicedHintLabel = voicedHintKey ? t(`summary.voicedHint.${voicedHintKey}`) : null;
+    const payload = {
+      analysisId: analysisSeq,
+      generatedAt: new Date().toISOString(),
+      locale: document.documentElement?.getAttribute("lang") || "zh-Hant",
+      device: currentDevice,
+      probabilities: { feminine: lastPf, masculine: lastPm },
+      pitch: {
+        stats: pitchStats,
+        band,
+        spreadHz: spread,
+        stability: { key: stabilityKey, label: stabilityLabel },
+        samples: {
+          totalRaw: psHz.length,
+          finiteRaw: voicedHzRaw.length,
+          finiteFiltered: voicedHz.length,
+        },
+      },
+      volume: {
+        stats: volStats,
+        envDb,
+        snr,
+        snrKey,
+        snrLabel,
+        variation: { key: volSigmaKey, label: volSigmaLabel },
+        samples: { total: vols.length },
+      },
+      summary: {
+        oneLinerLabel,
+        oneLinerBodyHtml: oneLinerBody,
+        diverge,
+        divergeBadge,
+        divergeNoteHtml: divergeNote,
+        envNoteHtml: envNote,
+        voicedRatio,
+        voicedHintKey,
+        voicedHintLabel,
+        snrDisplay,
+        tags: summaryTags,
+        statsTable,
+        envLabel,
+        envDb,
+      },
+      advanced: advSummary,
+      offlineSamples: cloneOfflineFeatureStore(),
+      realtimeStream: {
+        intervalMs: PS_INTERVAL_MS,
+        pitchRaw: Array.from(psHz),
+        pitchSmooth: Array.from(psHzSmooth),
+        volumeDb: Array.from(psDb),
+        voiced: Array.from(psVoiced),
+      },
+    };
+    setLatestAnalysisExport(payload);
   }catch(e){ console.error("[finishStreamStats]", e); }
+}
+function setLatestAnalysisExport(payload){
+  try{
+    if (payload == null){
+      latestAnalysisExport = null;
+      if (typeof window !== "undefined") window.vpaLatestAnalysis = null;
+      return;
+    }
+    const sanitized = sanitizeForJson(payload);
+    latestAnalysisExport = sanitized;
+    if (typeof window !== "undefined") window.vpaLatestAnalysis = sanitized;
+  }catch(err){
+    console.error("[export] capture failed", err);
+    latestAnalysisExport = null;
+  }
+}
+function cloneOfflineFeatureStore(){
+  const frameSec = offlineFeatureStore.frameSec;
+  const pitch = Array.from(offlineFeatureStore.pitch);
+  const db = Array.from(offlineFeatureStore.db);
+  const voiced = Array.from(offlineFeatureStore.voiced);
+  const formants = offlineFeatureStore.formants.map((triple)=> Array.isArray(triple) ? triple.slice() : [NaN, NaN, NaN]);
+  const tilt = Array.from(offlineFeatureStore.tilt);
+  const breathiness = Array.from(offlineFeatureStore.breathiness);
+  const energy = offlineFeatureStore.energy.map((triple)=> Array.isArray(triple) ? triple.slice() : [NaN, NaN, NaN]);
+  const zcr = Array.from(offlineFeatureStore.zcr);
+  const duration = Number.isFinite(frameSec) ? frameSec * pitch.length : NaN;
+  return { frameSec, pitch, db, voiced, formants, tilt, breathiness, energy, zcr, duration };
+}
+function sanitizeForJson(value){
+  if (Array.isArray(value)){
+    return value.map((item)=> sanitizeForJson(item));
+  }
+  if (value && typeof value === "object"){
+    const out = {};
+    for (const [key, val] of Object.entries(value)){
+      out[key] = sanitizeForJson(val);
+    }
+    return out;
+  }
+  if (typeof value === "number"){
+    return Number.isFinite(value) ? value : null;
+  }
+  if (value === undefined) return null;
+  return value;
 }
 function computeAdvancedSummary(){
   const store = offlineFeatureStore;
@@ -1647,7 +1807,7 @@ function averageEnergy(arr){
 }
 
 const RESONANCE_PRIOR_WEIGHT = 6;
-const RESONANCE_DOMINANCE_DELTA = 0.22;
+const RESONANCE_DOMINANCE_DELTA = 0.26;
 const RESONANCE_HEAD_MIN = 0.40;
 const RESONANCE_MASK_MIN = 0.38;
 const RESONANCE_CHEST_MIN = 0.52;
@@ -1769,8 +1929,8 @@ function categorizeTilt(tilt){
     };
   }
   let key = "bright";
-  if (tilt >= 8) key = "warm";
-  else if (tilt >= 3) key = "gentleWarm";
+  if (tilt >= 7.5) key = "warm";
+  else if (tilt >= 4.5) key = "gentleWarm";
   else if (tilt >= -1) key = "balanced";
   const entry = analysisText?.tilt?.[key];
   return {
@@ -1867,9 +2027,9 @@ function summarizeFormantTrends(store, statsBundle){
   };
 
   return {
-    f1: makeEntry("F1", statsBundle.f1, statsBundle.f1Vals || [], 180, 350),
-    f2: makeEntry("F2", statsBundle.f2, statsBundle.f2Vals || [], 1600, 2500),
-    f3: makeEntry("F3", statsBundle.f3, statsBundle.f3Vals || [], 2500, 3200),
+    f1: makeEntry("F1", statsBundle.f1, statsBundle.f1Vals || [], 170, 420),
+    f2: makeEntry("F2", statsBundle.f2, statsBundle.f2Vals || [], 1450, 2750),
+    f3: makeEntry("F3", statsBundle.f3, statsBundle.f3Vals || [], 2400, 3400),
   };
 }
 
@@ -1895,7 +2055,7 @@ function analyzeVowelFocus(store){
     const f1=form[0], f2=form[1];
     if (!Number.isFinite(f1) || !Number.isFinite(f2)) continue;
     voiced++;
-    if (f1 >= 180 && f1 <= 450 && f2 >= 1500 && f2 <= 2800) focus++;
+    if (f1 >= 170 && f1 <= 480 && f2 >= 1400 && f2 <= 3000) focus++;
   }
   const ratio = voiced ? focus/voiced : NaN;
   if (!Number.isFinite(ratio)) {
@@ -1907,8 +2067,8 @@ function analyzeVowelFocus(store){
     };
   }
   let key = "weak";
-  if (ratio >= 0.6) key = "strong";
-  else if (ratio >= 0.4) key = "medium";
+  if (ratio >= 0.5) key = "strong";
+  else if (ratio >= 0.3) key = "medium";
   const entry = analysisText?.vowelFocus?.[key];
   return {
     ratio,
