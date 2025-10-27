@@ -165,73 +165,126 @@ export default {
   },
   help: {
     dialogHtml: [
+      '<div class="help-close-affix">',
       '<button type="button" id="helpClose" class="help-close" aria-label="Close help">✕</button>',
-      '<h2 id="helpTitle">Voice Presentation Analyzer – Help</h2>',
-      '<p>This tool runs entirely in your browser and is designed for self-practice and teaching demos. The sections below explain the workflow and every panel.</p>',
-      '<h3>Quick start</h3>',
-      '<ol>',
-      '<li>Choose a quiet space, keep the microphone 10–15 cm away, and speak at a comfortable conversation level.</li>',
-      '<li>Press <strong>🎙️ Start recording</strong> and speak for 5–10 seconds, or use the <strong>⬆︎</strong> button to upload mp3 / m4a / mp4 / mov files.</li>',
-      '<li><strong>iPhone Safari upload:</strong> open “Voice Memos” → pick the recording → tap <em>···</em> → “Save to Files”, then return and choose the m4a from the ⬆︎ button.</li>',
-      '<li>During recording the Pitch stream and Formant / Resonance monitors update live; after you stop, watch the status bar until decoding and inference finish.</li>',
-      '<li>The results include the tendency meter, statistics cards, a short summary, and a playback button for the latest clip.</li>',
-      '</ol>',
-      '<h3>What appears while recording?</h3>',
-      '<ul>',
-      '<li><strong>Pitch stream:</strong> plots 50–450 Hz pitch and loudness every 50 ms. Axis labels stay in Hz and the color bands highlight common ranges.</li>',
-      '<li><strong>Formant / Resonance:</strong> estimates F1–F3, breathiness, and the chest / mask / head resonance share. The bar below shows how energy is distributed (peach for chest, pink for mask, pale blue for head).</li>',
-      '<li><strong>Status bar:</strong> lets you know whether the recorder is active, decoding, running inference, or summarizing stats.</li>',
-      '</ul>',
-      '<h3>How to read the Formant & resonance card?</h3>',
-      '<ul>',
-      '<li><strong>F1 / F2 / F3:</strong> the medians during the run. Compare them with the suggested ranges to judge vowel openness and tongue position.</li>',
-      '<li><strong>Breathiness:</strong> estimates how much air leakage is present—too much sounds airy, too little can feel tight.</li>',
-      '<li><strong>Resonance bar:</strong> shows where the vocal energy is focused. Keeping the mask and head segments healthy tends to sound brighter; if the chest segment dominates, practice lifting the soft palate and aiming the buzz forward.</li>',
-      '<li><strong>Spectral tilt:</strong> monitors high-frequency brightness. Use it with the bar to decide whether to open space or add support.</li>',
-      '</ul>',
-      '<h3>How to read the Intonation & speech rate card?</h3>',
-      '<ul>',
-      '<li><strong>Intonation curve:</strong> a pink line sampled every 120 ms that shows whether phrases rise, stay level, or fall. If it disappears in Safari, reset zoom/rotation and reload.</li>',
-      '<li><strong>Trend & dynamics:</strong> summarize the slope and pitch span so you know when to add more rise or smooth out big jumps.</li>',
-      '<li><strong>Speech rate:</strong> reports syllables per second and words per minute for easy comparison with training materials.</li>',
-      '<li><strong>Liaison ratio:</strong> shows how continuous the voiced segments are; low values mean phrases may sound choppy.</li>',
-      '</ul>',
-      '<h3>After analysis</h3>',
-      '<ul>',
-      '<li><strong>Tendency meter:</strong> displays how feminine or masculine the model perceived the clip.</li>',
-      '<li><strong>Statistics cards:</strong> collect pitch / volume percentiles, noise level, SNR, and coaching reminders.</li>',
-      '<li><strong>Summary:</strong> highlights any conflicting signals or environment issues.</li>',
-      '<li><strong>Playback:</strong> keeps a button for the latest take; recording or uploading again releases the previous URL.</li>',
-      '<li><strong>Actionable tips:</strong> each card lists the next steps for resonance, intonation, rate, and breathiness—use them as a checklist for your next practice.</li>',
-      '</ul>',
-      '<h3>Beginner-friendly tips</h3>',
-      '<ul>',
-      '<li><strong>Warm-up trio:</strong> hum a gentle “mm” to bring the vibration to the nose bridge, sustain an “ee” to move the tongue forward, then sigh a “hoo” to relax the larynx.</li>',
-      '<li><strong>If the voice sounds heavy:</strong> hum “mm”, lift the corners of your mouth, then speak while imagining the sound exiting in front of your teeth.</li>',
-      '<li><strong>If the voice feels sharp:</strong> exhale a slow “hoo” to relax the throat, then start with a rounded “oh” shape and keep the airflow steady.</li>',
-      '<li><strong>Need more breathiness:</strong> add a light “h” onset like “h-ah” while keeping shoulders relaxed; if there’s too much breathiness, buzz a few “zzz” to feel vocal fold closure.</li>',
-      '<li><strong>Write down what works:</strong> note the warm-ups you tried and how the meter responded so you can repeat successful steps.</li>',
-      '</ul>',
-      '<h3>Are these coaching cues reliable?</h3>',
-      '<ul>',
-      '<li><strong>Sources & principles:</strong> distilled from speech therapy resonance work, trans voice training materials, and community warm-ups. Every tip focuses on physical sensations and repeatable actions.</li>',
-      '<li><strong>Safety first:</strong> stay within comfortable volume and natural breathing. Stop if you feel pain, hoarseness, or fatigue and seek professional guidance.</li>',
-      '<li><strong>Keep adjusting:</strong> voice is a spectrum. Treat the indicators as instrument readings and adapt them to your goals and listening preferences.</li>',
-      '</ul>',
-      '<h3>Common scenarios</h3>',
-      '<ul>',
-      '<li><strong>First practice:</strong> record a short sentence to confirm setup, then extend to 15–20 seconds for steadier stats.</li>',
-      '<li><strong>Comparing techniques:</strong> record several takes in a row, jot down differences in the cards, and observe pitch, resonance, and breathiness shifts.</li>',
-      '<li><strong>Importing archived clips:</strong> the ⬆︎ button accepts mp3 / m4a / mp4 / mov; video files use only the audio track, and ffmpeg.wasm is used automatically if decoding fails.</li>',
-      '<li><strong>Themes & environment:</strong> pick any theme you like; if background noise is high, the summary will remind you to reduce it or move closer to the mic.</li>',
-      '</ul>',
-      '<div class="help-support">',
-      '<p class="help-support-note">Enjoying VPA? You can keep the project going by treating the author to a coffee.</p>',
-      '<a class="help-support-link" href="https://buymeacoffee.com/shusei" target="_blank" rel="noopener">',
-      '<img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy" />',
-      '</a>',
       '</div>',
-      '<p class="help-footer">To reset preferences, clear the site data in your browser. Audio and models stay on your device. All wording aims to be respectful and inclusive—please report anything we should improve.</p>',
+      '<div class="help-hero">'
+      '<h2 id="helpTitle">Voice Presentation Analyzer – Help</h2>'
+      '<p class="lead">Everything runs locally in your browser, making it ideal for self-practice, class demos, or research prototypes. The sections below cover recording, live monitors, every summary card, and the reasoning behind each coaching cue.</p>'
+      '<div class="help-pill-row">'
+      '<span class="help-pill">🎯 Practice flow</span>'
+      '<span class="help-pill">🧠 Model context</span>'
+      '<span class="help-pill">🎨 UI tour</span>'
+      '<span class="help-pill">📚 Glossary</span>'
+      '</div>'
+      '</div>'
+      '<nav class="help-toc" aria-label="Guide navigation">'
+      '<span>Jump to:</span>'
+      '<a href="#help-start">Quick start</a>'
+      '<a href="#help-live">While recording</a>'
+      '<a href="#help-panels">Reading the panels</a>'
+      '<a href="#help-practice">Practice ideas</a>'
+      '<a href="#help-glossary">Glossary</a>'
+      '</nav>'
+      '<section id="help-start" class="help-section accent">'
+      '<h3>Quick start</h3>'
+      '<ol>'
+      '<li>Pick a quiet space, keep the mic 10–15 cm away, and speak at a relaxed conversation level.</li>'
+      '<li>Press <strong>🎙️ Start recording</strong> and speak for 5–10 seconds, or tap <strong>⬆︎</strong> to upload mp3 / m4a / mp4 / mov.</li>'
+      '<li><strong>iPhone Safari & Voice Memos:</strong> open “Voice Memos” → choose the clip → tap <em>···</em> → “Save to Files”, then select that m4a via the ⬆︎ button.</li>'
+      '<li>During recording you’ll see the pitch stream and the Formant / Resonance monitor. After stopping, wait for the status bar to finish decoding and inference.</li>'
+      '<li>When analysis completes you can inspect the tendency meter, statistics cards, quick summary, and replay the take.</li>'
+      '</ol>'
+      '<div class="help-why"><strong>Why insist on 5–10 seconds?</strong> Stable vowels are required for “Vowel focus”, “Breathiness”, and similar metrics. Short clips often show 0% or “insufficient data”.</div>'
+      '</section>'
+      '<section id="help-live" class="help-section">'
+      '<h3>What appears while recording?</h3>'
+      '<ul>'
+      '<li><strong>Pitch stream:</strong> updates every 50 ms between 50–450 Hz, with color bands for common ranges so you can see whether phrase endings rise into the feminine zone.</li>'
+      '<li><strong>Formant / Resonance monitor:</strong> estimates F1–F3, breathiness, and the chest / mask / head resonance share. The horizontal bar shows energy distribution (peach, pink, pale blue).</li>'
+      '<li><strong>Status bar:</strong> announces each stage—recording, decoding, inference, aggregation—and flags long-form streaming strategies.</li>'
+      '</ul>'
+      '<div class="help-why"><strong>Why do charts stay blank at first?</strong> The system waits for a few hundred milliseconds of voiced audio. If the clip starts with noise or coughing, visuals appear once stable speech arrives.</div>'
+      '</section>'
+      '<section id="help-panels" class="help-section">'
+      '<h3>How to read the analysis panels</h3>'
+      '<h4>Tendency meter & statistics</h4>'
+      '<ul>'
+      '<li><strong>Tendency meter:</strong> shows how feminine or masculine the model perceived the take—use it to compare techniques.</li>'
+      '<li><strong>Statistic cards:</strong> collect pitch and loudness percentiles, environment noise, SNR, plus targeted follow-ups.</li>'
+      '<li><strong>Summary line:</strong> highlights conflicting signals or recording issues.</li>'
+      '</ul>'
+      '<h4>Formant & resonance card</h4>'
+      '<ul>'
+      '<li><strong>F1 / F2 / F3:</strong> medians across the run. Compare with the suggested ranges to gauge vowel openness and tongue placement.</li>'
+      '<li><strong>Resonance bar:</strong> chest / mask / head add up to 100%. More mask + head usually means a brighter tone; heavy chest indicates darker timbre.</li>'
+      '<li><strong>Spectral tilt:</strong> tracks high-frequency brightness and pairs with the bar to decide whether to open space or add support.</li>'
+      '</ul>'
+      '<h4>Intonation & speech rate</h4>'
+      '<ul>'
+      '<li><strong>Intonation curve:</strong> the pink line sampled every 120 ms. It shows whether phrases rise, stay level, or fall; on Safari, reload after resetting zoom if it disappears.</li>'
+      '<li><strong>Trend & range:</strong> summarise slope and pitch span to hint at adding lift or smoothing large jumps.</li>'
+      '<li><strong>Speech rate & liaison:</strong> syllables per second, words per minute, and how continuously voiced segments connect.</li>'
+      '</ul>'
+      '<h4>Vowel focus & breathiness card</h4>'
+      '<p><strong>Vowel focus</strong> tracks how many vowels land in the typical feminine pitch bands; <strong>Breathiness</strong> estimates air leakage; <strong>Resonance tilt</strong> extends spectral tilt into a coaching label. Together they show tongue placement, fold closure, and brightness.</p>'
+      '<ul>'
+      '<li><strong>Well focused:</strong> 60%+ of vowels hit the target—note the phrases and mouth shape you used.</li>'
+      '<li><strong>Can tighten:</strong> roughly half hit the band. Stretch “ee—” or “yay—” to keep the tongue forward, then speak the sentence with that posture.</li>'
+      '<li><strong>Needs work:</strong> very few hits. Sustain front vowels for 5 seconds with the tongue tip resting on the lower teeth before returning to the line.</li>'
+      '<li><strong>Breathiness:</strong> 8%–18% is the sweet spot; add a soft h onset when it’s too dense, or buzz a few “zzz” when it’s too airy.</li>'
+      '</ul>'
+      '<div class="help-why"><strong>Seeing 0%?</strong> Short or consonant-heavy clips can’t supply enough vowels. Hold “ee”/“yay” for 5–10 seconds with a relaxed throat, then retry the sentence.</div>'
+      '</section>'
+      '<section id="help-practice" class="help-section">'
+      '<h3>Practice ideas & warm-ups</h3>'
+      '<h4>Warm-up trio</h4>'
+      '<ul>'
+      '<li><strong>1. Mm:</strong> hum gently to bring vibration to the nose bridge—helps when the resonance card says “Chest-heavy”.</li>'
+      '<li><strong>2. Ee—:</strong> hold a forward vowel to lift the tongue and boost vowel focus.</li>'
+      '<li><strong>3. Hoo:</strong> sigh out slowly to release the larynx and stabilise breathiness/tilt.</li>'
+      '</ul>'
+      '<h4>When the cards suggest…</h4>'
+      '<ul>'
+      '<li><strong>Voice feels heavy:</strong> hum “mm”, keep a light smile, then speak as if the sound leaves from in front of your teeth.</li>'
+      '<li><strong>Voice feels sharp:</strong> exhale a relaxed “hoo”, start with a rounded “oh” mouth, and keep airflow forward instead of upward.</li>'
+      '<li><strong>Need more breathiness:</strong> add a gentle h onset; if breathiness is too high, buzz a few “zzz” to feel fold closure.</li>'
+      '</ul>'
+      '<h4>Scenarios to try</h4>'
+      '<ul>'
+      '<li><strong>First session:</strong> record a short line to confirm gear, then extend to 15–20 seconds for steadier stats.</li>'
+      '<li><strong>Technique comparison:</strong> take several recordings back-to-back, logging how pitch, resonance, and breathiness cards respond.</li>'
+      '<li><strong>Importing archives:</strong> the ⬆︎ button accepts mp3 / m4a / mp4 / mov; video files use the audio track, with ffmpeg.wasm as a fallback.</li>'
+      '<li><strong>Themes & environment:</strong> use the gear to switch themes; if background noise is high, the summary will suggest moving closer or reducing noise.</li>'
+      '</ul>'
+      '<div class="help-why"><strong>Write down what works:</strong> note the warm-ups and cues you tried alongside the meter changes so you can reproduce progress next time.</div>'
+      '</section>'
+      '<section id="help-glossary" class="help-section accent">'
+      '<h3>Glossary</h3>'
+      '<div class="term-grid">'
+      '<div class="term-card"><h4>Formant</h4><p>Resonant frequencies of the vocal tract. F1 reflects mouth opening, F2 tracks tongue frontness, and F3 correlates with brightness.</p></div>'
+      '<div class="term-card"><h4>Resonance</h4><p>The energy split across chest, mask, and head cavities. More mask/head = brighter; more chest = denser.</p></div>'
+      '<div class="term-card"><h4>Vowel focus</h4><p>Share of vowels landing in feminine pitch bands—higher scores mean a forward tongue and consistent vowel shaping.</p></div>'
+      '<div class="term-card"><h4>Breathiness</h4><p>Estimated air leakage. Enough air softens the tone; too much loses support, too little feels tight.</p></div>'
+      '<div class="term-card"><h4>Spectral tilt</h4><p>Relative high vs. low frequency energy—helps judge whether the sound is warm or bright.</p></div>'
+      '<div class="term-card"><h4>Speech rate</h4><p>Syllables per second and words per minute so you can match course material or speeches.</p></div>'
+      '<div class="term-card"><h4>Liaison ratio</h4><p>How smoothly voiced segments connect; low scores mean phrases may feel choppy.</p></div>'
+      '<div class="term-card"><h4>SNR</h4><p>Signal-to-noise ratio. Higher values mean cleaner captures and more reliable analysis.</p></div>'
+      '</div>'
+      '<h4>Sources, ethics, and safety</h4>'
+      '<ul>'
+      '<li><strong>Sources:</strong> distilled from speech therapy resonance work, trans voice curricula, and community warm-ups focused on repeatable sensations.</li>'
+      '<li><strong>Ethics:</strong> the tendency score reflects vocal presentation—not gender identity, medical, or legal status.</li>'
+      '<li><strong>Safety:</strong> stay within comfortable volume and natural breathing; stop if you feel pain, hoarseness, or fatigue and seek professional guidance.</li>'
+      '</ul>'
+      '</section>'
+      '<div class="help-support">'
+      '<p class="help-support-note">Enjoying VPA? Treat the maintainer to a coffee to keep the project going.</p>'
+      '<a class="help-support-link" href="https://buymeacoffee.com/shusei" target="_blank" rel="noopener">'
+      '<img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy" />'
+      '</a>'
+      '</div>'
+      '<p class="help-footer">To reset preferences, clear this site’s data in your browser. Audio and models stay on-device. All copy aims to be inclusive—please report anything that needs refining.</p>'
     ].join(""),
   },
   footer: {
