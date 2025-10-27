@@ -859,6 +859,44 @@ function startDrawLoop(){
     }
     ctx.stroke();
 
+    const axisColor = styles.getPropertyValue("--stream-axis") || styles.getPropertyValue("--muted") || "rgba(0,0,0,.5)";
+    const axisFont = (styles.getPropertyValue("--font-ui") || "sans-serif").trim() || "sans-serif";
+    const axisFontSize = 11 * DPR;
+    const axisTicks = [450, 400, 350, 300, 250, 200, 150, 100, 50];
+    const tickLen = 6 * DPR;
+    const leftX = 8 * DPR;
+    const rightX = w - 8 * DPR;
+    const labelHalf = axisFontSize * 0.6;
+
+    ctx.save();
+    ctx.fillStyle = axisColor;
+    ctx.strokeStyle = axisColor;
+    ctx.lineWidth = 1 * DPR;
+    ctx.font = `${axisFontSize}px ${axisFont}`;
+    ctx.textBaseline = "middle";
+
+    axisTicks.forEach((hz)=>{
+      const y = yOf(hz);
+      const textY = Math.min(Math.max(y, labelHalf), h - labelHalf);
+
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(tickLen, y);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(w, y);
+      ctx.lineTo(w - tickLen, y);
+      ctx.stroke();
+
+      ctx.textAlign = "left";
+      ctx.fillText(`${hz} Hz`, leftX, textY);
+      ctx.textAlign = "right";
+      ctx.fillText(`${hz} Hz`, rightX, textY);
+    });
+
+    ctx.restore();
+
     psRAF = requestAnimationFrame(draw);
   }
   draw();

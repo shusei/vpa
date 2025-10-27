@@ -113,7 +113,7 @@
         <div class="now"><span id="volNow">— dB</span></div>
       </div>
       <canvas id="pitchCanvas" width="900" height="220" aria-label="Pitch stream"></canvas>
-      <div class="pitch-scale">50 ↔︎ 450 Hz（色帶：灰50–85 / 藍85–165 / 灰165–180 / 粉180–310 / 灰310–450）</div>
+      <div class="pitch-scale">縱軸 50–450 Hz（左右刻度顯示 Hz；色帶：灰50–85 / 藍85–165 / 灰165–180 / 粉180–310 / 灰310–450）</div>
     </section>
 
     <section id="formantWrap" class="formant-wrap" hidden>
@@ -188,7 +188,7 @@
         <ul class="bullets">
           <li><b>❓ 使用指南：</b>整理快速開始、面板解說與常見錄音情境，支援鍵盤 <kbd>Esc</kbd> 關閉。</li>
           <li><b>錄音鍵：</b>支援 MediaRecorder 並顯示狀態提示；停止後自動進入解碼與推論流程。</li>
-          <li><b>Hz Stream：</b>僅在錄音期間顯示，追蹤 50–450 Hz 音高與音量；統計會沿用錄音及上傳抽樣。</li>
+          <li><b>Hz Stream：</b>僅在錄音期間顯示，追蹤 50–450 Hz 音高與音量；左右刻度標示 Hz，統計會沿用錄音及上傳抽樣。</li>
           <li><b>Formant / Resonance：</b>同步估計 F1–F3、氣聲比例與共鳴分佈，協助判讀聲音質地。</li>
           <li><b>統計卡：</b>整合 Pitch / Volume 百分位數、環境噪音、SNR 與傾向簡評，可對照練習成果。</li>
           <li><b>主題設定：</b>齒輪可切換 Auto / 淺色 / 深色派並記住每派最後一次的主題。</li>
@@ -278,7 +278,7 @@
 
       <h3>錄音期間會顯示什麼？</h3>
       <ul>
-        <li><strong>Hz Stream：</strong>50–450 Hz 音高走勢與瞬時音量；色帶標示常見音高區。</li>
+        <li><strong>Hz Stream：</strong>50–450 Hz 音高走勢與瞬時音量；左右刻度標示 Hz，色帶標示常見音高區。</li>
         <li><strong>Formant / Resonance：</strong>每 50 ms 估計 F1–F3、氣聲比例，以及胸 / 面罩 / 頭腔共鳴分佈。</li>
         <li><strong>狀態列：</strong>提示目前流程（錄音中、解析、推論、整理統計等）。</li>
       </ul>
