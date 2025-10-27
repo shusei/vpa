@@ -766,6 +766,7 @@ function startPitchStream(userMediaStream){
     psCtx = new Ctx();
     psSrc = psCtx.createMediaStreamSource(userMediaStream);
     psProc = psCtx.createScriptProcessor(2048, 1, 1);
+    const sampleRate = psCtx.sampleRate;
 
     setRealtimePanelsActive(true);
 
@@ -774,10 +775,10 @@ function startPitchStream(userMediaStream){
       const input = ev.inputBuffer.getChannelData(0);
       const rms = Math.sqrt(input.reduce((a,v)=>a+v*v,0) / Math.max(1,input.length));
       const db  = 20*Math.log10(Math.max(rms, 1e-6)) + 100; // 相對 dB
-      const hz  = detectPitchACF(input, psCtx.sampleRate);  // null 表 unvoiced
+      const hz  = detectPitchACF(input, sampleRate);  // null 表 unvoiced
       const now = performance.now();
       if (now - lastTick >= PS_INTERVAL_MS){
-        const spectral = estimateSpectralFeatures(input, psCtx.sampleRate);
+        const spectral = estimateSpectralFeatures(input, sampleRate);
         psDb.push(db);
         psHz.push(hz ?? null);
         psVoiced.push(hz!=null);
