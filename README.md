@@ -73,7 +73,7 @@ Voice Presentation Analyzer（以下簡稱 VPA）是一款完全以 Web 技術�
 
 ## 操作流程
 
-1. **開啟網頁**：造訪 https://shusei.github.io/vpa。若需自架站，可參考後文部署章節。
+1. **開啟網頁**：造訪 https://shusei.github.io/vpa
 2. **選擇來源**：
    - 點擊「開始錄音」並說話 5–10 秒（建議自然口語，避免唱歌）。
    - 或點擊右下角的上傳按鈕，挑選 `mp3 / m4a / mp4 / mov / wav` 等檔案。
