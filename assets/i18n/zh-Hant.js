@@ -300,6 +300,7 @@ export default {
     replayHintSuffix: "。",
     replayHintAria: "重新播放剛才的聲音",
     ariaPlay: "播放剛的聲音",
+    ariaPause: "暫停播放",
   },
   errors: {
     ffmpegModuleLoadFailed: "FFmpeg 模組載入失敗：{{message}}",

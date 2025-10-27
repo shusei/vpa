@@ -53,6 +53,7 @@ import {
   fmtSec,
   clamp01,
   setRealtimePanelsActive,
+  resetRealtimePanels,
   resetMeter,
   isOOMError,
 } from "./js/ui.js";
@@ -97,7 +98,10 @@ function updatePlayerCopy(forcePlaying){
   const isPlaying = forcePlaying ?? (audioEl ? !audioEl.paused : false);
   if (playBtn){
     playBtn.textContent = t(isPlaying ? "player.pause" : "player.play");
-    playBtn.setAttribute("aria-label", t("player.ariaPlay"));
+    playBtn.setAttribute(
+      "aria-label",
+      t(isPlaying ? "player.ariaPause" : "player.ariaPlay")
+    );
   }
   if (playerHintEl){
     if (replayHintPrefixEl){
@@ -1062,6 +1066,7 @@ function updateRealtimeMonitor(features){
   try{
     if (!formantWrap) return;
     if (!features){
+      resetRealtimePanels();
       return;
     }
     const { f1, f2, f3, breathiness, tilt, energy } = features;
