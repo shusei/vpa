@@ -182,6 +182,7 @@ const IS_SAFARI = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 // ===== DOM =====
 const recordBtn = document.getElementById("recordBtn");
 const fileInput = document.getElementById("fileInput");
+const uploadFab = document.getElementById("uploadFab");
 const statusEl  = document.getElementById("status");
 const meter     = document.getElementById("meter");
 const femaleVal = document.getElementById("femaleVal");
@@ -273,6 +274,10 @@ fileInput?.addEventListener("change", async (e)=>{
     await handleFileOrBlob(f);
     e.target.value = "";
   }catch(err){ console.error("[fileInput]", err); setStatus("上傳處理失敗"); }
+});
+
+uploadFab?.addEventListener("click", ()=>{
+  fileInput?.click();
 });
 
 // ===== 錄音 =====
