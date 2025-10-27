@@ -103,12 +103,6 @@
       <canvas id="pitchCanvas" width="900" height="220" aria-label="Pitch stream"></canvas>
       <div class="pitch-scale">50 ↔︎ 450 Hz（色帶：灰50–85 / 藍85–165 / 灰165–180 / 粉180–310 / 灰310–450）</div>
     </section>
-
-    <!-- 播放器會由 JS 動態插入；Statistics / 簡評卡會插在它下面 -->
-    <div class="callout">
-      <p>提示：可錄音或上傳 mp3 / m4a / mp4 / mov；分析完成會提供回放、傾向儀表與統計簡評。</p>
-    </div>
-
     <!-- 傾向儀表：模型結果 -->
     <section id="meter" class="meter hidden" aria-live="polite">
       <div class="bar female" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Female">
@@ -120,6 +114,11 @@
         <span class="value" id="maleVal">0.0%</span>
       </div>
     </section>
+
+    <!-- 播放器會由 JS 動態插入；Statistics / 簡評卡會插在它下面 -->
+    <div class="callout">
+      <p>提示：可錄音或上傳 mp3 / m4a / mp4 / mov；分析完成會提供回放、傾向儀表與統計簡評。</p>
+    </div>
 
     <!-- ===== 舊版完整說明（恢復） ===== -->
     <section class="info">
@@ -216,3 +215,4 @@
   <script type="module" src="assets/app.js"></script>
 </body>
 </html>
+
