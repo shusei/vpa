@@ -131,11 +131,14 @@ body.help-open{ overflow:hidden; }
   top:8px;
   z-index:5;
   display:flex;
-  justify-content:flex-end;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
   margin:-20px -6px 18px;
   pointer-events:none;
 }
-.help-close{
+.help-close,
+.help-top{
   appearance:none;
   border:0;
   background:color-mix(in oklab, var(--panel) 72%, rgba(15,23,42,.12) 28%);
@@ -151,14 +154,20 @@ body.help-open{ overflow:hidden; }
   transition:color .15s ease, background .15s ease, transform .15s ease;
   pointer-events:auto;
 }
-.help-close:hover{
+.help-close:hover,
+.help-top:hover{
   color:var(--ink);
   background:color-mix(in oklab, var(--panel) 58%, rgba(255,255,255,.78) 42%);
   transform:translateY(-1px);
 }
-.help-close:focus-visible{
+.help-close:focus-visible,
+.help-top:focus-visible{
   outline:2px solid var(--ring);
   outline-offset:2px;
+}
+.help-top{
+  font-size:24px;
+  line-height:1;
 }
 .help-footer{ margin-top:18px; font-size:13px; color:var(--muted); }
 
