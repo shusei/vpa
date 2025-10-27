@@ -69,6 +69,7 @@ ensurePlayerUI();
 // ===== 狀態 =====
 let mediaRecorder = null, chunks = [];
 let clf = null, busy = false, heartbeatTimer = null;
+let currentDevice = "wasm";
 
 // Pitch Stream 狀態
 let psCtx=null, psSrc=null, psProc=null;
@@ -339,6 +340,7 @@ async function ensurePipeline(){
   };
   const device = (typeof navigator!=='undefined' && navigator.gpu) ? 'webgpu' : 'wasm';
   clf = await pipeline("audio-classification", MODEL_ID, { progress_callback, device });
+  currentDevice = device;
   setStatus(`模型就緒（device: ${device}）`);
   return clf;
 }
@@ -375,10 +377,14 @@ async function analyzeStreamed(float32, sr, durationSec, reason="串流分段"){
   const model = await ensurePipeline();
   meter?.classList.remove("hidden");
 
+  const strategy = pickStreamStrategy(durationSec);
+  const reasonBits = [reason, strategy.label].filter(Boolean);
+  const reasonLabel = reasonBits.join("｜");
+
   let lastErr=null;
-  for (const winSec of STREAM_WIN_CAND){
+  for (const winSec of strategy.wins){
     try{
-      await runStreamedWithWindow(model, float32, sr, durationSec, winSec, STREAM_HOP_S, reason);
+      await runStreamedWithWindow(model, float32, sr, durationSec, winSec, strategy.hop, reasonLabel || reason);
       return;
     }catch(e){
       lastErr=e;
@@ -448,6 +454,51 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
     render(pf, pm);
     setStatus("完成（串流分段）");
   } finally { stopHeartbeat(); }
+}
+
+const STREAM_STRATEGY_DEFAULT = Object.freeze({
+  hop: STREAM_HOP_S,
+  wins: [...STREAM_WIN_CAND],
+  label: ""
+});
+
+function pickStreamStrategy(durationSec){
+  if (!Number.isFinite(durationSec) || durationSec <= MAX_WHOLE_SEC){
+    return STREAM_STRATEGY_DEFAULT;
+  }
+
+  const dedupeWins = (wins)=>{
+    const seen = new Set();
+    const out = [];
+    for (const w of wins){
+      const key = w.toFixed(2);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(w);
+    }
+    return out;
+  };
+
+  const gpuWins = dedupeWins([18, 12, ...STREAM_WIN_CAND, 4]);
+  const gpuWinsLong = dedupeWins([24, 18, 12, ...STREAM_WIN_CAND, 4]);
+  const wasmWins = dedupeWins([12, ...STREAM_WIN_CAND, 4]);
+
+  if (currentDevice === "webgpu"){
+    if (durationSec >= 600){
+      return { hop: 6, wins: gpuWinsLong, label: "提速策略：WebGPU hop=6s" };
+    }
+    return { hop: 4, wins: gpuWins, label: "提速策略：WebGPU hop=4s" };
+  }
+
+  if (durationSec >= 420){
+    return { hop: 4, wins: wasmWins, label: "提速策略：CPU hop=4s" };
+  }
+
+  if (durationSec >= 240){
+    return { hop: 3.5, wins: wasmWins, label: "提速策略：CPU hop=3.5s" };
+  }
+
+  return STREAM_STRATEGY_DEFAULT;
 }
 
 // ===== 播放器與統計卡容器 =====
