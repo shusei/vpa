@@ -1,0 +1,68 @@
+/* ---------- Help Overlay / Onboarding ---------- */
+body.help-open{ overflow:hidden; }
+.help-overlay{
+  position:fixed; inset:0; z-index:140;
+  display:flex; align-items:center; justify-content:center;
+  padding:28px;
+  background:rgba(0,0,0,.55);
+  backdrop-filter:blur(6px);
+}
+.help-overlay[hidden]{ display:none; }
+.help-dialog{
+  width:min(760px, 94vw);
+  max-height:92vh;
+  overflow:auto;
+  background:var(--panel);
+  color:var(--ink);
+  border-radius:24px;
+  border:1px solid var(--panel-border);
+  box-shadow:0 28px 80px rgba(0,0,0,.35);
+  padding:32px 36px 36px;
+  position:relative;
+}
+.help-dialog h2{ margin-top:0; margin-bottom:12px; font-size:24px; }
+.help-dialog h3{ margin:24px 0 10px; font-size:18px; }
+.help-dialog p{ margin:0 0 14px; line-height:1.7; font-size:15px; }
+.help-dialog ul, .help-dialog ol{ margin:0 0 18px 20px; line-height:1.65; font-size:15px; }
+.help-dialog li + li{ margin-top:8px; }
+.help-close{
+  position:absolute; top:16px; right:16px;
+  appearance:none; border:0; background:transparent;
+  color:var(--muted); font-size:22px; cursor:pointer;
+  transition:color .15s ease, transform .15s ease;
+}
+.help-close:hover{ color:var(--ink); transform:translateY(-1px); }
+.help-close:focus-visible{ outline:2px solid var(--ring); outline-offset:2px; }
+.help-footer{ margin-top:18px; font-size:13px; color:var(--muted); }
+
+kbd{
+  display:inline-block;
+  padding:2px 6px;
+  border-radius:6px;
+  background:color-mix(in oklab, var(--panel) 72%, var(--accent-2) 28%);
+  border:1px solid color-mix(in oklab, var(--panel-border) 70%, var(--accent-2) 30%);
+  font-size:12px;
+  font-weight:700;
+  color:var(--ink);
+}
+
+/* ---------- Docs ---------- */
+.docs{ margin:18px 0 24px; background:rgba(255,255,255,.1); border-radius:14px; border:1px solid rgba(255,255,255,.24); }
+.docs > summary{
+  cursor:pointer; padding:12px 14px; font-weight:800; letter-spacing:.2px; list-style:none;
+}
+.docs[open] > summary{ border-bottom:1px solid rgba(255,255,255,.15); }
+.docs-body{ padding:12px 14px 16px; }
+.docs-body h3{ margin:12px 0 6px; }
+.docs-body p, .docs-body li{ color:rgba(255,255,255,.92); }
+.docs-body ul{ margin:6px 0 10px 18px; }
+.docs-body ol{ margin:6px 0 10px 18px; }
+
+/* ---------- Footer / Misc ---------- */
+.footer{ color:color-mix(in oklab, var(--text) 70%, var(--muted) 30%); padding:30px 0; text-align:center; }
+.spinner{
+  display:inline-block; width:1em; height:1em; border-radius:50%;
+  border:2px solid rgba(255,255,255,.35); border-top-color:#fff; margin-right:.5em;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{ to{ transform:rotate(360deg);} }
