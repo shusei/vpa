@@ -107,9 +107,10 @@ let currentDevice = "wasm";
 // Pitch Stream 狀態
 let psCtx=null, psSrc=null, psProc=null;
 let psRAF=null, psRunning=false;
-let psHz=[], psDb=[], psVoiced=[]; // 50ms/點
+let psHz=[], psHzSmooth=[], psDb=[], psVoiced=[]; // 50ms/點
 const PS_INTERVAL_MS = 50;
 const PS_MIN_HZ = 50, PS_MAX_HZ = 450;
+const PS_SMOOTH_ALPHA = 0.25; // 顯示用指數平滑；統計仍使用原始音高
 const offlineFeatureStore = {
   frameSec: 0,
   pitch: [],
@@ -757,10 +758,25 @@ function smoothMask(mask, k=3){
 }
 
 // ===== Pitch Stream（ACF 音高 + 畫布） =====
+function appendPitchSample(rawHz){
+  psHz.push(rawHz);
+  if (!Number.isFinite(rawHz)){
+    psHzSmooth.push(null);
+    return;
+  }
+  const prev = psHzSmooth.length ? psHzSmooth[psHzSmooth.length-1] : null;
+  if (!Number.isFinite(prev)){
+    psHzSmooth.push(rawHz);
+  } else {
+    const next = prev + PS_SMOOTH_ALPHA * (rawHz - prev);
+    psHzSmooth.push(next);
+  }
+}
+
 function startPitchStream(userMediaStream){
   try{
     if (!pitchWrap || !pitchCanvas) return;
-    psHz.length=0; psDb.length=0; psVoiced.length=0;
+    psHz.length=0; psHzSmooth.length=0; psDb.length=0; psVoiced.length=0;
 
     const Ctx = window.AudioContext || window.webkitAudioContext;
     psCtx = new Ctx();
@@ -780,10 +796,10 @@ function startPitchStream(userMediaStream){
       if (now - lastTick >= PS_INTERVAL_MS){
         const spectral = estimateSpectralFeatures(input, sampleRate);
         psDb.push(db);
-        psHz.push(hz ?? null);
+        appendPitchSample(hz ?? null);
         psVoiced.push(hz!=null);
         const maxN = Math.round(15000 / PS_INTERVAL_MS); // 保留約 15 秒
-        if (psDb.length>maxN){ psDb.shift(); psHz.shift(); psVoiced.shift(); }
+        if (psDb.length>maxN){ psDb.shift(); psHz.shift(); psHzSmooth.shift(); psVoiced.shift(); }
         lastTick = now;
 
         if (pitchNowEl) pitchNowEl.textContent = hz ? `${hz.toFixed(1)}Hz` : "— Hz";
@@ -919,7 +935,7 @@ function startDrawLoop(){
   }
 
   function draw(){
-    if (!psRunning && psHz.length===0){ psRAF = requestAnimationFrame(draw); return; }
+    if (!psRunning && psHzSmooth.length===0){ psRAF = requestAnimationFrame(draw); return; }
     const w=pitchCanvas.width, h=pitchCanvas.height;
     ctx.clearRect(0,0,w,h);
     drawBands();
@@ -931,10 +947,10 @@ function startDrawLoop(){
     // 往右跑：最右是最新
     const stepX = 3*DPR;
     const maxN  = Math.floor(w/stepX)-2;
-    const n = Math.min(psHz.length, maxN);
+    const n = Math.min(psHzSmooth.length, maxN);
     ctx.beginPath();
     for (let i=0;i<n;i++){
-      const hz = psHz[psHz.length-n+i];
+      const hz = psHzSmooth[psHzSmooth.length-n+i] ?? psHz[psHz.length-n+i];
       const x = w - (n-i)*stepX;
       if (hz==null) continue;
       const y = yOf(hz);
@@ -989,7 +1005,7 @@ function startDrawLoop(){
 function offlineExtractStreamMetrics(float32, sr, append=false){
   try{
     if(!append){
-      psHz.length=0; psDb.length=0; psVoiced.length=0;
+      psHz.length=0; psHzSmooth.length=0; psDb.length=0; psVoiced.length=0;
       resetOfflineFeatureStore();
     }
     const step = Math.max(1, Math.floor((PS_INTERVAL_MS/1000)*sr));
@@ -1001,7 +1017,7 @@ function offlineExtractStreamMetrics(float32, sr, append=false){
       const hz = detectPitchACF(seg, sr);
       const spectral = estimateSpectralFeatures(seg, sr);
       psDb.push(db);
-      psHz.push(hz ?? null);
+      appendPitchSample(hz ?? null);
       psVoiced.push(hz!=null);
       offlineFeatureStore.pitch.push(hz ?? NaN);
       offlineFeatureStore.db.push(db);
