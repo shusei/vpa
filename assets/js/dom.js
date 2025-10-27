@@ -27,6 +27,7 @@ export const resValHead  = document.getElementById("resHeadVal");
 
 export const helpBtn = document.getElementById("helpBtn");
 export const helpOverlay = document.getElementById("helpOverlay");
-export const helpCloseBtn = document.getElementById("helpClose");
+export const localeBtn = document.getElementById("localeBtn");
+export const localeMenu = document.getElementById("localeMenu");
 export const onboardTip = document.getElementById("onboardTip");
 export const onboardDismissBtn = document.getElementById("onboardDismiss");

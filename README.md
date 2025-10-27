@@ -186,3 +186,9 @@ npm run test:markup -- index.html assets/css/base.css docs/landing.html
   - 新增進度與 ETA；上傳影片檔自動 ffmpeg.wasm 備援。
   - 強化 GC：釋放 ObjectURL、關閉 AudioContext、清除暫存。
   - 新增回放按鈕；README/說明更新。
+
+---
+
+## 支援作者
+
+[![Buy Me a Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://buymeacoffee.com/shusei)

@@ -11,9 +11,9 @@ main.container{
 .brand{ display:flex; align-items:center; gap:10px; color:var(--text); }
 .logo{ font-weight:900; letter-spacing:.6px; font-size:18px; }
 .ver{ font-size:12px; opacity:.85; }
-.actions{ display:flex; align-items:center; gap:10px; }
+.actions{ display:flex; align-items:center; gap:10px; position:relative; }
 .tip{ background:#111; color:#fff; border-radius:8px; padding:6px 8px; font-size:12px; box-shadow:0 8px 20px rgba(0,0,0,.25); }
-.gear, .help-btn{
+.gear, .help-btn, .lang-btn{
   appearance:none; border:0; background:var(--panel); border:1px solid var(--panel-border);
   width:38px; height:38px; border-radius:12px; cursor:pointer;
   display:flex; align-items:center; justify-content:center; line-height:1;
@@ -21,14 +21,44 @@ main.container{
   box-shadow:0 10px 24px rgba(0,0,0,.16);
   transition:transform .18s ease, box-shadow .18s ease, background .18s ease;
 }
-.gear:hover, .help-btn:hover{
+.gear:hover, .help-btn:hover, .lang-btn:hover{
   transform:translateY(-1px);
   box-shadow:0 14px 28px rgba(0,0,0,.18);
   background:color-mix(in oklab, var(--panel) 70%, var(--accent-2) 30%);
 }
-.gear:active, .help-btn:active{ transform:translateY(0); }
-.gear:focus-visible, .help-btn:focus-visible{ outline:2px solid var(--ring); outline-offset:2px; }
+.gear:active, .help-btn:active, .lang-btn:active{ transform:translateY(0); }
+.gear:focus-visible, .help-btn:focus-visible, .lang-btn:focus-visible{ outline:2px solid var(--ring); outline-offset:2px; }
 .help-btn{ font-size:18px; }
+.lang-menu{
+  position:absolute; top:60px; right:68px; z-index:45;
+  min-width:180px; padding:12px;
+  border-radius:14px;
+  border:1px solid var(--panel-border); background:var(--panel); color:var(--ink);
+  box-shadow:0 16px 40px rgba(0,0,0,.26);
+}
+.lang-menu[hidden]{ display:none; }
+.lang-item{
+  display:flex; align-items:center; justify-content:space-between;
+  width:100%; padding:8px 12px; margin:0;
+  border:0; border-radius:10px; background:transparent; cursor:pointer;
+  color:inherit; font-weight:600; font-size:14px;
+  transition:background .18s ease, transform .18s ease;
+}
+.lang-item.active{
+  background:color-mix(in oklab, var(--panel) 85%, var(--accent-2) 15%);
+}
+.lang-item[aria-checked="true"]::after{
+  content:"✓";
+  font-size:14px;
+}
+.lang-item:hover{
+  background:color-mix(in oklab, var(--panel) 78%, var(--accent-2) 22%);
+  transform:translateY(-1px);
+}
+.lang-item:focus-visible{
+  outline:2px solid var(--ring);
+  outline-offset:2px;
+}
 .hero-title{
   margin:18px 0 6px; font-size:clamp(28px,6vw,56px); line-height:1.04;
   background: var(--hero-title-bg); -webkit-background-clip:text; background-clip:text;
