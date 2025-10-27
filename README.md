@@ -1,139 +1,202 @@
-# Voice Presentation Analyzer (Browser-only)
+# Voice Presentation Analyzer
 
-在 **瀏覽器端** 本地推論，快速查看聲音被模型感知為 **女性化／男性化** 的傾向。**不會上傳音檔**。
+> 100% 瀏覽器端推論的聲音呈現分析工具，從錄音或上傳的語音片段中推估模型感知到的 feminine / masculine 傾向，並提供即時監控與統計摘要。
 
-- Demo：https://shusei.github.io/vpa （支援子路徑部署）
-- 可錄音或上傳 mp3 / m4a / mp4 / mov，完成後顯示傾向儀表、統計與簡評。
-- 內建 30+ 顏色主題，支援自動／淺色／深色派記憶。
-
----
-
-## 特色
-
-- **隱私**：100% 本地推論，音檔不離開裝置。僅保留「最新一段」的回放 URL，換檔即釋放。
-- **即時**：錄完立刻分析；支援錄音或上傳 mp3 / m4a / mp4 / mov。
-- **主題系統**：可在 Auto／淺色／深色派中切換 30+ 主題，會記住上一個偏好。
-- **多語系介面**：右上角 🌐 可切換繁體中文／简体中文／English，語言設定與主題一樣會記住。
-- **即時音高 Stream**：錄音期間顯示 50–450 Hz 走勢與瞬時音量；上傳檔也會離線抽樣以供統計。
-- **Formant / Resonance 監控**：錄音時同步估計 F1–F3、氣聲比例與胸／面罩／頭腔共鳴，未錄音時自動收合以保持介面簡潔。
-- **互動引導**：第一次造訪會跳出快速提示泡泡，右上角 ❓ 可開啟詳細操作指南（支援鍵盤 Esc 關閉）。
-- **統計＋簡評**：分析後輸出 Pitch / Volume 百分位數、環境底噪、SNR 與一行簡評，並提示指標分歧。
-- **整段優先**：音檔長度 ≤ `MAX_WHOLE_SEC = 150` 秒（參見 `assets/js/constants.js`）即走「整段一次、不分段」。
-- **長檔穩定**：>150 秒自動 **串流分段**，依裝置（WebGPU / WASM）與長度調整視窗與步長（WebGPU 最長 24 秒窗 / hop 6 秒，WASM 最長 12 秒窗），仍保留 12 / 8 / 6 / 4 秒備援以避免 OOM。
-- **自適應 VAD**：長檔可偵測靜音區段，只「選段」讓有效語音優先推論（不更動原音）。
-- **最小前處理**：僅混單聲道 + 16 kHz 重採樣（為符合模型）；**不**去靜音、**不**調音量、**不**改內容。
-- **進度與 ETA**：長檔顯示片段進度、百分比、預估剩餘時間與採用的串流策略。
-- **回放**：分析後可一鍵回放「剛剛那段」（只保留最新一段；舊音檔自動釋放）。
-- **快取**：模型 ONNX 會存於 IndexedDB，下次更快。
+- Demo（GitHub Pages）：https://shusei.github.io/vpa
+- 支援子路徑部署與完全離線（IndexedDB 快取模型）
+- 前端語系：繁體中文／简体中文／English，可記住上一個偏好
 
 ---
 
-## 模型與方法
+## 目錄
 
-- 模型：`prithivMLmods/Common-Voice-Gender-Detection-ONNX`（基於 Wav2Vec2 的二分類：女性／男性）  
-  Model card：https://huggingface.co/prithivMLmods/Common-Voice-Gender-Detection （授權 Apache-2.0）
-- 推論引擎：`@xenova/transformers`（Transformers.js，瀏覽器 ONNX Runtime；支援 WebGPU → WASM 回退）
-- 前處理（最小化）：立體聲 → 單聲道混合；取樣率 → 16 kHz 重採樣。
-- 推論策略：
-  - ≤ 150s：**整段一次、不分段**（常數 `MAX_WHOLE_SEC`）。
-  - > 150s：**串流分段**，根據實際推論裝置（WebGPU / WASM）與音檔長度自動挑選視窗與步長，遇記憶體或精度風險時逐步回退至 12 / 8 / 6 / 4 秒。
-    - WebGPU：< 600 秒採 4 秒 hop，優先視窗 18 / 12 / 8 / 6 / 4 秒；≥ 600 秒升級為 hop 6 秒、視窗 24 / 18 / 12 / 8 / 6 / 4 秒。
-    - WASM / CPU：≥ 420 秒採 hop 4 秒；240–419 秒採 hop 3.5 秒；其餘維持 hop 3 秒（12 / 8 / 6 / 4 秒備援）。
-- VAD：長檔時可啟用自適應 VAD，排除長靜音後再推論（語音內容不變）。
-- 聚合：長檔以 **對數勝算**（log-odds）做時間加權聚合，盡量貼近整段一次結果。
-- 解碼備援：優先 WebAudio；失敗自動落到 `ffmpeg.wasm`（ESM 優先、UMD 備援），轉完釋放記憶體。
-- 透明度：顯示進度、ETA、匯報使用的 device（WebGPU / WASM），以及即時音高 / 音量圖表。
+- [產品概覽](#產品概覽)
+- [核心能力一覽](#核心能力一覽)
+- [操作流程](#操作流程)
+- [輸出解讀指南](#輸出解讀指南)
+- [技術架構](#技術架構)
+- [開發與測試](#開發與測試)
+- [部署方式](#部署方式)
+- [常見問題與疑難排解](#常見問題與疑難排解)
+- [隱私、定位與免責聲明](#隱私定位與免責聲明)
+- [專案結構](#專案結構)
+- [版本資訊與授權](#版本資訊與授權)
 
 ---
 
-## 統計與簡評
+## 產品概覽
 
-分析完成後會在儀表下方輸出 Statistics 卡，內容包含：
+Voice Presentation Analyzer（以下簡稱 VPA）是一款完全以 Web 技術打造、在本機瀏覽器完成推論的語音呈現分析器。使用者可以直接在瀏覽器內錄音，或上傳 `mp3 / m4a / mp4 / mov / wav` 等常見音訊格式，系統會即時顯示：
 
-- Pitch：平均、Median、5th / 95th 百分位數，並判斷常見音高區（男性常見區、重疊帶、女性常見區等）。
-- Volume：平均、Median、標準差（σ）、5th / 95th 百分位數，幫助掌握音量穩定度。
-- Environment：估算環境底噪（10th 百分位）與 SNR，提供錄音環境建議。
-- 簡評：整合模型傾向（Female / Male %）、音高區、SNR、變化幅度，偵測「指標分歧」並給予提示。
-- 取樣提醒：若錄音期間有聲樣本不足，會提醒延長語句以提升可信度。
+- 模型對「女性化 / 男性化」呈現的機率傾向
+- 錄音期間的音高、音量、噪音走勢
+- 分析完成後的統計卡（Pitch、Volume、Environment、Formant / Resonance、Speech Rate 等）與簡短評語
 
----
-
-## 用途定位與免責
-
-- 這個分數是 **模型對語音表現的傾向**（feminine/masculine），不是性別認同，也不是醫療／法律判定。
-- 請把它當作 **自我練習的回饋**；不要用來評價他人或從事任何歧視行為。
-- **灰色帶**：分數介於 **40–60%** 屬於模糊區，建議多錄幾段觀察趨勢。
-
-**已知侷限**
-- 模型主要以 Mozilla Common Voice 的 **英語朗讀**資料訓練；中文／方言／唱歌／戲腔可能有落差。
-- 噪音、回音、鼻音重、感冒、僅「硬拉高音高」等，都可能造成偏差。
+整個流程不會把音檔傳回伺服器，所有計算都在前端完成。模型檔案會快取在 IndexedDB，日後再次造訪可以離線使用。
 
 ---
 
-## 使用者快速開始
+## 核心能力一覽
 
-1. 打開：https://shusei.github.io/vpa
-2. 按「開始錄音」說話 5–10 秒（非唱歌），再按停止；或右下角「上傳」選擇 mp3/m4a/mp4/mov。
-   錄音期間會顯示 Hz Stream 與 Formant / Resonance 即時監控，停止後自動進入解碼與推論。
-3. 查看傾向儀表、統計卡與一行簡評；需要複習可播放最新錄音。若不確定流程，可點右上角 ❓ 開啟圖解指南。
-4. 錄音建議：環境安靜、麥克風距離 10–15 cm、用日常對話音量與語速。
-   - iOS Safari 上傳語音備忘錄：在 iPhone「語音備忘錄」→ 分享 → 存到檔案（Files），本頁上傳時選「瀏覽」。
+### 隱私與安全
+
+- **本地推論**：採用 [`@xenova/transformers`](https://github.com/xenova/transformers.js) 的 ONNX Runtime，模型固定自 Hugging Face Hub 下載，音檔絕不離開裝置。【F:assets/app.js†L1-L110】
+- **最小化前處理**：僅將輸入混成單聲道並重採樣至 16 kHz，保留原始語音內容與音量。【F:assets/js/constants.js†L1-L17】
+- **快取可控**：IndexedDB 儲存模型，使用者可透過介面按鈕或清除網站資料移除快取。
+
+### 互動體驗
+
+- **錄音／上傳二合一流程**：支援 MediaRecorder 錄音，或從檔案系統挑選音訊／影片檔（自動抽出音軌）。【F:assets/app.js†L196-L320】【F:index.html†L311-L348】
+- **即時儀表與提示**：分析期間的儀表會即時刷新，狀態列同步顯示目前片段、進度百分比與預估剩餘時間。【F:assets/app.js†L566-L628】【F:index.html†L351-L397】
+- **多主題與派別**：內建 30+ 顏色主題，可在 Auto / Light / Dark / 彩色派別中切換並記憶選擇。【F:index.html†L61-L123】【F:assets/js/theme.js†L1-L220】
+- **新手引導與使用指南**：首次造訪會出現提示泡泡，右上角 ❓ 可開啟圖文說明覆蓋層，支援鍵盤 `Esc` 關閉。【F:index.html†L214-L308】【F:assets/js/theme.js†L222-L339】
+
+### 即時監測與統計
+
+- **Pitch Stream**：以 50 ms 解析度顯示 50–450 Hz 音高走勢、瞬時音量、噪音估計並提供穩定度平滑處理。【F:assets/app.js†L180-L259】【F:index.html†L125-L213】
+- **Formant / Resonance 面板**：估計 F1–F3、胸／面罩／頭腔共鳴比例、氣聲比例、頻譜傾斜等資訊，錄音或上傳時即時更新。【F:assets/app.js†L202-L254】【F:index.html†L134-L204】
+- **統計卡**：分析完成後輸出 Pitch、Volume、Environment、Formant & Resonance、Speech Rate 等指標的平均值、百分位數與建議範圍。【F:assets/app.js†L1407-L1642】【F:index.html†L400-L575】
+- **模型簡評**：整合模型輸出與統計指標，給予 1 行摘要並凸顯指標矛盾或建議。【F:assets/app.js†L1365-L1406】
+
+### 長檔案處理
+
+- **整段 / 串流自動切換**：`≤ 150 秒` 採單次推論；長檔會依裝置（WebGPU / WASM）與時長選擇視窗長度與 hop，逐步回退避免 OOM。【F:assets/js/constants.js†L5-L12】【F:assets/app.js†L600-L704】
+- **自適應 VAD**：當錄音超過 20 秒且靜音比例超過 15% 時，會自動偵測有效語音區段、優先推論語音內容。【F:assets/js/constants.js†L9-L17】【F:assets/app.js†L884-L1032】
+- **進度心跳與 ETA**：長檔會顯示分段進度、已處理時長與預估剩餘時間，同時標示採用的串流策略。【F:assets/app.js†L566-L628】【F:assets/app.js†L643-L704】
+
+### 多語系與可及性
+
+- **三語介面**：支援繁中／簡中／英文，透過 `assets/js/i18n.js` 進行延遲載入，會記住使用者偏好並更新 `<title>` 與 `<meta>`。【F:assets/js/i18n.js†L1-L120】
+- **ARIA 與鍵盤操作**：所有主要控制都有 `aria-*` 屬性與鍵盤事件，確保可及性。【F:index.html†L274-L308】【F:index.html†L311-L348】
 
 ---
 
-## 部署（站長）
+## 操作流程
 
-### A) GitHub Pages（預設、無後端）
-1. 將 `index.html` 與 `assets/` 推到公開 repo，啟用 GitHub Pages。
-2. 預設 `window.INFERENCE_MODE = 'browser'`（不需更動）。
-3. 首次載入會下載 ONNX 模型（數十 MB），之後使用快取。
+1. **開啟網頁**：造訪 https://shusei.github.io/vpa。若需自架站，可參考後文部署章節。
+2. **選擇來源**：
+   - 點擊「開始錄音」並說話 5–10 秒（建議自然口語，避免唱歌）。
+   - 或點擊右下角的上傳按鈕，挑選 `mp3 / m4a / mp4 / mov / wav` 等檔案。
+3. **即時觀察**：錄音期間會顯示 Pitch Stream 與 Formant / Resonance 面板；上傳檔案則會離線抽樣並於統計卡展示。
+4. **等待推論完成**：儀表盤會顯示模型即時傾向、狀態列同步告知進度與預估剩餘時間。
+5. **檢視結果**：推論完成後，可在儀表下方閱讀統計卡與簡評，必要時點擊播放器回放剛才的音檔。
+6. **重複練習**：新的錄音或上傳會覆蓋舊音檔，快取的模型仍保留以加快後續推論。
 
-### B) Cloudflare Pages（可選，作為 HF API 代理）
-若需要 serverless 代理 `/api/classify`，請在 Pages Functions 設定 `HUGGING_FACE_TOKEN`，前端改為：
+錄音建議：
+- 環境盡量安靜，與麥克風保持 10–15 公分距離。
+- 使用自然說話聲音與語速。
+- 若要上傳 iOS 語音備忘錄，可先在「檔案」App 儲存，再於本頁上傳。
+
+---
+
+## 輸出解讀指南
+
+- **傾向儀表**：顯示模型推估的 feminine / masculine 百分比。40–60% 為灰色帶，建議再錄幾段觀察趨勢。【F:index.html†L351-L397】
+- **Pitch 卡**：包含平均、Median、5th / 95th 百分位數並標記常見頻帶（男性常見、重疊帶、女性常見）。【F:index.html†L416-L447】
+- **Volume 卡**：平均、Median、標準差與 5th / 95th 百分位，用來評估音量穩定度。【F:index.html†L449-L486】
+- **Environment 卡**：估計環境底噪（10th 百分位）與 SNR，提供錄音環境建議。【F:index.html†L488-L520】
+- **Formant & Resonance 卡**：展示 F1–F3 中位數、共鳴亮度與氣聲比例，並附上提示文字。【F:index.html†L522-L566】
+- **Speech Rate 卡**：統計語速與語音佔比，提醒是否語音不足。【F:index.html†L568-L575】
+- **簡評**：整合以上指標，標示指標分歧或錄音品質提醒。【F:assets/app.js†L1365-L1406】
+
+---
+
+## 技術架構
+
+```
+使用者行為 → MediaRecorder / 檔案上傳 → 音訊解碼
+  ↘ WebAudio 即時分析（Pitch / Formant / Noise）
+     ↘ IndexedDB 快取模型 → Transformers.js ONNX Runtime
+        ↘ 整段 / 串流分段 → Log-odds 聚合 → 傾向儀表
+           ↘ 統計彙整（百分位、語速、噪音、SNR、formant）
+              ↘ I18n / 主題系統 → UI 呈現
+```
+
+- **推論引擎**：`@xenova/transformers` 搭配 `prithivMLmods/Common-Voice-Gender-Detection-ONNX` 二分類模型（Apache-2.0 授權）。【F:assets/app.js†L1-L110】
+- **音訊處理**：WebAudio 進行即時頻譜、pitch、formant 與噪音估計；必要時退回 `ffmpeg.wasm` 解析影片音軌。【F:assets/app.js†L320-L565】
+- **分段策略**：根據裝置（WebGPU / WASM）與長度決定視窗與 hop，並顯示策略描述（如「WebGPU：24 秒窗 / hop 6 秒」）。【F:assets/app.js†L600-L704】
+- **聚合方法**：長檔使用對數勝算（log-odds）加權整合片段結果，以貼近整段一次推論的輸出。【F:assets/app.js†L566-L628】
+- **狀態管理**：透過 `analysisSeq` / `activeAnalysisToken` 確保並行操作時只保留最新一輪結果，避免 race condition。【F:assets/app.js†L70-L118】
+
+---
+
+## 開發與測試
+
+### 前置需求
+
+- Node.js 18+（僅用於靜態檢查，前端仍為純靜態頁面）
+- npm 8+
+
+### 安裝與檢查
+
+```bash
+npm install      # 本專案無額外依賴，但可保留安裝流程
+npm test         # 依序執行 JS 語法檢查與 HTML/CSS 結構檢查
+```
+
+個別命令：
+
+- `npm run test:syntax`：使用 `node --check` 檢查 `assets/app.js` 語法。【F:package.json†L6-L11】
+- `npm run test:markup`：執行 `scripts/check-static.js`，掃描預設的 HTML / CSS 檔案是否存在未配對標籤、括號或引號。【F:scripts/check-static.js†L1-L207】
+  - 可加上額外檔案：`npm run test:markup -- docs/landing.html assets/css/custom.css`
+
+### 本地預覽
+
+本專案為純靜態頁面，可使用任何靜態伺服器，例如：
+
+```bash
+npx serve .
+```
+
+啟動後於瀏覽器開啟 `http://localhost:3000` 即可操作。
+
+---
+
+## 部署方式
+
+### GitHub Pages（預設建議）
+
+1. 將 `index.html` 與整個 `assets/` 資料夾推到公開 repository。
+2. 於 GitHub 設定 Pages（Branch 或 GitHub Actions 均可）。
+3. 預設 `window.INFERENCE_MODE = 'browser'`，無須額外設定伺服器。首次載入會下載模型，後續使用快取。
+
+### Cloudflare Pages（提供 Hugging Face 代理）
+
+若需透過 serverless 代理呼叫 Hugging Face API，可在 Pages Functions 設定 `HUGGING_FACE_TOKEN`，並於 `index.html`（或額外 script）覆寫以下設定：
 
 ```html
 <script>
   window.INFERENCE_MODE = 'server';
-  window.API_BASE_URL   = 'https://<project>.pages.dev/api/classify';
+  window.API_BASE_URL = 'https://<project>.pages.dev/api/classify';
 </script>
 ```
 
-本專案預設 **純前端**；僅在必要時啟用後端。
+預設仍推薦純前端模式，僅在企業環境或需要封鎖外網時才設定代理。
+
+### 子路徑部署
+
+VPA 遵循相對路徑，可直接放在 `https://domain/app/vpa/` 等子路徑。若遇路徑問題，檢查 `<base>` 或 CDN 來源是否正確。
 
 ---
 
-## 本地測試
+## 常見問題與疑難排解
 
-這個專案主要是靜態頁面，沒有複雜的 CI，但仍提供最基本的語法檢查：
-
-```bash
-npm install   # 只需執行一次（此專案無外部依賴）
-npm test      # 依序檢查 JS（node --check）與 HTML/CSS 結構配對（自製腳本）
-```
-
-若額外新增靜態檔案，可直接把路徑加在 `npm run test:markup -- <path>` 後方：
-
-```bash
-npm run test:markup -- index.html assets/css/base.css docs/landing.html
-```
-
-指令會自動連同預設的 `index.html` 與 `assets/css/*.css` 一起檢查；若輸入不支援的副檔名會立即失敗並提示。
-
-若要做進一步的手動驗證，可以於本地啟動任意靜態伺服器（例如 `npx serve .`）並在瀏覽器操作流程。
+| 問題 | 可能原因 | 建議作法 |
+| ---- | -------- | -------- |
+| 無法錄音 | 瀏覽器拒絕麥克風權限 / MediaRecorder 不支援 | 允許麥克風、改用 Chrome／Edge；或直接上傳檔案。【F:assets/app.js†L216-L320】 |
+| 長檔推論耗時 | 裝置採用 WASM 且檔案 > 4 分鐘 | 進度列會顯示實際策略（例如 hop 4 秒），可等待或手動裁切檔案。【F:assets/app.js†L643-L704】 |
+| 統計卡顯示「資料不足」 | 語音時長不足 5 秒、語音不連續 | 延長錄音時間並保持連續語句。【F:assets/app.js†L1603-L1676】 |
+| 模型載入失敗 | 首次載入網路不穩、Hugging Face CDN 無法存取 | 重整頁面，或在離線前確保模型已載入一次（IndexedDB 快取）。【F:assets/app.js†L520-L565】 |
+| 要清除舊音檔 | 重新錄音或上傳新檔案 | 系統僅保留「最新一段」的回放 URL，換檔即釋放。【F:assets/app.js†L710-L756】 |
 
 ---
 
-## 相容性與表現
+## 隱私、定位與免責聲明
 
-- 瀏覽器：Chrome / Edge / Firefox / Safari（近期版本）。
-- 效能：短檔（幾秒到數十秒）幾乎即時；長檔會自動分段並顯示 ETA。  
-  若裝置記憶體吃緊會自動縮短分段長度，以避免 WASM OOM。
-- 支援格式：`audio/*`, `.m4a`, `.mp3`, `.wav`, `.mp4`, `.mov`, `video/mp4`, `video/quicktime`  
-  （影片僅取音軌；WebAudio 解不動時自動落到 ffmpeg.wasm）
-- 主題與偏好：主題設定會記錄於 `localStorage`；可清除瀏覽器資料重置。
-- 隱私與快取：
-  - 音檔不會上傳；推論在瀏覽器完成。
-  - 模型快取存於 IndexedDB。要釋放，可用頁面上的「清除模型快取」或清除網站資料。
+- 模型輸出代表「聲音呈現的機率傾向」，**不等同於性別認同或任何醫療／法律結論**。
+- 建議用於自我練習或語音訓練回饋，不應用於歧視或未經當事人同意的評估。
+- 灰色帶：若結果介於 **40–60%**，代表模型不確定，請多錄幾段觀察趨勢。
+- 已知侷限：模型以 Mozilla Common Voice 英語朗讀資料訓練，面對中文、方言、唱歌、戲腔等聲音時可能有偏差；噪音、回音、鼻音或刻意拉高音高亦可能影響結果。【F:assets/app.js†L566-L628】【F:index.html†L351-L397】
 
 ---
 
@@ -141,54 +204,37 @@ npm run test:markup -- index.html assets/css/base.css docs/landing.html
 
 ```
 .
-├─ index.html            # UI / 主題設定 / 說明 / 免責 / 統計卡
+├─ index.html            # 單頁應用程式：UI、主題、引導、儀表與統計卡
 ├─ assets/
+│  ├─ app.js             # 入口腳本：錄音 / 上傳、解碼、推論、即時監控、統計彙整
 │  ├─ css/
-│  │  ├─ base.css        # 重置、變數、基礎樣式
-│  │  ├─ layout.css      # 網格配置、導航、面板排版
-│  │  ├─ components.css  # 儀表、統計卡、控制元件
-│  │  └─ overlays.css    # 導覽提示、模態、浮層效果
+│  │  ├─ base.css        # Reset、CSS 變數、共用樣式
+│  │  ├─ layout.css      # 網格與排版
+│  │  ├─ components.css  # 儀表、統計卡、控制元件樣式
+│  │  └─ overlays.css    # 引導泡泡、說明覆蓋層、模態
 │  ├─ js/
-│  │  ├─ constants.js    # 共用常數與旗標
-│  │  ├─ dom.js          # DOM 快取與查找工具
-│  │  ├─ theme.js        # 主題、導覽與偏好儲存
-│  │  └─ ui.js           # UI 輔助函式與互動邏輯
-│  └─ app.js             # 錄音、即時 Pitch Stream、解碼備援、
-│                        #   自適應 VAD、整段推論（≤150s）、長檔串流分段、
-│                        #   對數勝算聚合、統計與簡評、回放、GC、安全釋放、進度心跳
+│  │  ├─ constants.js    # 模型 ID、採樣率、串流參數、VAD 閾值
+│  │  ├─ dom.js          # 常用 DOM 快取與查找工具
+│  │  ├─ theme.js        # 主題切換、派別控制、引導狀態
+│  │  ├─ ui.js           # 狀態列、儀表更新、格式化工具
+│  │  └─ i18n.js         # 多語系載入、DOM 套用、偏好儲存
+│  └─ i18n/              # 各語系文案（繁中為預設，簡中 / 英文延遲載入）
+├─ scripts/
+│  └─ check-static.js    # HTML / CSS 結構檢查腳本
+├─ package.json          # npm 指令與測試設定
+└─ package-lock.json
 ```
 
 ---
 
-## 版本與授權
+## 版本資訊與授權
 
-- 網站程式碼：依本 repo 授權（例如 MIT）。
-- 模型：`prithivMLmods/Common-Voice-Gender-Detection`（Apache-2.0）
-- 致謝：`@xenova/transformers`、`@ffmpeg/ffmpeg`（Transformers.js / ffmpeg.wasm）
+- **網站程式碼**：依 repository 所附授權（預設 MIT，請依實際授權檔確認）。
+- **模型**：`prithivMLmods/Common-Voice-Gender-Detection-ONNX`（Apache-2.0）。
+- **第三方致謝**：`@xenova/transformers`、`@ffmpeg/ffmpeg`（ffmpeg.wasm）等開源專案。
+- **版本標記**：載入頁面時會自動填入 `build-YYYYMMDD-HHMM`，可於頁面右下角查看。【F:assets/app.js†L214-L244】【F:index.html†L577-L607】
 
-**版本**：v2025-10-27
-
----
-
-## 變更紀錄（摘要）
-
-- **v2025-10-27**
-  - 串流分段策略會依裝置（WebGPU / WASM）與音檔長度自動調整視窗與步長，長檔推論更快且狀態列顯示提速策略。
-  - README 更新串流策略、進度資訊與視窗 / hop 的調整條件。
-  - 更新首頁敘述、第一次造訪引導與右上角 ❓ 使用指南覆蓋層，降低進入門檻。
-  - 新增右上角 🌐 語言選擇器，支援繁體中文／简体中文／English 並會記住偏好。
-  - 修正使用指南覆蓋層的 ✕ 關閉鈕，確保翻譯後仍可正常收合。
-  - 錄音未啟動時自動隱藏 Hz Stream 與 Formant / Resonance 面板，保持版面簡潔。
-  - 擴充 `npm test`，涵蓋 JS 語法檢查與 HTML/CSS 結構驗證，並支援額外靜態檔案參數。
-  - 調整 README 說明，包含新的測試流程、互動引導與即時監控描述。
-  - 維持主題系統、Statistics 卡、自適應 VAD、裝置顯示等既有強化內容。
-
-- **v2025-10-22**
-  - 新增：長檔 **串流分段** 模式（12s / 3s），遇記憶體不足自動降載 8/6/4s。
-  - 維持短檔 **整段一次**；不去靜音、不調音量。
-  - 新增進度與 ETA；上傳影片檔自動 ffmpeg.wasm 備援。
-  - 強化 GC：釋放 ObjectURL、關閉 AudioContext、清除暫存。
-  - 新增回放按鈕；README/說明更新。
+若本 README 與程式碼有出入，請以程式碼邏輯為準並歡迎提出 Issue 或 PR。
 
 ---
 
