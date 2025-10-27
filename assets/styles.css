@@ -1,5 +1,5 @@
 /* =========================
-   VPA — Lux Theme System (26) + Faction Hero + Pitch Stream
+   VPA — Lux Theme System (26) + Faction Hero + Pitch Stream + Stats Insight
    - Token-based themes
    - Hero 標題：以 data-faction 判斷（light=實色 / dark=漸層）
    - 修正 UA button 字色（bug2）
@@ -50,12 +50,6 @@ html[data-faction="dark"]{
 }
 
 /* ---------- 主題（26 款） ---------- */
-/* 已有：warm / lavender / peach / ink / day / night / contrast
-   新增：slate, graphite, sand, latte, clay,
-        rose, blush, coral, amber, gold, cocoa,
-        olive, emerald, teal, aqua, cyan, sky, azure, cobalt, indigo,
-        violet, grape, plum, magenta, fuchsia */
-
 /* default warm */
 html[data-theme="warm"]{} 
 
@@ -543,7 +537,7 @@ html[data-mode="dark"]  .theme-menu .theme-item.for-light{ display:none; }
 
 .swatch{ width:18px; height:18px; border-radius:6px; border:1px solid var(--panel-border); }
 
-/* 既有 swatch */
+/* swatch */
 .swatch--warm{ background:linear-gradient(135deg,#f6a6c1,#f6c28b); }
 .swatch--lavender{ background:linear-gradient(135deg,#c9a7ff,#9bb8ff); }
 .swatch--peach{ background:linear-gradient(135deg,#ffb4a2,#ffd6a5); }
@@ -739,7 +733,7 @@ html[data-faction="dark"] #playBtn{
 .fab:hover{ filter:brightness(1.05); }
 .fab:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring); }
 
-/* ---------- Pitch Stream（新增） ---------- */
+/* ---------- Pitch Stream ---------- */
 .pitch-wrap{ margin-top:14px; padding:12px; border-radius:16px; border:1px solid var(--panel-border);
   background:var(--panel); box-shadow:0 10px 24px rgba(0,0,0,.12); }
 .pitch-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; color:var(--ink); }
@@ -755,6 +749,46 @@ html[data-faction="dark"] #playBtn{
 .kv{ background:var(--surface-strong); border:1px solid var(--border); border-radius:10px; padding:10px; }
 .kv .k{ font-size:12px; color:var(--muted); }
 .kv .v{ font-weight:900; }
+
+/* ---------- Stats Insight（美化簡評；若 app.js 使用 .insight 結構） ---------- */
+.insight{
+  border:1px solid var(--panel-border); border-radius:16px; background:var(--panel);
+  color:var(--ink); box-shadow:0 10px 28px rgba(0,0,0,.12);
+  padding:14px; margin-top:14px;
+}
+.insight-header{
+  display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:10px;
+}
+.badge{
+  display:inline-block; font-weight:800; font-size:12px; letter-spacing:.4px;
+  padding:4px 10px; border-radius:999px;
+  background: color-mix(in oklab, var(--panel) 70%, var(--accent-2) 30%);
+  border:1px solid var(--panel-border);
+}
+.tags{ display:flex; gap:6px; flex-wrap:wrap; }
+.tag{
+  display:inline-block; padding:3px 8px; border-radius:999px; font-size:12px; color:var(--ink);
+  background: color-mix(in oklab, var(--panel) 80%, var(--accent-1) 20%);
+  border:1px solid var(--panel-border);
+}
+.insight-grid{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px; }
+.card{
+  border:1px solid var(--panel-border); border-radius:12px; padding:12px; background:color-mix(in oklab, var(--panel) 92%, #fff 8%);
+}
+.card h4{ margin:0 0 8px; font-size:13px; color:var(--ink); letter-spacing:.2px; }
+.kvlist{ list-style:none; padding:0; margin:0; display:grid; gap:8px; }
+.kvlist li{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.kvlist span{ color:var(--muted); font-size:12px; }
+.kvlist b{ font-weight:900; font-size:14px; }
+.kvlist b em{ font-weight:600; font-style:normal; opacity:.7; margin-left:4px; }
+.summary{ margin-top:12px; border-top:1px dashed var(--panel-border); padding-top:12px; }
+.summary-title{ font-weight:900; margin-bottom:6px; }
+.summary p{ margin:6px 0; line-height:1.6; color:var(--ink); }
+.note{
+  margin-top:8px; padding:10px 12px; border-radius:12px;
+  background: color-mix(in oklab, var(--panel) 78%, var(--accent-2) 22%);
+  border:1px solid var(--panel-border);
+}
 
 /* ---------- Responsive（手機全寬） ---------- */
 @media (max-width: 560px){
