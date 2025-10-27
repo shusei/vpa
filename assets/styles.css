@@ -1,8 +1,9 @@
 /* =========================
-   VPA — Lux Theme System (26) + Faction-based Hero
-   - 以 token 為核心，主題彼此一致
+   VPA — Lux Theme System (26) + Faction Hero + Pitch Stream
+   - Token-based themes
    - Hero 標題：以 data-faction 判斷（light=實色 / dark=漸層）
    - 修正 UA button 字色（bug2）
+   - contrast 額外：Hero 用白字不漸層（bug1 對比需求）
    ========================= */
 
 /* ---------- Base tokens（預設 Warm） ---------- */
@@ -11,14 +12,12 @@
 
   --surface:rgba(46,33,36,.60);
   --surface-strong:rgba(46,33,36,.80);
-  --panel:#fffaf7;
-  --panel-border:#eadbd5;
+  --panel:#fffaf7; --panel-border:#eadbd5;
 
   --text:#f7f2f4; --muted:#cbbec3; --ink:#2c1f22;
 
   --accent-1:#f6a6c1; --accent-2:#f6c28b;
   --accent: color-mix(in oklab, var(--accent-1) 58%, var(--accent-2) 42%);
-
   --ring:#ffd39e; --border:#3a2a2e;
 
   --female:#f3accf; --male:#ffc0a8;
@@ -30,6 +29,12 @@
       color-mix(in oklab, #fff 10%, var(--accent-1) 90%) 0%,
       color-mix(in oklab, #fff 6%,  var(--accent-2) 94%) 100%);
   --hero-title-color: transparent;
+
+  /* Pitch bands */
+  --band-gray: color-mix(in oklab, var(--panel) 60%, #999 40%);
+  --band-blue: #bfe7ff;
+  --band-pink: #ffd1dc;
+  --stream-ink: color-mix(in oklab, #000 10%, var(--ink) 90%);
 }
 
 /* ---------- Faction-based Hero（不再用白名單） ---------- */
@@ -70,9 +75,8 @@ html[data-theme="peach"] {
   --surface:rgba(58,34,32,.60);
   --surface-strong:rgba(58,34,32,.80);
   --panel:#fff6f1; --panel-border:#ffe2d3;
-  --text:#f6e9e4; /* 改為亮字 */
-  --muted:#dec4bc;
-  --ink:#2a1614;
+  --text:#f6e9e4; /* 改為亮字（修正標題/字難讀） */
+  --muted:#dec4bc; --ink:#2a1614;
   --accent-1:#ffb4a2; --accent-2:#ffd6a5;
   --accent:color-mix(in oklab,var(--accent-1)55%,var(--accent-2)45%);
   --ring:#ffc8a4; --border:#4a2b28; --link:#b45309;
@@ -121,7 +125,7 @@ html[data-theme="contrast"] {
   --ring:#ffbf00; --border:#000; --link:#0a58ff;
   --female:#0ea5e9; --male:#ef4444;
 }
-/* contrast 額外：Hero 用白字不漸層 */
+/* contrast 額外：Hero 用白字不漸層（修正 bug1 在極深底對比） */
 html[data-theme="contrast"] .hero-title {
   background: none !important;
   color: #fff !important;
@@ -423,6 +427,9 @@ a:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring); border-radius:8
 .hidden{ display:none !important; }
 .mt-10{ margin-top:10px; }
 
+/* 兼容舊結構：若有 .bg 元素，也給個背景（不影響現行容器背景） */
+.bg{ position:fixed; inset:0; background:linear-gradient(180deg,var(--bg-start),var(--bg-end)); z-index:-1; }
+
 /* ---------- Layout ---------- */
 .container{
   position:relative;
@@ -448,10 +455,9 @@ a:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring); border-radius:8
   color: var(--hero-title-color);
   font-size:clamp(24px,4.2vw,36px);
 }
-
 .subline{ margin-top:6px; font-size:13px; color:var(--muted); }
 
-/* ---------- Chips ---------- */
+/* ---------- Chips / Trust row ---------- */
 .trust-row{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; }
 .chip{
   display:inline-flex; align-items:center; gap:6px; font-size:12px;
@@ -468,6 +474,7 @@ a:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring); border-radius:8
   background:linear-gradient(135deg, color-mix(in oklab,var(--accent) 86%,#fff 10%), color-mix(in oklab,var(--accent-2) 30%,#fff 70%));
   box-shadow:0 8px 18px color-mix(in oklab,var(--accent-2) 25%, #000 75%);
 }
+.chip.link{ text-decoration:none; }
 
 /* ---------- Settings（齒輪 + 選單 + Tabs + 一次性提示） ---------- */
 .settings-btn{
@@ -708,9 +715,7 @@ html[data-faction="dark"] #playBtn{
     0 0 0 3px var(--ring),
     0 14px 30px rgba(0,0,0,.22);
 }
-#playBtn:disabled{
-  opacity:.55; cursor:not-allowed;
-}
+#playBtn:disabled{ opacity:.55; cursor:not-allowed; }
 
 /* ---------- Callout & Info ---------- */
 .callout{
@@ -733,6 +738,23 @@ html[data-faction="dark"] #playBtn{
 }
 .fab:hover{ filter:brightness(1.05); }
 .fab:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring); }
+
+/* ---------- Pitch Stream（新增） ---------- */
+.pitch-wrap{ margin-top:14px; padding:12px; border-radius:16px; border:1px solid var(--panel-border);
+  background:var(--panel); box-shadow:0 10px 24px rgba(0,0,0,.12); }
+.pitch-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; color:var(--ink); }
+.pitch-head .now{ display:flex; align-items:center; gap:8px; font-weight:800; }
+.band-tag{ padding:2px 8px; border-radius:999px; background: color-mix(in oklab, var(--accent-2) 30%, var(--panel) 70%); }
+#pitchCanvas{ width:100%; height:220px; display:block; border-radius:10px; background:linear-gradient(180deg, #f7f7f7, #f0f0f0); }
+.pitch-scale{ margin-top:4px; font-size:12px; color:var(--muted); }
+
+/* ---------- Stats card（停止後） ---------- */
+#streamStats{ margin:12px 0 0; padding:14px; border-radius:14px; background:var(--panel); border:1px solid var(--panel-border); }
+#streamStats h3{ margin:0 0 8px; font-size:14px; color:var(--ink); }
+.stats-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+.kv{ background:var(--surface-strong); border:1px solid var(--border); border-radius:10px; padding:10px; }
+.kv .k{ font-size:12px; color:var(--muted); }
+.kv .v{ font-weight:900; }
 
 /* ---------- Responsive（手機全寬） ---------- */
 @media (max-width: 560px){
