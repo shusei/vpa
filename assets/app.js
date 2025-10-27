@@ -110,7 +110,19 @@ let psRAF=null, psRunning=false;
 let psHz=[], psHzSmooth=[], psDb=[], psVoiced=[]; // 50ms/點
 const PS_INTERVAL_MS = 50;
 const PS_MIN_HZ = 50, PS_MAX_HZ = 450;
-const PS_SMOOTH_ALPHA = 0.25; // 顯示用指數平滑；統計仍使用原始音高
+const PS_SMOOTH_BASE_ALPHA = 0.08; // 細微抖動採慢速平滑；統計仍使用原始音高
+const PS_SMOOTH_FAST_ALPHA = 0.45; // 真實音高跳動時加速追上
+const PS_SMOOTH_FAST_THRESHOLD_SEMITONES = 1.5;
+const PS_SMOOTH_MAX_STEP_SEMITONES = 2.4;
+const PS_SMOOTH_MEDIAN_WINDOW = 7;
+const PS_MIN_DB_FOR_PITCH = 42; // 約 -58 dBFS；低於此視為環境底噪
+const PS_NOISE_BUFFER_MS = 10000;
+const PS_NOISE_MIN_SAMPLES = 8;
+const PS_NOISE_CAPTURE_RANGE_DB = 18;
+const PS_MIN_DB_ABOVE_NOISE = 5;
+const PS_NOISE_GATE_MAX_BOOST_DB = 14;
+const psRealtimeNoiseTracker = makeNoiseTracker();
+const psOfflineNoiseTracker = makeNoiseTracker();
 const offlineFeatureStore = {
   frameSec: 0,
   pitch: [],
@@ -758,25 +770,96 @@ function smoothMask(mask, k=3){
 }
 
 // ===== Pitch Stream（ACF 音高 + 畫布） =====
+function makeNoiseTracker(){
+  const buf = [];
+  const maxSamples = Math.max(1, Math.round(PS_NOISE_BUFFER_MS / PS_INTERVAL_MS));
+  return {
+    reset(){ buf.length = 0; },
+    capture(db){
+      if (!Number.isFinite(db)) return;
+      const capped = Math.min(db, PS_MIN_DB_FOR_PITCH + PS_NOISE_CAPTURE_RANGE_DB);
+      buf.push(capped);
+      if (buf.length > maxSamples) buf.shift();
+    },
+    getAmbient(){
+      if (buf.length < PS_NOISE_MIN_SAMPLES) return null;
+      const sorted = buf.slice().sort((a,b)=>a-b);
+      const val = percentileSorted(sorted, 20);
+      return Number.isFinite(val) ? val : null;
+    },
+    getThreshold(){
+      let threshold = PS_MIN_DB_FOR_PITCH;
+      const ambient = this.getAmbient();
+      if (ambient != null){
+        const dynamic = ambient + PS_MIN_DB_ABOVE_NOISE;
+        const maxBoosted = PS_MIN_DB_FOR_PITCH + PS_NOISE_GATE_MAX_BOOST_DB;
+        threshold = Math.max(threshold, Math.min(maxBoosted, dynamic));
+      }
+      return { threshold, ambient };
+    },
+    shouldDetect(db, wasVoiced){
+      if (!Number.isFinite(db)) return { detect:false, threshold:PS_MIN_DB_FOR_PITCH, ambient:null };
+      const { threshold, ambient } = this.getThreshold();
+      if (db >= threshold) return { detect:true, threshold, ambient };
+      if (wasVoiced && db >= PS_MIN_DB_FOR_PITCH){
+        return { detect:true, threshold, ambient, hysteresis:true };
+      }
+      return { detect:false, threshold, ambient };
+    },
+  };
+}
+
 function appendPitchSample(rawHz){
   psHz.push(rawHz);
   if (!Number.isFinite(rawHz)){
     psHzSmooth.push(null);
     return;
   }
+  const finiteSamples = [];
+  for (let i = psHz.length - 1; i >= 0 && finiteSamples.length < PS_SMOOTH_MEDIAN_WINDOW; i--){
+    const v = psHz[i];
+    if (Number.isFinite(v)) finiteSamples.push(v);
+  }
+  finiteSamples.sort((a,b)=>a-b);
+  const mid = finiteSamples.length ? finiteSamples[Math.floor(finiteSamples.length/2)] : rawHz;
+  const clampedRaw = Math.min(PS_MAX_HZ, Math.max(PS_MIN_HZ, rawHz));
+  let target = clampedRaw;
+  if (finiteSamples.length >= 3){
+    const safeMedian = Math.min(PS_MAX_HZ, Math.max(PS_MIN_HZ, mid));
+    const diffFromMedian = Math.abs(Math.log2(clampedRaw / safeMedian)) * 12;
+    if (Number.isFinite(diffFromMedian) && diffFromMedian <= 0.8){
+      target = safeMedian;
+    }
+  }
+
   const prev = psHzSmooth.length ? psHzSmooth[psHzSmooth.length-1] : null;
   if (!Number.isFinite(prev)){
-    psHzSmooth.push(rawHz);
-  } else {
-    const next = prev + PS_SMOOTH_ALPHA * (rawHz - prev);
-    psHzSmooth.push(next);
+    psHzSmooth.push(target);
+    return;
   }
+
+  const safePrev = Math.min(PS_MAX_HZ, Math.max(PS_MIN_HZ, prev));
+  const safeTarget = Math.min(PS_MAX_HZ, Math.max(PS_MIN_HZ, target));
+  const prevLog2 = Math.log2(safePrev);
+  const targetLog2 = Math.log2(safeTarget);
+  const deltaSemitones = Math.abs(targetLog2 - prevLog2) * 12;
+  const alpha = deltaSemitones > PS_SMOOTH_FAST_THRESHOLD_SEMITONES
+    ? PS_SMOOTH_FAST_ALPHA
+    : PS_SMOOTH_BASE_ALPHA;
+  let nextLog2 = prevLog2 + alpha * (targetLog2 - prevLog2);
+  const maxStepLog2 = PS_SMOOTH_MAX_STEP_SEMITONES / 12;
+  if (Math.abs(nextLog2 - prevLog2) > maxStepLog2){
+    nextLog2 = prevLog2 + Math.sign(nextLog2 - prevLog2) * maxStepLog2;
+  }
+  const next = 2 ** nextLog2;
+  psHzSmooth.push(next);
 }
 
 function startPitchStream(userMediaStream){
   try{
     if (!pitchWrap || !pitchCanvas) return;
     psHz.length=0; psHzSmooth.length=0; psDb.length=0; psVoiced.length=0;
+    psRealtimeNoiseTracker.reset();
 
     const Ctx = window.AudioContext || window.webkitAudioContext;
     psCtx = new Ctx();
@@ -791,10 +874,23 @@ function startPitchStream(userMediaStream){
       const input = ev.inputBuffer.getChannelData(0);
       const rms = Math.sqrt(input.reduce((a,v)=>a+v*v,0) / Math.max(1,input.length));
       const db  = 20*Math.log10(Math.max(rms, 1e-6)) + 100; // 相對 dB
-      const hz  = detectPitchACF(input, sampleRate);  // null 表 unvoiced
+      const wasVoiced = psVoiced.length ? psVoiced[psVoiced.length-1] : false;
+      let hz = null;
+      let spectral = null;
+      const gate = psRealtimeNoiseTracker.shouldDetect(db, wasVoiced);
+      if (gate.detect){
+        const candHz = detectPitchACF(input, sampleRate);
+        if (candHz != null){
+          hz = candHz;
+          spectral = estimateSpectralFeatures(input, sampleRate);
+        } else {
+          psRealtimeNoiseTracker.capture(db);
+        }
+      } else {
+        psRealtimeNoiseTracker.capture(db);
+      }
       const now = performance.now();
       if (now - lastTick >= PS_INTERVAL_MS){
-        const spectral = estimateSpectralFeatures(input, sampleRate);
         psDb.push(db);
         appendPitchSample(hz ?? null);
         psVoiced.push(hz!=null);
@@ -1007,6 +1103,7 @@ function offlineExtractStreamMetrics(float32, sr, append=false){
     if(!append){
       psHz.length=0; psHzSmooth.length=0; psDb.length=0; psVoiced.length=0;
       resetOfflineFeatureStore();
+      psOfflineNoiseTracker.reset();
     }
     const step = Math.max(1, Math.floor((PS_INTERVAL_MS/1000)*sr));
     const frame = Math.min(Math.floor(0.08*sr), 8192); // ~80ms ACF 視窗
@@ -1014,8 +1111,21 @@ function offlineExtractStreamMetrics(float32, sr, append=false){
     for(let i=0;i+frame<=float32.length; i+=step){
       const seg = float32.subarray(i, i+frame);
       const db = 20*Math.log10(Math.max(rms(seg,0,seg.length), 1e-6)) + 100;
-      const hz = detectPitchACF(seg, sr);
-      const spectral = estimateSpectralFeatures(seg, sr);
+      const wasVoiced = psVoiced.length ? psVoiced[psVoiced.length-1] : false;
+      let hz = null;
+      let spectral = null;
+      const gate = psOfflineNoiseTracker.shouldDetect(db, wasVoiced);
+      if (gate.detect){
+        const candHz = detectPitchACF(seg, sr);
+        if (candHz != null){
+          hz = candHz;
+          spectral = estimateSpectralFeatures(seg, sr);
+        } else {
+          psOfflineNoiseTracker.capture(db);
+        }
+      } else {
+        psOfflineNoiseTracker.capture(db);
+      }
       psDb.push(db);
       appendPitchSample(hz ?? null);
       psVoiced.push(hz!=null);
