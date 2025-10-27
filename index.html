@@ -26,6 +26,18 @@
           <button id="helpBtn" class="help-btn" type="button" aria-label="使用指南" aria-haspopup="dialog"
             aria-controls="helpOverlay" aria-expanded="false" title="使用指南"
             data-i18n-attrs="aria-label:topbar.helpAria,title:topbar.helpTitle">❓</button>
+          <button id="localeBtn" class="lang-btn" type="button" aria-haspopup="menu" aria-expanded="false"
+            aria-controls="localeMenu" aria-label="切換語言" title="切換語言"
+            data-i18n-attrs="aria-label:topbar.localeAria,title:topbar.localeTitle">🌐</button>
+          <div id="localeMenu" class="lang-menu" hidden role="menu" aria-label="選擇語言"
+            data-i18n-attrs="aria-label:topbar.localeMenuAria">
+            <button type="button" class="lang-item" data-locale="zh-Hant" role="menuitemradio" aria-checked="true"
+              data-i18n="topbar.localeNames.zhHant">繁體中文</button>
+            <button type="button" class="lang-item" data-locale="zh-Hans" role="menuitemradio" aria-checked="false"
+              data-i18n="topbar.localeNames.zhHans">简体中文</button>
+            <button type="button" class="lang-item" data-locale="en" role="menuitemradio" aria-checked="false"
+              data-i18n="topbar.localeNames.en">English</button>
+          </div>
           <button id="settingsBtn" class="gear" type="button" aria-label="主題設定" aria-expanded="false"
             title="主題設定" data-i18n-attrs="aria-label:topbar.settingsAria,title:topbar.settingsTitle">⚙️</button>
           <div id="themeMenu" class="theme-menu" hidden>
