@@ -173,7 +173,7 @@ body.recording .record-btn .rec{ display:inline; }
 .formant-note{
   margin:0;
   font-size:13px;
-  color:var(--muted);
+  color:color-mix(in oklab, var(--text) 80%, var(--muted) 20%);
 }
 .formant-grid{
   display:grid;
@@ -189,9 +189,12 @@ body.recording .record-btn .rec{ display:inline; }
   flex-direction:column;
   gap:4px;
 }
-.formant-card .label{ font-size:12px; color:var(--muted); }
+.formant-card .label,
+.formant-card .range{
+  font-size:12px;
+  color:color-mix(in oklab, var(--text) 82%, var(--muted) 18%);
+}
 .formant-card .value{ font-size:18px; font-weight:900; }
-.formant-card .range{ font-size:12px; color:var(--muted); }
 
 .resonance-panel{
   margin-top:14px;
@@ -203,9 +206,12 @@ body.recording .record-btn .rec{ display:inline; }
   flex-direction:column;
   gap:6px;
 }
-.resonance-panel .label{ font-size:12px; color:var(--muted); }
+.resonance-panel .label,
+.resonance-panel .range{
+  font-size:12px;
+  color:color-mix(in oklab, var(--text) 82%, var(--muted) 18%);
+}
 .resonance-panel .value{ font-size:16px; font-weight:800; }
-.resonance-panel .range{ font-size:12px; color:var(--muted); }
 .resonance-bar{
   position:relative;
   display:flex;
@@ -260,7 +266,9 @@ body.recording .record-btn .rec{ display:inline; }
   margin-bottom:10px;
 }
 .summary-line strong{ font-weight:900; margin-right:4px; }
-.subline{ color:var(--muted); }
+.subline{
+  color: color-mix(in oklab, var(--text) 75%, var(--muted) 25%);
+}
 
 .chip{
   display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:700;
