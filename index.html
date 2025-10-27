@@ -103,6 +103,45 @@
       <canvas id="pitchCanvas" width="900" height="220" aria-label="Pitch stream"></canvas>
       <div class="pitch-scale">50 ↔︎ 450 Hz（色帶：灰50–85 / 藍85–165 / 灰165–180 / 粉180–310 / 灰310–450）</div>
     </section>
+
+    <section id="formantWrap" class="formant-wrap" hidden>
+      <div class="formant-head">
+        <h2>Formant / Resonance 即時監控</h2>
+        <p class="formant-note">F1–F3 估計、共鳴亮度與氣聲比例</p>
+      </div>
+      <div class="formant-grid">
+        <div class="formant-card">
+          <div class="label">F1</div>
+          <div class="value" id="f1Now">— Hz</div>
+          <div class="range">建議 180–350 Hz</div>
+        </div>
+        <div class="formant-card">
+          <div class="label">F2</div>
+          <div class="value" id="f2Now">— Hz</div>
+          <div class="range">建議 1600–2500 Hz</div>
+        </div>
+        <div class="formant-card">
+          <div class="label">F3</div>
+          <div class="value" id="f3Now">— Hz</div>
+          <div class="range">建議 2500–3200 Hz</div>
+        </div>
+        <div class="formant-card">
+          <div class="label">氣聲比例</div>
+          <div class="value" id="breathNow">—</div>
+          <div class="range">建議 8%–18%</div>
+        </div>
+      </div>
+      <div class="resonance-panel">
+        <div class="label">共鳴平衡</div>
+        <div class="value" id="resonanceNow">—</div>
+        <div class="range" id="tiltNow">Tilt — dB</div>
+        <div class="resonance-bar" id="resonanceBar">
+          <div class="res-part chest" id="resChest"><span id="resChestVal">胸 0%</span></div>
+          <div class="res-part mask" id="resMask"><span id="resMaskVal">面罩 0%</span></div>
+          <div class="res-part head" id="resHead"><span id="resHeadVal">頭 0%</span></div>
+        </div>
+      </div>
+    </section>
     <!-- 傾向儀表：模型結果 -->
     <section id="meter" class="meter hidden" aria-live="polite">
       <div class="bar female" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Female">
