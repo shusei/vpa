@@ -294,7 +294,11 @@ export default {
   player: {
     play: "▶︎ 播放剛才的聲音",
     pause: "⏸ 暫停播放",
-    replayHintHtml: '想再聽一次剛才那段嗎？<a href="#" id="replayLink">點這裡</a>。',
+    replayHintPrefix: "想再聽一次剛才那段嗎？",
+    replayHintSpacer: "",
+    replayHintAction: "立即重播",
+    replayHintSuffix: "。",
+    replayHintAria: "重新播放剛才的聲音",
     ariaPlay: "播放剛的聲音",
   },
   errors: {

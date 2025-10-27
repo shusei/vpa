@@ -84,7 +84,14 @@ function summaryString(path, params) {
 }
 
 // 播放器（動態建立；並在其下方插入統計卡容器）
-let playBtn = null, audioEl = null, lastAudioUrl = null, playerHintEl = null;
+let playBtn = null,
+  audioEl = null,
+  lastAudioUrl = null,
+  playerHintEl = null,
+  replayBtn = null,
+  replayHintPrefixEl = null,
+  replayHintSuffixEl = null,
+  replayHintSpacerNode = null;
 
 function updatePlayerCopy(forcePlaying){
   const isPlaying = forcePlaying ?? (audioEl ? !audioEl.paused : false);
@@ -93,7 +100,19 @@ function updatePlayerCopy(forcePlaying){
     playBtn.setAttribute("aria-label", t("player.ariaPlay"));
   }
   if (playerHintEl){
-    playerHintEl.innerHTML = t("player.replayHintHtml");
+    if (replayHintPrefixEl){
+      replayHintPrefixEl.textContent = t("player.replayHintPrefix");
+    }
+    if (replayHintSpacerNode){
+      replayHintSpacerNode.textContent = t("player.replayHintSpacer");
+    }
+    if (replayBtn){
+      replayBtn.textContent = t("player.replayHintAction");
+      replayBtn.setAttribute("aria-label", t("player.replayHintAria"));
+    }
+    if (replayHintSuffixEl){
+      replayHintSuffixEl.textContent = t("player.replayHintSuffix");
+    }
   }
 }
 ensurePlayerUI();
@@ -697,6 +716,25 @@ function ensurePlayerUI(){
   const hint = document.createElement("div");
   hint.className="hint";
 
+  const hintPrefix = document.createElement("span");
+  hintPrefix.className = "hint-prefix";
+  const hintSpacer = document.createTextNode("");
+  const replayButton = document.createElement("button");
+  replayButton.type = "button";
+  replayButton.className = "replay-button";
+  const hintSuffix = document.createElement("span");
+  hintSuffix.className = "hint-suffix";
+
+  replayButton.addEventListener("click", (e)=>{
+    e.preventDefault();
+    btn.click();
+  });
+
+  hint.appendChild(hintPrefix);
+  hint.appendChild(hintSpacer);
+  hint.appendChild(replayButton);
+  hint.appendChild(hintSuffix);
+
   const audio = document.createElement("audio");
   audio.id="playback"; audio.preload="metadata"; audio.style.display="none";
 
@@ -705,7 +743,13 @@ function ensurePlayerUI(){
   const tipEl = container.querySelector(".callout");
   if (tipEl) container.insertBefore(wrap, tipEl); else container.appendChild(wrap);
 
-  playBtn = btn; audioEl = audio; playerHintEl = hint;
+  playBtn = btn;
+  audioEl = audio;
+  playerHintEl = hint;
+  replayBtn = replayButton;
+  replayHintPrefixEl = hintPrefix;
+  replayHintSuffixEl = hintSuffix;
+  replayHintSpacerNode = hintSpacer;
   updatePlayerCopy(false);
   updatePlaybackAvailability();
 
@@ -719,8 +763,6 @@ function ensurePlayerUI(){
   audioEl.onended = ()=>{ updatePlayerCopy(false); };
   audioEl.onpause = ()=>{ updatePlayerCopy(false); };
   audioEl.onplay = ()=>{ updatePlayerCopy(true); };
-
-  wrap.querySelector("#replayLink")?.addEventListener("click",(e)=>{ e.preventDefault(); playBtn.click(); });
 
   // 統計卡容器（插在播放器區塊後）
   if (!document.getElementById("streamStats")){
