@@ -1,6 +1,8 @@
 // ===== Transformers pipeline =====
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
 
+import { initI18n, t, getLocaleValue, onLocaleChange } from "./js/i18n.js";
+
 import {
   recordBtn,
   fileInput,
@@ -62,8 +64,39 @@ env.allowRemoteModels = true;
 /** 視需要可調整：WASM 執行緒數 */
 env.backends.onnx.wasm.numThreads = 1;
 
+await initI18n();
+let analysisText = getLocaleValue("analysis");
+let summaryText = getLocaleValue("summary");
+onLocaleChange(() => {
+  analysisText = getLocaleValue("analysis");
+  summaryText = getLocaleValue("summary");
+  updatePlayerCopy();
+});
+
+function labelHint(path) {
+  return {
+    label: t(`${path}.label`),
+    hint: t(`${path}.hint`),
+  };
+}
+
+function summaryString(path, params) {
+  return t(`summary.${path}`, params);
+}
+
 // 播放器（動態建立；並在其下方插入統計卡容器）
-let playBtn = null, audioEl = null, lastAudioUrl = null;
+let playBtn = null, audioEl = null, lastAudioUrl = null, playerHintEl = null;
+
+function updatePlayerCopy(forcePlaying){
+  const isPlaying = forcePlaying ?? (audioEl ? !audioEl.paused : false);
+  if (playBtn){
+    playBtn.textContent = t(isPlaying ? "player.pause" : "player.play");
+    playBtn.setAttribute("aria-label", t("player.ariaPlay"));
+  }
+  if (playerHintEl){
+    playerHintEl.innerHTML = t("player.replayHintHtml");
+  }
+}
 ensurePlayerUI();
 
 // ===== 狀態 =====
@@ -118,7 +151,7 @@ recordBtn?.addEventListener("click", async ()=>{
     } else {
       await stopRecording();
     }
-  }catch(err){ console.error("[recordBtn]", err); setStatus("錄音啟動失敗"); }
+  }catch(err){ console.error("[recordBtn]", err); setStatus(t("status.recordFailed")); }
 });
 fileInput?.addEventListener("change", async (e)=>{
   if (busy) return;
@@ -128,7 +161,7 @@ fileInput?.addEventListener("change", async (e)=>{
     resetMeter();
     await handleFileOrBlob(f);
     e.target.value = "";
-  }catch(err){ console.error("[fileInput]", err); setStatus("上傳處理失敗"); }
+  }catch(err){ console.error("[fileInput]", err); setStatus(t("status.uploadFailed")); }
 });
 
 uploadFab?.addEventListener("click", ()=>{
@@ -142,7 +175,7 @@ function pickSupportedMime(){
   return "";
 }
 async function startRecording(){
-  if (typeof MediaRecorder === "undefined"){ setStatus("此瀏覽器不支援錄音，請改用右側上傳", false); return; }
+  if (typeof MediaRecorder === "undefined"){ setStatus(t("status.recordUnsupported"), false); return; }
   const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
   dismissOnboardTip(true);
   chunks = [];
@@ -155,13 +188,13 @@ async function startRecording(){
       chunks.length = 0;
       stopPitchStream();                 // 停止即時圖，但保留資料做統計
       await handleFileOrBlob(blob);      // 分析完成後會呼叫 finishStreamStats()
-    }catch(e){ console.error("[onstop]", e); setStatus("錄音處理失敗"); }
+    }catch(e){ console.error("[onstop]", e); setStatus(t("status.recordProcessingFailed")); }
     finally{ stream.getTracks().forEach(t=>t.stop()); }
   };
 
   document.body.classList.add("recording");
   document.querySelector(".container")?.classList.add("recording");
-  setStatus("錄音中… 再按一次停止");
+  setStatus(t("status.recording"));
   mediaRecorder.start();
 
   // 啟動 Pitch Stream
@@ -169,7 +202,7 @@ async function startRecording(){
 }
 async function stopRecording(){
   if (mediaRecorder && mediaRecorder.state!=="inactive"){
-    setStatus("處理音訊…", true);
+    setStatus(t("status.processingAudio"), true);
     mediaRecorder.stop();
   }
   document.body.classList.remove("recording");
@@ -183,7 +216,7 @@ async function handleFileOrBlob(fileOrBlob){
   try{
     setPlaybackSource(fileOrBlob);
 
-    setStatus("解析檔案…", true);
+    setStatus(t("status.decoding"), true);
     decoded = await decodeSmartToFloat32(fileOrBlob, TARGET_SR);
     let { float32, sr, durationSec } = decoded;
 
@@ -191,7 +224,7 @@ async function handleFileOrBlob(fileOrBlob){
     offlineExtractStreamMetrics(float32, sr, /*append*/false);
 
     if (durationSec > WARN_LONG_SEC){
-      setStatus(`提示：長度 ${fmtSec(durationSec)}，分析可能較久。準備推論…`, true);
+      setStatus(t("status.warnLong", { duration: fmtSec(durationSec) }), true);
       await microYield();
     }
 
@@ -200,7 +233,7 @@ async function handleFileOrBlob(fileOrBlob){
     if (vad && vad.used){
       const reducedRatio = 1 - (vad.keptSec / durationSec);
       float32 = vad.arr; durationSec = vad.keptSec;
-      setStatus(`已去除靜音（約 ${(reducedRatio*100).toFixed(0)}%）→ 有效時長 ${fmtSec(durationSec)}，開始推論…`, true);
+      setStatus(t("status.vadApplied", { ratio: Math.round(reducedRatio*100), duration: fmtSec(durationSec) }), true);
       // 針對「有效語音」再抽樣一次，提升代表性
       offlineExtractStreamMetrics(float32, sr, /*append*/true);
       await microYield();
@@ -209,14 +242,19 @@ async function handleFileOrBlob(fileOrBlob){
     if (durationSec <= MAX_WHOLE_SEC){
       await analyzeWhole(float32, sr, durationSec);
     } else {
-      await analyzeStreamed(float32, sr, durationSec, `長度超過 ${MAX_WHOLE_SEC} 秒，自動切換串流分段`);
+      await analyzeStreamed(
+        float32,
+        sr,
+        durationSec,
+        t("status.streamingSwitch", { limit: MAX_WHOLE_SEC })
+      );
     }
 
     // 顯示統計（錄音/上傳皆會有）
     finishStreamStats();
   }catch(e){
     console.error("[handleFileOrBlob]", e);
-    setStatus("處理失敗：" + (e?.message || "無法解碼或分析此音檔"));
+    setStatus(t("status.errorPrefix", { message: e?.message || t("status.decodeFailure") }));
   }finally{
     if (decoded) decoded.float32 = null;
     decoded = null; busy = false;
@@ -230,19 +268,19 @@ async function decodeSmartToFloat32(blobOrFile, targetSR){
   const looksLikeM4A = /\.m4a$/i.test(name) || type.includes("audio/mp4") || type.includes("audio/x-m4a");
 
   if (IS_SAFARI && looksLikeM4A){
-    setStatus("轉檔（ffmpeg，Safari m4a）準備中…", true);
+    setStatus(t("status.ffmpegPrepareSafari"), true);
     const wavBlob = await transcodeToWav16kViaFFmpeg(blobOrFile);
     const { float32, sr } = wavToFloat32(await wavBlob.arrayBuffer());
     return { float32, sr, durationSec: float32.length / sr };
   }
 
   try{
-    setStatus("直接解碼（WebAudio）…", true);
+    setStatus(t("status.webaudioDecode"), true);
     return await decodeViaWebAudio(blobOrFile, targetSR);
   }catch(e){
     log("[decode] WebAudio failed, fallback to ffmpeg:", e?.message || e);
   }
-  setStatus("轉檔（ffmpeg）準備中…", true);
+  setStatus(t("status.ffmpegPrepare"), true);
   const wavBlob = await transcodeToWav16kViaFFmpeg(blobOrFile);
   const { float32, sr } = wavToFloat32(await wavBlob.arrayBuffer());
   return { float32, sr, durationSec: float32.length / sr };
@@ -281,37 +319,78 @@ async function decodeViaWebAudio(blobOrFile, targetSR=16000){
 
 // ===== FFmpeg（ESM 優先，失敗用 UMD） =====
 async function loadFFmpegModule(){
-  try{
-    const m = await import("https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/+esm");
-    if (typeof m.createFFmpeg==="function" && typeof m.fetchFile==="function"){
-      return { createFFmpeg: m.createFFmpeg, fetchFile: m.fetchFile, mode:"esm" };
+  const cdnCandidates = [
+    {
+      label: "jsdelivr",
+      esm: "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/+esm",
+      umd: "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js",
+      core: "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js",
+    },
+    {
+      label: "esm.run/unpkg",
+      esm: "https://esm.run/@ffmpeg/ffmpeg@0.12.6",
+      umd: "https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js",
+      core: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js",
+    },
+  ];
+
+  let lastError = null;
+  for (const cdn of cdnCandidates){
+    try{
+      const m = await import(cdn.esm);
+      if (typeof m.createFFmpeg==="function" && typeof m.fetchFile==="function"){
+        log(`[ffmpeg] using ${cdn.label} (esm)`);
+        return { createFFmpeg: m.createFFmpeg, fetchFile: m.fetchFile, corePath: cdn.core, mode:"esm", cdn: cdn.label };
+      }
+    }catch(e){
+      const msg = e instanceof Error ? e.message : String(e);
+      log(`[ffmpeg] ${cdn.label} +esm import failed:`, msg);
+      lastError = new Error(`[ffmpeg] ${cdn.label} +esm import failed: ${msg}`);
     }
-  }catch(e){ log("[ffmpeg] +esm import failed:", e?.message || e); }
-  await loadScriptTag("https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js");
-  const FF = window.FFmpeg;
-  if (!FF || typeof FF.createFFmpeg!=="function") throw new Error("FFmpeg UMD load failed");
-  return { createFFmpeg: FF.createFFmpeg, fetchFile: FF.fetchFile, mode:"umd" };
+
+    try{
+      await loadScriptTag(cdn.umd, cdn.label);
+      const FF = window.FFmpeg;
+      if (FF && typeof FF.createFFmpeg==="function" && typeof FF.fetchFile==="function"){
+        log(`[ffmpeg] using ${cdn.label} (umd)`);
+        return { createFFmpeg: FF.createFFmpeg, fetchFile: FF.fetchFile, corePath: cdn.core, mode:"umd", cdn: cdn.label };
+      }
+      lastError = new Error(`FFmpeg UMD load failed (${cdn.label})`);
+    }catch(e){
+      const msg = e instanceof Error ? e.message : String(e);
+      log(`[ffmpeg] ${cdn.label} umd load failed:`, msg);
+      lastError = new Error(`[ffmpeg] ${cdn.label} umd load failed: ${msg}`);
+    }
+  }
+
+  const errMsg = lastError?.message || "FFmpeg module load failed";
+  throw new Error(t("errors.ffmpegModuleLoadFailed", { message: errMsg }));
 }
-function loadScriptTag(src){
+function loadScriptTag(src, label=""){
   return new Promise((resolve, reject)=>{
     const s = document.createElement("script");
     s.src = src; s.async = true; s.crossOrigin = "anonymous"; s.referrerPolicy = "no-referrer";
-    s.onload = ()=>resolve(); s.onerror = ()=>reject(new Error("script load error: " + src));
+    s.onload = ()=>resolve();
+    s.onerror = ()=>{
+      s.remove();
+      const labelSuffix = label ? ` (${label})` : "";
+      reject(new Error(t("errors.scriptLoad", { src, label: labelSuffix })));
+    };
     document.head.appendChild(s);
   });
 }
 async function transcodeToWav16kViaFFmpeg(blobOrFile){
-  const { createFFmpeg, fetchFile, mode } = await loadFFmpegModule();
-  log(`[ffmpeg] loader mode = ${mode}`);
+  const { createFFmpeg, fetchFile, corePath, mode, cdn } = await loadFFmpegModule();
+  log(`[ffmpeg] loader mode = ${mode}（cdn: ${cdn}）`);
   const ffmpeg = createFFmpeg({
-    corePath: "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js",
+    corePath,
     log: false
   });
 
-  if (!ffmpeg.isLoaded()) setStatus("下載 ffmpeg…", true);
+  if (!ffmpeg.isLoaded()) setStatus(t("status.ffmpegLoading"), true);
   ffmpeg.setProgress(({ ratio })=>{
     const r = Math.min(1, Math.max(0, Number.isFinite(ratio)?ratio:0));
-    setStatus(`轉檔（ffmpeg）… ${Math.round(r*100)}%`, true);
+    setStatus(t("status.ffmpegTranscode", { progress: Math.round(r*100) }), true);
   });
   if (!ffmpeg.isLoaded()) await ffmpeg.load();
 
@@ -328,20 +407,20 @@ async function transcodeToWav16kViaFFmpeg(blobOrFile){
 // ===== 模型 =====
 async function ensurePipeline(){
   if (clf) return clf;
-  setStatus("下載模型中…（首次會久一點）", true);
+  setStatus(t("status.modelLoading"), true);
   const progress_callback = (p)=>{
     if (!p) return;
     let pct=null;
     if (typeof p.loadedBytes==='number' && typeof p.totalBytes==='number' && p.totalBytes>0) pct=p.loadedBytes/p.totalBytes;
     else if (typeof p.progress==='number' && isFinite(p.progress)) pct=p.progress;
-    const label = p.status || "下載模型";
+    const label = p.status || t("status.modelDownloading");
     if (pct==null) setStatus(`${label}…`, true);
     else setStatus(`${label} ${Math.min(99, Math.max(0, Math.floor(pct*100)))}% …`, true);
   };
   const device = (typeof navigator!=='undefined' && navigator.gpu) ? 'webgpu' : 'wasm';
   clf = await pipeline("audio-classification", MODEL_ID, { progress_callback, device });
   currentDevice = device;
-  setStatus(`模型就緒（device: ${device}）`);
+  setStatus(t("status.modelReady", { device }));
   return clf;
 }
 
@@ -353,27 +432,27 @@ async function analyzeWhole(float32, sr, durationSec){
   const started = performance.now();
   startHeartbeat(()=>{
     const elapsed=(performance.now()-started)/1000;
-    setStatus(`分析中（整段）｜音檔 ${fmtSec(durationSec)}｜已用 ${fmtSec(elapsed)}`, true);
+    setStatus(t("status.analyzeWhole", { duration: fmtSec(durationSec), elapsed: fmtSec(elapsed) }), true);
   });
 
   try{
     const res = await model(float32, { sampling_rate: sr, topk: 2 });
     const map = toMap(res);
     render(map.female||0, map.male||0);
-    setStatus("完成（整段）");
+    setStatus(t("status.analyzeWholeDone"));
   }catch(err){
     if (isOOMError(err)){
       console.warn("[analyzeWhole] OOM → switch to streamed mode…");
-      await analyzeStreamed(float32, sr, durationSec, "偵測到記憶體不足，自動改串流分段");
+      await analyzeStreamed(float32, sr, durationSec, t("status.analyzeWholeOOM"));
       return;
     }
     console.error("[analyzeWhole]", err);
-    setStatus("分析失敗（整段）");
+    setStatus(t("status.analyzeWholeFailed"));
   }finally{ stopHeartbeat(); }
 }
 
 // ===== 分析（串流分段） =====
-async function analyzeStreamed(float32, sr, durationSec, reason="串流分段"){
+async function analyzeStreamed(float32, sr, durationSec, reason = t("status.streamingDefaultReason")){
   const model = await ensurePipeline();
   meter?.classList.remove("hidden");
 
@@ -393,7 +472,7 @@ async function analyzeStreamed(float32, sr, durationSec, reason="串流分段"){
     }
   }
   console.error("[analyzeStreamed] failed", lastErr);
-  setStatus("分析失敗（串流分段）");
+  setStatus(t("status.analyzeStreamFailed"));
 }
 async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP_S, reason){
   const win = Math.max(1, Math.floor(WIN_S * sr));
@@ -415,7 +494,7 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
   startHeartbeat(()=>{
     const elapsed=(performance.now()-started)/1000;
     const pct = processedSec>0 ? Math.min(99, Math.round((processedSec/durationSec)*100)) : 0;
-    setStatus(`分析中（串流；win=${WIN_S}s/step=${HOP_S}s）｜${reason}｜${pct}%｜已用 ${fmtSec(elapsed)}`, true);
+    setStatus(t("status.analyzeStream", { win: WIN_S, step: HOP_S, reason, progress: pct, elapsed: fmtSec(elapsed) }), true);
   });
 
   try{
@@ -445,14 +524,14 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
       const remain = chunks.length - i - 1;
       const etaSec = (remain * (avgMs/1000));
       const pct = Math.round(((i+1)/chunks.length)*100);
-      setStatus(`分析中（串流；win=${WIN_S}s）｜片段 ${i+1}/${chunks.length}｜${pct}%｜已處理 ${fmtSec(processedSec)} / ${fmtSec(durationSec)}｜預估剩餘 ~ ${fmtSec(etaSec)}`, true);
+      setStatus(t("status.analyzeStreamChunk", { win: WIN_S, current: i+1, total: chunks.length, progress: pct, done: fmtSec(processedSec), totalDuration: fmtSec(durationSec), eta: fmtSec(etaSec) }), true);
       await microYield();
     }
     const logitAvg = logitSum / Math.max(wSum, EPS);
     const pf = 1 / (1 + Math.exp(-logitAvg));
     const pm = 1 - pf;
     render(pf, pm);
-    setStatus("完成（串流分段）");
+    setStatus(t("status.analyzeStreamDone"));
   } finally { stopHeartbeat(); }
 }
 
@@ -485,17 +564,17 @@ function pickStreamStrategy(durationSec){
 
   if (currentDevice === "webgpu"){
     if (durationSec >= 600){
-      return { hop: 6, wins: gpuWinsLong, label: "提速策略：WebGPU hop=6s" };
+    return { hop: 6, wins: gpuWinsLong, label: t("status.strategyGpu6") };
     }
-    return { hop: 4, wins: gpuWins, label: "提速策略：WebGPU hop=4s" };
+    return { hop: 4, wins: gpuWins, label: t("status.strategyGpu4") };
   }
 
   if (durationSec >= 420){
-    return { hop: 4, wins: wasmWins, label: "提速策略：CPU hop=4s" };
+    return { hop: 4, wins: wasmWins, label: t("status.strategyCpu4") };
   }
 
   if (durationSec >= 240){
-    return { hop: 3.5, wins: wasmWins, label: "提速策略：CPU hop=3.5s" };
+    return { hop: 3.5, wins: wasmWins, label: t("status.strategyCpu35") };
   }
 
   return STREAM_STRATEGY_DEFAULT;
@@ -512,11 +591,9 @@ function ensurePlayerUI(){
 
   const btn = document.createElement("button");
   btn.id="playBtn"; btn.type="button"; btn.disabled=true;
-  btn.textContent="▶︎ 播放剛才的聲音"; btn.setAttribute("aria-label","播放剛才的聲音");
 
   const hint = document.createElement("div");
   hint.className="hint";
-  hint.innerHTML=`想再聽一次剛才那段嗎？<a href="#" id="replayLink">點這裡</a>。`;
 
   const audio = document.createElement("audio");
   audio.id="playback"; audio.preload="metadata"; audio.style.display="none";
@@ -526,16 +603,19 @@ function ensurePlayerUI(){
   const tipEl = container.querySelector(".callout");
   if (tipEl) container.insertBefore(wrap, tipEl); else container.appendChild(wrap);
 
-  playBtn = btn; audioEl = audio;
+  playBtn = btn; audioEl = audio; playerHintEl = hint;
+  updatePlayerCopy(false);
 
   playBtn.onclick = async ()=>{
     if (!audioEl.src) return;
     try{
-      if (audioEl.paused){ await audioEl.play(); playBtn.textContent="⏸ 暫停播放"; }
-      else { audioEl.pause(); playBtn.textContent="▶︎ 播放剛才的聲音"; }
+      if (audioEl.paused){ await audioEl.play(); updatePlayerCopy(true); }
+      else { audioEl.pause(); updatePlayerCopy(false); }
     }catch(e){ console.error("[audio play]", e); }
   };
-  audioEl.onended = ()=>{ playBtn.textContent = "▶︎ 播放剛才的聲音"; };
+  audioEl.onended = ()=>{ updatePlayerCopy(false); };
+  audioEl.onpause = ()=>{ updatePlayerCopy(false); };
+  audioEl.onplay = ()=>{ updatePlayerCopy(true); };
 
   wrap.querySelector("#replayLink")?.addEventListener("click",(e)=>{ e.preventDefault(); playBtn.click(); });
 
@@ -554,7 +634,7 @@ function setPlaybackSource(blob){
     if(lastAudioUrl){ try{ URL.revokeObjectURL(lastAudioUrl);}catch{} }
     lastAudioUrl = URL.createObjectURL(blob);
     audioEl.src = lastAudioUrl; audioEl.load();
-    playBtn.disabled = false; playBtn.textContent = "▶︎ 播放剛才的聲音";
+    playBtn.disabled = false; updatePlayerCopy(false);
   }catch(e){ console.error("[setPlaybackSource]", e); }
 }
 
@@ -588,7 +668,7 @@ function microYield(){ return new Promise(r=>setTimeout(r,0)); }
 function wavToFloat32(arrayBuffer){
   const dv = new DataView(arrayBuffer);
   function str(o,n){ let s=""; for(let i=0;i<n;i++) s+=String.fromCharCode(dv.getUint8(o+i)); return s; }
-  if(str(0,4)!=="RIFF" || str(8,4)!=="WAVE") throw new Error("Not WAV");
+  if(str(0,4)!=="RIFF" || str(8,4)!=="WAVE") throw new Error(t("errors.notWav"));
   let off=12, fmt=null, dataOff=0, dataLen=0;
   while(off<dv.byteLength){
     const id=str(off,4); const sz=dv.getUint32(off+4,true); const body=off+8;
@@ -597,7 +677,7 @@ function wavToFloat32(arrayBuffer){
     } else if(id==="data"){ dataOff=body; dataLen=sz; break; }
     off += 8+sz;
   }
-  if(!fmt||!dataOff) throw new Error("Invalid WAV");
+  if(!fmt||!dataOff) throw new Error(t("errors.invalidWav"));
   const totalSamples = dataLen / (fmt.bps/8);
   const out = new Float32Array(totalSamples / fmt.ch);
   if(fmt.tag===1 && fmt.bps===16){ // PCM 16
@@ -607,7 +687,7 @@ function wavToFloat32(arrayBuffer){
     let j=0;
     for(let i=0;i<totalSamples;i+=fmt.ch){ const v=dv.getFloat32(dataOff + (i*4), true); out[j++]=v; }
   }else{
-    throw new Error("Unsupported WAV encoding");
+    throw new Error(t("errors.unsupportedWavEncoding"));
   }
   return { float32: out, sr: fmt.sr };
 }
@@ -734,7 +814,9 @@ function updateRealtimeMonitor(features){
 
     const desc = describeResonanceFromEnergy(energy);
     if (resonanceNowEl) resonanceNowEl.textContent = desc.label || "—";
-    if (tiltNowEl) tiltNowEl.textContent = Number.isFinite(tilt) ? `Tilt ${fmt1(tilt)} dB` : "Tilt —";
+    if (tiltNowEl) tiltNowEl.textContent = Number.isFinite(tilt)
+      ? t("realtime.resonance.tiltValue", { value: fmt1(tilt) })
+      : t("realtime.resonance.tiltPlaceholder");
 
     const total = Math.max(energy?.total || 0, EPS);
     const chest = Math.max(0, Math.min(1, (energy?.low || 0) / total));
@@ -748,9 +830,9 @@ function updateRealtimeMonitor(features){
     if (resBarChest){ resBarChest.style.flexGrow = Math.max(chestPct, 0.001); resBarChest.style.flexBasis = `${(chestPct*100).toFixed(1)}%`; }
     if (resBarMask){ resBarMask.style.flexGrow = Math.max(maskPct, 0.001); resBarMask.style.flexBasis = `${(maskPct*100).toFixed(1)}%`; }
     if (resBarHead){ resBarHead.style.flexGrow = Math.max(headPct, 0.001); resBarHead.style.flexBasis = `${(headPct*100).toFixed(1)}%`; }
-    if (resValChest) resValChest.textContent = `胸 ${Math.round(chestPct*100)}%`;
-    if (resValMask)  resValMask.textContent  = `面罩 ${Math.round(maskPct*100)}%`;
-    if (resValHead)  resValHead.textContent  = `頭 ${Math.round(headPct*100)}%`;
+    if (resValChest) resValChest.textContent = t("realtime.resonance.chest", { value: Math.round(chestPct*100) });
+    if (resValMask)  resValMask.textContent  = t("realtime.resonance.mask", { value: Math.round(maskPct*100) });
+    if (resValHead)  resValHead.textContent  = t("realtime.resonance.head", { value: Math.round(headPct*100) });
   }catch(e){ console.error("[updateRealtimeMonitor]", e); }
 }
 function stopPitchStream(){
@@ -794,12 +876,12 @@ function detectPitchACF(input, sr){
 }
 function bandLabel(hz){
   if (!hz) return "—";
-  if (hz < 85) return "低（<85）";
-  if (hz < 165) return "藍 85–165";
-  if (hz < 180) return "中性 165–180";
-  if (hz < 310) return "粉 180–310";
-  if (hz <= 450) return "高 310–450";
-  return "超出範圍";
+  if (hz < 85) return t("pitchBands.bandLow");
+  if (hz < 165) return t("pitchBands.bandBlue");
+  if (hz < 180) return t("pitchBands.bandNeutral");
+  if (hz < 310) return t("pitchBands.bandPink");
+  if (hz <= 450) return t("pitchBands.bandHigh");
+  return t("pitchBands.bandUnknown");
 }
 function startDrawLoop(){
   const ctx = pitchCanvas.getContext("2d");
@@ -960,7 +1042,7 @@ function finishStreamStats(){
 
     const headerHTML = `
       <div class="insight-header">
-        <span class="badge">Statistics</span>
+        <span class="badge">${summaryText?.badge || t("summary.badge")}</span>
         <div class="tags"></div>
       </div>
     `;
@@ -979,60 +1061,100 @@ function finishStreamStats(){
     // ====== 簡評（可一眼看懂）======
     const band = bandOf(pitchStats.med);                 // 常見音高區（依 Median）
     const spread = (pitchStats.p95 - pitchStats.p05);    // 變化幅度
-    const stability = (isFinite(spread) ? (spread < 40 ? "穩定" : spread <= 80 ? "中等變化" : "變化較大") : "—");
-    const snrTag = (isFinite(snr) ? (snr >= 20 ? "安靜／很清楚" : snr >= 12 ? "可用／一般" : "偏吵／建議換環境") : "—");
-    const volSigmaTag = (isFinite(volStats.sd) ? (volStats.sd < 6 ? "穩定" : volStats.sd <= 12 ? "中等" : "波動大") : "—");
+    let stabilityKey = "steady";
+    if (isFinite(spread)){
+      if (spread >= 80) stabilityKey = "wide";
+      else if (spread >= 40) stabilityKey = "moderate";
+    }
+    const stabilityLabel = isFinite(spread)
+      ? (summaryText?.stability?.[stabilityKey] || t(`summary.stability.${stabilityKey}`))
+      : "—";
+
+    let snrKey = null;
+    if (isFinite(snr)){
+      snrKey = snr >= 20 ? "quiet" : snr >= 12 ? "ok" : "noisy";
+    }
+    const snrLabel = snrKey
+      ? (summaryText?.snrTags?.[snrKey] || t(`summary.snrTags.${snrKey}`))
+      : "—";
+
+    let volSigmaKey = null;
+    if (isFinite(volStats.sd)){
+      volSigmaKey = volStats.sd < 6 ? "steady" : volStats.sd <= 12 ? "moderate" : "wide";
+    }
+    const volSigmaLabel = volSigmaKey
+      ? (summaryText?.volumeVariation?.[volSigmaKey] || t(`summary.volumeVariation.${volSigmaKey}`))
+      : "—";
 
     // 指標分歧（模型傾向 vs 音高常見區）
     const diverge = isDivergent(pitchStats.med, lastPf, lastPm);
     const divergeBadge = diverge
-      ? `<span class="chip">指標分歧</span>`
+      ? (summaryText?.divergenceBadge || t("summary.divergenceBadge"))
       : "";
 
     // 取樣覆蓋率（錄音期間有聲點比例）
     const voicedRatio = psVoiced.length ? (psVoiced.filter(Boolean).length / psVoiced.length) : NaN;
-    const voicedHint = (!isFinite(voicedRatio) || voicedRatio < 0.25)
-      ? "取樣偏少，建議 5–10 秒連續語句。"
-      : (voicedRatio < 0.5 ? "取樣略少，可再多說一點讓統計更穩。" : "");
+    let voicedHintKey = null;
+    if (!isFinite(voicedRatio) || voicedRatio < 0.25) voicedHintKey = "low";
+    else if (voicedRatio < 0.5) voicedHintKey = "medium";
 
+    const pfDisplay = (lastPf * 100).toFixed(1);
+    const pmDisplay = (lastPm * 100).toFixed(1);
+    const snrDisplay = isFinite(snr) ? `${fmt1(snr)} dB` : "—";
+    const oneLinerLabel = summaryText?.oneLinerLabel || t("summary.oneLinerLabel");
+    const oneLinerBody = summaryString("oneLinerTemplate", {
+      pf: pfDisplay,
+      pm: pmDisplay,
+      median: fmt1(pitchStats.med),
+      band,
+      stability: stabilityLabel,
+      snr: snrDisplay,
+      snrTag: snrLabel,
+      diverge: divergeBadge,
+    });
     const oneLiner = `
       <div class="summary-line">
-        <strong>簡評：</strong>
-        模型傾向（多特徵） F ${(lastPf*100).toFixed(1)}% / M ${(lastPm*100).toFixed(1)}% ｜
-        音高（單一特徵）Median ${fmt1(pitchStats.med)} Hz（常見音高區：${band}；${stability}）｜
-        SNR：${isFinite(snr)? fmt1(snr) + " dB" : "—"}（${snrTag}） ${divergeBadge}
+        <strong>${oneLinerLabel}</strong>
+        ${oneLinerBody}
       </div>
     `;
 
+    const trendLabel = lastPf >= lastPm ? t("realtime.meter.feminine") : t("realtime.meter.masculine");
     const divergeNote = diverge
-      ? `<p class="subline" style="margin:6px 0 0">
-          <b>指標分歧</b>：音高落在 <b>${band}</b>，但模型仍偏向 <b>${lastPf>=lastPm?"女性化":"男性化"}</b>。
-          兩者量測不同面向（模型含共鳴、音色、發音模式等；音高僅看 Hz），屬正常情形。
-        </p>`
+      ? t("summary.divergenceNoteHtml", { band, trend: trendLabel })
       : "";
 
-    const envNote = isFinite(snr) && snr < 12
-      ? `<p class="subline" style="margin:4px 0 0">環境偏吵（SNR 低於 12 dB），建議更安靜場景或拉近麥克風。</p>`
+    const envNote = (isFinite(snr) && snr < 12)
+      ? (summaryText?.envNoteHtml || t("summary.envNoteHtml"))
       : "";
 
-    const voicedNote = voicedHint
-      ? `<p class="subline" style="margin:4px 0 0">${voicedHint}</p>`
+    const voicedNote = voicedHintKey
+      ? `<p class="subline" style="margin:4px 0 0">${t(`summary.voicedHint.${voicedHintKey}`)}</p>`
       : "";
 
+    const statsLabels = summaryText?.statsLabels || {};
+    const statsRows = [
+      { key: "pitchAvg", value: `${fmt1(pitchStats.avg)}Hz` },
+      { key: "pitchMed", value: `${fmt1(pitchStats.med)}Hz` },
+      { key: "pitchHigh", value: `${fmt1(pitchStats.p95)}Hz` },
+      { key: "pitchLow", value: `${fmt1(pitchStats.p05)}Hz` },
+      { key: "volumeAvg", value: `${fmt1(volStats.avg)}dB (${fmt1(volStats.sd)}dB)` },
+      { key: "volumeMed", value: `${fmt1(volStats.med)}dB (${fmt1(volStats.sd)}dB)` },
+      { key: "volumeHigh", value: `${fmt1(volStats.p95)}dB` },
+      { key: "volumeLow", value: `${fmt1(volStats.p05)}dB` },
+    ];
+    const statsRowsHtml = statsRows.map(({ key, value }) => {
+      const label = statsLabels[key] || t(`summary.statsLabels.${key}`);
+      return `<div class="kv"><div class="k">${label}</div><div class="v">${value}</div></div>`;
+    }).join("");
+    const envLabel = statsLabels.env || t("summary.statsLabels.env");
+    const statsIntro = summaryString("statsIntro", { sigma: volSigmaLabel });
     const statsHTML = `
       <div class="stats-grid">
-        <div class="kv"><div class="k">Pitch · Average</div><div class="v">${fmt1(pitchStats.avg)}Hz</div></div>
-        <div class="kv"><div class="k">Pitch · Median</div><div class="v">${fmt1(pitchStats.med)}Hz</div></div>
-        <div class="kv"><div class="k">Pitch · High (95th)</div><div class="v">${fmt1(pitchStats.p95)}Hz</div></div>
-        <div class="kv"><div class="k">Pitch · Low (5th)</div><div class="v">${fmt1(pitchStats.p05)}Hz</div></div>
-
-        <div class="kv"><div class="k">Volume · Average (σ)</div><div class="v">${fmt1(volStats.avg)}dB (${fmt1(volStats.sd)}dB)</div></div>
-        <div class="kv"><div class="k">Volume · Median (σ)</div><div class="v">${fmt1(volStats.med)}dB (${fmt1(volStats.sd)}dB)</div></div>
-        <div class="kv"><div class="k">Volume · High (95th)</div><div class="v">${fmt1(volStats.p95)}dB</div></div>
-        <div class="kv"><div class="k">Volume · Low (5th)</div><div class="v">${fmt1(volStats.p05)}dB</div></div>
+        ${statsRowsHtml}
       </div>
-      <div class="kv" style="margin-top:10px"><div class="k">Environment</div><div class="v">${fmt1(envDb)}dB</div></div>
-      <p class="subline" style="margin:8px 0 0">音量波動（σ）：<b>${volSigmaTag}</b>；這些指標是練習回饋，<u>不是性別認定</u>。</p>
+      <div class="kv" style="margin-top:10px"><div class="k">${envLabel}</div><div class="v">${fmt1(envDb)}dB</div></div>
+      <p class="subline" style="margin:8px 0 0">${statsIntro}</p>
     `;
     const advSummary = computeAdvancedSummary();
     const advancedHTML = renderAdvancedSummary(advSummary);
@@ -1043,13 +1165,13 @@ function finishStreamStats(){
     const tags = statsEl.querySelector(".tags");
     if (tags){
       let tagHTML = `
-        <span class="tag">Pitch band：${band}</span>
-        <span class="tag">環境底噪：約 ${fmt1(envDb)} dB</span>
+        <span class="tag">${summaryString("tags.pitchBand", { band })}</span>
+        <span class="tag">${summaryString("tags.noise", { noise: fmt1(envDb) })}</span>
       `;
       if (advSummary){
-        if (advSummary.resonanceLabel) tagHTML += `<span class="tag">共鳴：${advSummary.resonanceLabel}</span>`;
-        if (advSummary.speechRateLabel) tagHTML += `<span class="tag">語速：${advSummary.speechRateLabel}</span>`;
-        if (advSummary.breathinessLabel) tagHTML += `<span class="tag">氣聲：${advSummary.breathinessLabel}</span>`;
+        if (advSummary.resonanceLabel) tagHTML += `<span class="tag">${summaryString("tags.resonance", { label: advSummary.resonanceLabel })}</span>`;
+        if (advSummary.speechRateLabel) tagHTML += `<span class="tag">${summaryString("tags.speechRate", { label: advSummary.speechRateLabel })}</span>`;
+        if (advSummary.breathinessLabel) tagHTML += `<span class="tag">${summaryString("tags.breathiness", { label: advSummary.breathinessLabel })}</span>`;
       }
       tags.innerHTML = tagHTML;
     }
@@ -1123,7 +1245,7 @@ function renderAdvancedSummary(summary){
   if (!summary){
     return `
       <div class="advanced-section">
-        <div class="note">語音時長不足，暫無 formant、共鳴與語速分析。請錄製 5–10 秒連續語句。</div>
+        <div class="note">${t("analysis.advanced.insufficient")}</div>
       </div>
     `;
   }
@@ -1131,29 +1253,44 @@ function renderAdvancedSummary(summary){
   const maskPct  = Math.round((summary.energyPct?.mask ?? 0.33)*100);
   const headPct  = Math.round((summary.energyPct?.head ?? 0.34)*100);
   const speechRateDisplay = Number.isFinite(summary.speechRate?.syllPerSec)
-    ? `${fmt1(summary.speechRate.syllPerSec)} 音節/秒`
+    ? summaryString("speechRateDisplay", { value: fmt1(summary.speechRate.syllPerSec) })
     : "—";
-  const speechWpm = Number.isFinite(summary.speechRate?.wordsPerMin)
-    ? `${Math.round(summary.speechRate.wordsPerMin)} wpm`
-    : "—";
+  const speechWpmDisplay = Number.isFinite(summary.speechRate?.wordsPerMin)
+    ? summaryString("speechRateWpm", { value: Math.round(summary.speechRate.wordsPerMin) })
+    : "";
+  const percentSuffix = (value) => summaryString("percentSuffix", { value });
   const liaisonDisplay = Number.isFinite(summary.liaisonRatio)
-    ? `${Math.round(summary.liaisonRatio*100)}%`
+    ? percentSuffix(Math.round(summary.liaisonRatio*100))
+    : "";
+  const vowelDisplay = summary.vowelLabel + (Number.isFinite(summary.vowelFocusRatio) ? percentSuffix(Math.round(summary.vowelFocusRatio*100)) : "");
+  const breathDisplay = summary.breathinessLabel + (Number.isFinite(summary.breathinessAvg) ? percentSuffix(Math.round(summary.breathinessAvg*100)) : "");
+  const rangeDisplay = Number.isFinite(summary.intonation?.range)
+    ? summaryString("rangeDisplayHz", { value: fmt1(summary.intonation.range) })
     : "—";
-  const vowelDisplay = summary.vowelLabel + (Number.isFinite(summary.vowelFocusRatio) ? ` · ${Math.round(summary.vowelFocusRatio*100)}%` : "");
-  const breathDisplay = summary.breathinessLabel + (Number.isFinite(summary.breathinessAvg) ? ` · ${Math.round(summary.breathinessAvg*100)}%` : "");
-  const rangeDisplay = Number.isFinite(summary.intonation?.range) ? `${fmt1(summary.intonation.range)} Hz` : "—";
   const intonationLabel = summary.intonation?.slopeLabel || "—";
-  const intonationHint = summary.intonation?.hint || "語調資訊不足，建議錄製更長語句。";
+  const intonationHint = summary.intonation?.hint || t("summary.summaryHint");
   const rangeHint = summary.intonation?.rangeHint || "";
+
+  const advancedCopy = summaryText?.advanced || {};
+  const formantTitle = advancedCopy.formantTitle || t("summary.advanced.formantTitle");
+  const intonationTitle = advancedCopy.intonationTitle || t("summary.advanced.intonationTitle");
+  const vowelTitle = advancedCopy.vowelBreathTitle || t("summary.advanced.vowelBreathTitle");
+  const formantCards = advancedCopy.formantCards || {};
+  const intonationCards = advancedCopy.intonationCards || {};
+  const vowelCards = advancedCopy.vowelCards || {};
+  const canvasAria = advancedCopy.canvasAria || t("summary.advanced.canvasAria");
+
+  const liaisonValue = summary.liaisonLabel + (liaisonDisplay ? liaisonDisplay : "");
+  const speechRateHint = speechWpmDisplay ? `${summary.speechRateHint} ${speechWpmDisplay}` : summary.speechRateHint;
 
   return `
     <div class="advanced-section">
-      <h3 class="adv-title">Formant 與共鳴</h3>
+      <h3 class="adv-title">${formantTitle}</h3>
       <div class="advanced-grid advanced-grid--four">
-        <div class="adv-card"><div class="k">F1 · Median</div><div class="v">${fmt1(summary.f1Med)}Hz</div><div class="hint">${summary.f1Hint}</div></div>
-        <div class="adv-card"><div class="k">F2 · Median</div><div class="v">${fmt1(summary.f2Med)}Hz</div><div class="hint">${summary.f2Hint}</div></div>
-        <div class="adv-card"><div class="k">F3 · Median</div><div class="v">${fmt1(summary.f3Med)}Hz</div><div class="hint">${summary.f3Hint}</div></div>
-        <div class="adv-card"><div class="k">Spectral Tilt</div><div class="v">${fmt1(summary.tiltAvg)} dB</div><div class="hint">${summary.tiltHint}</div></div>
+        <div class="adv-card"><div class="k">${formantCards.f1 || t("summary.advanced.formantCards.f1")}</div><div class="v">${fmt1(summary.f1Med)}Hz</div><div class="hint">${summary.f1Hint}</div></div>
+        <div class="adv-card"><div class="k">${formantCards.f2 || t("summary.advanced.formantCards.f2")}</div><div class="v">${fmt1(summary.f2Med)}Hz</div><div class="hint">${summary.f2Hint}</div></div>
+        <div class="adv-card"><div class="k">${formantCards.f3 || t("summary.advanced.formantCards.f3")}</div><div class="v">${fmt1(summary.f3Med)}Hz</div><div class="hint">${summary.f3Hint}</div></div>
+        <div class="adv-card"><div class="k">${formantCards.tilt || t("summary.advanced.formantCards.tilt")}</div><div class="v">${fmt1(summary.tiltAvg)} dB</div><div class="hint">${summary.tiltHint}</div></div>
       </div>
       <div class="resonance-summary">
         <div class="resonance-bar resonance-bar--summary">
@@ -1165,21 +1302,21 @@ function renderAdvancedSummary(summary){
       </div>
     </div>
     <div class="advanced-section">
-      <h3 class="adv-title">語調與語速</h3>
-      <canvas id="intonationCanvas" width="520" height="140" aria-label="Intonation curve"></canvas>
+      <h3 class="adv-title">${intonationTitle}</h3>
+      <canvas id="intonationCanvas" width="520" height="140" aria-label="${canvasAria}"></canvas>
       <div class="advanced-grid advanced-grid--four">
-        <div class="adv-card"><div class="k">語調趨勢</div><div class="v">${intonationLabel}</div><div class="hint">${intonationHint}</div></div>
-        <div class="adv-card"><div class="k">音高動態</div><div class="v">${rangeDisplay}</div><div class="hint">${rangeHint}</div></div>
-        <div class="adv-card"><div class="k">語速估計</div><div class="v">${speechRateDisplay}</div><div class="hint">${summary.speechRateHint}（約 ${speechWpm}）</div></div>
-        <div class="adv-card"><div class="k">連音比例</div><div class="v">${summary.liaisonLabel} · ${liaisonDisplay}</div><div class="hint">${summary.liaisonHint}</div></div>
+        <div class="adv-card"><div class="k">${intonationCards.trend || t("summary.advanced.intonationCards.trend")}</div><div class="v">${intonationLabel}</div><div class="hint">${intonationHint}</div></div>
+        <div class="adv-card"><div class="k">${intonationCards.range || t("summary.advanced.intonationCards.range")}</div><div class="v">${rangeDisplay}</div><div class="hint">${rangeHint}</div></div>
+        <div class="adv-card"><div class="k">${intonationCards.speechRate || t("summary.advanced.intonationCards.speechRate")}</div><div class="v">${speechRateDisplay}</div><div class="hint">${speechRateHint}</div></div>
+        <div class="adv-card"><div class="k">${intonationCards.liaison || t("summary.advanced.intonationCards.liaison")}</div><div class="v">${liaisonValue || "—"}</div><div class="hint">${summary.liaisonHint}</div></div>
       </div>
     </div>
     <div class="advanced-section">
-      <h3 class="adv-title">元音聚焦與氣聲</h3>
+      <h3 class="adv-title">${vowelTitle}</h3>
       <div class="advanced-grid advanced-grid--three">
-        <div class="adv-card"><div class="k">元音聚焦</div><div class="v">${vowelDisplay}</div><div class="hint">${summary.vowelHint}</div></div>
-        <div class="adv-card"><div class="k">氣聲比例</div><div class="v">${breathDisplay}</div><div class="hint">${summary.breathinessHint}</div></div>
-        <div class="adv-card"><div class="k">共鳴傾向</div><div class="v">${summary.tiltLabel}</div><div class="hint">${summary.tiltHint}</div></div>
+        <div class="adv-card"><div class="k">${vowelCards.focus || t("summary.advanced.vowelCards.focus")}</div><div class="v">${vowelDisplay}</div><div class="hint">${summary.vowelHint}</div></div>
+        <div class="adv-card"><div class="k">${vowelCards.breathiness || t("summary.advanced.vowelCards.breathiness")}</div><div class="v">${breathDisplay}</div><div class="hint">${summary.breathinessHint}</div></div>
+        <div class="adv-card"><div class="k">${vowelCards.tilt || t("summary.advanced.vowelCards.tilt")}</div><div class="v">${summary.tiltLabel}</div><div class="hint">${summary.tiltHint}</div></div>
       </div>
     </div>
   `;
@@ -1208,48 +1345,93 @@ function averageEnergy(arr){
 }
 
 function describeResonanceFromEnergy(energy){
+  const pctFallback = { chest: 1 / 3, mask: 1 / 3, head: 1 / 3 };
   if (!energy || (!Number.isFinite(energy.low) && !Number.isFinite(energy.mid) && !Number.isFinite(energy.high))){
-    return { label:"資料不足", hint:"需要更多穩定語音才能估算共鳴分布。", pct:{ chest:1/3, mask:1/3, head:1/3 }, total:0 };
+    const insufficient = analysisText?.resonanceBalance?.insufficient;
+    return {
+      label: insufficient?.label || t("analysis.resonanceBalance.insufficient.label"),
+      hint: insufficient?.hint || t("analysis.resonanceBalance.insufficient.hint"),
+      pct: pctFallback,
+      total: 0,
+    };
   }
   const total = Math.max((energy.low||0) + (energy.mid||0) + (energy.high||0), EPS);
   const chestPct = Math.max(0, (energy.low||0) / total);
   const maskPct  = Math.max(0, (energy.mid||0) / total);
   const headPct  = Math.max(0, (energy.high||0) / total);
-  let label="平衡", hint="胸 / 面罩 / 頭腔能量分布均衡，可依需求微調亮度。";
+  let key = "balanced";
   if (headPct >= 0.32){
-    label = "頭腔亮度強";
-    hint = "高頻占比較高，保持放鬆的軟顎與氣息，避免聲音過尖。";
+    key = "headBright";
   } else if (chestPct >= 0.45){
-    label = "胸腔偏重";
-    hint = "胸腔能量較多，可抬高喉頭、增加口腔共鳴來提亮聲音。";
+    key = "chestHeavy";
   } else if (maskPct >= chestPct && maskPct >= headPct){
-    label = "面罩共鳴主導";
-    hint = "面罩區域占比最高，維持鼻腔開放同時注意放鬆喉部。";
+    key = "maskLead";
   }
-  return { label, hint, pct:{ chest:chestPct, mask:maskPct, head:headPct }, total };
+  const entry = analysisText?.resonanceBalance?.[key];
+  return {
+    label: entry?.label || t(`analysis.resonanceBalance.${key}.label`),
+    hint: entry?.hint || t(`analysis.resonanceBalance.${key}.hint`),
+    pct:{ chest:chestPct, mask:maskPct, head:headPct },
+    total,
+  };
 }
 
 function categorizeTilt(tilt){
-  if (!Number.isFinite(tilt)) return { label:"資料不足", hint:"錄製更多穩定語音片段以估算共鳴傾向。" };
-  if (tilt >= 8) return { label:"濃厚暖色", hint:"低頻占比較高，可加入頭腔共鳴提升明亮度。" };
-  if (tilt >= 3) return { label:"平衡偏暖", hint:"低頻略多，維持支撐的同時讓口腔更前放。" };
-  if (tilt >= -1) return { label:"平衡", hint:"頻譜傾斜度均衡，可依語意微調亮度。" };
-  return { label:"亮度強", hint:"高頻偏多，放鬆喉頭並加強氣息支撐來柔化聲音。" };
+  if (!Number.isFinite(tilt)) {
+    const insufficient = analysisText?.tilt?.insufficient;
+    return {
+      label: insufficient?.label || t("analysis.tilt.insufficient.label"),
+      hint: insufficient?.hint || t("analysis.tilt.insufficient.hint"),
+    };
+  }
+  let key = "bright";
+  if (tilt >= 8) key = "warm";
+  else if (tilt >= 3) key = "gentleWarm";
+  else if (tilt >= -1) key = "balanced";
+  const entry = analysisText?.tilt?.[key];
+  return {
+    label: entry?.label || t(`analysis.tilt.${key}.label`),
+    hint: entry?.hint || t(`analysis.tilt.${key}.hint`),
+  };
 }
 
 function categorizeBreathiness(val){
-  if (!Number.isFinite(val)) return { label:"資料不足", hint:"需要更多有聲樣本才能判斷氣聲比例。" };
-  if (val < 0.08) return { label:"偏實聲", hint:"氣聲較少，可加入些許氣息讓聲音更柔和。" };
-  if (val <= 0.18) return { label:"平衡", hint:"氣聲落在建議的 8%–18% 區間，維持目前的氣息控制。" };
-  if (val <= 0.28) return { label:"偏氣聲", hint:"氣聲略多，收緊聲帶或增加呼吸支撐可提升聚焦。" };
-  return { label:"氣聲過多", hint:"氣流外洩明顯，建議練習連續母音與收聲帶閉合。" };
+  if (!Number.isFinite(val)) {
+    const insufficient = analysisText?.breathiness?.insufficient;
+    return {
+      label: insufficient?.label || t("analysis.breathiness.insufficient.label"),
+      hint: insufficient?.hint || t("analysis.breathiness.insufficient.hint"),
+    };
+  }
+  let key = "tooAiry";
+  if (val < 0.08) key = "dense";
+  else if (val <= 0.18) key = "balanced";
+  else if (val <= 0.28) key = "airy";
+  const entry = analysisText?.breathiness?.[key];
+  return {
+    label: entry?.label || t(`analysis.breathiness.${key}.label`),
+    hint: entry?.hint || t(`analysis.breathiness.${key}.hint`),
+  };
 }
 
 function makeFormantHint(label, value, low, high){
-  if (!Number.isFinite(value)) return `${label} 無法估計，錄音過短或噪音過高。`;
-  if (value < low) return `${label} 偏低，可抬高舌位、縮小口腔體積讓共鳴往前。`;
-  if (value > high) return `${label} 偏高，試著放鬆舌根或增加口腔開度保持厚度。`;
-  return `${label} 落在建議範圍，維持目前的發聲位置。`;
+  const rangeLabels = analysisText?.formant?.rangeLabels || {};
+  const labelName = rangeLabels[label] || t(`analysis.formant.rangeLabels.${label}`);
+  const labelWithName = `${label}（${labelName || label}）`;
+  if (!Number.isFinite(value)) {
+    return t("analysis.formant.insufficient", { label: labelWithName });
+  }
+  const lowHint = analysisText?.formant?.low?.[label] || t(`analysis.formant.low.${label}`);
+  const highHint = analysisText?.formant?.high?.[label] || t(`analysis.formant.high.${label}`);
+  if (value < low) {
+    const msg = t("analysis.formant.lowMessage", { label: labelWithName, hint: lowHint });
+    return msg || `${labelWithName} ${lowHint}`;
+  }
+  if (value > high) {
+    const msg = t("analysis.formant.highMessage", { label: labelWithName, hint: highHint });
+    return msg || `${labelWithName} ${highHint}`;
+  }
+  return t("analysis.formant.inRange", { label: labelWithName });
 }
 
 function analyzeVowelFocus(store){
@@ -1264,16 +1446,37 @@ function analyzeVowelFocus(store){
     if (f1 >= 180 && f1 <= 450 && f2 >= 1500 && f2 <= 2800) focus++;
   }
   const ratio = voiced ? focus/voiced : NaN;
-  if (!Number.isFinite(ratio)) return { ratio:NaN, label:"資料不足", hint:"需要更多穩定母音才能評估聚焦程度。" };
-  if (ratio >= 0.6) return { ratio, label:"聚焦良好", hint:"超過 60% 母音落在女性常見區，維持目前的舌位與口形。" };
-  if (ratio >= 0.4) return { ratio, label:"可再集中", hint:"約一半母音達標，可練習延長母音、保持舌尖前放。" };
-  return { ratio, label:"需加強", hint:"聚焦比例低，建議練習 /i/、/e/ 等前母音建立高 F2。" };
+  if (!Number.isFinite(ratio)) {
+    const insufficient = analysisText?.vowelFocus?.insufficient;
+    return {
+      ratio: NaN,
+      label: insufficient?.label || t("analysis.vowelFocus.insufficient.label"),
+      hint: insufficient?.hint || t("analysis.vowelFocus.insufficient.hint"),
+    };
+  }
+  let key = "weak";
+  if (ratio >= 0.6) key = "strong";
+  else if (ratio >= 0.4) key = "medium";
+  const entry = analysisText?.vowelFocus?.[key];
+  return {
+    ratio,
+    label: entry?.label || t(`analysis.vowelFocus.${key}.label`),
+    hint: entry?.hint || t(`analysis.vowelFocus.${key}.hint`),
+  };
 }
 
 function analyzeSpeechRate(store){
   const hopSec = store.frameSec || (PS_INTERVAL_MS/1000);
   const n = store.db.length;
-  if (!n) return { syllPerSec:NaN, wordsPerMin:NaN, label:"資料不足", hint:"語速資訊不足，建議錄 5–10 秒語句。" };
+  if (!n) {
+    const insufficient = analysisText?.speechRate?.insufficient;
+    return {
+      syllPerSec: NaN,
+      wordsPerMin: NaN,
+      label: insufficient?.label || t("analysis.speechRate.insufficient.label"),
+      hint: insufficient?.hint || t("analysis.speechRate.insufficient.hint"),
+    };
+  }
   const duration = hopSec * n;
   let peaks = 0;
   let lastPeak = -Infinity;
@@ -1293,14 +1496,36 @@ function analyzeSpeechRate(store){
   }
   const syllPerSec = peaks / Math.max(duration, EPS);
   const wordsPerMin = syllPerSec > 0 ? (syllPerSec / 1.5) * 60 : NaN;
-  if (!Number.isFinite(syllPerSec) || syllPerSec <= 0) return { syllPerSec:NaN, wordsPerMin:NaN, label:"資料不足", hint:"語速資訊不足，建議再錄一次。" };
-  if (syllPerSec < 2.2) return { syllPerSec, wordsPerMin, label:"偏慢", hint:"語速偏慢（建議 2.5–4 音節/秒），可縮短停頓、保持語尾上揚。" };
-  if (syllPerSec <= 4.2) return { syllPerSec, wordsPerMin, label:"適中", hint:"語速落在常見練習區間，維持吐字清晰與節奏。" };
-  return { syllPerSec, wordsPerMin, label:"偏快", hint:"語速偏快，可放慢語尾母音並確認發音完整。" };
+  if (!Number.isFinite(syllPerSec) || syllPerSec <= 0) {
+    const insufficient = analysisText?.speechRate?.insufficient;
+    return {
+      syllPerSec: NaN,
+      wordsPerMin: NaN,
+      label: insufficient?.label || t("analysis.speechRate.insufficient.label"),
+      hint: insufficient?.hint || t("analysis.speechRate.insufficient.hint"),
+    };
+  }
+  let key = "fast";
+  if (syllPerSec < 2.2) key = "tooSlow";
+  else if (syllPerSec <= 4.2) key = "balanced";
+  const entry = analysisText?.speechRate?.[key];
+  return {
+    syllPerSec,
+    wordsPerMin,
+    label: entry?.label || t(`analysis.speechRate.${key}.label`),
+    hint: entry?.hint || t(`analysis.speechRate.${key}.hint`),
+  };
 }
 
 function analyzeConnectedSpeech(voicedArr, hopSec){
-  if (!Array.isArray(voicedArr) || !voicedArr.length) return { ratio:NaN, label:"資料不足", hint:"語句過短，無法評估連音。" };
+  if (!Array.isArray(voicedArr) || !voicedArr.length) {
+    const insufficient = analysisText?.liaison?.insufficient;
+    return {
+      ratio: NaN,
+      label: insufficient?.label || t("analysis.liaison.insufficient.label"),
+      hint: insufficient?.hint || t("analysis.liaison.insufficient.hint"),
+    };
+  }
   let segments=0;
   let inVoiced=false;
   let gapDur=0;
@@ -1326,10 +1551,23 @@ function analyzeConnectedSpeech(voicedArr, hopSec){
   const totalBreaks = Math.max(0, segments-1);
   const shortGaps = gaps.filter(g=>g <= 0.16).length;
   const ratio = totalBreaks ? shortGaps / totalBreaks : (segments>0 ? 1 : NaN);
-  if (!Number.isFinite(ratio)) return { ratio:NaN, label:"資料不足", hint:"語音片段不足以計算連音比例。" };
-  if (ratio >= 0.7) return { ratio, label:"連音良好", hint:"大部分停頓低於 160ms，保持順滑連接。" };
-  if (ratio >= 0.4) return { ratio, label:"中等", hint:"部分字詞仍有停頓，可練習連讀或弱化輔音。" };
-  return { ratio, label:"偏斷裂", hint:"短停頓比例低，試著延長母音或加強連音練習。" };
+  if (!Number.isFinite(ratio)) {
+    const insufficient = analysisText?.liaison?.insufficient;
+    return {
+      ratio: NaN,
+      label: insufficient?.label || t("analysis.liaison.insufficient.label"),
+      hint: insufficient?.hint || t("analysis.liaison.insufficient.hint"),
+    };
+  }
+  let key = "weak";
+  if (ratio >= 0.7) key = "strong";
+  else if (ratio >= 0.4) key = "medium";
+  const entry = analysisText?.liaison?.[key];
+  return {
+    ratio,
+    label: entry?.label || t(`analysis.liaison.${key}.label`),
+    hint: entry?.hint || t(`analysis.liaison.${key}.hint`),
+  };
 }
 
 function analyzeIntonation(pitchArr, voicedArr, hopSec){
@@ -1344,7 +1582,17 @@ function analyzeIntonation(pitchArr, voicedArr, hopSec){
     if (hz > maxHz) maxHz = hz;
   }
   if (points.length < 3){
-    return { points:[], slope:NaN, slopeLabel:"資料不足", hint:"語調點太少，建議錄製更長語句。", range:NaN, rangeHint:"", minHz:NaN, maxHz:NaN };
+    const insufficient = analysisText?.intonation?.insufficient;
+    return {
+      points:[],
+      slope:NaN,
+      slopeLabel: insufficient?.slopeLabel || t("analysis.intonation.insufficient.slopeLabel"),
+      hint: insufficient?.slopeHint || t("analysis.intonation.insufficient.slopeHint"),
+      range:NaN,
+      rangeHint: insufficient?.rangeHint || "",
+      minHz:NaN,
+      maxHz:NaN,
+    };
   }
   const n = points.length;
   let sumT=0, sumH=0, sumTT=0, sumTH=0;
@@ -1353,12 +1601,20 @@ function analyzeIntonation(pitchArr, voicedArr, hopSec){
   }
   const slope = (n*sumTH - sumT*sumH) / Math.max((n*sumTT - sumT*sumT), EPS);
   const range = maxHz - minHz;
-  let slopeLabel="平穩", slopeHint="整體趨勢平穩，可在句尾加些上揚提升表情。";
-  if (slope > 12){ slopeLabel="上揚"; slopeHint="語尾持續上揚，有助營造更明亮的語調。"; }
-  else if (slope < -12){ slopeLabel="下降"; slopeHint="語尾明顯下降，可在結尾加入上揚以維持女性語感。"; }
-  let rangeLabel="偏平", rangeHint="音高變化較小，可練習階梯式上揚。";
-  if (range >= 90){ rangeLabel="變化豐富"; rangeHint="音高跨距大，注意控制不要失去穩定。"; }
-  else if (range >= 50){ rangeLabel="適中"; rangeHint="音高動態適中，可依語意微調。"; }
+  let slopeKey = "flat";
+  if (slope > 12) slopeKey = "rising";
+  else if (slope < -12) slopeKey = "falling";
+  const slopeEntry = analysisText?.intonation?.slope?.[slopeKey];
+  const slopeLabel = slopeEntry?.label || t(`analysis.intonation.slope.${slopeKey}.label`);
+  const slopeHint = slopeEntry?.hint || t(`analysis.intonation.slope.${slopeKey}.hint`);
+
+  let rangeKey = "narrow";
+  if (range >= 90) rangeKey = "rich";
+  else if (range >= 50) rangeKey = "medium";
+  const rangeEntry = analysisText?.intonation?.range?.[rangeKey];
+  const rangeHint = rangeEntry?.hint || t(`analysis.intonation.range.${rangeKey}.hint`);
+
+  const rangeLabel = rangeEntry?.label || t(`analysis.intonation.range.${rangeKey}.label`);
   const hint = `${slopeHint} ${rangeHint}`.trim();
   return { points, slope, slopeLabel, range, rangeLabel, hint, rangeHint, minHz, maxHz };
 }
@@ -1368,12 +1624,17 @@ function drawIntonationCurve(canvas, intonation){
     const pts = intonation?.points || [];
     if (!canvas || !canvas.getContext) return;
     const ctx = canvas.getContext("2d");
-    const width = canvas.clientWidth || canvas.width || 520;
-    const height = canvas.clientHeight || canvas.height || 140;
+    if (!ctx) return;
+
+    const width = canvas.clientWidth || canvas.offsetWidth || canvas.width || 520;
+    const height = canvas.clientHeight || canvas.offsetHeight || canvas.height || 140;
     const DPR = Math.max(1, window.devicePixelRatio||1);
-    canvas.width = width * DPR;
-    canvas.height = height * DPR;
-    ctx.scale(DPR, DPR);
+
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+    canvas.width = Math.max(1, Math.round(width * DPR));
+    canvas.height = Math.max(1, Math.round(height * DPR));
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.clearRect(0,0,width,height);
     ctx.fillStyle = "#f8f8f8";
     ctx.fillRect(0,0,width,height);
@@ -1533,12 +1794,12 @@ function zeroCrossingRate(arr){
 
 function bandOf(medHz){
   if (!isFinite(medHz)) return "—";
-  if (medHz < 85) return "低域（<85Hz）";
-  if (medHz < 165) return "男性常見區（85–165Hz）";
-  if (medHz < 180) return "重疊帶（中性 165–180Hz）";
-  if (medHz < 310) return "女性常見區（180–310Hz）";
-  if (medHz <= 450) return "高域（>310Hz）";
-  return "超出範圍";
+  if (medHz < 85) return t("pitchBands.low");
+  if (medHz < 165) return t("pitchBands.male");
+  if (medHz < 180) return t("pitchBands.overlap");
+  if (medHz < 310) return t("pitchBands.female");
+  if (medHz <= 450) return t("pitchBands.high");
+  return t("pitchBands.outOfRange");
 }
 function isDivergent(medHz, pf, pm){
   if (!isFinite(medHz)) return false;
