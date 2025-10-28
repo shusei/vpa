@@ -448,6 +448,7 @@ body.recording .status{
   margin-top:10px; padding:10px 12px; border-radius:12px;
   background: color-mix(in oklab, var(--panel) 78%, var(--accent-2) 22%);
   border:1px solid var(--panel-border);
+  color:color-mix(in oklab, var(--ink) 80%, var(--text) 20%);
 }
 
 /* ---------- Advanced Insight Sections ---------- */
