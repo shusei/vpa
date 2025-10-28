@@ -429,6 +429,9 @@ body.recording .status{
 .subline{
   color:color-mix(in oklab, var(--text) 78%, var(--muted) 22%);
 }
+.insight .subline{
+  color:color-mix(in oklab, var(--ink) 88%, var(--muted) 12%);
+}
 
 .chip{
   display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:700;
@@ -440,9 +443,14 @@ body.recording .status{
   display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px;
   margin:10px 0 0;
 }
-.kv{ background:var(--surface-strong); border:1px solid var(--border); border-radius:12px; padding:12px; }
-.kv .k{ font-size:12px; color:color-mix(in oklab, var(--text) 80%, var(--muted) 20%); }
-.kv .v{ font-weight:900; }
+.kv{
+  background:color-mix(in oklab, var(--panel) 82%, var(--surface-strong) 18%);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:12px;
+}
+.kv .k{ font-size:12px; color:color-mix(in oklab, var(--ink) 82%, var(--muted) 18%); }
+.kv .v{ font-weight:900; color:color-mix(in oklab, var(--ink) 90%, var(--muted) 10%); }
 
 .note{
   margin-top:10px; padding:10px 12px; border-radius:12px;
@@ -483,9 +491,9 @@ body.recording .status{
   flex-direction:column;
   gap:4px;
 }
-.adv-card .k{ font-size:12px; color:color-mix(in oklab, var(--text) 80%, var(--muted) 20%); }
+.adv-card .k{ font-size:12px; color:color-mix(in oklab, var(--ink) 82%, var(--muted) 18%); }
 .adv-card .v{ font-weight:800; font-size:16px; color:var(--ink); }
-.adv-card .hint{ font-size:12px; color:color-mix(in oklab, var(--text) 78%, var(--muted) 22%); }
+.adv-card .hint{ font-size:12px; color:color-mix(in oklab, var(--ink) 76%, var(--muted) 24%); }
 .resonance-summary .resonance-bar{ height:28px; }
 .resonance-bar--summary .res-part{ font-size:12px; }
 
@@ -498,10 +506,21 @@ html[data-faction="dark"] .formant-card .range,
 html[data-faction="dark"] .resonance-panel .label,
 html[data-faction="dark"] .resonance-panel .range,
 html[data-faction="dark"] .summary-line .subline,
+html[data-faction="dark"] .insight .subline,
 html[data-faction="dark"] .kv .k,
+html[data-faction="dark"] .kv .v,
 html[data-faction="dark"] .adv-card .k,
+html[data-faction="dark"] .adv-card .v,
 html[data-faction="dark"] .adv-card .hint,
 html[data-faction="dark"] .note{
-  color:color-mix(in oklab, var(--text) 92%, var(--ink) 8%);
+  color:color-mix(in oklab, var(--text) 94%, #fff 6%);
+}
+
+html[data-faction="dark"] .kv,
+html[data-faction="dark"] .adv-card,
+html[data-faction="dark"] .note,
+html[data-faction="dark"] .summary-line{
+  background:color-mix(in oklab, var(--surface-strong) 78%, rgba(0,0,0,.35) 22%);
+  border-color:color-mix(in oklab, var(--panel-border) 48%, rgba(255,255,255,.12) 52%);
 }
 
