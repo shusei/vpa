@@ -56,6 +56,7 @@ Voice Presentation Analyzer（以下簡稱 VPA）是一款完全以 Web 技術�
 - **Pitch Stream**：以 50 ms 解析度顯示 50–450 Hz 音高走勢、瞬時音量、噪音估計並提供穩定度平滑處理。【F:assets/app.js†L180-L259】【F:index.html†L125-L213】
 - **Formant / Resonance 面板**：估計 F1–F3、胸／面罩／頭腔共鳴比例、氣聲比例、頻譜傾斜等資訊，錄音或上傳時即時更新。【F:assets/app.js†L202-L254】【F:index.html†L134-L204】
 - **統計卡**：分析完成後輸出 Pitch、Volume、Environment、Formant & Resonance、Speech Rate 等指標的平均值、百分位數與建議範圍。【F:assets/app.js†L1407-L1642】【F:index.html†L400-L575】
+- **自適應音高與精緻共鳴分析**：內建條件啟用的 YIN-lite 音高偵測與進階共鳴摘要，會根據裝置得分與即時計時決定是否啟用，並在預算不足或發生錯誤時自動回退至基線 ACF／FFT 演算法，過載解除後再度嘗試升級。【F:assets/app.js†L251-L517】【F:assets/app.js†L568-L650】【F:assets/app.js†L2048-L2364】
 - **模型簡評**：整合模型輸出與統計指標，給予 1 行摘要並凸顯指標矛盾或建議。【F:assets/app.js†L1365-L1406】
 
 ### 長檔案處理
@@ -79,6 +80,7 @@ Voice Presentation Analyzer（以下簡稱 VPA）是一款完全以 Web 技術�
 2. **選擇來源**：
    - 點擊「開始錄音」並說話 5–10 秒（建議自然口語，避免唱歌）。
    - 或點擊右下角的上傳按鈕，挑選 `mp3 / m4a / mp4 / mov / wav` 等檔案。
+     按下浮動按鈕時頁面會自動捲回頂端，方便直接看到上傳區塊與狀態列。【F:assets/app.js†L700-L730】
 3. **即時觀察**：錄音期間會顯示 Pitch Stream 與 Formant / Resonance 面板；上傳檔案則會離線抽樣並於統計卡展示。
 4. **等待推論完成**：儀表盤會顯示模型即時傾向、狀態列同步告知進度與預估剩餘時間。
 5. **檢視結果**：推論完成後，可在儀表下方閱讀統計卡與簡評，必要時點擊播放器回放剛才的音檔。
