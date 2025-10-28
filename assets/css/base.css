@@ -30,6 +30,21 @@ a:hover{ text-decoration: underline; }
   --female:#f3accf; --male:#ffc0a8;
   --link: color-mix(in oklab, #ffe7c7 55%, var(--accent) 45%);
 
+  /* Topbar palette (adapts via faction overrides) */
+  --topbar-bg-1: color-mix(in oklab, var(--surface) 68%, var(--accent-2) 32%);
+  --topbar-bg-2: color-mix(in oklab, var(--surface-strong) 78%, var(--accent-1) 22%);
+  --topbar-border: color-mix(in oklab, var(--panel-border) 55%, var(--accent-2) 45%);
+  --topbar-ink: var(--text);
+  --brand-bg: color-mix(in oklab, var(--panel) 68%, var(--accent-2) 32%);
+  --brand-ink: color-mix(in oklab, var(--ink) 86%, var(--accent-1) 14%);
+  --brand-tag-bg: color-mix(in oklab, var(--panel) 50%, var(--accent-1) 50%);
+  --brand-tag-ink: color-mix(in oklab, var(--ink) 82%, var(--accent-1) 18%);
+  --brand-tag-border: color-mix(in oklab, var(--panel-border) 55%, var(--accent-1) 45%);
+  --topbar-icon-bg-1: color-mix(in oklab, var(--panel) 70%, var(--accent-2) 30%);
+  --topbar-icon-bg-2: color-mix(in oklab, var(--panel) 55%, var(--accent-1) 45%);
+  --topbar-icon-border: color-mix(in oklab, var(--panel-border) 60%, var(--accent-2) 40%);
+  --topbar-icon-ink: color-mix(in oklab, var(--ink) 90%, var(--accent-1) 10%);
+
   /* Hero（預設暗底：漸層） */
   --hero-title-bg: linear-gradient(90deg,
       color-mix(in oklab, #fff 10%, var(--accent-1) 90%) 0%,
@@ -53,6 +68,16 @@ html[data-faction="dark"]{
       color-mix(in oklab, #fff 10%, var(--accent-1) 90%) 0%,
       color-mix(in oklab, #fff 6%,  var(--accent-2) 94%) 100%);
   --hero-title-color: transparent;
+  --topbar-bg-1: color-mix(in oklab, var(--surface) 52%, var(--accent-2) 48%);
+  --topbar-bg-2: color-mix(in oklab, var(--surface-strong) 60%, var(--accent-1) 40%);
+  --topbar-border: color-mix(in oklab, var(--panel-border) 40%, var(--accent-2) 60%);
+  --topbar-ink: color-mix(in oklab, var(--text) 92%, #fff 8%);
+  --brand-bg: color-mix(in oklab, var(--panel) 60%, var(--accent-2) 40%);
+  --brand-tag-bg: color-mix(in oklab, var(--panel) 42%, var(--accent-1) 58%);
+  --brand-tag-border: color-mix(in oklab, var(--panel-border) 38%, var(--accent-1) 62%);
+  --topbar-icon-bg-1: color-mix(in oklab, var(--panel) 62%, var(--accent-2) 38%);
+  --topbar-icon-bg-2: color-mix(in oklab, var(--panel) 48%, var(--accent-1) 52%);
+  --topbar-icon-border: color-mix(in oklab, var(--panel-border) 40%, var(--accent-2) 60%);
 }
 
 /* ---------- 主題（完整列表；未特別覆蓋時沿用 base token 也能運作） ---------- */

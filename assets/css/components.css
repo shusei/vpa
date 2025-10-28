@@ -1,5 +1,11 @@
 /* ---------- Start / Buttons ---------- */
-.start-wrap{ display:flex; align-items:flex-start; gap:12px; margin-top:10px; flex-wrap:wrap; }
+.start-wrap{
+  display:flex;
+  align-items:stretch;
+  gap:16px;
+  margin-top:10px;
+  flex-wrap:wrap;
+}
 .onboard-tip{
   flex:1 1 100%;
   background:color-mix(in oklab, var(--panel) 80%, var(--accent-2) 20%);
@@ -33,6 +39,7 @@
 .onboard-tip button:active{ transform:translateY(0); }
 .onboard-tip button:focus-visible{ outline:2px solid var(--ring); outline-offset:2px; }
 .record-btn{
+  flex:0 0 auto;
   --btn-h1: color-mix(in oklab, var(--accent-1) 82%, #111 18%);
   --btn-h2: color-mix(in oklab, var(--accent-2) 82%, #111 18%);
   appearance:none; border:0; cursor:pointer; padding:18px 28px; border-radius:18px; min-height:60px;
@@ -103,7 +110,139 @@ body.recording .record-btn .rec{ display:inline; }
   .help-dialog h3{ font-size:16px; }
 }
 
-.status{ margin-top:8px; color:color-mix(in oklab, var(--ink) 82%, var(--muted) 18%); font-size:14px; }
+.status{
+  --status-bg-1: color-mix(in oklab, var(--panel) 70%, var(--accent-2) 30%);
+  --status-bg-2: color-mix(in oklab, var(--surface) 78%, var(--accent-1) 22%);
+  --status-border: color-mix(in oklab, var(--panel-border) 55%, var(--accent-2) 45%);
+  --status-text: color-mix(in oklab, var(--ink) 92%, var(--accent-1) 8%);
+  flex:1 1 260px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  min-height:60px;
+  padding:18px 24px;
+  margin-top:4px;
+  border-radius:20px;
+  position:relative;
+  overflow:hidden;
+  isolation:isolate;
+  background:linear-gradient(135deg, var(--status-bg-1) 0%, var(--status-bg-2) 100%);
+  border:1px solid var(--status-border);
+  box-shadow:0 24px 54px rgba(0,0,0,.16);
+  color:var(--status-text);
+  font-size:15px;
+  font-weight:600;
+  letter-spacing:.2px;
+  line-height:1.45;
+  text-wrap:balance;
+  backdrop-filter:saturate(160%) blur(18px);
+  transition:background .35s ease, border-color .35s ease, box-shadow .35s ease, transform .35s ease;
+}
+
+.status::before{
+  content:"";
+  display:block;
+  width:16px;
+  height:16px;
+  border-radius:50%;
+  flex-shrink:0;
+  background:radial-gradient(circle at 30% 30%, color-mix(in oklab, var(--accent-2) 78%, var(--accent-1) 22%) 0%, color-mix(in oklab, var(--accent-2) 40%, transparent 60%) 65%, transparent 100%);
+  box-shadow:0 0 0 6px color-mix(in oklab, var(--accent-2) 18%, transparent 82%), 0 10px 24px rgba(0,0,0,.25);
+  transition:box-shadow .35s ease, background .35s ease;
+}
+
+.status::after{
+  content:"";
+  position:absolute;
+  inset:1px;
+  border-radius:inherit;
+  background:linear-gradient(140deg, rgba(255,255,255,.22), rgba(255,255,255,.04));
+  mix-blend-mode:soft-light;
+  pointer-events:none;
+  opacity:.85;
+}
+
+.status .spinner{
+  width:22px;
+  height:22px;
+  margin-right:0;
+  border:3px solid color-mix(in oklab, var(--ink) 22%, transparent 78%);
+  border-top-color:color-mix(in oklab, var(--accent-1) 68%, var(--accent-2) 32%);
+  filter:drop-shadow(0 4px 12px rgba(0,0,0,.18));
+}
+
+.status.is-busy{
+  background-size:200% 200%;
+  animation:statusGradient 8s ease infinite;
+  box-shadow:0 30px 60px rgba(0,0,0,.22);
+}
+
+.status.is-busy::before{
+  animation:statusPulse 2.8s ease-in-out infinite;
+}
+
+.status:not(.is-busy):hover{
+  transform:translateY(-1px);
+  box-shadow:0 28px 58px rgba(0,0,0,.20);
+}
+
+html[data-faction="dark"] .status{
+  --status-bg-1: color-mix(in oklab, var(--panel) 42%, var(--accent-2) 58%);
+  --status-bg-2: color-mix(in oklab, var(--panel) 32%, var(--accent-1) 68%);
+  --status-border: color-mix(in oklab, var(--panel-border) 35%, var(--accent-2) 65%);
+  --status-text: color-mix(in oklab, var(--text) 88%, var(--accent-1) 12%);
+  box-shadow:0 26px 60px rgba(0,0,0,.35);
+}
+
+body.recording .status{
+  --status-bg-1: color-mix(in oklab, var(--accent-2) 62%, var(--panel) 38%);
+  --status-bg-2: color-mix(in oklab, var(--accent-1) 70%, var(--panel) 30%);
+  --status-border: color-mix(in oklab, var(--accent-2) 60%, var(--panel-border) 40%);
+}
+
+#status[data-busy="true"],
+.status[data-busy="true"]{
+  background-size:200% 200%;
+  animation:statusGradient 8s ease infinite;
+  box-shadow:0 32px 66px rgba(0,0,0,.25);
+}
+
+#status[data-busy="true"]::before,
+.status[data-busy="true"]::before{
+  animation:statusPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes statusGradient{
+  0%{ background-position:0% 50%; }
+  50%{ background-position:100% 50%; }
+  100%{ background-position:0% 50%; }
+}
+
+@keyframes statusPulse{
+  0%{ box-shadow:0 0 0 0 color-mix(in oklab, var(--accent-2) 28%, transparent 72%), 0 10px 24px rgba(0,0,0,.25); }
+  50%{ box-shadow:0 0 0 10px color-mix(in oklab, var(--accent-2) 10%, transparent 90%), 0 12px 28px rgba(0,0,0,.28); }
+  100%{ box-shadow:0 0 0 0 color-mix(in oklab, var(--accent-2) 28%, transparent 72%), 0 10px 24px rgba(0,0,0,.25); }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .status,
+  .status.is-busy,
+  #status[data-busy="true"],
+  .status[data-busy="true"]{ animation:none; }
+
+  .status::before,
+  #status[data-busy="true"]::before,
+  .status[data-busy="true"]::before{ animation:none; }
+}
+
+@media (max-width:720px){
+  .start-wrap{ gap:14px; }
+  .status{ flex-basis:100%; }
+}
+
+@media (max-width:600px){
+  .status{ padding:16px 18px; border-radius:18px; }
+}
 
 /* ---------- Player ---------- */
 .player{

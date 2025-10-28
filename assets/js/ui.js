@@ -27,6 +27,14 @@ import { EPS } from "./constants.js";
 export function setStatus(text, spin = false) {
   if (!statusEl) return;
   statusEl.innerHTML = spin ? `<span class="spinner"></span> ${text}` : text;
+  if (spin) {
+    statusEl.dataset.busy = "true";
+    statusEl.setAttribute("aria-busy", "true");
+  } else {
+    delete statusEl.dataset.busy;
+    statusEl.removeAttribute("aria-busy");
+  }
+  statusEl.classList.toggle("is-busy", spin);
 }
 
 export function log(...args) {
