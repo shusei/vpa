@@ -426,6 +426,9 @@ body.recording .status{
   margin-bottom:10px;
 }
 .summary-line strong{ font-weight:900; margin-right:4px; }
+
+html[data-faction="dark"] .summary-line{ color:#fff; }
+html[data-faction="dark"] .summary-line strong{ color:#fff; }
 .subline{
   color:color-mix(in oklab, var(--ink) 86%, var(--muted) 14%);
 }
