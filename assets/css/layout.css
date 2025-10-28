@@ -24,7 +24,7 @@ main.container{
   box-shadow:0 36px 80px rgba(0,0,0,.26);
   backdrop-filter:saturate(160%) blur(22px);
   -webkit-backdrop-filter:saturate(160%) blur(22px);
-  overflow:hidden;
+  overflow:visible;
   isolation:isolate;
   color:var(--topbar-ink);
 }
