@@ -427,7 +427,7 @@ body.recording .status{
 }
 .summary-line strong{ font-weight:900; margin-right:4px; }
 .subline{
-  color:color-mix(in oklab, var(--ink) 82%, var(--muted) 18%);
+  color:color-mix(in oklab, var(--text) 78%, var(--muted) 22%);
 }
 
 .chip{
@@ -441,7 +441,7 @@ body.recording .status{
   margin:10px 0 0;
 }
 .kv{ background:var(--surface-strong); border:1px solid var(--border); border-radius:12px; padding:12px; }
-.kv .k{ font-size:12px; color:color-mix(in oklab, var(--ink) 80%, var(--muted) 20%); }
+.kv .k{ font-size:12px; color:color-mix(in oklab, var(--text) 80%, var(--muted) 20%); }
 .kv .v{ font-weight:900; }
 
 .note{
@@ -482,9 +482,9 @@ body.recording .status{
   flex-direction:column;
   gap:4px;
 }
-.adv-card .k{ font-size:12px; color:color-mix(in oklab, var(--ink) 80%, var(--muted) 20%); }
+.adv-card .k{ font-size:12px; color:color-mix(in oklab, var(--text) 80%, var(--muted) 20%); }
 .adv-card .v{ font-weight:800; font-size:16px; color:var(--ink); }
-.adv-card .hint{ font-size:12px; color:color-mix(in oklab, var(--ink) 78%, var(--muted) 22%); }
+.adv-card .hint{ font-size:12px; color:color-mix(in oklab, var(--text) 78%, var(--muted) 22%); }
 .resonance-summary .resonance-bar{ height:28px; }
 .resonance-bar--summary .res-part{ font-size:12px; }
 
@@ -501,6 +501,6 @@ html[data-faction="dark"] .kv .k,
 html[data-faction="dark"] .adv-card .k,
 html[data-faction="dark"] .adv-card .hint,
 html[data-faction="dark"] .note{
-  color:color-mix(in oklab, var(--ink) 92%, var(--text) 8%);
+  color:color-mix(in oklab, var(--text) 92%, var(--ink) 8%);
 }
 
