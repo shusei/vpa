@@ -25,6 +25,7 @@ main.container{
   backdrop-filter:saturate(160%) blur(22px);
   -webkit-backdrop-filter:saturate(160%) blur(22px);
   overflow:visible;
+  z-index:80;
   isolation:isolate;
   color:var(--topbar-ink);
 }
