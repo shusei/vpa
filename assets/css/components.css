@@ -518,6 +518,10 @@ html[data-faction="dark"] .note{
   color:color-mix(in oklab, var(--text) 94%, #fff 6%);
 }
 
+html[data-faction="dark"] .player .hint{
+  color:color-mix(in oklab, var(--ink) 75%, var(--text) 25%);
+}
+
 html[data-faction="dark"] .kv,
 html[data-faction="dark"] .adv-card,
 html[data-faction="dark"] .note,
