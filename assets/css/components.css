@@ -433,6 +433,7 @@ body.recording .status{
 .chip{
   display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:700;
   border:1px solid var(--panel-border); background:color-mix(in oklab, var(--panel) 75%, var(--accent-2) 25%);
+  color:color-mix(in oklab, var(--ink) 88%, var(--text) 12%);
 }
 
 .stats-grid{
