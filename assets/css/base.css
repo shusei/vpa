@@ -130,7 +130,7 @@ html[data-theme="contrast"]{
   --bg-start:#0a0a0a; --bg-end:#000;
   --surface:rgba(16,16,16,.65); --surface-strong:rgba(16,16,16,.85);
   --panel:#ffffff; --panel-border:#d1d5db;
-  --text:#e5e7eb; --muted:#c9c9c9; --ink:#0a0a0a;
+  --text:#e5e7eb; --muted:#4b5563; --ink:#0a0a0a;
   --accent-1:#111; --accent-2:#eee;
   --accent:#999; --ring:#111; --border:#222;
   --link:#1111ff;
