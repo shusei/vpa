@@ -3,7 +3,7 @@
 > 100% 瀏覽器端推論的聲音呈現分析工具，從錄音或上傳的語音片段中推估模型感知到的 feminine / masculine 傾向，並提供即時監控與統計摘要。
 
 - Demo（GitHub Pages）：https://shusei.github.io/vpa
-- 支援子路徑部署與完全離線（IndexedDB 快取模型）
+- 支援子路徑部署與離線使用（首次需連網下載模型，後續快取於 IndexedDB）
 - 前端語系：繁體中文／简体中文／English，可記住上一個偏好
 
 ---
@@ -32,7 +32,7 @@ Voice Presentation Analyzer（以下簡稱 VPA）是一款完全以 Web 技術�
 - 錄音期間的音高、音量、噪音走勢
 - 分析完成後的統計卡（Pitch、Volume、Environment、Formant / Resonance、Speech Rate 等）與簡短評語
 
-整個流程不會把音檔傳回伺服器，所有計算都在前端完成。模型檔案會快取在 IndexedDB，日後再次造訪可以離線使用。
+整個流程不會把音檔傳回伺服器，所有計算都在前端完成。首次造訪時需連網下載前端頁面與模型檔案；完成後，模型會快取在 IndexedDB，日後再次造訪可以離線使用。若清除網站資料、換裝置或模型更新，則需重新下載一次。
 
 ---
 
@@ -73,7 +73,9 @@ Voice Presentation Analyzer（以下簡稱 VPA）是一款完全以 Web 技術�
 
 ## 操作流程
 
-1. **開啟網頁**：造訪 https://shusei.github.io/vpa
+1. **開啟網頁**：
+   造訪 <https://shusei.github.io/vpa>。
+   首次使用請在有網路的環境下開啟，以便下載模型。
 2. **選擇來源**：
    - 點擊「開始錄音」並說話 5–10 秒（建議自然口語，避免唱歌）。
    - 或點擊右下角的上傳按鈕，挑選 `mp3 / m4a / mp4 / mov / wav` 等檔案。
