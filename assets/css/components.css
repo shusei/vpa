@@ -190,7 +190,7 @@ html[data-faction="dark"] .status{
   --status-bg-1: color-mix(in oklab, var(--panel) 42%, var(--accent-2) 58%);
   --status-bg-2: color-mix(in oklab, var(--panel) 32%, var(--accent-1) 68%);
   --status-border: color-mix(in oklab, var(--panel-border) 35%, var(--accent-2) 65%);
-  --status-text: color-mix(in oklab, var(--text) 88%, var(--accent-1) 12%);
+  --status-text: color-mix(in oklab, var(--ink) 92%, var(--text) 8%);
   box-shadow:0 26px 60px rgba(0,0,0,.35);
 }
 
@@ -433,6 +433,7 @@ body.recording .status{
 .chip{
   display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:700;
   border:1px solid var(--panel-border); background:color-mix(in oklab, var(--panel) 75%, var(--accent-2) 25%);
+  color:color-mix(in oklab, var(--ink) 88%, var(--text) 12%);
 }
 
 .stats-grid{
@@ -487,7 +488,6 @@ body.recording .status{
 .resonance-summary .resonance-bar{ height:28px; }
 .resonance-bar--summary .res-part{ font-size:12px; }
 
-html[data-faction="dark"] .status,
 html[data-faction="dark"] .player .hint,
 html[data-faction="dark"] .bar .label,
 html[data-faction="dark"] .pitch-scale,
@@ -501,6 +501,6 @@ html[data-faction="dark"] .kv .k,
 html[data-faction="dark"] .adv-card .k,
 html[data-faction="dark"] .adv-card .hint,
 html[data-faction="dark"] .note{
-  color:color-mix(in oklab, var(--text) 72%, var(--ink) 28%);
+  color:color-mix(in oklab, var(--ink) 92%, var(--text) 8%);
 }
 
