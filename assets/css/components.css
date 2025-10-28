@@ -426,6 +426,9 @@ body.recording .status{
   margin-bottom:10px;
 }
 .summary-line strong{ font-weight:900; margin-right:4px; }
+
+html[data-faction="dark"] .summary-line{ color:#fff; }
+html[data-faction="dark"] .summary-line strong{ color:#fff; }
 .subline{
   color:color-mix(in oklab, var(--ink) 86%, var(--muted) 14%);
 }
@@ -516,6 +519,10 @@ html[data-faction="dark"] .adv-card .v,
 html[data-faction="dark"] .adv-card .hint,
 html[data-faction="dark"] .note{
   color:color-mix(in oklab, var(--text) 94%, #fff 6%);
+}
+
+html[data-faction="dark"] .player .hint{
+  color:color-mix(in oklab, var(--ink) 75%, var(--text) 25%);
 }
 
 html[data-faction="dark"] .kv,
