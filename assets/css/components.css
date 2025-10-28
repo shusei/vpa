@@ -427,7 +427,11 @@ body.recording .status{
 }
 .summary-line strong{ font-weight:900; margin-right:4px; }
 .subline{
-  color:color-mix(in oklab, var(--text) 78%, var(--muted) 22%);
+  color:color-mix(in oklab, var(--ink) 86%, var(--muted) 14%);
+}
+
+html[data-faction="dark"] .subline{
+  color:color-mix(in oklab, var(--ink) 92%, var(--text) 8%);
 }
 
 .chip{
@@ -497,7 +501,6 @@ html[data-faction="dark"] .formant-card .label,
 html[data-faction="dark"] .formant-card .range,
 html[data-faction="dark"] .resonance-panel .label,
 html[data-faction="dark"] .resonance-panel .range,
-html[data-faction="dark"] .summary-line .subline,
 html[data-faction="dark"] .kv .k,
 html[data-faction="dark"] .adv-card .k,
 html[data-faction="dark"] .adv-card .hint,
