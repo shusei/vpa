@@ -90,6 +90,19 @@
                 <button class="theme-item" data-theme="magenta"><span class="swatch swatch--magenta"></span> Magenta</button>
               </div>
             </div>
+            <div class="section voice-settings-section">
+              <div class="section-title" data-i18n="settings.voiceProfile.title">說話者設定</div>
+              <div class="voice-settings">
+                <label for="pitchMinInput" data-i18n="settings.voiceProfile.rangeLabel">偵測音高範圍（Hz）</label>
+                <div class="voice-range">
+                  <input id="pitchMinInput" type="number" min="50" max="440" step="1" aria-describedby="pitchRangeHint" />
+                  <span class="range-sep">–</span>
+                  <input id="pitchMaxInput" type="number" min="120" max="480" step="1" aria-describedby="pitchRangeHint" />
+                </div>
+                <button id="pitchRangeReset" type="button" class="menu-inline-btn" data-i18n="settings.voiceProfile.reset">重設為預設值</button>
+                <p id="pitchRangeHint" class="menu-hint" data-i18n="settings.voiceProfile.hint">預設女性 150–400 Hz，可依說話者調整偵測上下限（僅影響音高偵測，圖軸仍為 50–450 Hz）。</p>
+              </div>
+            </div>
             <div class="menu-actions">
               <button id="exportBtn" class="menu-action" type="button" aria-label="匯出分析（JSON）"
                 data-i18n="topbar.exportJson" data-i18n-attrs="aria-label:topbar.exportJsonAria">匯出分析（JSON）</button>

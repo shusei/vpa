@@ -29,6 +29,14 @@ export default {
     lightGroup: "淺色派",
     darkGroup: "深色派",
   },
+  settings: {
+    voiceProfile: {
+      title: "說話者設定",
+      rangeLabel: "偵測音高範圍（Hz）",
+      hint: "預設女性 150–400 Hz，可依說話者調整偵測上下限（僅影響音高偵測，圖軸仍為 50–450 Hz）。",
+      reset: "重設為預設值",
+    },
+  },
   hero: {
     title: "Voice Presentation Analyzer",
     subtitleHtml: [
@@ -392,6 +400,8 @@ export default {
       coverageLowHint: "有效片段不足（{{value}}%），建議延長錄音或提高音量。",
       coverageSuffix: "（有效片段 {{value}}%）",
       coverageLowSuffix: "（有效片段僅 {{value}}%）",
+      referenceSuffix: "（僅供參考：有效片段 {{value}}%）",
+      referenceOnly: "（僅供參考）",
     },
     resonanceBar: {
       default: { chest: "胸 0%", mask: "面罩 0%", head: "頭 0%" },
@@ -515,11 +525,11 @@ export default {
         falling: { label: "下降", hint: "語尾明顯下降，可在結尾加入上揚以維持女性語感。" },
       },
       range: {
-        rich: { label: "變化豐富", hint: "音高跨距大，注意控制不要失去穩定。" },
-        medium: { label: "適中", hint: "音高動態適中，可依語意微調。" },
-        narrow: { label: "偏平", hint: "音高變化較小，可練習階梯式上揚。" },
+        rich: { label: "變化豐富", hint: "音高動態大（處理後語調曲線跨距 >90 Hz），注意控制不要失去穩定。" },
+        medium: { label: "適中", hint: "音高動態適中（約 50–90 Hz），可依語意微調。" },
+        narrow: { label: "偏平", hint: "音高動態較小（<50 Hz），可練習階梯式上揚。" },
       },
-      curveHint: "語調資訊不足，建議錄製更長語句。",
+      curveHint: "語調資訊不足，建議錄製更長語句。灰底區塊代表無聲或低信心，圖例可切換原始點與處理後曲線對照。",
     },
     advanced: {
       insufficient: "語音時長不足，暫無 formant、共鳴與語速分析。請錄製 5–10 秒連續語句。",
@@ -528,7 +538,7 @@ export default {
   summary: {
     badge: "Statistics（統計摘要）",
     oneLinerLabel: "簡評：",
-    oneLinerTemplate: "模型傾向（多特徵） F {{pf}}% / M {{pm}}% ｜ 音高（單一特徵）Median {{median}} Hz（常見音高區：{{band}}；{{stability}}）｜ SNR（訊雜比）：{{snr}}（{{snrTag}}） {{diverge}}",
+    oneLinerTemplate: "模型傾向（多特徵） F {{pf}}% / M {{pm}}% ｜ 音高（單一特徵）Median {{median}} Hz · 散布 {{spread}} Hz（常見音高區：{{band}}；{{stability}}）｜ SNR（訊雜比）：{{snr}}（{{snrTag}}） {{diverge}}",
     divergenceBadge: '<span class="chip">指標分歧</span>',
     divergenceNoteHtml: '<p class="subline" style="margin:6px 0 0"><b>指標分歧</b>：音高落在 <b>{{band}}</b>，但模型仍偏向 <b>{{trend}}</b>。兩者量測不同面向（模型含共鳴、音色、發音模式等；音高僅看 Hz），屬正常情形。</p>',
     envNoteHtml: '<p class="subline" style="margin:4px 0 0">環境偏吵（SNR 低於 12 dB），建議更安靜場景或拉近麥克風。</p>',
@@ -551,17 +561,21 @@ export default {
       moderate: "中等",
       wide: "波動大",
     },
-    statsIntro: "音量波動（σ）：<b>{{sigma}}</b>；這些指標是練習回饋，<u>不是性別認定</u>。",
+    statsIntro: "音量波動（σ）：<b>{{sigma}}</b>；音高散布＝95th−5th（已過濾樣本），音高動態取處理後語調曲線的最大最小差。這些指標是練習回饋，<u>不是性別認定</u>。",
     statsLabels: {
       pitchAvg: "Pitch（音高）· Average（平均）",
       pitchMed: "Pitch（音高）· Median（中位數）",
       pitchHigh: "Pitch（音高）· High（95th）",
       pitchLow: "Pitch（音高）· Low（5th）",
+      pitchSpread: "Pitch（音高）· Spread（95th − 5th，已過濾）",
       volumeAvg: "Volume（音量）· Average（平均，σ）",
       volumeMed: "Volume（音量）· Median（中位數，σ）",
       volumeHigh: "Volume（音量）· High（95th）",
       volumeLow: "Volume（音量）· Low（5th）",
       env: "Environment（環境底噪）",
+    },
+    statsHints: {
+      pitchSpread: "分位數跨距（p95−p05），使用已過濾樣本計算，與 High/Low 百分位數一致。",
     },
     tags: {
       pitchBand: "Pitch band（音高帶）：{{band}}",
@@ -576,6 +590,7 @@ export default {
     breathinessDisplay: "{{value}}%",
     percentSuffix: " · {{value}}%",
     rangeDisplayHz: "{{value}} Hz",
+    resonanceTiltTail: "（頻譜傾斜：{{label}}）",
     summaryHint: "語調資訊不足，建議錄製更長語句。",
     advanced: {
       formantTitle: "Formant 與共鳴",
@@ -590,9 +605,17 @@ export default {
       },
       intonationCards: {
         trend: "語調趨勢",
-        range: "音高動態",
+        range: "音高動態（處理後曲線跨距）",
         speechRate: "語速估計",
         liaison: "連音比例",
+      },
+      intonationCanvasHint: "洋紅線＝處理後語調曲線；灰底代表被判無聲或低信心，不會納入統計。可透過圖例切換原始偵測點對照穩定後曲線。",
+      intonationLegend: {
+        line: "處理後曲線（音高動態＝最大最小差）",
+        dots: "原始偵測點（可切換）",
+        shade: "灰底＝無聲或低信心區段（不納入統計）",
+        show: "顯示原始點",
+        hide: "隱藏原始點",
       },
       vowelCards: {
         focus: "元音聚焦",
