@@ -6,6 +6,7 @@
   "scripts": {
     "test": "npm run test:syntax && npm run test:markup",
     "test:syntax": "node --check assets/app.js",
-    "test:markup": "node scripts/check-static.js"
+    "test:markup": "node scripts/check-static.js",
+    "regression": "node scripts/run-regression.js"
   }
 }
