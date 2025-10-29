@@ -29,6 +29,14 @@ export default {
     lightGroup: "Light collection",
     darkGroup: "Dark collection",
   },
+  settings: {
+    voiceProfile: {
+      title: "Speaker profile",
+      rangeLabel: "Pitch search range (Hz)",
+      hint: "Defaults to 150–400 Hz for feminine voices. Adjust the detector window while the chart still spans 50–450 Hz.",
+      reset: "Reset to default",
+    },
+  },
   hero: {
     title: "Voice Presentation Analyzer",
     subtitleHtml: [
@@ -392,6 +400,8 @@ export default {
       coverageLowHint: "Only {{value}}% of voiced frames were usable—record longer or increase the input level for a clearer result.",
       coverageSuffix: " (valid frames {{value}}%)",
       coverageLowSuffix: " (only {{value}}% valid frames)",
+      referenceSuffix: " (reference only — {{value}}% valid frames)",
+      referenceOnly: " (reference only)",
     },
     resonanceBar: {
       default: { chest: "Chest 0%", mask: "Mask 0%", head: "Head 0%" },
@@ -515,11 +525,11 @@ export default {
         falling: { label: "Falling", hint: "Endings drop noticeably. Add a small upturn so phrases stay expressive." },
       },
       range: {
-        rich: { label: "Wide range", hint: "Large pitch span—stay in control so it doesn’t feel unstable." },
-        medium: { label: "Moderate", hint: "Comfortable pitch movement. Adjust nuance as needed." },
-        narrow: { label: "Flat", hint: "Minimal variation. Practice stair-step rises to add contour." },
+        rich: { label: "Wide range", hint: "Pitch dynamics are wide (processed curve spans >90 Hz). Keep it controlled so it doesn’t feel unstable." },
+        medium: { label: "Moderate", hint: "Pitch dynamics sit around 50–90 Hz—use that headroom for nuance." },
+        narrow: { label: "Flat", hint: "Pitch dynamics are compact (<50 Hz). Practice stair-step rises to add contour." },
       },
-      curveHint: "Need more voiced points to analyze intonation—record a longer sentence.",
+      curveHint: "Need more voiced points to analyze intonation—record a longer sentence. Gray spans mark muted or low-confidence frames; use the legend toggle to compare raw detector dots with the processed curve.",
     },
     advanced: {
       insufficient: "Clip is too short to compute formants, resonance, or speech rate. Record a continuous 5–10 second phrase.",
@@ -528,7 +538,7 @@ export default {
   summary: {
     badge: "Statistics overview",
     oneLinerLabel: "Summary:",
-    oneLinerTemplate: "Model tendency (multi-feature) F {{pf}}% / M {{pm}}% | Pitch (single feature) median {{median}} Hz (common range: {{band}}; {{stability}}) | SNR: {{snr}} ({{snrTag}}) {{diverge}}",
+    oneLinerTemplate: "Model tendency (multi-feature) F {{pf}}% / M {{pm}}% | Pitch (single feature) median {{median}} Hz · spread {{spread}} Hz (common range: {{band}}; {{stability}}) | SNR: {{snr}} ({{snrTag}}) {{diverge}}",
     divergenceBadge: '<span class="chip">Divergent signals</span>',
     divergenceNoteHtml: '<p class="subline" style="margin:6px 0 0"><b>Divergent signals</b>: pitch sits in <b>{{band}}</b> yet the model leans <b>{{trend}}</b>. They measure different aspects (model blends resonance, timbre, articulation; pitch is pure Hz) so disagreement is normal.</p>',
     envNoteHtml: '<p class="subline" style="margin:4px 0 0">Background noise is high (SNR below 12 dB). Try a quieter space or move closer to the mic.</p>',
@@ -551,17 +561,21 @@ export default {
       moderate: "Moderate",
       wide: "High fluctuation",
     },
-    statsIntro: "Volume variation (σ): <b>{{sigma}}</b>. These metrics support practice and <u>do not define gender</u>.",
+    statsIntro: "Volume variation (σ): <b>{{sigma}}</b>. Pitch spread = 95th−5th (after filtering); pitch dynamics use the processed intonation curve’s max–min span. These metrics support practice and <u>do not define gender</u>.",
     statsLabels: {
       pitchAvg: "Pitch · Average",
       pitchMed: "Pitch · Median",
       pitchHigh: "Pitch · High (95th)",
       pitchLow: "Pitch · Low (5th)",
+      pitchSpread: "Pitch · Spread (95th − 5th, filtered)",
       volumeAvg: "Volume · Average (σ)",
       volumeMed: "Volume · Median (σ)",
       volumeHigh: "Volume · High (95th)",
       volumeLow: "Volume · Low (5th)",
       env: "Environment (noise floor)",
+    },
+    statsHints: {
+      pitchSpread: "Quantile range (p95−p05) computed from filtered samples. Matches the High/Low percentile values.",
     },
     tags: {
       pitchBand: "Pitch band: {{band}}",
@@ -576,6 +590,7 @@ export default {
     breathinessDisplay: "{{value}}%",
     percentSuffix: " · {{value}}%",
     rangeDisplayHz: "{{value}} Hz",
+    resonanceTiltTail: "(spectral tilt: {{label}})",
     summaryHint: "Need a longer clip to analyze intonation.",
     advanced: {
       formantTitle: "Formant & resonance",
@@ -590,9 +605,17 @@ export default {
       },
       intonationCards: {
         trend: "Intonation trend",
-        range: "Pitch dynamics",
+        range: "Pitch dynamics (processed curve span)",
         speechRate: "Speech rate",
         liaison: "Liaison ratio",
+      },
+      intonationCanvasHint: "Magenta line = processed pitch curve. Gray spans mark muted/low-confidence frames (excluded from stats). Toggle raw detector dots from the legend to compare with the stabilized curve.",
+      intonationLegend: {
+        line: "Processed curve (max−min = pitch dynamics)",
+        dots: "Raw detector dots (toggle)",
+        shade: "Gray = muted or low-confidence frames (excluded from stats)",
+        show: "Show raw dots",
+        hide: "Hide raw dots",
       },
       vowelCards: {
         focus: "Vowel focus",

@@ -58,6 +58,26 @@ import {
   resetMeter,
   isOOMError,
 } from "./js/ui.js";
+import {
+  PS_INTERVAL_MS,
+  PS_MIN_HZ,
+  PS_MAX_HZ,
+  CONFIDENCE_INCLUDE_THRESHOLD,
+  CONFIDENCE_VOICED_THRESHOLD,
+  DEFAULT_PITCH_RANGE,
+  PITCH_COUNTER_KEYS,
+  clampPitchRange,
+  createPitchPostState,
+  resetPitchPostState,
+  appendPitchSample as sharedAppendPitchSample,
+  makeNoiseTracker,
+  filterPitchForStats,
+  makeStats,
+  percentileSorted,
+  computeIntonationMetrics,
+  fmt1,
+  logPostProcessingDiagnostics,
+} from "./js/pitch-shared.js";
 
 /** 只用遠端（Hugging Face Hub），停用本機 /models 尋址 */
 env.allowLocalModels = false;
@@ -203,25 +223,19 @@ updateRecordAvailability();
 // Pitch Stream 狀態
 let psCtx=null, psSrc=null, psProc=null;
 let psRAF=null, psRunning=false;
-let psHz=[], psHzSmooth=[], psDb=[], psVoiced=[]; // 50ms/點
-const PS_INTERVAL_MS = 50;
-const PS_MIN_HZ = 50, PS_MAX_HZ = 450;
-const PS_SMOOTH_BASE_ALPHA = 0.08; // 細微抖動採慢速平滑；統計與即時顯示都使用平滑後資料並過濾諧波異常值
-const PS_SMOOTH_FAST_ALPHA = 0.45; // 真實音高跳動時加速追上
-const PS_SMOOTH_FAST_THRESHOLD_SEMITONES = 1.5;
-const PS_SMOOTH_MAX_STEP_SEMITONES = 2.4;
-const PS_SMOOTH_MEDIAN_WINDOW = 7;
-const PS_MIN_DB_FOR_PITCH = 42; // 約 -58 dBFS；低於此視為環境底噪
-const PS_NOISE_BUFFER_MS = 10000;
-const PS_NOISE_MIN_SAMPLES = 8;
-const PS_NOISE_CAPTURE_RANGE_DB = 18;
-const PS_MIN_DB_ABOVE_NOISE = 5;
-const PS_NOISE_GATE_MAX_BOOST_DB = 14;
+let psHz=[], psHzSmooth=[], psDb=[], psVoiced=[], psConfidence=[]; // 50ms/點
 const psRealtimeNoiseTracker = makeNoiseTracker();
 const psOfflineNoiseTracker = makeNoiseTracker();
+const PITCH_RANGE_KEY = "vpa:pitchRangeHz";
+const INTONATION_RAW_KEY = "vpa:intonationShowRaw";
+const pitchPostState = createPitchPostState();
+let pitchRangeSetting = loadPitchRangeSetting();
+let showIntonationRawPoints = true;
 const offlineFeatureStore = {
   frameSec: 0,
-  pitch: [],
+  pitchRaw: [],
+  pitchProcessed: [],
+  pitchConfidence: [],
   db: [],
   voiced: [],
   formants: [],
@@ -231,10 +245,86 @@ const offlineFeatureStore = {
   zcr: [],
 };
 
+initPitchRangeControls();
+
 const pitchStrategies = {
   acf: { key: "acf", label: "ACF", detect: detectPitchACF },
   yin: { key: "yin", label: "YIN-lite", detect: detectPitchYinLite },
 };
+
+function loadIntonationRawPreference(){
+  if (typeof window === "undefined" || !window.localStorage) return true;
+  try{
+    const raw = window.localStorage.getItem(INTONATION_RAW_KEY);
+    if (raw == null) return true;
+    return raw === "true" || raw === "1";
+  }catch{
+    return true;
+  }
+}
+
+function saveIntonationRawPreference(flag){
+  showIntonationRawPoints = Boolean(flag);
+  if (typeof window === "undefined" || !window.localStorage) return;
+  try{
+    window.localStorage.setItem(INTONATION_RAW_KEY, showIntonationRawPoints ? "true" : "false");
+  }catch{}
+}
+
+showIntonationRawPoints = loadIntonationRawPreference();
+
+function loadPitchRangeSetting(){
+  try{
+    const raw = localStorage.getItem(PITCH_RANGE_KEY);
+    if (!raw) return { ...DEFAULT_PITCH_RANGE };
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return { ...DEFAULT_PITCH_RANGE };
+    return clampPitchRange(parsed);
+  }catch{
+    return { ...DEFAULT_PITCH_RANGE };
+  }
+}
+
+function savePitchRangeSetting(range){
+  pitchRangeSetting = clampPitchRange(range || DEFAULT_PITCH_RANGE);
+  try{ localStorage.setItem(PITCH_RANGE_KEY, JSON.stringify(pitchRangeSetting)); }catch{}
+  updatePitchRangeInputs();
+}
+
+function getPitchDetectorRange(){
+  return clampPitchRange(pitchRangeSetting || DEFAULT_PITCH_RANGE);
+}
+
+function updatePitchRangeInputs(){
+  const { min, max } = getPitchDetectorRange();
+  const minInput = document.getElementById("pitchMinInput");
+  const maxInput = document.getElementById("pitchMaxInput");
+  if (minInput){ minInput.value = Math.round(min); }
+  if (maxInput){ maxInput.value = Math.round(max); }
+}
+
+function initPitchRangeControls(){
+  updatePitchRangeInputs();
+  const minInput = document.getElementById("pitchMinInput");
+  const maxInput = document.getElementById("pitchMaxInput");
+  const resetBtn = document.getElementById("pitchRangeReset");
+
+  const applyChange = ()=>{
+    const minVal = Number(minInput?.value);
+    const maxVal = Number(maxInput?.value);
+    const next = clampPitchRange({
+      min: Number.isFinite(minVal) ? minVal : DEFAULT_PITCH_RANGE.min,
+      max: Number.isFinite(maxVal) ? maxVal : DEFAULT_PITCH_RANGE.max,
+    });
+    savePitchRangeSetting(next);
+  };
+
+  minInput?.addEventListener("change", applyChange);
+  maxInput?.addEventListener("change", applyChange);
+  resetBtn?.addEventListener("click", ()=>{
+    savePitchRangeSetting({ ...DEFAULT_PITCH_RANGE });
+  });
+}
 
 const PITCH_RUNTIME_BASE_BUDGET_MS = 26;
 const PITCH_RUNTIME_OVER_BUDGET_LIMIT = 3;
@@ -1366,125 +1456,24 @@ function smoothMask(mask, k=3){
 }
 
 // ===== Pitch Stream（ACF 音高 + 畫布） =====
-function makeNoiseTracker(){
-  const buf = [];
-  const maxSamples = Math.max(1, Math.round(PS_NOISE_BUFFER_MS / PS_INTERVAL_MS));
-  return {
-    reset(){ buf.length = 0; },
-    capture(db){
-      if (!Number.isFinite(db)) return;
-      const capped = Math.min(db, PS_MIN_DB_FOR_PITCH + PS_NOISE_CAPTURE_RANGE_DB);
-      buf.push(capped);
-      if (buf.length > maxSamples) buf.shift();
+function appendPitchSample(rawHz, meta = {}){
+  return sharedAppendPitchSample(rawHz, meta, {
+    state: pitchPostState,
+    arrays: {
+      raw: psHz,
+      smooth: psHzSmooth,
+      voiced: psVoiced,
+      confidence: psConfidence,
     },
-    getAmbient(){
-      if (buf.length < PS_NOISE_MIN_SAMPLES) return null;
-      const sorted = buf.slice().sort((a,b)=>a-b);
-      const val = percentileSorted(sorted, 20);
-      return Number.isFinite(val) ? val : null;
-    },
-    getThreshold(){
-      let threshold = PS_MIN_DB_FOR_PITCH;
-      const ambient = this.getAmbient();
-      if (ambient != null){
-        const dynamic = ambient + PS_MIN_DB_ABOVE_NOISE;
-        const maxBoosted = PS_MIN_DB_FOR_PITCH + PS_NOISE_GATE_MAX_BOOST_DB;
-        threshold = Math.max(threshold, Math.min(maxBoosted, dynamic));
-      }
-      return { threshold, ambient };
-    },
-    shouldDetect(db, wasVoiced){
-      if (!Number.isFinite(db)) return { detect:false, threshold:PS_MIN_DB_FOR_PITCH, ambient:null };
-      const { threshold, ambient } = this.getThreshold();
-      if (db >= threshold) return { detect:true, threshold, ambient };
-      if (wasVoiced && db >= PS_MIN_DB_FOR_PITCH){
-        return { detect:true, threshold, ambient, hysteresis:true };
-      }
-      return { detect:false, threshold, ambient };
-    },
-  };
-}
-
-function appendPitchSample(rawHz){
-  psHz.push(rawHz);
-  if (!Number.isFinite(rawHz)){
-    psHzSmooth.push(null);
-    return;
-  }
-  const finiteSamples = [];
-  for (let i = psHz.length - 1; i >= 0 && finiteSamples.length < PS_SMOOTH_MEDIAN_WINDOW; i--){
-    const v = psHz[i];
-    if (Number.isFinite(v)) finiteSamples.push(v);
-  }
-  finiteSamples.sort((a,b)=>a-b);
-  const mid = finiteSamples.length ? finiteSamples[Math.floor(finiteSamples.length/2)] : rawHz;
-  const clampedRaw = Math.min(PS_MAX_HZ, Math.max(PS_MIN_HZ, rawHz));
-  let target = clampedRaw;
-  if (finiteSamples.length >= 3){
-    const safeMedian = Math.min(PS_MAX_HZ, Math.max(PS_MIN_HZ, mid));
-    const diffFromMedian = Math.abs(Math.log2(clampedRaw / safeMedian)) * 12;
-    if (Number.isFinite(diffFromMedian) && diffFromMedian <= 0.8){
-      target = safeMedian;
-    }
-  }
-
-  const prev = psHzSmooth.length ? psHzSmooth[psHzSmooth.length-1] : null;
-  if (!Number.isFinite(prev)){
-    psHzSmooth.push(target);
-    return;
-  }
-
-  const safePrev = Math.min(PS_MAX_HZ, Math.max(PS_MIN_HZ, prev));
-  const prevLog2 = Math.log2(safePrev);
-  const safeTarget = Math.min(PS_MAX_HZ, Math.max(PS_MIN_HZ, target));
-  let targetLog2 = Math.log2(safeTarget);
-  let baseDiffSemitones = Math.abs(targetLog2 - prevLog2) * 12;
-
-  if (Number.isFinite(baseDiffSemitones) && baseDiffSemitones > 3){
-    let bestHz = safeTarget;
-    let bestDiff = baseDiffSemitones;
-    const multipliers = [2, 3, 4];
-    for (const m of multipliers){
-      const up = safeTarget * m;
-      if (up <= PS_MAX_HZ){
-        const diff = Math.abs(Math.log2(up) - prevLog2) * 12;
-        if (diff < bestDiff){
-          bestDiff = diff;
-          bestHz = up;
-        }
-      }
-      const down = safeTarget / m;
-      if (down >= PS_MIN_HZ){
-        const diff = Math.abs(Math.log2(down) - prevLog2) * 12;
-        if (diff < bestDiff){
-          bestDiff = diff;
-          bestHz = down;
-        }
-      }
-    }
-    if (bestHz !== safeTarget && bestDiff <= baseDiffSemitones * 0.6){
-      targetLog2 = Math.log2(bestHz);
-      baseDiffSemitones = bestDiff;
-    }
-  }
-
-  const deltaSemitones = Math.abs(targetLog2 - prevLog2) * 12;
-  const alpha = deltaSemitones > PS_SMOOTH_FAST_THRESHOLD_SEMITONES
-    ? PS_SMOOTH_FAST_ALPHA
-    : PS_SMOOTH_BASE_ALPHA;
-  let nextLog2 = prevLog2 + alpha * (targetLog2 - prevLog2);
-  const maxStepLog2 = PS_SMOOTH_MAX_STEP_SEMITONES / 12;
-  if (Math.abs(nextLog2 - prevLog2) > maxStepLog2){
-    nextLog2 = prevLog2 + Math.sign(nextLog2 - prevLog2) * maxStepLog2;
-  }
-  const next = 2 ** nextLog2;
-  psHzSmooth.push(next);
+    getRange: getPitchDetectorRange,
+  });
 }
 
 function startPitchStream(userMediaStream){
   try{
     if (!pitchWrap || !pitchCanvas) return;
-    psHz.length=0; psHzSmooth.length=0; psDb.length=0; psVoiced.length=0;
+    psHz.length=0; psHzSmooth.length=0; psDb.length=0; psVoiced.length=0; psConfidence.length=0;
+    resetPitchPostState();
     psRealtimeNoiseTracker.reset();
 
     maybeEnableAdvancedPitch("realtime", { allowRetry: true });
@@ -1520,11 +1509,14 @@ function startPitchStream(userMediaStream){
       const now = performance.now();
       if (now - lastTick >= PS_INTERVAL_MS){
         psDb.push(db);
-        appendPitchSample(hz ?? null);
-        const displayHz = psHzSmooth.length ? psHzSmooth[psHzSmooth.length-1] : (hz ?? null);
-        psVoiced.push(hz!=null);
+        const { processed } = appendPitchSample(hz ?? null, { db, ambientDb: gate.ambient, spectral });
+        const displayHz = Number.isFinite(processed)
+          ? processed
+          : (Number.isFinite(hz) ? hz : null);
         const maxN = Math.round(15000 / PS_INTERVAL_MS); // 保留約 15 秒
-        if (psDb.length>maxN){ psDb.shift(); psHz.shift(); psHzSmooth.shift(); psVoiced.shift(); }
+        if (psDb.length>maxN){
+          psDb.shift(); psHz.shift(); psHzSmooth.shift(); psVoiced.shift(); psConfidence.shift();
+        }
         lastTick = now;
 
         if (pitchNowEl){
@@ -1602,8 +1594,9 @@ function detectPitchACF(input, sr){
   if (energy <= 1e-8) return null;
 
   const srDS = sr / ds;
-  const lagMin = Math.floor(srDS / PS_MAX_HZ);
-  const lagMax = Math.floor(srDS / PS_MIN_HZ);
+  const range = getPitchDetectorRange();
+  const lagMin = Math.floor(srDS / range.max);
+  const lagMax = Math.floor(srDS / range.min);
 
   let bestLag=-1, bestR=0;
   for (let lag=lagMin; lag<=lagMax; lag++){
@@ -1616,7 +1609,9 @@ function detectPitchACF(input, sr){
     if (r > bestR){ bestR=r; bestLag=lag; }
   }
   if (bestLag<0 || bestR<0.6) return null;
-  return srDS / bestLag;
+  const freq = srDS / bestLag;
+  if (freq < range.min || freq > range.max) return null;
+  return freq;
 }
 function detectPitchYinLite(input, sr){
   const ds = Math.max(1, Math.floor(sr / 16000));
@@ -1644,8 +1639,9 @@ function detectPitchYinLite(input, sr){
   if (energy <= 1e-8) return null;
 
   const srDS = sr / ds;
-  const tauMin = Math.max(1, Math.floor(srDS / PS_MAX_HZ));
-  const tauMax = Math.min(N - 3, Math.floor(srDS / PS_MIN_HZ));
+  const range = getPitchDetectorRange();
+  const tauMin = Math.max(1, Math.floor(srDS / range.max));
+  const tauMax = Math.min(N - 3, Math.floor(srDS / range.min));
   if (tauMax <= tauMin) return null;
 
   const diff = yinBuffers.diff;
@@ -1754,7 +1750,7 @@ function detectPitchYinLite(input, sr){
   }
 
   const freq = srDS / refinedTau;
-  if (freq < PS_MIN_HZ || freq > PS_MAX_HZ) return null;
+  if (freq < range.min || freq > range.max) return null;
   return freq;
 }
 function bandLabel(hz){
@@ -1871,8 +1867,9 @@ function startDrawLoop(){
 function offlineExtractStreamMetrics(float32, sr, append=false){
   try{
     if(!append){
-      psHz.length=0; psHzSmooth.length=0; psDb.length=0; psVoiced.length=0;
+      psHz.length=0; psHzSmooth.length=0; psDb.length=0; psVoiced.length=0; psConfidence.length=0;
       resetOfflineFeatureStore();
+      resetPitchPostState();
       psOfflineNoiseTracker.reset();
     }
     if (!append) maybeEnableAdvancedPitch("offline", { allowRetry: true });
@@ -1898,11 +1895,12 @@ function offlineExtractStreamMetrics(float32, sr, append=false){
         psOfflineNoiseTracker.capture(db);
       }
       psDb.push(db);
-      appendPitchSample(hz ?? null);
-      psVoiced.push(hz!=null);
-      offlineFeatureStore.pitch.push(hz ?? NaN);
+      const { processed, voiced, confidence } = appendPitchSample(hz ?? null, { db, ambientDb: gate.ambient, spectral });
+      offlineFeatureStore.pitchRaw.push(Number.isFinite(hz) ? hz : NaN);
+      offlineFeatureStore.pitchProcessed.push(Number.isFinite(processed) ? processed : NaN);
+      offlineFeatureStore.pitchConfidence.push(confidence);
+      offlineFeatureStore.voiced.push(Boolean(voiced));
       offlineFeatureStore.db.push(db);
-      offlineFeatureStore.voiced.push(hz!=null);
       if (spectral){
         offlineFeatureStore.formants.push([spectral.f1 ?? NaN, spectral.f2 ?? NaN, spectral.f3 ?? NaN]);
         offlineFeatureStore.tilt.push(spectral.tilt ?? NaN);
@@ -1921,7 +1919,9 @@ function offlineExtractStreamMetrics(float32, sr, append=false){
 }
 function resetOfflineFeatureStore(){
   offlineFeatureStore.frameSec = 0;
-  offlineFeatureStore.pitch.length = 0;
+  offlineFeatureStore.pitchRaw.length = 0;
+  offlineFeatureStore.pitchProcessed.length = 0;
+  offlineFeatureStore.pitchConfidence.length = 0;
   offlineFeatureStore.db.length = 0;
   offlineFeatureStore.voiced.length = 0;
   offlineFeatureStore.formants.length = 0;
@@ -1946,7 +1946,12 @@ function finishStreamStats(){
     `;
 
     // 僅對有聲點統計；若沒有資料就清空
-    const voicedHzRaw = psHzSmooth.filter(v => Number.isFinite(v));
+    const voicedHzRaw = [];
+    for (let i=0;i<psHzSmooth.length;i++){
+      const val = psHzSmooth[i];
+      const conf = psConfidence[i] ?? 0;
+      if (Number.isFinite(val) && conf >= CONFIDENCE_INCLUDE_THRESHOLD) voicedHzRaw.push(val);
+    }
     const vols     = psDb.slice();
     if (!voicedHzRaw.length && !vols.length){
       statsEl.innerHTML="";
@@ -2011,6 +2016,7 @@ function finishStreamStats(){
       pm: pmDisplay,
       median: fmt1(pitchStats.med),
       band,
+      spread: fmt1(spread),
       stability: stabilityLabel,
       snr: snrDisplay,
       snrTag: snrLabel,
@@ -2037,11 +2043,13 @@ function finishStreamStats(){
       : "";
 
     const statsLabels = summaryText?.statsLabels || {};
+    const statsHints = summaryText?.statsHints || {};
     const statsRows = [
       { key: "pitchAvg", value: `${fmt1(pitchStats.avg)}Hz` },
       { key: "pitchMed", value: `${fmt1(pitchStats.med)}Hz` },
       { key: "pitchHigh", value: `${fmt1(pitchStats.p95)}Hz` },
       { key: "pitchLow", value: `${fmt1(pitchStats.p05)}Hz` },
+      { key: "pitchSpread", value: `${fmt1(spread)}Hz` },
       { key: "volumeAvg", value: `${fmt1(volStats.avg)}dB (${fmt1(volStats.sd)}dB)` },
       { key: "volumeMed", value: `${fmt1(volStats.med)}dB (${fmt1(volStats.sd)}dB)` },
       { key: "volumeHigh", value: `${fmt1(volStats.p95)}dB` },
@@ -2049,9 +2057,13 @@ function finishStreamStats(){
     ];
     const statsTable = statsRows.map(({ key, value }) => {
       const label = statsLabels[key] || t(`summary.statsLabels.${key}`);
-      return { key, label, value };
+      const hint = statsHints[key] || t(`summary.statsHints.${key}`);
+      return { key, label, value, hint };
     });
-    const statsRowsHtml = statsTable.map(({ label, value }) => `<div class="kv"><div class="k">${label}</div><div class="v">${value}</div></div>`).join("");
+    const statsRowsHtml = statsTable.map(({ label, value, hint }) => {
+      const titleAttr = hint ? ` title="${escapeAttr(hint)}"` : "";
+      return `<div class="kv"${titleAttr}><div class="k">${label}</div><div class="v">${value}</div></div>`;
+    }).join("");
     const envLabel = statsLabels.env || t("summary.statsLabels.env");
     const statsIntro = summaryString("statsIntro", { sigma: volSigmaLabel });
     const statsHTML = `
@@ -2062,6 +2074,10 @@ function finishStreamStats(){
       <p class="subline" style="margin:8px 0 0">${statsIntro}</p>
     `;
     const advSummary = computeAdvancedSummary();
+    logPostProcessingDiagnostics(pitchPostState, {
+      spread,
+      intonationRange: advSummary?.intonation?.range ?? NaN,
+    });
     const advancedHTML = renderAdvancedSummary(advSummary);
 
     statsEl.innerHTML = headerHTML + oneLiner + divergeNote + envNote + voicedNote + statsHTML + advancedHTML;
@@ -2099,9 +2115,17 @@ function finishStreamStats(){
       tags.innerHTML = tagHTML;
     }
 
-    if (advSummary?.intonation?.points?.length){
+    if (advSummary?.intonation){
       const canvas = document.getElementById("intonationCanvas");
-      if (canvas) drawIntonationCurve(canvas, advSummary.intonation);
+      if (canvas){
+        if (Array.isArray(advSummary.intonation.points) && advSummary.intonation.points.length){
+          drawIntonationCurve(canvas, advSummary.intonation);
+        } else {
+          const ctx = canvas.getContext("2d");
+          if (ctx){ ctx.clearRect(0, 0, canvas.width, canvas.height); }
+        }
+      }
+      setupIntonationLegend(advSummary.intonation);
     }
 
     const voicedHintLabel = voicedHintKey ? t(`summary.voicedHint.${voicedHintKey}`) : null;
@@ -2118,8 +2142,15 @@ function finishStreamStats(){
         stability: { key: stabilityKey, label: stabilityLabel },
         samples: {
           totalRaw: psHz.length,
-          finiteRaw: voicedHzRaw.length,
+          confident: voicedHzRaw.length,
           finiteFiltered: voicedHz.length,
+          confidenceThreshold: CONFIDENCE_INCLUDE_THRESHOLD,
+        },
+        postProcess: {
+          counters: PITCH_COUNTER_KEYS.reduce((acc, key)=>{
+            acc[key] = Number(pitchPostState.counters?.[key] ?? 0);
+            return acc;
+          }, {}),
         },
       },
       volume: {
@@ -2153,6 +2184,7 @@ function finishStreamStats(){
         intervalMs: PS_INTERVAL_MS,
         pitchRaw: Array.from(psHz),
         pitchSmooth: Array.from(psHzSmooth),
+        pitchConfidence: Array.from(psConfidence),
         volumeDb: Array.from(psDb),
         voiced: Array.from(psVoiced),
       },
@@ -2177,7 +2209,9 @@ function setLatestAnalysisExport(payload){
 }
 function cloneOfflineFeatureStore(){
   const frameSec = offlineFeatureStore.frameSec;
-  const pitch = Array.from(offlineFeatureStore.pitch);
+  const pitchRaw = Array.from(offlineFeatureStore.pitchRaw);
+  const pitchProcessed = Array.from(offlineFeatureStore.pitchProcessed);
+  const pitchConfidence = Array.from(offlineFeatureStore.pitchConfidence);
   const db = Array.from(offlineFeatureStore.db);
   const voiced = Array.from(offlineFeatureStore.voiced);
   const formants = offlineFeatureStore.formants.map((triple)=> Array.isArray(triple) ? triple.slice() : [NaN, NaN, NaN]);
@@ -2185,8 +2219,21 @@ function cloneOfflineFeatureStore(){
   const breathiness = Array.from(offlineFeatureStore.breathiness);
   const energy = offlineFeatureStore.energy.map((triple)=> Array.isArray(triple) ? triple.slice() : [NaN, NaN, NaN]);
   const zcr = Array.from(offlineFeatureStore.zcr);
-  const duration = Number.isFinite(frameSec) ? frameSec * pitch.length : NaN;
-  return { frameSec, pitch, db, voiced, formants, tilt, breathiness, energy, zcr, duration };
+  const duration = Number.isFinite(frameSec) ? frameSec * pitchProcessed.length : NaN;
+  return {
+    frameSec,
+    pitchRaw,
+    pitchProcessed,
+    pitchConfidence,
+    db,
+    voiced,
+    formants,
+    tilt,
+    breathiness,
+    energy,
+    zcr,
+    duration,
+  };
 }
 function sanitizeForJson(value){
   if (Array.isArray(value)){
@@ -2207,7 +2254,10 @@ function sanitizeForJson(value){
 }
 function computeAdvancedSummary(){
   const store = offlineFeatureStore;
-  const n = store.pitch.length;
+  const processedPitch = Array.isArray(store.pitchProcessed) ? store.pitchProcessed : (store.pitch || []);
+  const rawPitch = Array.isArray(store.pitchRaw) ? store.pitchRaw : processedPitch;
+  const pitchConfidence = Array.isArray(store.pitchConfidence) ? store.pitchConfidence : [];
+  const n = processedPitch.length;
   const hopSec = store.frameSec || (PS_INTERVAL_MS/1000);
   const duration = hopSec * n;
   if (!n || duration < 0.5) return null;
@@ -2241,7 +2291,12 @@ function computeAdvancedSummary(){
   const vowelInfo = analyzeVowelFocus(store);
   const speech = analyzeSpeechRate(store);
   const liaison = analyzeConnectedSpeech(store.voiced, hopSec);
-  const intonation = analyzeIntonation(store.pitch, store.voiced, hopSec);
+  const intonation = analyzeIntonation({
+    processed: processedPitch,
+    raw: rawPitch,
+    confidence: pitchConfidence,
+    voiced: store.voiced,
+  }, hopSec);
 
   return {
     formants: formantSummary,
@@ -2316,9 +2371,23 @@ function renderAdvancedSummary(summary){
   const intonationCards = advancedCopy.intonationCards || {};
   const vowelCards = advancedCopy.vowelCards || {};
   const canvasAria = advancedCopy.canvasAria || t("summary.advanced.canvasAria");
+  const canvasHint = advancedCopy.intonationCanvasHint || t("summary.advanced.intonationCanvasHint");
+  const legendCopy = advancedCopy.intonationLegend || {};
+  const legendLine = legendCopy.line || t("summary.advanced.intonationLegend.line");
+  const legendDots = legendCopy.dots || t("summary.advanced.intonationLegend.dots");
+  const legendShade = legendCopy.shade || t("summary.advanced.intonationLegend.shade");
+  const legendShow = legendCopy.show || t("summary.advanced.intonationLegend.show");
+  const legendHide = legendCopy.hide || t("summary.advanced.intonationLegend.hide");
+  const hasRawPoints = Array.isArray(summary.intonation?.rawPoints) && summary.intonation.rawPoints.length > 0;
+  const toggleDisabledAttr = hasRawPoints ? "" : " disabled aria-disabled=\"true\"";
+  const toggleStateLabel = showIntonationRawPoints ? legendHide : legendShow;
 
   const liaisonValue = summary.liaisonLabel + (liaisonDisplay ? liaisonDisplay : "");
   const speechRateHint = speechWpmDisplay ? `${summary.speechRateHint} ${speechWpmDisplay}` : summary.speechRateHint;
+  const resonanceTail = summary.tiltLabel && summary.tiltLabel !== "—"
+    ? summaryString("resonanceTiltTail", { label: summary.tiltLabel })
+    : "";
+  const resonanceHintLine = [summary.resonanceHint, resonanceTail].filter(Boolean).join(" ").trim();
 
   return `
     <div class="advanced-section">
@@ -2335,12 +2404,21 @@ function renderAdvancedSummary(summary){
           <div class="res-part mask" style="flex:${Math.max(summary.energyPct?.mask ?? 0.001, 0.001)}">${maskPct}%</div>
           <div class="res-part head" style="flex:${Math.max(summary.energyPct?.head ?? 0.001, 0.001)}">${headPct}%</div>
         </div>
-        <p class="subline">${summary.resonanceHint}</p>
+        <p class="subline">${resonanceHintLine}</p>
       </div>
     </div>
     <div class="advanced-section">
       <h3 class="adv-title">${intonationTitle}</h3>
-      <canvas id="intonationCanvas" width="520" height="140" aria-label="${canvasAria}"></canvas>
+      <canvas id="intonationCanvas" width="520" height="140" aria-label="${canvasAria}" title="${escapeAttr(canvasHint)}"></canvas>
+      <div class="intonation-legend" id="intonationLegend" data-show-raw="${showIntonationRawPoints ? "true" : "false"}" data-has-raw="${hasRawPoints ? "true" : "false"}">
+        <div class="legend-item"><span class="legend-swatch legend-swatch--line"></span><span>${legendLine}</span></div>
+        <button type="button" class="legend-item legend-toggle" id="intonationRawToggle" aria-pressed="${showIntonationRawPoints ? "true" : "false"}"${toggleDisabledAttr}>
+          <span class="legend-swatch legend-swatch--dots"></span>
+          <span>${legendDots}</span>
+          <span class="legend-toggle-state">${toggleStateLabel}</span>
+        </button>
+        <div class="legend-item legend-item--shade"><span class="legend-swatch legend-swatch--shade"></span><span>${legendShade}</span></div>
+      </div>
       <div class="advanced-grid advanced-grid--four">
         <div class="adv-card"><div class="k">${intonationCards.trend || t("summary.advanced.intonationCards.trend")}</div><div class="v">${intonationLabel}</div><div class="hint">${intonationHint}</div></div>
         <div class="adv-card"><div class="k">${intonationCards.range || t("summary.advanced.intonationCards.range")}</div><div class="v">${rangeDisplay}</div><div class="hint">${rangeHint}</div></div>
@@ -2463,24 +2541,15 @@ function describeResonanceFromEnergy(energy){
     return insufficientEntry();
   }
 
-  const sorted = [
-    { key: "chest", value: chest },
-    { key: "mask", value: mask },
-    { key: "head", value: head },
-  ].sort((a,b)=>b.value - a.value);
-  const dominance = sorted[0].value - sorted[2].value;
+  const maxVal = Math.max(chest, mask, head);
+  const minVal = Math.min(chest, mask, head);
+  const span = maxVal - minVal;
 
   let key = "balanced";
-  if (dominance >= RESONANCE_DOMINANCE_DELTA){
-    if (sorted[0].key === "head" && sorted[0].value >= RESONANCE_HEAD_MIN){
-      key = "headBright";
-    } else if (sorted[0].key === "mask" && sorted[0].value >= RESONANCE_MASK_MIN){
-      key = "maskLead";
-    } else if (sorted[0].key === "chest" && sorted[0].value >= RESONANCE_CHEST_MIN){
-      key = "chestHeavy";
-    } else {
-      key = "balanced";
-    }
+  if (span >= 0.10){
+    if (chest >= 0.45 && chest === maxVal) key = "chestHeavy";
+    else if (mask >= 0.45 && mask === maxVal) key = "maskLead";
+    else if (head >= 0.45 && head === maxVal) key = "headBright";
   }
 
   const entry = analysisText?.resonanceBalance?.[key];
@@ -2491,8 +2560,12 @@ function describeResonanceFromEnergy(energy){
     const coverageKey = coverage < RESONANCE_COVERAGE_GOOD ? "coverageLowHint" : "coverageHint";
     const hintNote = t(`analysis.resonanceBalance.${coverageKey}`, { value: Math.round(coverage * 100) });
     if (hintNote) hint = `${hint} ${hintNote}`.trim();
-    const suffixKey = coverage < RESONANCE_COVERAGE_GOOD ? "coverageLowSuffix" : "coverageSuffix";
-    const suffix = t(`analysis.resonanceBalance.${suffixKey}`, { value: Math.round(coverage * 100) });
+    let suffix = coverage < RESONANCE_COVERAGE_GOOD
+      ? t("analysis.resonanceBalance.referenceSuffix", { value: Math.round(coverage * 100) })
+      : t("analysis.resonanceBalance.coverageSuffix", { value: Math.round(coverage * 100) });
+    if (!suffix && coverage < RESONANCE_COVERAGE_GOOD){
+      suffix = t("analysis.resonanceBalance.referenceOnly");
+    }
     if (suffix) display = `${label}${suffix}`;
   }
   return {
@@ -2767,37 +2840,35 @@ function analyzeConnectedSpeech(voicedArr, hopSec){
   };
 }
 
-function analyzeIntonation(pitchArr, voicedArr, hopSec){
-  const points=[];
-  let minHz=Infinity, maxHz=-Infinity;
-  for (let i=0;i<pitchArr.length;i++){
-    const hz = pitchArr[i];
-    if (!Number.isFinite(hz)) continue;
-    const t = i * hopSec;
-    points.push({ t, hz });
-    if (hz < minHz) minHz = hz;
-    if (hz > maxHz) maxHz = hz;
-  }
-  if (points.length < 3){
+function analyzeIntonation(data, hopSec){
+  const metrics = computeIntonationMetrics(data, hopSec, {
+    confidenceThreshold: CONFIDENCE_INCLUDE_THRESHOLD,
+    voicedThreshold: CONFIDENCE_VOICED_THRESHOLD,
+    eps: EPS,
+  }) || {};
+  const points = Array.isArray(metrics.points) ? metrics.points : [];
+  const rawPoints = Array.isArray(metrics.rawPoints) ? metrics.rawPoints : [];
+  const shadedRanges = Array.isArray(metrics.shadedRanges) ? metrics.shadedRanges : [];
+  const slopeCount = Number(metrics.slopeSampleCount) || 0;
+
+  if (slopeCount < 3){
     const insufficient = analysisText?.intonation?.insufficient;
     return {
-      points:[],
-      slope:NaN,
+      points: [],
+      rawPoints,
+      shadedRanges,
+      slope: NaN,
       slopeLabel: insufficient?.slopeLabel || t("analysis.intonation.insufficient.slopeLabel"),
       hint: insufficient?.slopeHint || t("analysis.intonation.insufficient.slopeHint"),
-      range:NaN,
+      range: NaN,
       rangeHint: insufficient?.rangeHint || "",
-      minHz:NaN,
-      maxHz:NaN,
+      minHz: NaN,
+      maxHz: NaN,
     };
   }
-  const n = points.length;
-  let sumT=0, sumH=0, sumTT=0, sumTH=0;
-  for (const {t,hz} of points){
-    sumT += t; sumH += hz; sumTT += t*t; sumTH += t*hz;
-  }
-  const slope = (n*sumTH - sumT*sumH) / Math.max((n*sumTT - sumT*sumT), EPS);
-  const range = maxHz - minHz;
+
+  const slope = Number.isFinite(metrics.slope) ? metrics.slope : NaN;
+  const validRange = Number.isFinite(metrics.range) ? metrics.range : NaN;
   let slopeKey = "flat";
   if (slope > 12) slopeKey = "rising";
   else if (slope < -12) slopeKey = "falling";
@@ -2806,19 +2877,33 @@ function analyzeIntonation(pitchArr, voicedArr, hopSec){
   const slopeHint = slopeEntry?.hint || t(`analysis.intonation.slope.${slopeKey}.hint`);
 
   let rangeKey = "narrow";
-  if (range >= 90) rangeKey = "rich";
-  else if (range >= 50) rangeKey = "medium";
+  if (validRange >= 90) rangeKey = "rich";
+  else if (validRange >= 50) rangeKey = "medium";
   const rangeEntry = analysisText?.intonation?.range?.[rangeKey];
   const rangeHint = rangeEntry?.hint || t(`analysis.intonation.range.${rangeKey}.hint`);
-
   const rangeLabel = rangeEntry?.label || t(`analysis.intonation.range.${rangeKey}.label`);
   const hint = `${slopeHint} ${rangeHint}`.trim();
-  return { points, slope, slopeLabel, range, rangeLabel, hint, rangeHint, minHz, maxHz };
+
+  return {
+    points,
+    rawPoints,
+    shadedRanges,
+    slope,
+    slopeLabel,
+    range: validRange,
+    rangeLabel,
+    hint,
+    rangeHint,
+    minHz: Number.isFinite(metrics.minHz) ? metrics.minHz : NaN,
+    maxHz: Number.isFinite(metrics.maxHz) ? metrics.maxHz : NaN,
+  };
 }
 
 function drawIntonationCurve(canvas, intonation){
   try{
     const pts = intonation?.points || [];
+    const rawPts = intonation?.rawPoints || [];
+    const shaded = intonation?.shadedRanges || [];
     if (!canvas || !canvas.getContext) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -2848,16 +2933,80 @@ function drawIntonationCurve(canvas, intonation){
     const minHz = Number.isFinite(intonation.minHz) ? intonation.minHz : Math.min(...pts.map(p=>p.hz));
     const maxHz = Number.isFinite(intonation.maxHz) ? intonation.maxHz : Math.max(...pts.map(p=>p.hz));
     const hzRange = Math.max(maxHz - minHz, 1);
+    const projectX = (t)=> 10 + ((t - minT) / tRange) * (width - 20);
+    const projectY = (hz)=> height - 20 - ((hz - minHz) / hzRange) * (height - 40);
+
+    shaded.forEach(({ type, start, end })=>{
+      const x0 = projectX(Math.max(minT, start));
+      const x1 = projectX(Math.min(maxT, end));
+      if (x1 <= x0) return;
+      ctx.fillStyle = type === "mute" ? "rgba(110,110,110,0.24)" : "rgba(110,110,110,0.12)";
+      ctx.fillRect(x0, 10, x1 - x0, height - 30);
+    });
+
+    if (showIntonationRawPoints && rawPts.length){
+      ctx.fillStyle = "rgba(60,60,60,0.22)";
+      rawPts.forEach(({ t, hz })=>{
+        const x = projectX(t);
+        const y = projectY(Math.max(PS_MIN_HZ, Math.min(PS_MAX_HZ, hz)));
+        ctx.beginPath();
+        ctx.arc(x, y, 2.2, 0, Math.PI*2);
+        ctx.fill();
+      });
+    }
+
     ctx.strokeStyle = "rgba(239,93,168,0.85)";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    pts.forEach((p, idx)=>{
-      const x = 10 + ((p.t - minT) / tRange) * (width - 20);
-      const y = height - 20 - ((p.hz - minHz) / hzRange) * (height - 40);
-      if (idx===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    let drawing=false;
+    pts.forEach((p)=>{
+      if (!Number.isFinite(p.hz)) { drawing=false; return; }
+      const x = projectX(p.t);
+      const y = projectY(Math.max(PS_MIN_HZ, Math.min(PS_MAX_HZ, p.hz)));
+      if (!drawing){ ctx.moveTo(x,y); drawing=true; }
+      else ctx.lineTo(x,y);
     });
     ctx.stroke();
   }catch(e){ console.error("[drawIntonationCurve]", e); }
+}
+
+function setupIntonationLegend(intonation){
+  try{
+    const legend = document.getElementById("intonationLegend");
+    if (!legend) return;
+    const hasRaw = Array.isArray(intonation?.rawPoints) && intonation.rawPoints.length > 0;
+    legend.setAttribute("data-show-raw", showIntonationRawPoints ? "true" : "false");
+    legend.setAttribute("data-has-raw", hasRaw ? "true" : "false");
+    const toggle = document.getElementById("intonationRawToggle");
+    if (toggle){
+      toggle.disabled = !hasRaw;
+      if (hasRaw){
+        toggle.removeAttribute("aria-disabled");
+      } else {
+        toggle.setAttribute("aria-disabled", "true");
+      }
+      const updateToggleState = ()=>{
+        const legendCopy = summaryText?.advanced?.intonationLegend || {};
+        const labelShow = legendCopy.show || t("summary.advanced.intonationLegend.show");
+        const labelHide = legendCopy.hide || t("summary.advanced.intonationLegend.hide");
+        toggle.setAttribute("aria-pressed", showIntonationRawPoints ? "true" : "false");
+        const stateEl = toggle.querySelector(".legend-toggle-state");
+        if (stateEl){
+          stateEl.textContent = showIntonationRawPoints ? labelHide : labelShow;
+        }
+        legend.setAttribute("data-show-raw", showIntonationRawPoints ? "true" : "false");
+      };
+      toggle.onclick = ()=>{
+        if (!hasRaw) return;
+        showIntonationRawPoints = !showIntonationRawPoints;
+        saveIntonationRawPreference(showIntonationRawPoints);
+        updateToggleState();
+        const canvas = document.getElementById("intonationCanvas");
+        if (canvas) drawIntonationCurve(canvas, intonation || {});
+      };
+      updateToggleState();
+    }
+  }catch(err){ console.error("[setupIntonationLegend]", err); }
 }
 
 function estimateSpectralFeatures(frame, sr){
@@ -3036,38 +3185,22 @@ function isDivergent(medHz, pf, pm){
   if ((medHz >= 180 && pm >= 0.60) || (medHz <= 165 && pf >= 0.60)) return true;
   return false;
 }
-function fmt1(x){ return Number.isFinite(x) ? (Math.round(x*10)/10).toFixed(1) : "—"; }
-function filterPitchForStats(samples){
-  if (!Array.isArray(samples)) return [];
-  const finite = samples.filter(Number.isFinite);
-  if (finite.length < 3) return finite.slice();
-
-  const logVals = finite.map((v)=>Math.log2(Math.max(v, PS_MIN_HZ)));
-  const sortedLog = logVals.slice().sort((a,b)=>a-b);
-  const medianLog = percentileSorted(sortedLog, 50);
-  const diffSemitones = logVals.map((v)=>Math.abs(v - medianLog) * 12);
-  const sortedDiffs = diffSemitones.slice().sort((a,b)=>a-b);
-  const mad = percentileSorted(sortedDiffs, 50);
-  const tolerance = Math.max(0.5, (mad || 0) * 3);
-  const filtered = finite.filter((_, idx)=> diffSemitones[idx] <= tolerance);
-
-  const minKeep = Math.max(3, Math.ceil(finite.length * 0.6));
-  if (filtered.length < minKeep) return finite;
-  return filtered;
+function escapeAttr(value){
+  if (value == null) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
-function makeStats(arr){
-  if (!arr.length) return { avg:NaN, med:NaN, p95:NaN, p05:NaN, sd:NaN };
-  const mean = arr.reduce((a,b)=>a+b,0)/arr.length;
-  const sorted = arr.slice().sort((x,y)=>x-y);
-  const med  = percentileSorted(sorted, 50);
-  const p95  = percentileSorted(sorted, 95);
-  const p05  = percentileSorted(sorted, 5);
-  const sd   = Math.sqrt(arr.reduce((a,v)=> a + (v-mean)*(v-mean), 0) / arr.length);
-  return { avg:mean, med, p95, p05, sd };
-}
-function percentileSorted(sorted, p){
-  if (!sorted.length) return NaN;
-  const i = (p/100) * (sorted.length - 1);
-  const i0 = Math.floor(i), i1 = Math.min(sorted.length-1, i0+1), t = i - i0;
-  return sorted[i0]*(1-t) + sorted[i1]*t;
+if (typeof window !== "undefined"){
+  window.vpaDebugHooks = {
+    drawIntonationCurve(data){
+      const canvas = document.getElementById("intonationCanvas");
+      if (canvas) drawIntonationCurve(canvas, data || {});
+    },
+    renderAdvancedSummary(summary){
+      return renderAdvancedSummary(summary);
+    },
+  };
 }
