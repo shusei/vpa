@@ -78,6 +78,7 @@ html[data-faction="dark"]{
   --topbar-icon-bg-1: color-mix(in oklab, var(--panel) 62%, var(--accent-2) 38%);
   --topbar-icon-bg-2: color-mix(in oklab, var(--panel) 48%, var(--accent-1) 52%);
   --topbar-icon-border: color-mix(in oklab, var(--panel-border) 40%, var(--accent-2) 60%);
+  --stream-axis:#000;
 }
 
 /* ---------- 主題（完整列表；未特別覆蓋時沿用 base token 也能運作） ---------- */
