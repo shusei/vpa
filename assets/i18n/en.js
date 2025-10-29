@@ -104,7 +104,7 @@ export default {
     quickStartHtml: [
       '<summary>Quick start (read this first)</summary>',
       '<ul class="bullets">',
-      '<li>Press <b>🎙️ Start recording</b> above and speak in your everyday tone for 5–10 seconds, or tap the <b>⬆︎</b> button to upload mp3 / m4a / mp4 / mov.</li>',
+      '<li>Press <b>🎙️ Start recording</b> above and speak in your everyday tone for 5–10 seconds, or tap the <b>⬆︎</b> button to upload mp3 / m4a / mp4 / mov. You can also drag & drop files into the main area.</li>',
       '<li>During recording you’ll see the <b>Pitch stream</b> and the <b>Formant / Resonance</b> monitor update in real time; wait for analysis once you stop.</li>',
       '<li>When the run finishes you can replay the clip, inspect the feminine / masculine meter, and read the statistics and quick summary.</li>',
       '<li>Need a walkthrough? Tap the <b>❓</b> guide in the top-right corner or close this helper to continue.</li>',
