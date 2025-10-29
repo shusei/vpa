@@ -25,7 +25,15 @@ export const BREATH_SCORE_SOFT = 0.4;
 export const CONFIDENCE_VOICED_THRESHOLD = 0.5;
 export const CONFIDENCE_INCLUDE_THRESHOLD = 0.6;
 export const CONFIDENCE_LOW_CLAMP = 0.55;
-export const DEFAULT_PITCH_RANGE = { min: 150, max: 400 };
+export const VOICE_PRESETS = {
+  auto: null,
+  masculine: { min: 80, max: 220 },
+  neutral: { min: 120, max: 300 },
+  feminine: { min: 150, max: 400 },
+};
+export const PITCH_RANGE_HARD = { min: PS_MIN_HZ, max: PS_MAX_HZ };
+export const PITCH_PROFILE_DEFAULT = "auto";
+export const DEFAULT_PITCH_RANGE = { ...VOICE_PRESETS.neutral };
 export const PITCH_COUNTER_KEYS = [
   "hardMute",
   "lowConfidence",
@@ -35,8 +43,17 @@ export const PITCH_COUNTER_KEYS = [
 ];
 
 export function clampPitchRange(range){
-  const min = Math.max(PS_MIN_HZ, Math.min(PS_MAX_HZ - 20, Number(range?.min) || DEFAULT_PITCH_RANGE.min));
-  const max = Math.max(min + 20, Math.min(PS_MAX_HZ, Number(range?.max) || DEFAULT_PITCH_RANGE.max));
+  const source = range || DEFAULT_PITCH_RANGE;
+  const baseMin = Number(source?.min);
+  const baseMax = Number(source?.max);
+  const min = Math.max(
+    PITCH_RANGE_HARD.min,
+    Math.min(PITCH_RANGE_HARD.max - 20, Number.isFinite(baseMin) ? baseMin : DEFAULT_PITCH_RANGE.min)
+  );
+  const max = Math.max(
+    min + 20,
+    Math.min(PITCH_RANGE_HARD.max, Number.isFinite(baseMax) ? baseMax : DEFAULT_PITCH_RANGE.max)
+  );
   return { min, max };
 }
 

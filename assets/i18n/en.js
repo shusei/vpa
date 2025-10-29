@@ -33,8 +33,13 @@ export default {
     voiceProfile: {
       title: "Speaker profile",
       rangeLabel: "Pitch search range (Hz)",
-      hint: "Defaults to 150–400 Hz for feminine voices. Adjust the detector window while the chart still spans 50–450 Hz.",
+      hint: "Auto calibrates from the first 0.8 s. Adjust the detector window here while the chart stays fixed at 50–450 Hz.",
       reset: "Reset to default",
+      auto: "Auto (recommended)",
+      masculine: "Masculine",
+      neutral: "Neutral",
+      feminine: "Feminine",
+      autoHint: "Pitch seems unstable? Open Advanced to tweak the speaker profile.",
     },
   },
   hero: {

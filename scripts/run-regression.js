@@ -33,12 +33,18 @@ function readInput(argv){
   return fs.readFileSync(0, "utf8");
 }
 
-function findOfflineSamples(node, depth = 0, seen = new Set()){ 
+function findOfflineSamples(node, depth = 0, seen = new Set()){
   if (!node || typeof node !== "object" || seen.has(node)) return null;
   seen.add(node);
-  if (Array.isArray(node.pitchRaw) && Array.isArray(node.pitchProcessed) && Array.isArray(node.db)){
+
+  const hasPitchRaw = Array.isArray(node.pitchRaw);
+  const hasPitchProcessed = Array.isArray(node.pitchProcessed);
+  const hasPitch = Array.isArray(node.pitch);
+  const hasDb = Array.isArray(node.db);
+  if ((hasPitchRaw || hasPitchProcessed || hasPitch) && hasDb){
     return node;
   }
+
   if (node.offlineSamples){
     const found = findOfflineSamples(node.offlineSamples, depth + 1, seen);
     if (found) return found;
@@ -99,7 +105,13 @@ function main(){
 
   const frameSec = Number.isFinite(offline.frameSec) ? offline.frameSec : (PS_INTERVAL_MS / 1000);
   const dbSeries = Array.isArray(offline.db) ? offline.db : [];
-  const rawPitch = Array.isArray(offline.pitchRaw) ? offline.pitchRaw : [];
+  const rawPitch = Array.isArray(offline.pitchRaw)
+    ? offline.pitchRaw
+    : Array.isArray(offline.pitch)
+      ? offline.pitch
+      : Array.isArray(offline.pitchProcessed)
+        ? offline.pitchProcessed
+        : [];
   const breathiness = Array.isArray(offline.breathiness) ? offline.breathiness : [];
   const zcr = Array.isArray(offline.zcr) ? offline.zcr : [];
   const energy = Array.isArray(offline.energy) ? offline.energy : [];
