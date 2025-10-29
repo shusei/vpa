@@ -1,4 +1,19 @@
 /* ---------- Start / Buttons ---------- */
+#dropZone{
+  position:relative;
+  outline:2px dashed transparent;
+  outline-offset:12px;
+  border-radius:32px;
+  transition:outline-color .18s ease, outline-offset .18s ease, box-shadow .18s ease;
+}
+#dropZone.dropzone-active{
+  outline-color:color-mix(in oklab, var(--accent-2) 55%, var(--accent-1) 45%);
+  outline-offset:16px;
+  box-shadow:0 0 0 4px color-mix(in oklab, var(--accent-2) 18%, transparent 82%);
+}
+html[data-faction="dark"] #dropZone.dropzone-active{
+  box-shadow:0 0 0 4px color-mix(in oklab, var(--accent-1) 26%, transparent 74%);
+}
 .start-wrap{
   display:flex;
   align-items:stretch;

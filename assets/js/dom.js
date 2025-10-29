@@ -1,3 +1,4 @@
+export const dropZone  = document.getElementById("dropZone");
 export const recordBtn = document.getElementById("recordBtn");
 export const fileInput = document.getElementById("fileInput");
 export const uploadFab = document.getElementById("uploadFab");

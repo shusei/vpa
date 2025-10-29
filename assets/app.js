@@ -5,6 +5,7 @@ import { initI18n, t, getLocaleValue, onLocaleChange } from "./js/i18n.js";
 
 import {
   recordBtn,
+  dropZone,
   fileInput,
   uploadFab,
   statusEl,
@@ -1119,6 +1120,73 @@ uploadFab?.addEventListener("click", ()=>{
   stopPlayback();
   fileInput?.click();
 });
+
+const dropZoneActiveClass = "dropzone-active";
+
+if (dropZone){
+  let dropZoneDragDepth = 0;
+
+  const hasFilePayload = (event)=>{
+    if (!event?.dataTransfer) return false;
+    const types = event.dataTransfer.types;
+    if (!types) return false;
+    return Array.from(types).includes("Files");
+  };
+
+  const clearDropZoneHighlight = ()=>{
+    dropZoneDragDepth = 0;
+    dropZone.classList.remove(dropZoneActiveClass);
+  };
+
+  dropZone.addEventListener("dragenter", (event)=>{
+    if (!hasFilePayload(event)) return;
+    event.preventDefault();
+    dropZoneDragDepth += 1;
+    dropZone.classList.add(dropZoneActiveClass);
+  });
+
+  dropZone.addEventListener("dragover", (event)=>{
+    if (!hasFilePayload(event)) return;
+    event.preventDefault();
+    if (event.dataTransfer){
+      event.dataTransfer.dropEffect = isRecording ? "none" : "copy";
+    }
+    dropZone.classList.add(dropZoneActiveClass);
+  });
+
+  dropZone.addEventListener("dragleave", (event)=>{
+    if (!hasFilePayload(event)) return;
+    event.preventDefault();
+    dropZoneDragDepth = Math.max(0, dropZoneDragDepth - 1);
+    if (dropZoneDragDepth === 0){
+      dropZone.classList.remove(dropZoneActiveClass);
+    }
+  });
+
+  dropZone.addEventListener("drop", async (event)=>{
+    if (!hasFilePayload(event)) return;
+    event.preventDefault();
+    clearDropZoneHighlight();
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) return;
+    if (isRecording){
+      setStatus(t("status.uploadWhileRecording"));
+      return;
+    }
+    try{
+      dismissOnboardTip(true);
+      resetMeter();
+      stopPlayback();
+      await handleFileOrBlob(file, "upload");
+    }catch(err){
+      console.error("[dropZone]", err);
+      setStatus(t("status.uploadFailed"));
+    }
+  });
+
+  document.addEventListener("dragend", clearDropZoneHighlight);
+  document.addEventListener("drop", clearDropZoneHighlight);
+}
 
 // ===== 錄音 =====
 function pickSupportedMime(){
