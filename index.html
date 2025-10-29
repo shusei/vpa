@@ -91,17 +91,26 @@
               </div>
             </div>
             <div class="section voice-settings-section">
-              <div class="section-title" data-i18n="settings.voiceProfile.title">說話者設定</div>
-              <div class="voice-settings">
-                <label for="pitchMinInput" data-i18n="settings.voiceProfile.rangeLabel">偵測音高範圍（Hz）</label>
-                <div class="voice-range">
-                  <input id="pitchMinInput" type="number" min="50" max="440" step="1" aria-describedby="pitchRangeHint" />
-                  <span class="range-sep">–</span>
-                  <input id="pitchMaxInput" type="number" min="120" max="480" step="1" aria-describedby="pitchRangeHint" />
+              <details id="voiceAdvanced">
+                <summary data-i18n="settings.voiceProfile.title">說話者設定</summary>
+                <div class="voice-settings">
+                  <div class="voice-presets" role="group" aria-label="Voice profile presets">
+                    <button type="button" class="menu-inline-btn" data-profile="auto" aria-pressed="true" data-i18n="settings.voiceProfile.auto">Auto（推薦）</button>
+                    <button type="button" class="menu-inline-btn" data-profile="masculine" aria-pressed="false" data-i18n="settings.voiceProfile.masculine">Masculine</button>
+                    <button type="button" class="menu-inline-btn" data-profile="neutral" aria-pressed="false" data-i18n="settings.voiceProfile.neutral">Neutral</button>
+                    <button type="button" class="menu-inline-btn" data-profile="feminine" aria-pressed="false" data-i18n="settings.voiceProfile.feminine">Feminine</button>
+                  </div>
+                  <label for="pitchMinInput" data-i18n="settings.voiceProfile.rangeLabel">偵測音高範圍（Hz）</label>
+                  <div class="voice-range">
+                    <input id="pitchMinInput" type="number" min="50" max="440" step="1" aria-describedby="pitchRangeHint" disabled />
+                    <span class="range-sep">–</span>
+                    <input id="pitchMaxInput" type="number" min="120" max="480" step="1" aria-describedby="pitchRangeHint" disabled />
+                  </div>
+                  <button id="pitchRangeReset" type="button" class="menu-inline-btn" data-i18n="settings.voiceProfile.reset" disabled>重設為預設值</button>
+                  <p id="pitchRangeHint" class="menu-hint" data-i18n="settings.voiceProfile.hint">預設女性 150–400 Hz，可依說話者調整偵測上下限（僅影響音高偵測，圖軸仍為 50–450 Hz）。</p>
                 </div>
-                <button id="pitchRangeReset" type="button" class="menu-inline-btn" data-i18n="settings.voiceProfile.reset">重設為預設值</button>
-                <p id="pitchRangeHint" class="menu-hint" data-i18n="settings.voiceProfile.hint">預設女性 150–400 Hz，可依說話者調整偵測上下限（僅影響音高偵測，圖軸仍為 50–450 Hz）。</p>
-              </div>
+              </details>
+              <p class="menu-hint" data-i18n="settings.voiceProfile.autoHint">偵測不穩？打開〈進階〉調整語者設定。</p>
             </div>
             <div class="menu-actions">
               <button id="exportBtn" class="menu-action" type="button" aria-label="匯出分析（JSON）"

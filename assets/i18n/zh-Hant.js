@@ -33,8 +33,13 @@ export default {
     voiceProfile: {
       title: "說話者設定",
       rangeLabel: "偵測音高範圍（Hz）",
-      hint: "預設女性 150–400 Hz，可依說話者調整偵測上下限（僅影響音高偵測，圖軸仍為 50–450 Hz）。",
+      hint: "Auto 會在前 0.8 秒自動定錨；若需微調可在此限制偵測上下限（僅影響偵測，圖軸維持 50–450 Hz）。",
       reset: "重設為預設值",
+      auto: "Auto（推薦）",
+      masculine: "Masculine",
+      neutral: "Neutral",
+      feminine: "Feminine",
+      autoHint: "偵測不穩？打開〈進階〉調整語者設定。",
     },
   },
   hero: {

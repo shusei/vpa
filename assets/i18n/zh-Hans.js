@@ -33,8 +33,13 @@ export default {
     voiceProfile: {
       title: "说话者设置",
       rangeLabel: "检测音高范围（Hz）",
-      hint: "默认女性 150–400 Hz，可根据说话者调整检测上下限（仅影响音高检测，图轴仍为 50–450 Hz）。",
+      hint: "Auto 会在前 0.8 秒自动定锚；若需微调可在此限制检测上下限（仅影响检测，图轴固定 50–450 Hz）。",
       reset: "重设为默认值",
+      auto: "Auto（推荐）",
+      masculine: "Masculine",
+      neutral: "Neutral",
+      feminine: "Feminine",
+      autoHint: "检测不稳？打开「进阶」调整说话者设置。",
     },
   },
   hero: {
