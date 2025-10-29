@@ -251,6 +251,42 @@ html[data-faction="dark"] .hero .chip{
 .theme-item[aria-checked="true"]{ outline:2px solid var(--ring); }
 .theme-item:hover{ background: color-mix(in oklab, var(--panel) 85%, var(--accent-2) 15%); }
 .swatch{ width:18px; height:18px; border-radius:6px; border:1px solid var(--panel-border); }
+.voice-settings-section{ margin-top:14px; padding-top:12px; border-top:1px solid var(--panel-border); }
+.voice-settings{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  padding:8px 10px 10px;
+  border-radius:12px;
+  background:color-mix(in oklab, var(--panel) 82%, var(--accent-2) 18%);
+  border:1px solid color-mix(in oklab, var(--panel-border) 70%, var(--accent-2) 30%);
+}
+.voice-settings label{ font-size:12px; font-weight:600; color:var(--ink); }
+.voice-range{ display:flex; align-items:center; gap:6px; }
+.voice-range input{
+  flex:1;
+  border-radius:8px;
+  border:1px solid var(--panel-border);
+  background:var(--panel);
+  color:var(--ink);
+  padding:6px 8px;
+  font-size:13px;
+}
+.voice-range input:focus-visible{ outline:2px solid var(--ring); outline-offset:2px; }
+.range-sep{ font-weight:600; color:var(--muted); }
+.menu-inline-btn{
+  align-self:flex-start;
+  padding:6px 12px;
+  border-radius:8px;
+  border:1px solid var(--panel-border);
+  background:color-mix(in oklab, var(--panel) 75%, var(--accent-2) 25%);
+  font-weight:600;
+  font-size:12px;
+  cursor:pointer;
+  color:var(--ink);
+}
+.menu-inline-btn:hover{ background:color-mix(in oklab, var(--panel) 60%, var(--accent-2) 40%); }
+.menu-inline-btn:focus-visible{ outline:2px solid var(--ring); outline-offset:2px; }
 .menu-actions{ margin-top:12px; padding-top:12px; border-top:1px solid var(--panel-border); display:flex; flex-direction:column; gap:8px; }
 .menu-action{
   display:flex; align-items:center; justify-content:center; gap:6px; padding:10px;

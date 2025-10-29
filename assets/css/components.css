@@ -503,6 +503,72 @@ html[data-faction="dark"] .subline{
 .adv-card .hint{ font-size:12px; color:color-mix(in oklab, var(--ink) 76%, var(--muted) 24%); }
 .resonance-summary .resonance-bar{ height:28px; }
 .resonance-bar--summary .res-part{ font-size:12px; }
+.intonation-legend{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+  font-size:12px;
+  color:color-mix(in oklab, var(--ink) 80%, var(--muted) 20%);
+}
+.intonation-legend .legend-item{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.intonation-legend .legend-swatch{
+  display:inline-block;
+  width:18px;
+  height:6px;
+  border-radius:999px;
+  background:color-mix(in oklab, var(--ink) 70%, var(--muted) 30%);
+}
+.intonation-legend .legend-swatch--line{
+  background:linear-gradient(90deg, rgba(239,93,168,0.25), rgba(239,93,168,0.85));
+}
+.intonation-legend .legend-swatch--dots{
+  width:22px;
+  height:10px;
+  background-image:radial-gradient(circle at 3px 3px, rgba(60,60,60,0.28) 0, rgba(60,60,60,0.28) 25%, transparent 26%, transparent 100%);
+  background-size:6px 6px;
+}
+.intonation-legend .legend-swatch--shade{
+  background:linear-gradient(90deg, rgba(110,110,110,0.24), rgba(110,110,110,0.12));
+  height:10px;
+  border-radius:6px;
+}
+.intonation-legend .legend-item--shade{ align-items:flex-start; }
+.intonation-legend .legend-toggle{
+  appearance:none;
+  border:1px solid var(--panel-border);
+  background:color-mix(in oklab, var(--panel) 88%, #fff 12%);
+  color:inherit;
+  font:inherit;
+  padding:4px 12px;
+  border-radius:999px;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  cursor:pointer;
+  transition:background .18s ease, border-color .18s ease, color .18s ease, opacity .18s ease;
+}
+.intonation-legend .legend-toggle:hover:not(:disabled):not([aria-disabled="true"]){
+  background:color-mix(in oklab, var(--panel) 82%, var(--accent-2) 18%);
+}
+.intonation-legend .legend-toggle[aria-pressed="true"]{
+  background:color-mix(in oklab, var(--accent-1) 24%, var(--panel) 76%);
+  border-color:color-mix(in oklab, var(--accent-1) 36%, var(--panel-border) 64%);
+  color:color-mix(in oklab, var(--ink) 92%, var(--accent-1) 8%);
+}
+.intonation-legend .legend-toggle:disabled,
+.intonation-legend .legend-toggle[aria-disabled="true"]{
+  cursor:not-allowed;
+  opacity:0.55;
+}
+.intonation-legend[data-has-raw="false"] .legend-toggle{
+  cursor:not-allowed;
+}
+.intonation-legend .legend-toggle-state{ font-weight:600; }
 
 html[data-faction="dark"] .player .hint,
 html[data-faction="dark"] .bar .label,
