@@ -212,16 +212,34 @@ html[data-faction="dark"] .hero .chip{
 }
 
 @media (max-width:720px){
-  .topbar{ flex-direction:column; align-items:flex-start; gap:14px; }
-  .actions{ width:100%; justify-content:flex-start; }
+  .topbar{ flex-wrap:wrap; align-items:center; gap:10px; }
+  .actions{ width:auto; margin-left:auto; justify-content:flex-end; }
   .brand::after{ margin-left:auto; }
 }
 
 @media (max-width:520px){
   .topbar{ padding:12px 14px; }
-  .brand{ width:100%; justify-content:flex-start; }
-  .brand::after{ font-size:10px; padding:2px 8px; }
-  .actions{ padding:6px; border-radius:18px; }
+  .brand{
+    padding:0;
+    background:none;
+    border:0;
+    box-shadow:none;
+  }
+  .brand::after{
+    font-size:10px;
+    padding:0 6px;
+    background:none;
+    border:0;
+    box-shadow:none;
+    filter:none;
+  }
+  .actions{
+    padding:0;
+    border-radius:18px;
+    background:none;
+    border:0;
+    box-shadow:none;
+  }
   .gear, .help-btn, .lang-btn{ width:38px; height:38px; }
 }
 
