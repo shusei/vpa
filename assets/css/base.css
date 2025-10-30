@@ -55,6 +55,7 @@ a:hover{ text-decoration: underline; }
   --band-gray: color-mix(in oklab, var(--panel) 60%, #999 40%);
   --band-blue: #bfe7ff;
   --band-pink: #ffd1dc;
+  --band-lilac: #e2d5ff;
   --stream-ink: color-mix(in oklab, #000 10%, var(--ink) 90%);
 }
 
