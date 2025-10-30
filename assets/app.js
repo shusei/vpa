@@ -276,11 +276,6 @@ let calibrationCapture = null;
 let calibrationData = loadCalibrationData();
 let currentCalibrationMode = getCalibrationMode();
 
-initCalibrationControls();
-refreshCalibrationUi();
-ensurePlayerUI();
-setupExportButton();
-
 function initCalibrationControls(){
   try{
     if (!calibrationPanel) return;
@@ -728,6 +723,11 @@ let mediaRecorder = null, chunks = [];
 let clf = null, busy = false, heartbeatTimer = null;
 let currentDevice = "wasm";
 let isRecording = false;
+
+initCalibrationControls();
+refreshCalibrationUi();
+ensurePlayerUI();
+setupExportButton();
 
 let analysisSeq = 0;
 let activeAnalysisToken = 0;
