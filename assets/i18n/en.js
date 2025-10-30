@@ -103,11 +103,18 @@ export default {
   },
   calibration: {
     title: "Microphone calibration",
-    descriptionHtml: "Capture a quiet room and a 1 kHz reference tone so the Volume / Environment cards report real SPL.",
+    descriptionHtml: [
+      "<p>Capture a quiet room and a 1 kHz reference tone so the Volume / Environment cards report real SPL.</p>",
+      "<p><b>Step 1:</b> Keep the room quiet for 3.5 seconds while measuring background noise. <b>Step 2:</b> Aim your 1 kHz calibrator (94 dB by default) directly at the microphone for another 3.5 seconds while measuring the reference tone.</p>",
+    ].join(""),
     status: {
-      relative: "Showing relative levels. Measure background noise and a 1 kHz reference tone ({{target}} dB) to calibrate Volume / Environment.",
+      relative: "Showing relative levels. Measure background noise and a 1 kHz reference tone ({{target}} dB) to calibrate Volume / Environment. Step 1: keep the room quiet for 3.5 seconds during the ambient reading. Step 2: point the 1 kHz calibrator at the microphone for another 3.5 seconds to log the reference level.",
       calibrated: "Calibrated: reference {{target}} dB, offset {{offset}} dB, ambient {{ambient}} dB. {{timestamp}}",
     },
+    stepHintHtml: [
+      '<li><b>Step 1:</b> After tapping “Measure background noise”, stay silent and keep the room quiet for 3.5 seconds.</li>',
+      '<li><b>Step 2:</b> When “Measure 1 kHz reference tone” unlocks, align the 1 kHz / 94 dB calibrator with the microphone and hold it steady for another 3.5 seconds.</li>',
+    ].join(""),
     targetLabel: "Reference level (dB SPL)",
     targetHint: "Default 94 dB / 1 kHz. Change this if your calibrator emits a different SPL.",
     steps: {
