@@ -382,6 +382,15 @@ body.recording .record-btn .rec{ display:inline; }
   .calibration-hint{
     margin-top:-6px;
   }
+  .calibration-steps,
+  .calibration-actions{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  .calibration-btn{
+    width:100%;
+    text-align:center;
+  }
 }
 
 html[data-faction="dark"] .status{
