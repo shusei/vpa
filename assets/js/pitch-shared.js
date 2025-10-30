@@ -7,7 +7,7 @@ export const PS_SMOOTH_BASE_ALPHA = 0.08;
 export const PS_SMOOTH_FAST_ALPHA = 0.45;
 export const PS_SMOOTH_FAST_THRESHOLD_SEMITONES = 1.5;
 export const PS_SMOOTH_MAX_STEP_SEMITONES = 2.4;
-export const PS_SMOOTH_MEDIAN_WINDOW = 7;
+export const PS_SMOOTH_MEDIAN_WINDOW = 5;
 export const PS_MIN_DB_FOR_PITCH = 42;
 export const PS_NOISE_BUFFER_MS = 10000;
 export const PS_NOISE_MIN_SAMPLES = 8;
@@ -25,6 +25,9 @@ export const BREATH_SCORE_SOFT = 0.4;
 export const CONFIDENCE_VOICED_THRESHOLD = 0.5;
 export const CONFIDENCE_INCLUDE_THRESHOLD = 0.6;
 export const CONFIDENCE_LOW_CLAMP = 0.55;
+export const VAD_ON_CONFIDENCE = 0.6;
+export const VAD_OFF_CONFIDENCE = 0.5;
+export const VAD_HOLD_OFF_MS = 120;
 export const VOICE_PRESETS = {
   auto: null,
   masculine: { min: 80, max: 220 },
@@ -87,6 +90,10 @@ export function createPitchPostState(){
     lastSmooth: null,
     lastAccepted: null,
     silentStreak: 0,
+    lastConfidence: 0,
+    vad: { isVoiced: false, pendingOffMs: 0 },
+    lastOctaveMultiplier: 1,
+    octaveStableFrames: 0,
     counters: createPitchCounters(),
   };
 }
@@ -100,6 +107,15 @@ export function resetPitchPostState(state){
   state.lastSmooth = null;
   state.lastAccepted = null;
   state.silentStreak = 0;
+  state.lastConfidence = 0;
+  state.lastOctaveMultiplier = 1;
+  state.octaveStableFrames = 0;
+  if (state.vad){
+    state.vad.isVoiced = false;
+    state.vad.pendingOffMs = 0;
+  } else {
+    state.vad = { isVoiced: false, pendingOffMs: 0 };
+  }
   resetPitchCounters(state.counters);
 }
 
@@ -110,6 +126,8 @@ function handleSilentFrame(state){
     state.avgWindow.length = 0;
     state.lastSmooth = null;
     state.lastAccepted = null;
+    state.lastOctaveMultiplier = 1;
+    state.octaveStableFrames = 0;
   }
 }
 
@@ -129,70 +147,124 @@ function computeHistoryStats(arr){
   return { count:n, mean, sd: Math.sqrt(Math.max(0, variance)) };
 }
 
-function smoothPitchCandidate(candidate, confidence, range, state){
+function smoothPitchCandidate(candidate, range, state, frameMs){
+  const stepMs = Number.isFinite(frameMs) && frameMs > 0 ? frameMs : PS_INTERVAL_MS;
   const clamped = Math.min(range.max, Math.max(range.min, candidate));
+  const medianWindowSize = 5;
   state.medianWindow.push(clamped);
-  if (state.medianWindow.length > PS_SMOOTH_MEDIAN_WINDOW){
+  if (state.medianWindow.length > medianWindowSize){
     state.medianWindow.shift();
   }
   const sorted = state.medianWindow.slice().sort((a,b)=>a-b);
-  const median = sorted[Math.floor(sorted.length/2)] ?? clamped;
-  state.avgWindow.push(median);
-  if (state.avgWindow.length > 8){
-    state.avgWindow.shift();
+  const midIdx = Math.floor(sorted.length / 2);
+  const median = sorted[midIdx] ?? clamped;
+  const q1 = percentileSorted(sorted, 25);
+  const q3 = percentileSorted(sorted, 75);
+  const iqr = Number.isFinite(q3) && Number.isFinite(q1) ? Math.max(1, q3 - q1) : null;
+  let target = median;
+  if (Number.isFinite(iqr)){
+    const minClamp = q1 - 1.5 * iqr;
+    const maxClamp = q3 + 1.5 * iqr;
+    target = Math.max(minClamp, Math.min(maxClamp, target));
   }
-  const windowSize = confidence >= 0.75 ? 3 : 5;
-  const recent = state.avgWindow.slice(-windowSize);
-  let target = recent.reduce((a,b)=>a+b,0) / Math.max(1, recent.length);
 
   const prev = state.lastSmooth;
   if (Number.isFinite(prev)){
     const prevLog = Math.log2(prev);
     const targetLog = Math.log2(target);
-    const delta = targetLog - prevLog;
-    const fastThreshold = PS_SMOOTH_FAST_THRESHOLD_SEMITONES / 12;
-    const alpha = Math.abs(delta) > fastThreshold ? PS_SMOOTH_FAST_ALPHA : PS_SMOOTH_BASE_ALPHA;
-    let nextLog = prevLog + alpha * delta;
-    const maxStep = PS_SMOOTH_MAX_STEP_SEMITONES / 12;
-    if (Math.abs(nextLog - prevLog) > maxStep){
-      nextLog = prevLog + Math.sign(nextLog - prevLog) * maxStep;
+    let delta = targetLog - prevLog;
+    const baseStep = 150 / 1200; // 150 cents
+    const maxLogStep = baseStep * (stepMs / 20);
+    if (Number.isFinite(maxLogStep) && maxLogStep > 0){
+      delta = Math.max(-maxLogStep, Math.min(maxLogStep, delta));
     }
-    target = 2 ** nextLog;
+    let next = 2 ** (prevLog + delta);
+    const maxHzStep = 60 * (stepMs / 20);
+    if (Number.isFinite(maxHzStep) && maxHzStep > 0){
+      next = Math.max(prev - maxHzStep, Math.min(prev + maxHzStep, next));
+    }
+    target = next;
   }
 
-  target = Math.min(range.max, Math.max(range.min, target));
-  state.lastSmooth = target;
-  return target;
+  const smoothAlpha = 0.35;
+  if (Number.isFinite(state.lastSmooth)){
+    target = state.lastSmooth + smoothAlpha * (target - state.lastSmooth);
+  }
+
+  const bounded = Math.min(range.max, Math.max(range.min, target));
+  state.lastSmooth = bounded;
+  return bounded;
 }
 
-function correctPitchOctave(candidate, range, state){
+function correctPitchOctave(candidate, range, state, ctx = {}){
   const ref = Number.isFinite(state.lastSmooth)
     ? state.lastSmooth
     : (Number.isFinite(state.lastAccepted) ? state.lastAccepted : null);
   if (!Number.isFinite(ref)){
     return Math.min(range.max, Math.max(range.min, candidate));
   }
+  const snr = Number.isFinite(ctx.snr) ? ctx.snr : (Number.isFinite(ctx.db) && Number.isFinite(ctx.ambientDb)
+    ? ctx.db - ctx.ambientDb
+    : NaN);
+  const energyWeight = Number.isFinite(snr)
+    ? Math.max(0, Math.min(1, (snr - 6) / 18))
+    : 0.5;
+  const voicingProb = Math.max(0, Math.min(1, Number.isFinite(state.lastConfidence) ? state.lastConfidence : 0.5));
+  const multipliers = [0.5, 1, 2];
   let best = candidate;
-  let bestDiff = Math.abs(Math.log2(candidate / ref));
-  const prevLog = Math.log2(ref);
-  const multipliers = [2, 3, 4];
-  for (const m of multipliers){
-    const up = candidate * m;
-    if (up <= range.max){
-      const diff = Math.abs(Math.log2(up) - prevLog);
-      if (diff < bestDiff){ bestDiff = diff; best = up; }
-    }
-    const down = candidate / m;
-    if (down >= range.min){
-      const diff = Math.abs(Math.log2(down) - prevLog);
-      if (diff < bestDiff){ bestDiff = diff; best = down; }
+  let bestScore = Infinity;
+  let bestMultiplier = 1;
+  const refLog = Math.log2(ref);
+  for (const k of multipliers){
+    const adjusted = candidate * k;
+    if (adjusted < range.min || adjusted > range.max) continue;
+    const diff = Math.abs(Math.log2(adjusted) - refLog);
+    const energyFactor = 1 / (0.55 + 0.45 * energyWeight);
+    const voicingFactor = 1 / (0.6 + 0.4 * voicingProb);
+    const score = diff * energyFactor * voicingFactor;
+    if (score < bestScore){
+      bestScore = score;
+      best = adjusted;
+      bestMultiplier = k;
     }
   }
   const clamped = Math.min(range.max, Math.max(range.min, best));
-  if (Math.abs(clamped - candidate) > 1e-6){
-    incrementPitchCounter(state, "octaveCorrected");
+  const changed = Math.abs(Math.log2(clamped / Math.max(candidate, 1e-9))) >= 0.5;
+  if (state){
+    const prevMult = Number.isFinite(state.lastOctaveMultiplier) ? state.lastOctaveMultiplier : 1;
+    if (changed){
+      const prevFrames = Number.isFinite(state.octaveStableFrames) ? state.octaveStableFrames : 0;
+      if (!Number.isFinite(prevFrames) || prevFrames < 0) state.octaveStableFrames = 0;
+      if (bestMultiplier !== prevMult || prevFrames === 0){
+        incrementPitchCounter(state, "octaveCorrected");
+      }
+      state.octaveStableFrames = (Number.isFinite(state.octaveStableFrames) ? state.octaveStableFrames : 0) + 1;
+    } else {
+      state.octaveStableFrames = 0;
+    }
+    state.lastOctaveMultiplier = bestMultiplier;
   }
   return clamped;
+}
+
+function updateVoicedState(state, confidence, hasPitch, frameMs){
+  const stepMs = Number.isFinite(frameMs) && frameMs > 0 ? frameMs : PS_INTERVAL_MS;
+  const vadState = state.vad || (state.vad = { isVoiced: false, pendingOffMs: 0 });
+  if (hasPitch && confidence >= VAD_ON_CONFIDENCE){
+    vadState.isVoiced = true;
+    vadState.pendingOffMs = 0;
+  } else if (!hasPitch || confidence < VAD_OFF_CONFIDENCE){
+    if (vadState.isVoiced){
+      vadState.pendingOffMs += stepMs;
+      if (vadState.pendingOffMs >= VAD_HOLD_OFF_MS){
+        vadState.isVoiced = false;
+        vadState.pendingOffMs = 0;
+      }
+    } else {
+      vadState.pendingOffMs = Math.min(VAD_HOLD_OFF_MS, vadState.pendingOffMs + stepMs);
+    }
+  }
+  return vadState.isVoiced;
 }
 
 export function appendPitchSample(rawHz, { db = NaN, ambientDb = NaN, spectral = null } = {}, ctx = {}){
@@ -205,6 +277,7 @@ export function appendPitchSample(rawHz, { db = NaN, ambientDb = NaN, spectral =
   const getRange = typeof ctx.getRange === "function" ? ctx.getRange : null;
   const staticRange = ctx.range;
   const range = clampPitchRange(getRange ? getRange() : staticRange);
+  const frameMs = Number.isFinite(ctx.frameMs) ? ctx.frameMs : PS_INTERVAL_MS;
 
   const rawFinite = Number.isFinite(rawHz) ? rawHz : null;
   if (rawArr){ rawArr.push(rawFinite); }
@@ -214,33 +287,58 @@ export function appendPitchSample(rawHz, { db = NaN, ambientDb = NaN, spectral =
   let confidence = 0;
   const snr = Number.isFinite(db) && Number.isFinite(ambientDb) ? (db - ambientDb) : NaN;
 
+  const debug = typeof ctx.debug === "function" ? ctx.debug : null;
+  const debugInfo = debug ? {
+    raw: Number.isFinite(rawHz) ? rawHz : null,
+    db,
+    ambientDb,
+    snr: Number.isFinite(db) && Number.isFinite(ambientDb) ? (db - ambientDb) : NaN,
+    candidate: null,
+    corrected: null,
+    processed: null,
+    confidence: 0,
+    hardMute: false,
+    suppressed: false,
+    reasons: [],
+  } : null;
+
   if (!Number.isFinite(rawHz)){
     handleSilentFrame(state);
   } else {
-    let candidate = correctPitchOctave(Math.min(range.max, Math.max(range.min, rawHz)), range, state);
+    let candidate = Math.min(range.max, Math.max(range.min, rawHz));
+    if (debugInfo) debugInfo.candidate = candidate;
+    candidate = correctPitchOctave(candidate, range, state, { snr, db, ambientDb });
+    if (debugInfo) debugInfo.corrected = candidate;
     let conf = 1;
     let hardMute = false;
     let floorMute = false;
     let octaveMute = false;
+    let suppressed = false;
+    const reasons = debugInfo ? debugInfo.reasons : null;
 
     const volStats = computeHistoryStats(state.volumeHistory);
     if (Number.isFinite(db) && volStats.count >= 6){
       const delta = db - volStats.mean;
       const sigma = Math.max(volStats.sd, 1);
       if (delta < -2 * sigma){
-        hardMute = true;
+        suppressed = true;
+        if (reasons) reasons.push("volumeLow");
       } else if (delta < -1.4 * sigma){
         conf = Math.min(conf, CONFIDENCE_LOW_CLAMP);
+        if (reasons) reasons.push("volumeSoft");
       }
     }
 
     if (Number.isFinite(snr)){
       if (snr < 10){
         hardMute = true;
+        if (reasons) reasons.push("snrLow");
       } else if (snr < 12){
         conf = Math.min(conf, CONFIDENCE_LOW_CLAMP);
+        if (reasons) reasons.push("snrBorderline");
       } else if (snr < 14){
         conf = Math.min(conf, 0.7);
+        if (reasons) reasons.push("snrOk");
       }
     }
 
@@ -249,9 +347,11 @@ export function appendPitchSample(rawHz, { db = NaN, ambientDb = NaN, spectral =
       const breath = Number(spectral.breathiness);
       if (Number.isFinite(zcr) && Number.isFinite(breath)){
         if (zcr > BREATH_ZCR_MUTE && breath > BREATH_SCORE_MUTE){
-          hardMute = true;
+          suppressed = true;
+          if (reasons) reasons.push("breathMute");
         } else if (zcr > BREATH_ZCR_SOFT && breath > BREATH_SCORE_SOFT){
           conf = Math.min(conf, CONFIDENCE_LOW_CLAMP);
+          if (reasons) reasons.push("breathSoft");
         }
       }
     }
@@ -263,8 +363,10 @@ export function appendPitchSample(rawHz, { db = NaN, ambientDb = NaN, spectral =
       if (diffSemitones > OCTAVE_REJECT_SEMITONES){
         hardMute = true;
         octaveMute = true;
+        if (reasons) reasons.push("octaveReject");
       } else if (diffSemitones > OCTAVE_WARN_SEMITONES){
         conf = Math.min(conf, 0.6);
+        if (reasons) reasons.push("octaveWarn");
       }
     }
 
@@ -274,25 +376,32 @@ export function appendPitchSample(rawHz, { db = NaN, ambientDb = NaN, spectral =
       if (Number.isFinite(refPitch) && (refPitch / Math.max(candidate, 1)) >= 1.6){
         hardMute = true;
         floorMute = true;
+        if (reasons) reasons.push("floorGuard");
       } else {
         conf = Math.min(conf, CONFIDENCE_LOW_CLAMP);
+        if (reasons) reasons.push("floorWarn");
       }
     } else if (candidate < range.min * 0.9){
       conf = Math.min(conf, CONFIDENCE_LOW_CLAMP);
+      if (reasons) reasons.push("rangeLow");
     }
 
     if (candidate > range.max * 1.18){
       hardMute = true;
+      if (reasons) reasons.push("rangeHigh");
     } else if (candidate > range.max * 1.05){
       conf = Math.min(conf, 0.6);
+      if (reasons) reasons.push("rangeWarn");
     }
 
     if (!hardMute){
       confidence = Math.max(0, Math.min(1, conf));
-      processed = smoothPitchCandidate(candidate, confidence, range, state);
-      voiced = confidence >= CONFIDENCE_VOICED_THRESHOLD;
+      processed = smoothPitchCandidate(candidate, range, state, frameMs);
       state.lastAccepted = processed;
       state.silentStreak = 0;
+      if (suppressed){
+        confidence = 0;
+      }
       if (confidence >= CONFIDENCE_INCLUDE_THRESHOLD){
         pushHistory(state.volumeHistory, db, 220);
         pushHistory(state.snrHistory, snr, 220);
@@ -306,12 +415,29 @@ export function appendPitchSample(rawHz, { db = NaN, ambientDb = NaN, spectral =
       if (octaveMute) incrementPitchCounter(state, "octaveRejected");
       if (floorMute) incrementPitchCounter(state, "floorGuard");
     }
+
+    if (debugInfo){
+      debugInfo.hardMute = hardMute;
+      debugInfo.confidence = confidence;
+      if (suppressed) debugInfo.suppressed = true;
+    }
   }
 
   const finalValue = Number.isFinite(processed) ? processed : null;
   if (smoothArr){ smoothArr.push(finalValue); }
+  state.lastConfidence = confidence;
+  const hasPitch = Number.isFinite(finalValue);
+  const voicedState = updateVoicedState(state, confidence, hasPitch, frameMs);
+  voiced = voicedState;
   if (voicedArr){ voicedArr.push(voiced); }
   if (confidenceArr){ confidenceArr.push(confidence); }
+
+  if (debugInfo){
+    debugInfo.processed = finalValue;
+    debugInfo.voiced = voiced;
+    debugInfo.finalConfidence = confidence;
+    debug(debugInfo);
+  }
   return { processed: finalValue, voiced, confidence };
 }
 

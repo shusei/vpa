@@ -441,9 +441,36 @@ export default {
         label: "Slightly airy",
         hint: "Air leakage is noticeable. Buzz a few “zzz” to feel vocal fold contact, then send the airflow forward instead of upward.",
       },
+      style: {
+        label: "Stylized breathiness",
+        hint: "The extra air adds sweetness and sits well in this recording. Keep the mouth shape and breath pattern so you can recreate it on demand.",
+      },
       tooAiry: {
         label: "Very airy",
         hint: "Lots of leakage. Try short “uh” bursts to check closure, then practice short phrases while keeping the air contained before consonants.",
+      },
+    },
+    brightness: {
+      insufficient: { label: "Not enough data", hint: "Record more stable vowels to evaluate brightness." },
+      balanced: {
+        label: "Balanced brightness",
+        hint: "F3 and spectral tilt sit in the recommended zone. Log the current mouth feel so you can return here quickly.",
+      },
+      warm: {
+        label: "Warm and rounded",
+        hint: "Brightness is slightly lower, giving a round tone. If you want more shimmer, add a hint of nasal resonance or a gentle smile.",
+      },
+      sparkle: {
+        label: "Sparkling bright",
+        hint: "Brightness leans high but stays controlled. Note the vowel shape and forehead resonance so you can reproduce this sparkle.",
+      },
+      sweet: {
+        label: "Focused sweetness",
+        hint: "F3 runs high with steady breath, creating a sweet shimmer. Maintain the relaxed larynx and current resonance mix.",
+      },
+      sharp: {
+        label: "Sharp brightness",
+        hint: "High-frequency energy is intense and can sound pointy. Soften the jaw, start with a rounded “oh”, and ease the breath to relax the edge.",
       },
     },
     formant: {
@@ -588,6 +615,7 @@ export default {
       resonance: "Resonance: {{label}}",
       speechRate: "Speech rate: {{label}}",
       breathiness: "Breathiness: {{label}}",
+      brightness: "Brightness: {{label}}",
     },
     speechRateDisplay: "{{value}} syll/s",
     speechRateWpm: "(≈ {{value}} wpm)",
@@ -606,6 +634,7 @@ export default {
         f1: "F1 (first formant) · Median",
         f2: "F2 (second formant) · Median",
         f3: "F3 (third formant) · Median",
+        brightness: "Brightness / Sweetness",
         tilt: "Spectral Tilt",
       },
       intonationCards: {
