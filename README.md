@@ -103,6 +103,7 @@ Voice Presentation Analyzer（以下簡稱 VPA）是一款完全以 Web 技術�
 - **Formant & Resonance 卡**：展示 F1–F3 中位數、共鳴亮度與氣聲比例，並附上提示文字。【F:index.html†L522-L566】
 - **Speech Rate 卡**：統計語速與語音佔比，提醒是否語音不足。【F:index.html†L568-L575】
 - **簡評**：整合以上指標，標示指標分歧或錄音品質提醒。【F:assets/app.js†L1365-L1406】
+- **Volume / Environment 校正面板**：頁面中段的「麥克風音量校正」可依序量測背景噪音與 1 kHz 參考音，並輸入校正器輸出的 dB SPL（預設 94 dB）。完成後 Volume / Environment 會改以實際 dB 顯示並標記為「已校正」；未校正時仍維持原本的相對提示。校正需能產生穩定 1 kHz / 94 dB SPL 的聲級計或音訊介面，無法提供時建議保持相對模式。【F:index.html†L179-L215】【F:assets/app.js†L1974-L2077】【F:assets/i18n/zh-Hant.js†L108-L149】
 
 ---
 

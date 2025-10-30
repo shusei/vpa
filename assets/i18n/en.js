@@ -101,6 +101,52 @@ export default {
   callout: {
     bodyHtml: '<p>Tip: record or upload mp3 / m4a / mp4 / mov clips. While recording you’ll see the live pitch stream and resonance monitor; once analysis finishes you can replay the clip and review the tendency meter plus the summary cards. Need a walkthrough? Tap <b>❓</b>.</p>',
   },
+  calibration: {
+    title: "Microphone calibration",
+    descriptionHtml: "Capture a quiet room and a 1 kHz reference tone so the Volume / Environment cards report real SPL.",
+    status: {
+      relative: "Showing relative levels. Measure background noise and a 1 kHz reference tone ({{target}} dB) to calibrate Volume / Environment.",
+      calibrated: "Calibrated: reference {{target}} dB, offset {{offset}} dB, ambient {{ambient}} dB. {{timestamp}}",
+    },
+    targetLabel: "Reference level (dB SPL)",
+    targetHint: "Default 94 dB / 1 kHz. Change this if your calibrator emits a different SPL.",
+    steps: {
+      ambient: "Measure background noise",
+      reference: "Measure 1 kHz reference tone",
+    },
+    actions: {
+      save: "Save calibration",
+      clear: "Clear saved data",
+    },
+    log: {
+      placeholder: "No calibration samples yet.",
+      capturing: "Capturing {{step}}…",
+      ambientResult: "Preview background noise {{value}} dB",
+      referenceResult: "Preview reference tone {{value}} dB (target {{target}} dB)",
+      savedSummary: "Latest calibration · ambient {{ambient}} dB · offset {{offset}} dB (target {{target}} dB) {{timestamp}}",
+      ambientStored: "Background noise measured at {{value}} dB.",
+      referenceStored: "Reference tone measured at {{value}} dB.",
+      savedEvent: "Calibration saved (offset {{offset}} dB).",
+      cleared: "Calibration cleared.",
+      storageFailed: "Could not save calibration to localStorage (will stay for this session only).",
+      error: "Calibration error: {{message}}",
+      aborted: "Calibration cancelled.",
+    },
+    errors: {
+      incomplete: "Measure both background noise and the reference tone before saving.",
+      noSamples: "No stable signal detected—try again.",
+      noMedia: "Microphone access is unavailable.",
+      noContext: "AudioContext is not available in this browser.",
+    },
+    modeChip: {
+      relative: "Relative",
+      calibrated: "Calibrated",
+    },
+    modeLabel: {
+      relative: "Relative levels",
+      calibrated: "Calibrated levels",
+    },
+  },
   info: {
     quickStartHtml: [
       '<summary>Quick start (read this first)</summary>',
@@ -595,6 +641,10 @@ export default {
       steady: "Stable",
       moderate: "Moderate",
       wide: "High fluctuation",
+    },
+    calibrationNote: {
+      relative: "Volume / Environment use {{mode}} (no calibration saved).",
+      calibrated: "Volume / Environment use {{mode}} (offset {{offset}} dB, ambient {{ambient}} dB).",
     },
     statsIntro: "Volume variation (σ): <b>{{sigma}}</b>. Pitch spread = 95th−5th (after filtering); pitch dynamics use the processed intonation curve’s max–min span. These metrics support practice and <u>do not define gender</u>.",
     statsLabels: {
