@@ -86,8 +86,121 @@ import {
 /** 只用遠端（Hugging Face Hub），停用本機 /models 尋址 */
 env.allowLocalModels = false;
 env.allowRemoteModels = true;
-/** 視需要可調整：WASM 執行緒數 */
-env.backends.onnx.wasm.numThreads = 1;
+const THREAD_STORAGE_KEY = "vpa::onnxThreads";
+
+function readCachedThreadCount() {
+  try {
+    if (typeof localStorage === "undefined") {
+      return null;
+    }
+    const raw = localStorage.getItem(THREAD_STORAGE_KEY);
+    if (raw == null) {
+      return null;
+    }
+    const parsed = Number.parseInt(raw, 10);
+    if (!Number.isFinite(parsed) || parsed < 1) {
+      return null;
+    }
+    return parsed;
+  } catch (_error) {
+    return null;
+  }
+}
+
+function writeCachedThreadCount(value) {
+  try {
+    if (typeof localStorage === "undefined") {
+      return;
+    }
+    localStorage.setItem(THREAD_STORAGE_KEY, String(value));
+  } catch (_error) {
+    // 忽略快取失敗，Safari 無痕模式可能會丟例外
+  }
+}
+
+function detectThreadCount() {
+  const fallback = 1;
+  const nav = typeof navigator !== "undefined" ? navigator : null;
+
+  if (!nav) {
+    return { threads: fallback, reason: "no-navigator" };
+  }
+
+  try {
+    const concurrencyRaw = nav.hardwareConcurrency;
+    const concurrency = Number.isFinite(concurrencyRaw) && concurrencyRaw > 0
+      ? Math.floor(concurrencyRaw)
+      : fallback;
+
+    const ua = String(nav.userAgent || "").toLowerCase();
+    const platform = String(nav.platform || "").toLowerCase();
+    const vendor = String(nav.vendor || "").toLowerCase();
+    const maxTouchPoints = Number(nav.maxTouchPoints || 0);
+
+    const isAndroid = ua.includes("android");
+    const isiOS = /iphone|ipad|ipod/.test(ua) || (platform === "macintel" && maxTouchPoints > 1);
+    const isMobile = isAndroid || isiOS || ua.includes("mobile");
+
+    const isSafari = (() => {
+      if (!ua.includes("safari")) {
+        return false;
+      }
+      const disqualifiers = [
+        "chrome",
+        "crios",
+        "crmo",
+        "android",
+        "edge",
+        "edg",
+        "opr",
+        "opera",
+        "firefox",
+        "fxios",
+      ];
+      return !disqualifiers.some((token) => ua.includes(token)) && !vendor.includes("google");
+    })();
+
+    if (isSafari) {
+      return { threads: fallback, reason: "safari" };
+    }
+
+    const cachedThreads = readCachedThreadCount();
+    if (cachedThreads !== null) {
+      const sanitized = Math.min(Math.max(fallback, cachedThreads), Math.max(fallback, concurrency));
+      if (sanitized !== cachedThreads) {
+        writeCachedThreadCount(sanitized);
+      }
+      return { threads: sanitized, reason: "cached" };
+    }
+
+    const desktopCap = Math.min(4, Math.max(fallback, concurrency));
+    const threads = isMobile ? fallback : Math.max(fallback, desktopCap);
+
+    writeCachedThreadCount(threads);
+    return { threads, reason: isMobile ? "mobile" : "desktop" };
+  } catch (error) {
+    return { threads: fallback, reason: "error", error };
+  }
+}
+
+const threadDecision = detectThreadCount();
+const pickedThreads = threadDecision.threads;
+
+if (!env.backends.onnx) {
+  env.backends.onnx = {};
+}
+if (!env.backends.onnx.wasm) {
+  env.backends.onnx.wasm = {};
+}
+env.backends.onnx.wasm.numThreads = pickedThreads;
+
+if (threadDecision.reason === "error" && threadDecision.error) {
+  console.warn("WASM thread detection failed, falling back to single thread.", threadDecision.error);
+} else if (threadDecision.reason === "safari") {
+  console.info("Safari detected – forcing ONNX Runtime WASM to single thread.");
+} else {
+  console.info(`ONNX Runtime WASM threads: ${pickedThreads} (${threadDecision.reason}).`);
+}
 
 await initI18n();
 let analysisText = getLocaleValue("analysis");
