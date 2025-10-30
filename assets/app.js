@@ -210,7 +210,6 @@ onLocaleChange(() => {
   analysisText = getLocaleValue("analysis");
   summaryText = getLocaleValue("summary");
   updatePlayerCopy();
-  refreshCalibrationUi();
 });
 
 function labelHint(path) {
