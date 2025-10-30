@@ -192,6 +192,7 @@ VPA 遵循相對路徑，可直接放在 `https://domain/app/vpa/` 等子路徑�
 | 長檔推論耗時 | 裝置採用 WASM 且檔案 > 4 分鐘 | 進度列會顯示實際策略（例如 hop 4 秒），可等待或手動裁切檔案。【F:assets/app.js†L643-L704】 |
 | 統計卡顯示「資料不足」 | 語音時長不足 5 秒、語音不連續 | 延長錄音時間並保持連續語句。【F:assets/app.js†L1603-L1676】 |
 | 模型載入失敗 | 首次載入網路不穩、Hugging Face CDN 無法存取 | 重整頁面，或在離線前確保模型已載入一次（IndexedDB 快取）。【F:assets/app.js†L520-L565】 |
+| 推論速度與桌機不同 | 系統會依 `navigator.hardwareConcurrency` 自動挑選 1–4 個 WASM 執行緒；Safari 與行動裝置為穩定性固定 1 執行緒 | 桌機若清除快取會重新偵測，可於 DevTools console 查看實際執行緒數；行動裝置回退單執行緒以避免排程過載。【F:assets/app.js†L1-L120】 |
 | 要清除舊音檔 | 重新錄音或上傳新檔案 | 系統僅保留「最新一段」的回放 URL，換檔即釋放。【F:assets/app.js†L710-L756】 |
 
 ---
