@@ -101,59 +101,6 @@ export default {
   callout: {
     bodyHtml: '<p>提示：可录音或上传 mp3 / m4a / mp4 / mov。录音期间会显示即时 Hz Stream（音高走势）与共鸣监控，分析完成提供回放、倾向仪表与统计简要评价。需要导览请点右上角 <b>❓</b>。</p>',
   },
-  calibration: {
-    title: "麦克风音量校准",
-    descriptionHtml: [
-      "<p>通过安静环境和 1 kHz 参考音量测量，让 Volume / Environment 指标换算成实际 dB。</p>",
-      "<p><b>步骤 1：</b>开始测量背景噪声后保持 3.5 秒的安静。<b>步骤 2：</b>测量参考音时将 1 kHz / 94 dB 校准音对准麦克风，同样持续 3.5 秒。</p>",
-    ].join(""),
-    status: {
-      relative: "目前以相对音量显示。请依次测量背景噪声与 1 kHz 参考音（{{target}} dB），即可让 Volume / Environment 换算为实际 dB。步骤 1：测量背景噪声时保持 3.5 秒的安静。步骤 2：测量参考音时将 1 kHz 校准器对准麦克风并维持 3.5 秒。",
-      calibrated: "已校准：参考 {{target}} dB，偏移 {{offset}} dB，背景 {{ambient}} dB。{{timestamp}}",
-    },
-    stepHintHtml: [
-      '<li><b>步骤 1：</b>点击「测量背景噪声」后请保持环境与自己安静 3.5 秒。</li>',
-      '<li><b>步骤 2：</b>解锁「测量 1 kHz 参考音」后，将 1 kHz / 94 dB 校准音对准麦克风并稳定持续 3.5 秒。</li>',
-    ].join(""),
-    targetLabel: "参考音量（dB SPL）",
-    targetHint: "默认 94 dB / 1 kHz。若校准器输出为其他音量，请调整此数值。",
-    steps: {
-      ambient: "测量背景噪声",
-      reference: "测量 1 kHz 参考音",
-    },
-    actions: {
-      save: "保存校准",
-      clear: "清除校准数据",
-    },
-    log: {
-      placeholder: "尚未建立校准记录。",
-      capturing: "测量中：{{step}}…",
-      ambientResult: "预览背景噪声 {{value}} dB",
-      referenceResult: "预览参考音 {{value}} dB（目标 {{target}} dB）",
-      savedSummary: "最新校准 · 背景 {{ambient}} dB · 偏移 {{offset}} dB（目标 {{target}} dB）{{timestamp}}",
-      ambientStored: "背景噪声测得 {{value}} dB。",
-      referenceStored: "参考音测得 {{value}} dB。",
-      savedEvent: "校准已保存（偏移 {{offset}} dB）。",
-      cleared: "已清除校准数据。",
-      storageFailed: "无法写入 localStorage，仅会在本次浏览器会话保留。",
-      error: "校准错误：{{message}}",
-      aborted: "已取消校准。",
-    },
-    errors: {
-      incomplete: "请先测量背景噪声与参考音，再保存校准值。",
-      noSamples: "未检测到稳定信号，请再试一次。",
-      noMedia: "无法访问麦克风设备。",
-      noContext: "浏览器不支持 AudioContext，无法进行校准测量。",
-    },
-    modeChip: {
-      relative: "相对",
-      calibrated: "已校准",
-    },
-    modeLabel: {
-      relative: "相对音量",
-      calibrated: "已校准音量",
-    },
-  },
   info: {
     quickStartHtml: [
       '<summary>快速开始（第一次使用先看这里）</summary>',
@@ -647,10 +594,7 @@ export default {
       moderate: "中等",
       wide: "波动大",
     },
-    calibrationNote: {
-      relative: "Volume / Environment 仍为 {{mode}}（尚未保存校准）。",
-      calibrated: "Volume / Environment 采用 {{mode}}：偏移 {{offset}} dB、背景 {{ambient}} dB。",
-    },
+    volumeRelativeNote: "Volume / Environment 指标为相对音量，用来观测噪声与音量变化。",
     statsIntro: "音量波动（σ）：<b>{{sigma}}</b>；音高散布＝95th−5th（已过滤样本），音高动态取处理后语调曲线的最大最小差。这些指标是练习回馈，<u>不是性别认定</u>。",
     statsLabels: {
       pitchAvg: "Pitch（音高）· Average（平均）",
