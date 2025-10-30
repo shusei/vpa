@@ -13,6 +13,7 @@ const DEFAULT_CSS_FILES = [
   'assets/css/components.css',
   'assets/css/overlays.css',
 ];
+const THREAD_CONFIG_FILE = 'assets/app.js';
 
 function readSource(relativePath) {
   const filePath = resolve(projectRoot, relativePath);
@@ -207,6 +208,30 @@ function checkCSS(relativePath) {
   return issues;
 }
 
+function checkThreadConfig(relativePath) {
+  const sourceOrError = readSource(relativePath);
+  if (sourceOrError?.error) {
+    return [sourceOrError.error];
+  }
+
+  const source = sourceOrError;
+  const assignmentRegex = /env\.backends\.onnx\.wasm\.numThreads\s*=\s*([A-Za-z_$][\w$]*)/;
+  const match = assignmentRegex.exec(source);
+
+  if (!match) {
+    return ['未找到 env.backends.onnx.wasm.numThreads 的設定，請確認初始化時已指定執行緒數。'];
+  }
+
+  const identifier = match[1];
+  const declarationRegex = new RegExp(`\\b(?:const|let|var)\\s+${identifier}\\s*=`);
+
+  if (!declarationRegex.test(source)) {
+    return [`找不到 ${identifier} 的宣告，請確認指定給 numThreads 的變數已定義。`];
+  }
+
+  return [];
+}
+
 const args = process.argv.slice(2);
 const extras = {
   html: new Set(),
@@ -259,6 +284,14 @@ for (const file of cssTargets) {
   } else {
     console.log(`[OK] ${file}：CSS 結構檢查通過。`);
   }
+}
+
+const threadIssues = checkThreadConfig(THREAD_CONFIG_FILE);
+if (threadIssues.length) {
+  allIssues.push(`WASM 執行緒設定檢查失敗（${THREAD_CONFIG_FILE}）：`);
+  allIssues.push(...threadIssues.map((issue) => `  - ${issue}`));
+} else {
+  console.log(`[OK] ${THREAD_CONFIG_FILE}：WASM 執行緒設定檢查通過。`);
 }
 
 if (allIssues.length) {
