@@ -270,9 +270,6 @@ function updatePlayerCopy(forcePlaying){
     }
   }
 }
-ensurePlayerUI();
-setupExportButton();
-
 const calibrationDraft = { ambient: null, reference: null };
 const calibrationUi = { messages: [] };
 let calibrationCapture = null;
@@ -281,6 +278,8 @@ let currentCalibrationMode = getCalibrationMode();
 
 initCalibrationControls();
 refreshCalibrationUi();
+ensurePlayerUI();
+setupExportButton();
 
 function initCalibrationControls(){
   try{
