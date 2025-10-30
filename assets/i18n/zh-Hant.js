@@ -103,11 +103,18 @@ export default {
   },
   calibration: {
     title: "麥克風音量校正",
-    descriptionHtml: "透過安靜環境與 1 kHz 參考音量量測，讓 Volume / Environment 指標換算成實際 dB。",
+    descriptionHtml: [
+      "<p>透過安靜環境與 1 kHz 參考音量量測，讓 Volume / Environment 指標換算成實際 dB。</p>",
+      "<p><b>步驟 1：</b>開始量測背景噪音後請維持 3.5 秒的安靜。<b>步驟 2：</b>量測參考音時將 1 kHz / 94 dB 校正音對準麥克風，同樣持續 3.5 秒。</p>",
+    ].join(""),
     status: {
-      relative: "目前以相對音量顯示。請依序量測背景噪音與 1 kHz 參考音（{{target}} dB），即可讓 Volume / Environment 換算為實際 dB。",
+      relative: "目前以相對音量顯示。請依序量測背景噪音與 1 kHz 參考音（{{target}} dB），即可讓 Volume / Environment 換算為實際 dB。步驟 1：量測背景噪音時保持 3.5 秒的安靜。步驟 2：量測參考音時將 1 kHz 校正器對準麥克風並維持 3.5 秒。",
       calibrated: "已校正：參考 {{target}} dB，偏移 {{offset}} dB，背景 {{ambient}} dB。{{timestamp}}",
     },
+    stepHintHtml: [
+      '<li><b>步驟 1：</b>點選「量測背景噪音」後請保持環境與自己安靜 3.5 秒。</li>',
+      '<li><b>步驟 2：</b>解鎖「量測 1 kHz 參考音」後，將 1 kHz / 94 dB 校正音對準麥克風並穩定持續 3.5 秒。</li>',
+    ].join(""),
     targetLabel: "參考音量（dB SPL）",
     targetHint: "預設為 94 dB / 1 kHz。若校正器輸出其他音量，請調整此數值。",
     steps: {
