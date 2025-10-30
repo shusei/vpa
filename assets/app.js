@@ -31,6 +31,15 @@ import {
   resValMask,
   resValHead,
   exportBtn,
+  calibrationPanel,
+  calibrationStatusEl,
+  calibrationTargetInput,
+  calibrationAmbientBtn,
+  calibrationToneBtn,
+  calibrationApplyBtn,
+  calibrationClearBtn,
+  calibrationLogEl,
+  volModeBadge,
 } from "./js/dom.js";
 import { dismissOnboardTip } from "./js/theme.js";
 import {
@@ -87,6 +96,9 @@ import {
 env.allowLocalModels = false;
 env.allowRemoteModels = true;
 const THREAD_STORAGE_KEY = "vpa::onnxThreads";
+const CALIBRATION_STORAGE_KEY = "vpa::calibration";
+const DEFAULT_REFERENCE_DB = 94;
+const CALIBRATION_CAPTURE_MS = 3500;
 
 function readCachedThreadCount() {
   try {
@@ -209,6 +221,7 @@ onLocaleChange(() => {
   analysisText = getLocaleValue("analysis");
   summaryText = getLocaleValue("summary");
   updatePlayerCopy();
+  refreshCalibrationUi();
 });
 
 function labelHint(path) {
@@ -260,6 +273,457 @@ function updatePlayerCopy(forcePlaying){
 ensurePlayerUI();
 setupExportButton();
 
+const calibrationDraft = { ambient: null, reference: null };
+const calibrationUi = { messages: [] };
+let calibrationCapture = null;
+let calibrationData = loadCalibrationData();
+let currentCalibrationMode = getCalibrationMode();
+
+initCalibrationControls();
+refreshCalibrationUi();
+
+function initCalibrationControls(){
+  try{
+    if (!calibrationPanel) return;
+    const info = getCalibrationInfo();
+    setCalibrationTargetValue(info.targetDb);
+    if (calibrationTargetInput){
+      const handleTargetUpdate = ()=>{
+        const value = clampCalibrationTarget(Number.parseFloat(calibrationTargetInput.value));
+        calibrationTargetInput.value = value.toFixed(1);
+        renderCalibrationLog();
+      };
+      calibrationTargetInput.addEventListener("change", handleTargetUpdate);
+      calibrationTargetInput.addEventListener("blur", handleTargetUpdate);
+      calibrationTargetInput.addEventListener("input", ()=>{
+        const value = Number.parseFloat(calibrationTargetInput.value);
+        if (!Number.isFinite(value)) return;
+        if (value < 60 || value > 120) return;
+        renderCalibrationLog();
+      });
+    }
+    calibrationAmbientBtn?.addEventListener("click", ()=> startCalibrationCapture("ambient"));
+    calibrationToneBtn?.addEventListener("click", ()=> startCalibrationCapture("reference"));
+    calibrationApplyBtn?.addEventListener("click", ()=> applyCalibrationDraft());
+    calibrationClearBtn?.addEventListener("click", ()=>{
+      stopCalibrationCapture(true);
+      clearCalibrationData();
+    });
+  }catch(err){ console.error("[calibration] init failed", err); }
+}
+
+function loadCalibrationData(){
+  if (typeof localStorage === "undefined") return null;
+  try{
+    const raw = localStorage.getItem(CALIBRATION_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    const offset = Number(parsed.offsetDb);
+    if (!Number.isFinite(offset)) return null;
+    const target = Number(parsed.targetDb);
+    const measuredAmbient = Number(parsed.measuredAmbient);
+    const measuredReference = Number(parsed.measuredReference);
+    const ambientCalibrated = Number(parsed.ambientCalibrated);
+    const updatedAt = typeof parsed.updatedAt === "string" ? parsed.updatedAt : null;
+    return {
+      version: 1,
+      offsetDb: offset,
+      targetDb: Number.isFinite(target) ? target : DEFAULT_REFERENCE_DB,
+      measuredAmbient: Number.isFinite(measuredAmbient) ? measuredAmbient : NaN,
+      measuredReference: Number.isFinite(measuredReference) ? measuredReference : NaN,
+      ambientCalibrated: Number.isFinite(ambientCalibrated)
+        ? ambientCalibrated
+        : (Number.isFinite(measuredAmbient) ? measuredAmbient - offset : NaN),
+      updatedAt,
+    };
+  }catch(err){
+    console.warn("[calibration] load failed", err);
+    return null;
+  }
+}
+
+function isCalibrationValid(data){
+  return Boolean(data && Number.isFinite(data.offsetDb) && Number.isFinite(data.measuredReference));
+}
+
+function clampCalibrationTarget(value){
+  if (!Number.isFinite(value)) return DEFAULT_REFERENCE_DB;
+  return Math.min(120, Math.max(60, value));
+}
+
+function setCalibrationTargetValue(value){
+  if (!calibrationTargetInput) return;
+  const sanitized = clampCalibrationTarget(value);
+  calibrationTargetInput.value = sanitized.toFixed(1);
+}
+
+function getCalibrationTargetValue(){
+  const info = getCalibrationInfo();
+  if (!calibrationTargetInput) return info.targetDb;
+  const raw = Number.parseFloat(calibrationTargetInput.value);
+  const sanitized = clampCalibrationTarget(Number.isFinite(raw) ? raw : info.targetDb);
+  return sanitized;
+}
+
+function formatCalibrationTimestamp(ts){
+  if (!ts) return "";
+  try{
+    const date = new Date(ts);
+    if (Number.isFinite(date.getTime?.())){
+      return date.toLocaleString?.() || ts;
+    }
+    if (!Number.isNaN(date.getTime())){
+      return date.toLocaleString?.() || ts;
+    }
+  }catch{}
+  return ts;
+}
+
+function getCalibrationInfo(){
+  if (!isCalibrationValid(calibrationData)){
+    const target = calibrationData && Number.isFinite(calibrationData.targetDb)
+      ? calibrationData.targetDb
+      : DEFAULT_REFERENCE_DB;
+    return {
+      mode: "relative",
+      offsetDb: NaN,
+      ambientDb: NaN,
+      targetDb: target,
+      updatedAt: calibrationData?.updatedAt || null,
+      measuredAmbient: calibrationData?.measuredAmbient,
+      measuredReference: calibrationData?.measuredReference,
+    };
+  }
+  return {
+    mode: "calibrated",
+    offsetDb: calibrationData.offsetDb,
+    ambientDb: Number.isFinite(calibrationData.ambientCalibrated)
+      ? calibrationData.ambientCalibrated
+      : NaN,
+    targetDb: Number.isFinite(calibrationData.targetDb)
+      ? calibrationData.targetDb
+      : DEFAULT_REFERENCE_DB,
+    updatedAt: calibrationData.updatedAt || null,
+    measuredAmbient: calibrationData.measuredAmbient,
+    measuredReference: calibrationData.measuredReference,
+  };
+}
+
+function getCalibrationMode(){
+  return getCalibrationInfo().mode;
+}
+
+function getCalibrationExport(){
+  const info = getCalibrationInfo();
+  return {
+    mode: info.mode,
+    active: info.mode === "calibrated",
+    offsetDb: Number.isFinite(info.offsetDb) ? info.offsetDb : null,
+    ambientDb: Number.isFinite(info.ambientDb) ? info.ambientDb : null,
+    targetDb: Number.isFinite(info.targetDb) ? info.targetDb : null,
+    updatedAt: info.updatedAt || null,
+    measuredAmbient: Number.isFinite(info.measuredAmbient) ? info.measuredAmbient : null,
+    measuredReference: Number.isFinite(info.measuredReference) ? info.measuredReference : null,
+  };
+}
+
+function refreshCalibrationUi(){
+  if (!calibrationPanel) return;
+  try{
+    if (calibrationTargetInput && document.activeElement !== calibrationTargetInput){
+      setCalibrationTargetValue(getCalibrationInfo().targetDb);
+    }
+    updateCalibrationStatus();
+    updateCalibrationBadge();
+    renderCalibrationLog();
+    updateCalibrationButtons();
+  }catch(err){ console.error("[calibration] refresh failed", err); }
+}
+
+function updateCalibrationStatus(){
+  if (!calibrationStatusEl) return;
+  const info = getCalibrationInfo();
+  calibrationStatusEl.dataset.mode = info.mode;
+  const params = {
+    ambient: Number.isFinite(info.ambientDb) ? fmt1(info.ambientDb) : "—",
+    offset: Number.isFinite(info.offsetDb) ? fmt1(info.offsetDb) : "—",
+    target: Number.isFinite(info.targetDb) ? fmt1(info.targetDb) : fmt1(DEFAULT_REFERENCE_DB),
+    timestamp: info.updatedAt ? formatCalibrationTimestamp(info.updatedAt) : "",
+  };
+  calibrationStatusEl.textContent = t(`calibration.status.${info.mode}`, params);
+}
+
+function updateCalibrationBadge(){
+  const mode = getCalibrationMode();
+  currentCalibrationMode = mode;
+  if (volModeBadge){
+    volModeBadge.dataset.mode = mode;
+    volModeBadge.textContent = t(`calibration.modeChip.${mode}`);
+  }
+}
+
+function setButtonDisabled(btn, flag){
+  if (!btn) return;
+  if (flag){
+    btn.setAttribute("disabled", "true");
+    btn.setAttribute("aria-disabled", "true");
+  } else {
+    btn.removeAttribute("disabled");
+    btn.removeAttribute("aria-disabled");
+  }
+}
+
+function updateCalibrationButtons(){
+  const running = Boolean(calibrationCapture?.running);
+  const disableMeasurement = running || isRecording || busy;
+  setButtonDisabled(calibrationAmbientBtn, disableMeasurement);
+  const ambientReady = Number.isFinite(calibrationDraft.ambient?.rawDb);
+  setButtonDisabled(calibrationToneBtn, disableMeasurement || !ambientReady);
+  const referenceReady = Number.isFinite(calibrationDraft.reference?.rawDb);
+  setButtonDisabled(calibrationApplyBtn, running || !(ambientReady && referenceReady));
+  const hasData = running ? false : (
+    isCalibrationValid(calibrationData)
+    || ambientReady
+    || referenceReady
+  );
+  setButtonDisabled(calibrationClearBtn, !hasData);
+}
+
+function renderCalibrationLog(){
+  if (!calibrationLogEl) return;
+  while (calibrationLogEl.firstChild){
+    calibrationLogEl.removeChild(calibrationLogEl.firstChild);
+  }
+  const entries = [];
+  if (calibrationCapture?.running){
+    entries.push({
+      key: "calibration.log.capturing",
+      params: { step: t(`calibration.steps.${calibrationCapture.kind === "reference" ? "reference" : "ambient"}`) },
+    });
+  }
+  if (Number.isFinite(calibrationDraft.ambient?.rawDb)){
+    entries.push({ key: "calibration.log.ambientResult", params: { value: fmt1(calibrationDraft.ambient.rawDb) } });
+  }
+  if (Number.isFinite(calibrationDraft.reference?.rawDb)){
+    entries.push({
+      key: "calibration.log.referenceResult",
+      params: {
+        value: fmt1(calibrationDraft.reference.rawDb),
+        target: fmt1(getCalibrationTargetValue()),
+      },
+    });
+  }
+  const info = getCalibrationInfo();
+  if (isCalibrationValid(calibrationData)){
+    entries.push({
+      key: "calibration.log.savedSummary",
+      params: {
+        ambient: Number.isFinite(info.ambientDb) ? fmt1(info.ambientDb) : "—",
+        offset: Number.isFinite(info.offsetDb) ? fmt1(info.offsetDb) : "—",
+        target: Number.isFinite(info.targetDb) ? fmt1(info.targetDb) : fmt1(DEFAULT_REFERENCE_DB),
+        timestamp: info.updatedAt ? formatCalibrationTimestamp(info.updatedAt) : "",
+      },
+    });
+  }
+  calibrationUi.messages.forEach((msg)=> entries.push(msg));
+  if (!entries.length){
+    const placeholder = document.createElement("p");
+    placeholder.className = "calibration-placeholder";
+    placeholder.textContent = t("calibration.log.placeholder");
+    calibrationLogEl.appendChild(placeholder);
+    return;
+  }
+  const list = document.createElement("div");
+  list.className = "calibration-log-list";
+  entries.forEach((entry)=>{
+    const item = document.createElement("p");
+    item.className = "calibration-log-entry";
+    item.textContent = t(entry.key, entry.params);
+    list.appendChild(item);
+  });
+  calibrationLogEl.appendChild(list);
+}
+
+function addCalibrationMessage(key, params = {}){
+  calibrationUi.messages.push({ key, params });
+  if (calibrationUi.messages.length > 4){
+    calibrationUi.messages.splice(0, calibrationUi.messages.length - 4);
+  }
+  renderCalibrationLog();
+}
+
+function persistCalibrationData(data){
+  calibrationData = data;
+  currentCalibrationMode = getCalibrationMode();
+  if (typeof localStorage !== "undefined"){
+    try{
+      localStorage.setItem(CALIBRATION_STORAGE_KEY, JSON.stringify(data));
+    }catch(err){
+      console.warn("[calibration] save failed", err);
+      addCalibrationMessage("calibration.log.storageFailed");
+    }
+  }
+}
+
+function clearCalibrationData(){
+  calibrationData = null;
+  calibrationDraft.ambient = null;
+  calibrationDraft.reference = null;
+  currentCalibrationMode = getCalibrationMode();
+  if (typeof localStorage !== "undefined"){
+    try{ localStorage.removeItem(CALIBRATION_STORAGE_KEY); }catch{}
+  }
+  addCalibrationMessage("calibration.log.cleared");
+  refreshCalibrationUi();
+}
+
+function applyCalibrationDraft(){
+  const ambient = calibrationDraft.ambient?.rawDb;
+  const reference = calibrationDraft.reference?.rawDb;
+  if (!Number.isFinite(ambient) || !Number.isFinite(reference)){
+    addCalibrationMessage("calibration.log.error", { message: t("calibration.errors.incomplete") });
+    return;
+  }
+  const target = getCalibrationTargetValue();
+  const offset = reference - target;
+  const payload = {
+    version: 1,
+    offsetDb: offset,
+    targetDb: target,
+    measuredAmbient: ambient,
+    measuredReference: reference,
+    ambientCalibrated: ambient - offset,
+    updatedAt: new Date().toISOString(),
+  };
+  persistCalibrationData(payload);
+  calibrationDraft.ambient = null;
+  calibrationDraft.reference = null;
+  addCalibrationMessage("calibration.log.savedEvent", { offset: fmt1(offset) });
+  refreshCalibrationUi();
+}
+
+async function startCalibrationCapture(kind){
+  try{
+    if (calibrationCapture?.running) return;
+    if (busy || isRecording) return;
+    if (!navigator?.mediaDevices?.getUserMedia){
+      addCalibrationMessage("calibration.log.error", { message: t("calibration.errors.noMedia") });
+      return;
+    }
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+      },
+    });
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx){
+      stream.getTracks().forEach((track)=> track.stop());
+      addCalibrationMessage("calibration.log.error", { message: t("calibration.errors.noContext") });
+      return;
+    }
+    const ctx = new AudioCtx();
+    if (ctx.state === "suspended" && ctx.resume){
+      try{ await ctx.resume(); }catch{}
+    }
+    const source = ctx.createMediaStreamSource(stream);
+    const processor = ctx.createScriptProcessor(4096, 1, 1);
+    const gain = ctx.createGain();
+    gain.gain.value = 0;
+    const acc = { sumDb: 0, frames: 0 };
+    processor.onaudioprocess = (event)=>{
+      try{
+        const channel = event.inputBuffer?.getChannelData?.(0);
+        if (!channel || !channel.length) return;
+        let sum = 0;
+        for (let i=0;i<channel.length;i++){
+          const v = channel[i];
+          sum += v*v;
+        }
+        if (sum <= 0) return;
+        const rms = Math.sqrt(sum / Math.max(1, channel.length));
+        const frameDb = 20*Math.log10(Math.max(rms, 1e-6)) + 100;
+        if (Number.isFinite(frameDb)){
+          acc.sumDb += frameDb;
+          acc.frames += 1;
+        }
+      }catch(err){ console.warn("[calibration] process failed", err); }
+    };
+    source.connect(processor);
+    processor.connect(gain);
+    gain.connect(ctx.destination);
+    calibrationCapture = {
+      kind,
+      running: true,
+      stream,
+      ctx,
+      processor,
+      gain,
+      acc,
+      timeout: null,
+    };
+    updateCalibrationButtons();
+    renderCalibrationLog();
+    calibrationCapture.timeout = setTimeout(()=> finalizeCalibrationCapture(kind), CALIBRATION_CAPTURE_MS);
+  }catch(err){
+    console.error("[calibration] capture error", err);
+    addCalibrationMessage("calibration.log.error", { message: err?.message || "capture failed" });
+    stopCalibrationCapture(true);
+  }
+}
+
+function finalizeCalibrationCapture(kind){
+  if (!calibrationCapture || calibrationCapture.kind !== kind) return;
+  const { acc } = calibrationCapture;
+  stopCalibrationCapture(false);
+  const avgDb = acc.frames ? (acc.sumDb / acc.frames) : NaN;
+  if (!Number.isFinite(avgDb)){
+    addCalibrationMessage("calibration.log.error", { message: t("calibration.errors.noSamples") });
+    updateCalibrationButtons();
+    renderCalibrationLog();
+    return;
+  }
+  const record = { rawDb: avgDb, capturedAt: new Date().toISOString() };
+  if (kind === "ambient"){
+    calibrationDraft.ambient = record;
+    calibrationDraft.reference = null;
+    addCalibrationMessage("calibration.log.ambientStored", { value: fmt1(avgDb) });
+  } else {
+    calibrationDraft.reference = record;
+    addCalibrationMessage("calibration.log.referenceStored", { value: fmt1(avgDb) });
+  }
+  updateCalibrationButtons();
+  renderCalibrationLog();
+}
+
+function stopCalibrationCapture(abort){
+  if (!calibrationCapture) return;
+  const cap = calibrationCapture;
+  calibrationCapture = null;
+  if (cap.timeout){
+    clearTimeout(cap.timeout);
+  }
+  try{ cap.processor?.disconnect(); }catch{}
+  try{ cap.gain?.disconnect(); }catch{}
+  try{ cap.stream?.getTracks?.().forEach((track)=> track.stop()); }catch{}
+  try{ cap.ctx?.close?.(); }catch{}
+  if (abort){
+    addCalibrationMessage("calibration.log.aborted");
+  }
+  updateCalibrationButtons();
+  renderCalibrationLog();
+}
+
+function applyDbCalibration(rawDb){
+  const mode = getCalibrationMode();
+  if (!Number.isFinite(rawDb)) return { value: rawDb, mode };
+  if (mode !== "calibrated") return { value: rawDb, mode };
+  const offset = Number.isFinite(calibrationData?.offsetDb) ? calibrationData.offsetDb : 0;
+  return { value: rawDb - offset, mode };
+}
+
 // ===== 狀態 =====
 let mediaRecorder = null, chunks = [];
 let clf = null, busy = false, heartbeatTimer = null;
@@ -276,6 +740,7 @@ function startAnalysisRun(){
   updateUploadAvailability();
   updatePlaybackAvailability();
   updateRecordAvailability();
+  updateCalibrationButtons();
   return activeAnalysisToken;
 }
 
@@ -289,6 +754,7 @@ function finishAnalysisRun(token){
   updateUploadAvailability();
   updatePlaybackAvailability();
   updateRecordAvailability();
+  updateCalibrationButtons();
   return true;
 }
 
@@ -306,6 +772,7 @@ function updateUploadAvailability(){
       uploadFab.removeAttribute("aria-disabled");
     }
   }
+  updateCalibrationButtons();
 }
 
 function updatePlaybackAvailability(){
@@ -319,6 +786,7 @@ function updatePlaybackAvailability(){
     playBtn.removeAttribute("disabled");
     playBtn.removeAttribute("aria-disabled");
   }
+  updateCalibrationButtons();
 }
 
 function updateRecordAvailability(){
@@ -331,6 +799,7 @@ function updateRecordAvailability(){
     recordBtn.removeAttribute("disabled");
     recordBtn.removeAttribute("aria-disabled");
   }
+  updateCalibrationButtons();
 }
 
 updateUploadAvailability();
@@ -1372,6 +1841,7 @@ async function startRecording(){
   updateUploadAvailability();
   updatePlaybackAvailability();
   updateRecordAvailability();
+  updateCalibrationButtons();
   try {
     mediaRecorder.start();
   } catch (err) {
@@ -1379,6 +1849,7 @@ async function startRecording(){
     updateUploadAvailability();
     updatePlaybackAvailability();
     updateRecordAvailability();
+    updateCalibrationButtons();
     document.body.classList.remove("recording");
     document.querySelector(".container")?.classList.remove("recording");
     stream.getTracks().forEach(t=>t.stop());
@@ -1395,6 +1866,7 @@ async function stopRecording(){
     updateUploadAvailability();
     updatePlaybackAvailability();
     updateRecordAvailability();
+    updateCalibrationButtons();
     setStatus(t("status.processingAudio"), true);
     try {
       mediaRecorder.stop();
@@ -1403,6 +1875,7 @@ async function stopRecording(){
       updateUploadAvailability();
       updatePlaybackAvailability();
       updateRecordAvailability();
+      updateCalibrationButtons();
       throw err;
     }
   }
@@ -1980,7 +2453,8 @@ function startPitchStream(userMediaStream){
     psProc.onaudioprocess = (ev)=>{
       const input = ev.inputBuffer.getChannelData(0);
       const rms = Math.sqrt(input.reduce((a,v)=>a+v*v,0) / Math.max(1,input.length));
-      const db  = 20*Math.log10(Math.max(rms, 1e-6)) + 100; // 相對 dB
+      const rawDb  = 20*Math.log10(Math.max(rms, 1e-6)) + 100; // 相對 dB
+      const { value: db } = applyDbCalibration(rawDb);
       const wasVoiced = psVoiced.length ? psVoiced[psVoiced.length-1] : false;
       let hz = null;
       let spectral = null;
@@ -2376,7 +2850,8 @@ function offlineExtractStreamMetrics(float32, sr, append=false){
     offlineFeatureStore.frameSec = step / sr;
     for(let i=0;i+frame<=float32.length; i+=step){
       const seg = float32.subarray(i, i+frame);
-      const db = 20*Math.log10(Math.max(rms(seg,0,seg.length), 1e-6)) + 100;
+      const rawDb = 20*Math.log10(Math.max(rms(seg,0,seg.length), 1e-6)) + 100;
+      const { value: db } = applyDbCalibration(rawDb);
       const wasVoiced = psVoiced.length ? psVoiced[psVoiced.length-1] : false;
       let hz = null;
       let spectral = null;
@@ -2566,6 +3041,14 @@ function finishStreamStats(){
       ? `<p class="subline" style="margin:4px 0 0">${t(`summary.voicedHint.${voicedHintKey}`)}</p>`
       : "";
 
+    const calibrationInfo = getCalibrationInfo();
+    const calibrationModeLabel = t(`calibration.modeLabel.${calibrationInfo.mode}`);
+    const calibrationNoteText = t(`summary.calibrationNote.${calibrationInfo.mode}`, {
+      mode: calibrationModeLabel,
+      offset: Number.isFinite(calibrationInfo.offsetDb) ? fmt1(calibrationInfo.offsetDb) : "—",
+      ambient: Number.isFinite(calibrationInfo.ambientDb) ? fmt1(calibrationInfo.ambientDb) : "—",
+    });
+
     const statsLabels = summaryText?.statsLabels || {};
     const statsHints = summaryText?.statsHints || {};
     const statsRows = [
@@ -2590,12 +3073,16 @@ function finishStreamStats(){
     }).join("");
     const envLabel = statsLabels.env || t("summary.statsLabels.env");
     const statsIntro = summaryString("statsIntro", { sigma: volSigmaLabel });
+    const calibrationNoteHtml = calibrationNoteText
+      ? `<p class="subline" style="margin:4px 0 0">${calibrationNoteText}</p>`
+      : "";
     const statsHTML = `
       <div class="stats-grid">
         ${statsRowsHtml}
       </div>
       <div class="kv" style="margin-top:10px"><div class="k">${envLabel}</div><div class="v">${fmt1(envDb)}dB</div></div>
       <p class="subline" style="margin:8px 0 0">${statsIntro}</p>
+      ${calibrationNoteHtml}
     `;
     const advSummary = computeAdvancedSummary();
     logPostProcessingDiagnostics(pitchPostState, {
@@ -2657,6 +3144,7 @@ function finishStreamStats(){
     }
 
     const voicedHintLabel = voicedHintKey ? t(`summary.voicedHint.${voicedHintKey}`) : null;
+    const calibrationExport = getCalibrationExport();
     const payload = {
       analysisId: analysisSeq,
       generatedAt: new Date().toISOString(),
@@ -2689,6 +3177,8 @@ function finishStreamStats(){
         snrLabel,
         variation: { key: volSigmaKey, label: volSigmaLabel },
         samples: { total: vols.length },
+        mode: calibrationExport.mode,
+        calibrated: calibrationExport.active,
       },
       summary: {
         oneLinerLabel,
@@ -2705,6 +3195,8 @@ function finishStreamStats(){
         statsTable,
         envLabel,
         envDb,
+        calibrationNote: calibrationNoteText,
+        calibrationMode: calibrationExport.mode,
       },
       advanced: advSummary,
       offlineSamples: cloneOfflineFeatureStore(),
@@ -2716,6 +3208,7 @@ function finishStreamStats(){
         volumeDb: Array.from(psDb),
         voiced: Array.from(psVoiced),
       },
+      calibration: calibrationExport,
     };
     setLatestAnalysisExport(payload);
   }catch(e){ console.error("[finishStreamStats]", e); }
