@@ -101,6 +101,52 @@ export default {
   callout: {
     bodyHtml: '<p>提示：可錄音或上傳 mp3 / m4a / mp4 / mov。錄音期間會顯示即時 Hz Stream（音高走勢）與共鳴監控，分析完成提供回放、傾向儀表與統計簡評。需要導覽請點右上角 <b>❓</b>。</p>',
   },
+  calibration: {
+    title: "麥克風音量校正",
+    descriptionHtml: "透過安靜環境與 1 kHz 參考音量量測，讓 Volume / Environment 指標換算成實際 dB。",
+    status: {
+      relative: "目前以相對音量顯示。請依序量測背景噪音與 1 kHz 參考音（{{target}} dB），即可讓 Volume / Environment 換算為實際 dB。",
+      calibrated: "已校正：參考 {{target}} dB，偏移 {{offset}} dB，背景 {{ambient}} dB。{{timestamp}}",
+    },
+    targetLabel: "參考音量（dB SPL）",
+    targetHint: "預設為 94 dB / 1 kHz。若校正器輸出其他音量，請調整此數值。",
+    steps: {
+      ambient: "量測背景噪音",
+      reference: "量測 1 kHz 參考音",
+    },
+    actions: {
+      save: "儲存校正",
+      clear: "清除校正資料",
+    },
+    log: {
+      placeholder: "尚未建立校正記錄。",
+      capturing: "量測中：{{step}}…",
+      ambientResult: "預覽背景噪音 {{value}} dB",
+      referenceResult: "預覽參考音 {{value}} dB（目標 {{target}} dB）",
+      savedSummary: "最新校正 · 背景 {{ambient}} dB · 偏移 {{offset}} dB（目標 {{target}} dB）{{timestamp}}",
+      ambientStored: "背景噪音量測為 {{value}} dB。",
+      referenceStored: "參考音量測為 {{value}} dB。",
+      savedEvent: "校正已儲存（偏移 {{offset}} dB）。",
+      cleared: "已清除校正資料。",
+      storageFailed: "無法寫入 localStorage，僅會在本次瀏覽器工作階段保留。",
+      error: "校正錯誤：{{message}}",
+      aborted: "已取消校正。",
+    },
+    errors: {
+      incomplete: "請先量測背景噪音與參考音，再儲存校正值。",
+      noSamples: "未偵測到穩定訊號，請再試一次。",
+      noMedia: "無法存取麥克風裝置。",
+      noContext: "瀏覽器不支援 AudioContext，無法進行校正量測。",
+    },
+    modeChip: {
+      relative: "相對",
+      calibrated: "已校正",
+    },
+    modeLabel: {
+      relative: "相對音量",
+      calibrated: "已校正音量",
+    },
+  },
   info: {
     quickStartHtml: [
       '<summary>快速開始（第一次使用先看這裡）</summary>',
@@ -595,6 +641,10 @@ export default {
       steady: "穩定",
       moderate: "中等",
       wide: "波動大",
+    },
+    calibrationNote: {
+      relative: "Volume / Environment 仍為 {{mode}}（尚未儲存校正）。",
+      calibrated: "Volume / Environment 採用 {{mode}}：偏移 {{offset}} dB、背景 {{ambient}} dB。",
     },
     statsIntro: "音量波動（σ）：<b>{{sigma}}</b>；音高散布＝95th−5th（已過濾樣本），音高動態取處理後語調曲線的最大最小差。這些指標是練習回饋，<u>不是性別認定</u>。",
     statsLabels: {
