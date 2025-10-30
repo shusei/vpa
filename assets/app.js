@@ -233,7 +233,7 @@ const psOfflineNoiseTracker = makeNoiseTracker();
 const PITCH_RANGE_KEY = "vpa:pitchRangeHz";
 const PITCH_PROFILE_KEY = "vpa:pitchProfile";
 const INTONATION_RAW_KEY = "vpa:intonationShowRaw";
-const AUTO_WIDE_RANGE = { min: 70, max: 430 };
+const AUTO_WIDE_RANGE = { min: 70, max: 560 };
 const AUTO_SAMPLE_MS = 800;
 const AUTO_MIN_VALID_FRAMES = 12;
 const AUTO_REEVAL_WINDOW_MS = 2000;
@@ -1961,7 +1961,7 @@ function stopPitchStream(){
   }
 }
 function detectPitchACF(input, sr){
-  // 簡化自相關（ACF）+ 降採樣到 ~16k；限制 50–450 Hz
+  // 簡化自相關（ACF）+ 降採樣到 ~16k；限制 50–600 Hz
   const ds = Math.max(1, Math.floor(sr / 16000));
   const N  = Math.floor(input.length / ds);
   if (N < 128) return null;
@@ -2140,7 +2140,8 @@ function bandLabel(hz){
   if (hz < 165) return t("pitchBands.bandBlue");
   if (hz < 180) return t("pitchBands.bandNeutral");
   if (hz < 310) return t("pitchBands.bandPink");
-  if (hz <= 450) return t("pitchBands.bandHigh");
+  if (hz < 450) return t("pitchBands.bandHigh");
+  if (hz <= PS_MAX_HZ) return t("pitchBands.bandFalsetto");
   return t("pitchBands.bandUnknown");
 }
 function startDrawLoop(){
@@ -2163,18 +2164,20 @@ function startDrawLoop(){
     const cGray = styles.getPropertyValue("--band-gray") || "#ddd";
     const cBlue = styles.getPropertyValue("--band-blue") || "#bfe7ff";
     const cPink = styles.getPropertyValue("--band-pink") || "#ffd1dc";
+    const cLilac = styles.getPropertyValue("--band-lilac") || "#e2d5ff";
     const w=pitchCanvas.width, h=pitchCanvas.height;
 
-    // 區帶：灰(50–85) / 藍(85–165) / 灰(165–180) / 粉(180–310) / 灰(310–450)
+    // 區帶：灰(50–85) / 藍(85–165) / 灰(165–180) / 粉(180–310) / 灰(310–450) / 淡紫(450–600)
     ctx.fillStyle = cGray; ctx.fillRect(0, yOf(85),  w, h - yOf(85));
     ctx.fillStyle = cBlue; ctx.fillRect(0, yOf(165), w, yOf(85)-yOf(165));
     ctx.fillStyle = cGray; ctx.fillRect(0, yOf(180), w, yOf(165)-yOf(180));
     ctx.fillStyle = cPink; ctx.fillRect(0, yOf(310), w, yOf(180)-yOf(310));
-    ctx.fillStyle = cGray; ctx.fillRect(0, 0,        w, yOf(310));
+    ctx.fillStyle = cGray; ctx.fillRect(0, yOf(450), w, yOf(310)-yOf(450));
+    ctx.fillStyle = cLilac; ctx.fillRect(0, 0,        w, yOf(450));
 
     // 網格線
     ctx.strokeStyle = "rgba(0,0,0,.08)"; ctx.lineWidth = 1*DPR;
-    [50,85,165,180,310,450].forEach(f=>{ const y=yOf(f); ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); });
+    [50,85,165,180,310,450,PS_MAX_HZ].forEach(f=>{ const y=yOf(f); ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); });
   }
 
   function draw(){
@@ -2204,7 +2207,7 @@ function startDrawLoop(){
     const axisColor = styles.getPropertyValue("--stream-axis") || styles.getPropertyValue("--muted") || "rgba(0,0,0,.5)";
     const axisFont = (styles.getPropertyValue("--font-ui") || "sans-serif").trim() || "sans-serif";
     const axisFontSize = 11 * DPR;
-    const axisTicks = [450, 400, 350, 300, 250, 200, 150, 100, 50];
+    const axisTicks = [PS_MAX_HZ, 500, 450, 400, 350, 300, 250, 200, 150, 100, 50];
     const tickLen = 6 * DPR;
     const leftX = 8 * DPR;
     const rightX = w - 8 * DPR;
@@ -3791,7 +3794,8 @@ function bandOf(medHz){
   if (medHz < 165) return t("pitchBands.male");
   if (medHz < 180) return t("pitchBands.overlap");
   if (medHz < 310) return t("pitchBands.female");
-  if (medHz <= 450) return t("pitchBands.high");
+  if (medHz < 450) return t("pitchBands.high");
+  if (medHz <= PS_MAX_HZ) return t("pitchBands.falsetto");
   return t("pitchBands.outOfRange");
 }
 function isDivergent(medHz, pf, pm){
