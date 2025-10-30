@@ -2,7 +2,7 @@ const EPSILON = 1e-9;
 
 export const PS_INTERVAL_MS = 50;
 export const PS_MIN_HZ = 50;
-export const PS_MAX_HZ = 450;
+export const PS_MAX_HZ = 600;
 export const PS_SMOOTH_BASE_ALPHA = 0.08;
 export const PS_SMOOTH_FAST_ALPHA = 0.45;
 export const PS_SMOOTH_FAST_THRESHOLD_SEMITONES = 1.5;
@@ -31,8 +31,9 @@ export const VAD_HOLD_OFF_MS = 120;
 export const VOICE_PRESETS = {
   auto: null,
   masculine: { min: 80, max: 220 },
-  neutral: { min: 120, max: 300 },
-  feminine: { min: 150, max: 400 },
+  neutral: { min: 120, max: 320 },
+  feminine: { min: 150, max: 450 },
+  soprano: { min: 200, max: 580 },
 };
 export const PITCH_RANGE_HARD = { min: PS_MIN_HZ, max: PS_MAX_HZ };
 export const PITCH_PROFILE_DEFAULT = "auto";

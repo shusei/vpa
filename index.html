@@ -100,15 +100,16 @@
                     <button type="button" class="menu-inline-btn" data-profile="masculine" aria-pressed="false" data-i18n="settings.voiceProfile.masculine">Masculine</button>
                     <button type="button" class="menu-inline-btn" data-profile="neutral" aria-pressed="false" data-i18n="settings.voiceProfile.neutral">Neutral</button>
                     <button type="button" class="menu-inline-btn" data-profile="feminine" aria-pressed="false" data-i18n="settings.voiceProfile.feminine">Feminine</button>
+                    <button type="button" class="menu-inline-btn" data-profile="soprano" aria-pressed="false" data-i18n="settings.voiceProfile.soprano">Soprano / Falsetto</button>
                   </div>
                   <label for="pitchMinInput" data-i18n="settings.voiceProfile.rangeLabel">偵測音高範圍（Hz）</label>
                   <div class="voice-range">
-                    <input id="pitchMinInput" type="number" min="50" max="440" step="1" aria-describedby="pitchRangeHint" disabled />
+                    <input id="pitchMinInput" type="number" min="50" max="580" step="1" aria-describedby="pitchRangeHint" disabled />
                     <span class="range-sep">–</span>
-                    <input id="pitchMaxInput" type="number" min="120" max="480" step="1" aria-describedby="pitchRangeHint" disabled />
+                    <input id="pitchMaxInput" type="number" min="120" max="600" step="1" aria-describedby="pitchRangeHint" disabled />
                   </div>
                   <button id="pitchRangeReset" type="button" class="menu-inline-btn" data-i18n="settings.voiceProfile.reset" disabled>重設為預設值</button>
-                  <p id="pitchRangeHint" class="menu-hint" data-i18n="settings.voiceProfile.hint">預設女性 150–400 Hz，可依說話者調整偵測上下限（僅影響音高偵測，圖軸仍為 50–450 Hz）。</p>
+                  <p id="pitchRangeHint" class="menu-hint" data-i18n="settings.voiceProfile.hint">預設女性 150–450 Hz，可依說話者調整偵測上下限（僅影響音高偵測，圖軸仍為 50–600 Hz）。</p>
                 </div>
               </details>
               <p class="menu-hint" data-i18n="settings.voiceProfile.autoHint">偵測不穩？打開〈進階〉調整語者設定。</p>
@@ -158,7 +159,7 @@
       </div>
       <canvas id="pitchCanvas" width="900" height="220" aria-label="Pitch stream"></canvas>
       <div class="pitch-scale" data-i18n="realtime.pitchScale">
-        縱軸 50–450 Hz（左右刻度顯示 Hz；色帶：灰50–85 / 藍85–165 / 灰165–180 / 粉180–310 / 灰310–450）
+        縱軸 50–600 Hz（左右刻度顯示 Hz；色帶：灰50–85 / 藍85–165 / 灰165–180 / 粉180–310 / 灰310–450 / 淡紫450–600）
       </div>
     </section>
 
@@ -232,7 +233,7 @@
         <ul class="bullets">
           <li><b>❓ 使用指南：</b>整理快速開始、面板解說與常見錄音情境，支援鍵盤 <kbd>Esc</kbd> 關閉。</li>
           <li><b>錄音鍵：</b>支援 MediaRecorder 並顯示狀態提示；停止後自動進入解碼與推論流程。</li>
-          <li><b>Hz Stream（音高走勢）：</b>僅在錄音期間顯示，追蹤 50–450 Hz 音高與音量；左右刻度標示 Hz，統計會沿用錄音及上傳抽樣。</li>
+          <li><b>Hz Stream（音高走勢）：</b>僅在錄音期間顯示，追蹤 50–600 Hz 音高與音量；左右刻度標示 Hz，統計會沿用錄音及上傳抽樣。</li>
           <li><b>Formant（共振峰）/ Resonance（共鳴）：</b>同步估計 F1–F3、氣聲比例與共鳴分佈，協助判讀聲音質地。</li>
           <li><b>統計卡：</b>整合 Pitch / Volume 百分位數、環境噪音、SNR 與傾向簡評，可對照練習成果。</li>
           <li><b>主題設定：</b>齒輪可切換 Auto / 淺色 / 深色派並記住每派最後一次的主題。</li>
