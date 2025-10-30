@@ -28,16 +28,6 @@ export const resValHead  = document.getElementById("resHeadVal");
 
 export const exportBtn   = document.getElementById("exportBtn");
 
-export const calibrationPanel = document.getElementById("calibrationPanel");
-export const calibrationStatusEl = document.getElementById("calibrationStatus");
-export const calibrationTargetInput = document.getElementById("calibrationTarget");
-export const calibrationAmbientBtn = document.getElementById("calibrationAmbientBtn");
-export const calibrationToneBtn = document.getElementById("calibrationToneBtn");
-export const calibrationApplyBtn = document.getElementById("calibrationApplyBtn");
-export const calibrationClearBtn = document.getElementById("calibrationClearBtn");
-export const calibrationLogEl = document.getElementById("calibrationLog");
-export const volModeBadge = document.getElementById("volModeBadge");
-
 export const helpBtn = document.getElementById("helpBtn");
 export const helpOverlay = document.getElementById("helpOverlay");
 export const localeBtn = document.getElementById("localeBtn");
