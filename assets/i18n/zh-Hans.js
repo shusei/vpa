@@ -103,11 +103,18 @@ export default {
   },
   calibration: {
     title: "麦克风音量校准",
-    descriptionHtml: "通过安静环境和 1 kHz 参考音量测量，让 Volume / Environment 指标换算成实际 dB。",
+    descriptionHtml: [
+      "<p>通过安静环境和 1 kHz 参考音量测量，让 Volume / Environment 指标换算成实际 dB。</p>",
+      "<p><b>步骤 1：</b>开始测量背景噪声后保持 3.5 秒的安静。<b>步骤 2：</b>测量参考音时将 1 kHz / 94 dB 校准音对准麦克风，同样持续 3.5 秒。</p>",
+    ].join(""),
     status: {
-      relative: "目前以相对音量显示。请依次测量背景噪声与 1 kHz 参考音（{{target}} dB），即可让 Volume / Environment 换算为实际 dB。",
+      relative: "目前以相对音量显示。请依次测量背景噪声与 1 kHz 参考音（{{target}} dB），即可让 Volume / Environment 换算为实际 dB。步骤 1：测量背景噪声时保持 3.5 秒的安静。步骤 2：测量参考音时将 1 kHz 校准器对准麦克风并维持 3.5 秒。",
       calibrated: "已校准：参考 {{target}} dB，偏移 {{offset}} dB，背景 {{ambient}} dB。{{timestamp}}",
     },
+    stepHintHtml: [
+      '<li><b>步骤 1：</b>点击「测量背景噪声」后请保持环境与自己安静 3.5 秒。</li>',
+      '<li><b>步骤 2：</b>解锁「测量 1 kHz 参考音」后，将 1 kHz / 94 dB 校准音对准麦克风并稳定持续 3.5 秒。</li>',
+    ].join(""),
     targetLabel: "参考音量（dB SPL）",
     targetHint: "默认 94 dB / 1 kHz。若校准器输出为其他音量，请调整此数值。",
     steps: {

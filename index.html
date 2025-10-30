@@ -222,8 +222,11 @@
 
     <section id="calibrationPanel" class="calibration">
       <h2 data-i18n="calibration.title">麥克風音量校正</h2>
-      <p data-i18n-html="calibration.descriptionHtml">透過安靜環境與 1 kHz 參考音量量測，讓 Volume / Environment 指標換算成實際 dB。</p>
-      <div id="calibrationStatus" class="calibration-status" data-mode="relative" data-i18n="calibration.status.relative">目前以相對音量顯示；若需要對照實際 dB，請依序量測背景噪音與 1 kHz 參考音。</div>
+      <div class="calibration-description" data-i18n-html="calibration.descriptionHtml">
+        <p>透過安靜環境與 1 kHz 參考音量量測，讓 Volume / Environment 指標換算成實際 dB。</p>
+        <p><b>步驟 1：</b>開始量測背景噪音後請維持 3.5 秒的安靜。<b>步驟 2：</b>量測參考音時將 1 kHz / 94 dB 校正音對準麥克風，同樣持續 3.5 秒。</p>
+      </div>
+      <div id="calibrationStatus" class="calibration-status" data-mode="relative" data-i18n="calibration.status.relative">目前以相對音量顯示；若需要對照實際 dB，請依序量測背景噪音與 1 kHz 參考音。步驟 1：量測背景噪音時保持 3.5 秒的安靜。步驟 2：量測參考音時將 1 kHz 校正器對準麥克風並維持 3.5 秒。</div>
       <div class="calibration-controls">
         <label class="calibration-target">
           <span data-i18n="calibration.targetLabel">參考音量（dB SPL）</span>
@@ -231,9 +234,13 @@
         </label>
         <p id="calibrationTargetHint" class="calibration-hint" data-i18n="calibration.targetHint">預設為 94 dB / 1 kHz。若校正器設定為其他音量，請調整此值。</p>
       </div>
+      <ol id="calibrationStepHint" class="calibration-guide" data-i18n-html="calibration.stepHintHtml">
+        <li><b>步驟 1：</b>點選「量測背景噪音」後請保持環境與自己安靜 3.5 秒。</li>
+        <li><b>步驟 2：</b>解鎖「量測 1 kHz 參考音」後，將 1 kHz / 94 dB 校正音對準麥克風並穩定持續 3.5 秒。</li>
+      </ol>
       <div class="calibration-steps">
-        <button type="button" id="calibrationAmbientBtn" class="calibration-btn" data-i18n="calibration.steps.ambient">量測背景噪音</button>
-        <button type="button" id="calibrationToneBtn" class="calibration-btn" data-i18n="calibration.steps.reference" disabled>量測 1 kHz 參考音</button>
+        <button type="button" id="calibrationAmbientBtn" class="calibration-btn" data-i18n="calibration.steps.ambient" aria-describedby="calibrationStepHint">量測背景噪音</button>
+        <button type="button" id="calibrationToneBtn" class="calibration-btn" data-i18n="calibration.steps.reference" aria-describedby="calibrationStepHint" disabled>量測 1 kHz 參考音</button>
       </div>
       <div id="calibrationLog" class="calibration-log" data-i18n="calibration.log.placeholder">尚未建立校正記錄。</div>
       <div class="calibration-actions">

@@ -264,10 +264,32 @@ body.recording .record-btn .rec{ display:inline; }
   outline:2px solid var(--ring);
   outline-offset:2px;
 }
+.calibration-description{
+  margin:8px 0 6px;
+  font-size:14px;
+  line-height:1.6;
+  color:color-mix(in oklab, var(--ink) 84%, var(--muted) 16%);
+}
+.calibration-description p{
+  margin:0 0 8px;
+}
+.calibration-description p:last-child{
+  margin-bottom:0;
+}
 .calibration-hint{
   flex:1 1 240px;
   font-size:13px;
   color:color-mix(in oklab, var(--ink) 70%, var(--muted) 30%);
+}
+.calibration-guide{
+  margin:4px 0 12px 18px;
+  padding-left:6px;
+  font-size:13px;
+  line-height:1.6;
+  color:color-mix(in oklab, var(--ink) 76%, var(--muted) 24%);
+}
+.calibration-guide li + li{
+  margin-top:6px;
 }
 .calibration-steps,
 .calibration-actions{
