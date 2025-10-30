@@ -1479,6 +1479,37 @@ async function handleFileOrBlob(fileOrBlob, source = "upload"){
 }
 
 // ===== 解碼策略（WebAudio 為主） =====
+function isSafariLikeBrowser(){
+  if (typeof navigator === "undefined") return false;
+  const ua = String(navigator.userAgent || "").toLowerCase();
+  if (!ua.includes("safari")) return false;
+  const vendor = String(navigator.vendor || "").toLowerCase();
+  const blockers = [
+    "chrome",
+    "crios",
+    "crmo",
+    "android",
+    "edge",
+    "edg",
+    "opr",
+    "opera",
+    "firefox",
+    "fxios",
+  ];
+  return !blockers.some((token) => ua.includes(token)) && !vendor.includes("google");
+}
+
+function isLikelyM4A(blobOrFile){
+  if (!blobOrFile) return false;
+  const type = typeof blobOrFile.type === "string" ? blobOrFile.type.toLowerCase() : "";
+  if (type.includes("mp4") || type.includes("m4a")) return true;
+  if (typeof blobOrFile.name === "string"){
+    const lower = blobOrFile.name.toLowerCase();
+    return lower.endsWith(".m4a") || lower.endsWith(".mp4") || lower.endsWith(".mp3");
+  }
+  return false;
+}
+
 async function decodeSmartToFloat32(blobOrFile, targetSR){
   setStatus(t("status.webaudioDecode"), true);
   try {
@@ -1486,7 +1517,31 @@ async function decodeSmartToFloat32(blobOrFile, targetSR){
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err ?? "");
     log("[decode] WebAudio decode failed:", message);
-    throw new Error(t("status.decodeFailure"));
+    const safariHint = isSafariLikeBrowser() && isLikelyM4A(blobOrFile);
+    setStatus(safariHint ? t("status.ffmpegPrepareSafari") : t("status.ffmpegPrepare"), true);
+    try {
+      const { transcodeToMonoFloat32 } = await import("./js/ffmpeg-transcode.js");
+      return await transcodeToMonoFloat32(blobOrFile, targetSR, (event) => {
+        if (!event) return;
+        if (event.type === "load-start") {
+          setStatus(t("status.ffmpegLoading"), true);
+          return;
+        }
+        if (event.type === "transcode-progress") {
+          const pct = Math.min(99, Math.max(0, Math.round((event.progress || 0) * 100)));
+          setStatus(t("status.ffmpegTranscode", { progress: pct }), true);
+          return;
+        }
+        if (event.type === "transcode-complete") {
+          setStatus(t("status.ffmpegTranscode", { progress: 100 }), true);
+        }
+      });
+    } catch (ffmpegError) {
+      const fallbackMessage = ffmpegError instanceof Error ? ffmpegError.message : String(ffmpegError ?? "");
+      log("[decode] ffmpeg fallback failed:", fallbackMessage);
+      setStatus(t("status.ffmpegModuleLoadFailed", { message: fallbackMessage }), true);
+      throw new Error(t("status.decodeFailure"));
+    }
   }
 }
 async function decodeViaWebAudio(blobOrFile, targetSR=16000){
