@@ -1829,6 +1829,7 @@ function smoothMask(mask, k=3){
 
 // ===== Pitch Stream（ACF 音高 + 畫布） =====
 function appendPitchSample(rawHz, meta = {}, opts = {}){
+  const frameMs = Number.isFinite(opts?.dtMs) ? opts.dtMs : PS_INTERVAL_MS;
   const result = sharedAppendPitchSample(rawHz, meta, {
     state: pitchPostState,
     arrays: {
@@ -1838,9 +1839,9 @@ function appendPitchSample(rawHz, meta = {}, opts = {}){
       confidence: psConfidence,
     },
     getRange: getPitchDetectorRange,
+    frameMs,
   });
-  const dtMs = Number.isFinite(opts?.dtMs) ? opts.dtMs : PS_INTERVAL_MS;
-  handleAutoRangeFrame(result, { dtMs });
+  handleAutoRangeFrame(result, { dtMs: frameMs });
   return result;
 }
 
@@ -2355,9 +2356,31 @@ function finishStreamStats(){
     // ====== 簡評（可一眼看懂）======
     const band = bandOf(pitchStats.med);                 // 常見音高區（依 Median）
     const spread = (pitchStats.p95 - pitchStats.p05);    // 變化幅度
+    const store = offlineFeatureStore || {};
+    const maskInfo = buildEligibleFrameMask(store, {
+      minConfidence: FORMANT_CONFIDENCE_THRESHOLD,
+      maxGapFrames: FORMANT_MAX_GAP_FRAMES,
+    });
+    let eligibleMask = Array.isArray(maskInfo?.mask) && maskInfo.mask.length ? maskInfo.mask : null;
+    let eligibleCount = 0;
+    if ((!eligibleMask || !maskInfo?.count) && Array.isArray(store.voiced) && store.voiced.length){
+      eligibleMask = store.voiced.map(Boolean);
+    }
+    if (eligibleMask){
+      const limit = Math.min(eligibleMask.length, psVoiced.length);
+      for (let i=0;i<limit;i++){
+        if (eligibleMask[i]) eligibleCount++;
+      }
+    }
+    const voicedCount = eligibleCount;
+    const frameSec = Number.isFinite(offlineFeatureStore.frameSec) && offlineFeatureStore.frameSec > 0
+      ? offlineFeatureStore.frameSec
+      : (PS_INTERVAL_MS/1000);
+    const totalVoicedSec = voicedCount * frameSec;
     let stabilityKey = "steady";
     if (isFinite(spread)){
-      if (spread >= 80) stabilityKey = "wide";
+      const wideThreshold = Math.max(90, 60 * Math.sqrt(Math.max(totalVoicedSec, EPS) / 5));
+      if (spread > wideThreshold) stabilityKey = "wide";
       else if (spread >= 40) stabilityKey = "moderate";
     }
     const stabilityLabel = isFinite(spread)
@@ -2387,7 +2410,7 @@ function finishStreamStats(){
       : "";
 
     // 取樣覆蓋率（錄音期間有聲點比例）
-    const voicedRatio = psVoiced.length ? (psVoiced.filter(Boolean).length / psVoiced.length) : NaN;
+    const voicedRatio = psVoiced.length ? (voicedCount / psVoiced.length) : NaN;
     let voicedHintKey = null;
     if (!isFinite(voicedRatio) || voicedRatio < 0.25) voicedHintKey = "low";
     else if (voicedRatio < 0.5) voicedHintKey = "medium";
@@ -2474,11 +2497,13 @@ function finishStreamStats(){
     let resonanceTagLabel = null;
     let speechRateTagLabel = null;
     let breathinessTagLabel = null;
+    let brightnessTagLabel = null;
     if (advSummary){
       const resonanceTag = advSummary.resonanceDisplay || advSummary.resonanceLabel;
       if (resonanceTag) resonanceTagLabel = summaryString("tags.resonance", { label: resonanceTag });
       if (advSummary.speechRateLabel) speechRateTagLabel = summaryString("tags.speechRate", { label: advSummary.speechRateLabel });
       if (advSummary.breathinessLabel) breathinessTagLabel = summaryString("tags.breathiness", { label: advSummary.breathinessLabel });
+      if (advSummary.brightnessLabel) brightnessTagLabel = summaryString("tags.brightness", { label: advSummary.brightnessLabel });
     }
 
     const summaryTags = {
@@ -2487,6 +2512,7 @@ function finishStreamStats(){
       resonance: resonanceTagLabel,
       speechRate: speechRateTagLabel,
       breathiness: breathinessTagLabel,
+      brightness: brightnessTagLabel,
     };
 
     if (tags){
@@ -2497,6 +2523,7 @@ function finishStreamStats(){
       if (resonanceTagLabel) tagHTML += `<span class="tag">${resonanceTagLabel}</span>`;
       if (speechRateTagLabel) tagHTML += `<span class="tag">${speechRateTagLabel}</span>`;
       if (breathinessTagLabel) tagHTML += `<span class="tag">${breathinessTagLabel}</span>`;
+      if (brightnessTagLabel) tagHTML += `<span class="tag">${brightnessTagLabel}</span>`;
       tags.innerHTML = tagHTML;
     }
 
@@ -2647,8 +2674,23 @@ function computeAdvancedSummary(){
   const duration = hopSec * n;
   if (!n || duration < 0.5) return null;
 
+  const maskInfo = buildEligibleFrameMask(store, {
+    minConfidence: FORMANT_CONFIDENCE_THRESHOLD,
+    maxGapFrames: FORMANT_MAX_GAP_FRAMES,
+  });
+  let mask = Array.isArray(maskInfo?.mask) && maskInfo.mask.length ? maskInfo.mask : null;
+  let eligibleCount = Number.isFinite(maskInfo?.count) ? maskInfo.count : 0;
+  if ((!mask || !eligibleCount) && Array.isArray(store.voiced) && store.voiced.length){
+    mask = store.voiced.map(Boolean);
+    eligibleCount = mask.reduce((acc, flag)=> acc + (flag ? 1 : 0), 0);
+  }
+
+  const formantArr = Array.isArray(store.formants) ? store.formants : [];
+  const limit = mask ? Math.min(formantArr.length, mask.length) : formantArr.length;
   const f1Vals=[], f2Vals=[], f3Vals=[];
-  for (const form of store.formants){
+  for (let i=0;i<limit;i++){
+    if (mask && !mask[i]) continue;
+    const form = formantArr[i];
     if (!form) continue;
     const [f1,f2,f3] = form;
     if (Number.isFinite(f1)) f1Vals.push(f1);
@@ -2665,15 +2707,28 @@ function computeAdvancedSummary(){
     f1Vals,
     f2Vals,
     f3Vals,
+  }, {
+    mask,
+    eligibleCount,
   });
 
-  const energyAvg = averageEnergy(store.energy);
+  const energyAvg = averageEnergy(store.energy, { mask, eligibleCount });
   const resonanceDesc = describeResonanceFromEnergy(energyAvg);
-  const tiltAvg = averageFinite(store.tilt);
+  const tiltAvg = averageFinite(store.tilt, mask);
   const tiltInfo = categorizeTilt(tiltAvg);
-  const breathAvg = averageFinite(store.breathiness);
-  const breathInfo = categorizeBreathiness(breathAvg);
-  const vowelInfo = analyzeVowelFocus(store);
+  const breathSummary = summarizeBreathiness(store.breathiness, { mask }, hopSec);
+  const breathAvg = breathSummary.avg;
+  const vols = Array.isArray(store.db) ? store.db.filter(Number.isFinite) : [];
+  const volStats = vols.length ? makeStats(vols) : null;
+  const envDb = vols.length ? percentileSorted(vols.slice().sort((a,b)=>a-b), 10) : NaN;
+  const snrEstimate = Number.isFinite(volStats?.med) && Number.isFinite(envDb) ? (volStats.med - envDb) : NaN;
+  const brightnessInfo = categorizeBrightness({ f3Stats, tilt: tiltAvg, breath: breathAvg });
+  const breathInfo = categorizeBreathiness(breathAvg, {
+    snr: snrEstimate,
+    brightnessKey: brightnessInfo.key,
+    tilt: tiltAvg,
+  });
+  const vowelInfo = analyzeVowelFocus(store, { mask, count: eligibleCount });
   const speech = analyzeSpeechRate(store);
   const liaison = analyzeConnectedSpeech(store.voiced, hopSec);
   const intonation = analyzeIntonation({
@@ -2692,9 +2747,13 @@ function computeAdvancedSummary(){
     tiltAvg,
     tiltLabel: tiltInfo.label,
     tiltHint: tiltInfo.hint,
+    brightnessLabel: brightnessInfo.label,
+    brightnessHint: brightnessInfo.hint,
+    brightnessKey: brightnessInfo.key,
     breathinessAvg: breathAvg,
     breathinessLabel: breathInfo.label,
     breathinessHint: breathInfo.hint,
+    breathinessKey: breathInfo.key,
     speechRate: speech,
     speechRateLabel: speech.label,
     speechRateHint: speech.hint,
@@ -2705,6 +2764,7 @@ function computeAdvancedSummary(){
     liaisonLabel: liaison.label,
     liaisonHint: liaison.hint,
     intonation,
+    snrEstimate,
   };
 }
 
@@ -2729,6 +2789,8 @@ function renderAdvancedSummary(summary){
   const f1Hint = f1Trend.hint || makeFormantHint("F1", NaN, 180, 350);
   const f2Hint = f2Trend.hint || makeFormantHint("F2", NaN, 1600, 2500);
   const f3Hint = f3Trend.hint || makeFormantHint("F3", NaN, 2500, 3200);
+  const brightnessDisplay = summary.brightnessLabel || "—";
+  const brightnessHint = summary.brightnessHint || "";
   const speechRateDisplay = Number.isFinite(summary.speechRate?.syllPerSec)
     ? summaryString("speechRateDisplay", { value: fmt1(summary.speechRate.syllPerSec) })
     : "—";
@@ -2781,6 +2843,7 @@ function renderAdvancedSummary(summary){
         <div class="adv-card"><div class="k">${formantCards.f1 || t("summary.advanced.formantCards.f1")}</div><div class="v">${f1Value}</div><div class="hint">${f1Hint}</div></div>
         <div class="adv-card"><div class="k">${formantCards.f2 || t("summary.advanced.formantCards.f2")}</div><div class="v">${f2Value}</div><div class="hint">${f2Hint}</div></div>
         <div class="adv-card"><div class="k">${formantCards.f3 || t("summary.advanced.formantCards.f3")}</div><div class="v">${f3Value}</div><div class="hint">${f3Hint}</div></div>
+        <div class="adv-card"><div class="k">${formantCards.brightness || t("summary.advanced.formantCards.brightness")}</div><div class="v">${brightnessDisplay}</div><div class="hint">${brightnessHint}</div></div>
         <div class="adv-card"><div class="k">${formantCards.tilt || t("summary.advanced.formantCards.tilt")}</div><div class="v">${fmt1(summary.tiltAvg)} dB</div><div class="hint">${summary.tiltHint}</div></div>
       </div>
       <div class="resonance-summary">
@@ -2822,16 +2885,34 @@ function renderAdvancedSummary(summary){
   `;
 }
 
-function averageFinite(arr){
-  const vals = Array.isArray(arr) ? arr.filter(Number.isFinite) : [];
-  if (!vals.length) return NaN;
-  return vals.reduce((a,b)=>a+b,0) / vals.length;
+function averageFinite(arr, mask){
+  const values = Array.isArray(arr) ? arr : [];
+  const maskArray = Array.isArray(mask?.mask) ? mask.mask : (Array.isArray(mask) ? mask : null);
+  const limit = maskArray ? Math.min(values.length, maskArray.length) : values.length;
+  let sum = 0;
+  let count = 0;
+  for (let i=0;i<limit;i++){
+    if (maskArray && !maskArray[i]) continue;
+    const val = values[i];
+    if (Number.isFinite(val)){
+      sum += val;
+      count++;
+    }
+  }
+  if (!count) return NaN;
+  return sum / count;
 }
 
-function averageEnergy(arr){
+function averageEnergy(arr, info = {}){
   if (!Array.isArray(arr) || !arr.length) return { low:0, mid:0, high:0, total:0, coverage:0, validCount:0 };
-  let low=0, mid=0, high=0, valid=0;
-  for (const v of arr){
+  const mask = Array.isArray(info.mask) ? info.mask : (Array.isArray(info.mask?.mask) ? info.mask.mask : null);
+  const eligible = Number.isFinite(info.eligibleCount) ? info.eligibleCount : (mask ? mask.reduce((acc, flag)=> acc + (flag ? 1 : 0), 0) : arr.length);
+  const limit = mask ? Math.min(arr.length, mask.length) : arr.length;
+  let low=0, mid=0, high=0, valid=0, considered=0;
+  for (let i=0;i<limit;i++){
+    if (mask && !mask[i]) continue;
+    considered++;
+    const v = arr[i];
     if (!Array.isArray(v)) continue;
     const [l,m,h] = v;
     if (!Number.isFinite(l) && !Number.isFinite(m) && !Number.isFinite(h)) continue;
@@ -2840,16 +2921,20 @@ function averageEnergy(arr){
     high += Number.isFinite(h) ? h : 0;
     valid++;
   }
-  if (!valid) return { low:0, mid:0, high:0, total:0, coverage:0, validCount:0 };
+  if (!valid){
+    const baseCoverage = eligible > 0 ? (considered / eligible) : 0;
+    return { low:0, mid:0, high:0, total:0, coverage: Math.max(0, Math.min(1, baseCoverage)), validCount:0 };
+  }
   const avgLow = low / valid;
   const avgMid = mid / valid;
   const avgHigh = high / valid;
+  const baseCoverage = eligible > 0 ? (valid / eligible) : 0;
   return {
     low: avgLow,
     mid: avgMid,
     high: avgHigh,
     total: avgLow + avgMid + avgHigh,
-    coverage: valid / arr.length,
+    coverage: Math.max(0, Math.min(1, baseCoverage)),
     validCount: valid,
   };
 }
@@ -2867,6 +2952,115 @@ const FORMANT_MIN_SAMPLES = 24;
 const FORMANT_MIN_COVERAGE = 0.18;
 const FORMANT_GOOD_COVERAGE = 0.32;
 const FORMANT_MIN_SPREAD = 70;
+const FORMANT_CONFIDENCE_THRESHOLD = CONFIDENCE_INCLUDE_THRESHOLD;
+const FORMANT_MAX_GAP_FRAMES = 8;
+
+const BREATHINESS_EMA_TAU_SEC = 0.2;
+const BRIGHTNESS_F3_LOW = 2400;
+const BRIGHTNESS_F3_HIGH = 3400;
+const BRIGHTNESS_WARM_Z = -0.7;
+const BRIGHTNESS_SPARKLE_Z = 0.4;
+const BRIGHTNESS_SWEET_Z = 1.0;
+const BRIGHTNESS_TILT_SHARP = -1.5;
+const BRIGHTNESS_BREATH_THRESHOLD = 0.45;
+
+function summarizeBreathiness(arr, info = {}, hopSec){
+  if (!Array.isArray(arr) || !arr.length) return { avg: NaN, count: 0 };
+  const mask = Array.isArray(info.mask) ? info.mask : (Array.isArray(info.mask?.mask) ? info.mask.mask : null);
+  const limit = mask ? Math.min(arr.length, mask.length) : arr.length;
+  const step = Number.isFinite(hopSec) && hopSec > 0 ? hopSec : (PS_INTERVAL_MS/1000);
+  const tau = Math.max(0.08, BREATHINESS_EMA_TAU_SEC);
+  const alpha = 1 - Math.exp(-step / tau);
+  let ema = null;
+  let sum = 0;
+  let count = 0;
+  for (let i=0;i<limit;i++){
+    if (mask && !mask[i]) continue;
+    let val = arr[i];
+    if (!Number.isFinite(val)) continue;
+    val = Math.max(0, Math.min(1, val));
+    if (ema == null) ema = val;
+    else ema = ema + alpha * (val - ema);
+    sum += ema;
+    count++;
+  }
+  if (!count) return { avg: NaN, count: 0 };
+  const avg = Math.max(0, Math.min(1, sum / count));
+  return { avg, count };
+}
+
+function buildEligibleFrameMask(store, { minConfidence = FORMANT_CONFIDENCE_THRESHOLD, maxGapFrames = FORMANT_MAX_GAP_FRAMES } = {}){
+  const voiced = Array.isArray(store.voiced) ? store.voiced : [];
+  const confidence = Array.isArray(store.pitchConfidence) ? store.pitchConfidence : [];
+  const n = Math.min(voiced.length, confidence.length);
+  let mask = new Array(n).fill(false);
+  for (let i=0;i<n;i++){
+    const conf = confidence[i] ?? 0;
+    mask[i] = Boolean(voiced[i]) && conf >= minConfidence;
+  }
+  if (maxGapFrames > 0 && mask.length){
+    let gapStart = -1;
+    for (let i=0;i<=n;i++){
+      const flag = i < n ? mask[i] : true;
+      if (!flag){
+        if (gapStart < 0) gapStart = i;
+      } else if (gapStart >= 0){
+        const gapLen = i - gapStart;
+        const prev = gapStart > 0 ? mask[gapStart-1] : false;
+        const next = i < n ? mask[i] : false;
+        if (prev && next && gapLen <= maxGapFrames){
+          for (let j=gapStart;j<i;j++) mask[j] = true;
+        }
+        gapStart = -1;
+      }
+    }
+    const dilation = Math.max(1, Math.floor(maxGapFrames / 2));
+    if (dilation > 0){
+      const expanded = mask.slice();
+      for (let i=0;i<n;i++){
+        if (!mask[i]) continue;
+        for (let d=1; d<=dilation; d++){
+          if (i-d >= 0) expanded[i-d] = true;
+          if (i+d < n) expanded[i+d] = true;
+        }
+      }
+      mask = expanded;
+    }
+  }
+  const count = mask.reduce((acc, flag)=> acc + (flag ? 1 : 0), 0);
+  return { mask, count, minConfidence, maxGapFrames };
+}
+
+function categorizeBrightness({ f3Stats, tilt, breath } = {}){
+  const brightnessText = analysisText?.brightness;
+  if (!Number.isFinite(f3Stats?.med)){
+    const insufficient = brightnessText?.insufficient;
+    return {
+      label: insufficient?.label || t("analysis.brightness.insufficient.label"),
+      hint: insufficient?.hint || t("analysis.brightness.insufficient.hint"),
+      key: "insufficient",
+    };
+  }
+  const med = f3Stats.med;
+  const center = (BRIGHTNESS_F3_LOW + BRIGHTNESS_F3_HIGH) / 2;
+  const span = Math.max(1, (BRIGHTNESS_F3_HIGH - BRIGHTNESS_F3_LOW) / 2);
+  const z = (med - center) / span;
+  const tiltVal = Number.isFinite(tilt) ? tilt : NaN;
+  const breathVal = Number.isFinite(breath) ? breath : NaN;
+  let key = "balanced";
+  if (z <= BRIGHTNESS_WARM_Z) key = "warm";
+  else if (z >= BRIGHTNESS_SWEET_Z){
+    const needsRelax = (Number.isFinite(breathVal) && breathVal > BRIGHTNESS_BREATH_THRESHOLD)
+      || (Number.isFinite(tiltVal) && tiltVal < BRIGHTNESS_TILT_SHARP);
+    key = needsRelax ? "sharp" : "sweet";
+  } else if (z >= BRIGHTNESS_SPARKLE_Z){
+    key = "sparkle";
+  }
+  const entry = brightnessText?.[key];
+  const label = entry?.label || t(`analysis.brightness.${key}.label`);
+  const hint = entry?.hint || t(`analysis.brightness.${key}.hint`);
+  return { label, hint, key, zScore: z };
+}
 
 function normalizeResonanceBands(energy){
   if (!energy) return { chest: NaN, mask: NaN, head: NaN, total: 0, coverage: 0 };
@@ -2982,7 +3176,7 @@ function categorizeTilt(tilt){
   };
 }
 
-function categorizeBreathiness(val){
+function categorizeBreathiness(val, ctx = {}){
   if (!Number.isFinite(val)) {
     const insufficient = analysisText?.breathiness?.insufficient;
     return {
@@ -2990,14 +3184,27 @@ function categorizeBreathiness(val){
       hint: insufficient?.hint || t("analysis.breathiness.insufficient.hint"),
     };
   }
-  let key = "tooAiry";
+  const snr = Number.isFinite(ctx.snr) ? ctx.snr : NaN;
+  const brightnessKey = ctx.brightnessKey;
+  const tilt = Number.isFinite(ctx.tilt) ? ctx.tilt : NaN;
+  const styleEligible = Number.isFinite(snr) ? snr > 20 : false;
+  const needsRelax = brightnessKey === "sharp" || (Number.isFinite(tilt) && tilt < BRIGHTNESS_TILT_SHARP);
+
+  let key = "airy";
   if (val < 0.08) key = "dense";
   else if (val <= 0.18) key = "balanced";
   else if (val <= 0.28) key = "airy";
+  else if (val <= 0.45) key = styleEligible ? "style" : "airy";
+  else {
+    if (needsRelax) key = "tooAiry";
+    else key = styleEligible ? "style" : "airy";
+  }
+
   const entry = analysisText?.breathiness?.[key];
   return {
     label: entry?.label || t(`analysis.breathiness.${key}.label`),
     hint: entry?.hint || t(`analysis.breathiness.${key}.hint`),
+    key,
   };
 }
 
@@ -3021,19 +3228,21 @@ function makeFormantHint(label, value, low, high){
   return t("analysis.formant.inRange", { label: labelWithName });
 }
 
-function summarizeFormantTrends(store, statsBundle){
-  const voicedTotal = Array.isArray(store.voiced)
-    ? store.voiced.reduce((acc, flag)=> acc + (flag ? 1 : 0), 0)
-    : 0;
+function summarizeFormantTrends(store, statsBundle, options = {}){
+  let eligibleCount = Number.isFinite(options?.eligibleCount) ? options.eligibleCount : null;
+  if ((eligibleCount == null || eligibleCount <= 0) && Array.isArray(store.voiced)){
+    eligibleCount = store.voiced.reduce((acc, flag)=> acc + (flag ? 1 : 0), 0);
+  }
+  const hasAggregate = Number.isFinite(eligibleCount) && eligibleCount > 0;
 
   const makeEntry = (label, stats, values, low, high)=>{
     const sampleCount = values.length;
-    const coverage = voicedTotal ? (sampleCount / voicedTotal) : 0;
-    const hasAggregate = voicedTotal > 0;
+    const coverageRaw = hasAggregate ? (sampleCount / eligibleCount) : 0;
+    const coverage = hasAggregate ? Math.max(0, Math.min(1, coverageRaw)) : NaN;
     const spread = stats ? (stats.p95 - stats.p05) : NaN;
     const reliable = hasAggregate
       && sampleCount >= FORMANT_MIN_SAMPLES
-      && coverage >= FORMANT_MIN_COVERAGE
+      && coverageRaw >= FORMANT_MIN_COVERAGE
       && Number.isFinite(spread)
       && spread >= FORMANT_MIN_SPREAD
       && Number.isFinite(stats?.med);
@@ -3051,8 +3260,8 @@ function summarizeFormantTrends(store, statsBundle){
       const msg = t("analysis.formant.moreSamplesHint");
       if (msg) extraHints.push(msg);
     }
-    if (hasAggregate && coverage < FORMANT_MIN_COVERAGE){
-      const msg = t("analysis.formant.coverageLowHint", { value: Math.round(coverage * 100) });
+    if (hasAggregate && coverageRaw < FORMANT_MIN_COVERAGE){
+      const msg = t("analysis.formant.coverageLowHint", { value: Math.round(Math.max(0, Math.min(1, coverageRaw)) * 100) });
       if (msg) extraHints.push(msg);
     }
 
@@ -3083,17 +3292,40 @@ function buildFormantTrendDisplay(trendKey, coverage, hasAggregate){
   if (!hasAggregate || !Number.isFinite(coverage) || coverage <= 0){
     return base;
   }
-  const key = coverage < FORMANT_GOOD_COVERAGE ? "coverageLowSuffix" : "coverageSuffix";
-  const suffix = t(`analysis.formant.${key}`, { value: Math.round(coverage * 100) });
+  const clamped = Math.max(0, Math.min(1, coverage));
+  const key = clamped < FORMANT_GOOD_COVERAGE ? "coverageLowSuffix" : "coverageSuffix";
+  const suffix = t(`analysis.formant.${key}`, { value: Math.round(clamped * 100) });
   if (!suffix) return base;
   return `${base}${suffix}`;
 }
 
-function analyzeVowelFocus(store){
+function analyzeVowelFocus(store, maskInfo){
+  const formants = Array.isArray(store.formants) ? store.formants : [];
+  let mask = null;
+  if (Array.isArray(maskInfo)) mask = maskInfo;
+  else if (maskInfo && Array.isArray(maskInfo.mask)) mask = maskInfo.mask;
+  if (!mask || !mask.length){
+    const built = buildEligibleFrameMask(store, {
+      minConfidence: FORMANT_CONFIDENCE_THRESHOLD,
+      maxGapFrames: FORMANT_MAX_GAP_FRAMES,
+    });
+    if (Array.isArray(built?.mask) && built.mask.length) mask = built.mask;
+  }
+
+  if (!mask || !mask.length){
+    const insufficient = analysisText?.vowelFocus?.insufficient;
+    return {
+      ratio: NaN,
+      label: insufficient?.label || t("analysis.vowelFocus.insufficient.label"),
+      hint: insufficient?.hint || t("analysis.vowelFocus.insufficient.hint"),
+    };
+  }
+
   let voiced=0, focus=0;
-  for (let i=0;i<store.formants.length;i++){
-    if (!store.voiced[i]) continue;
-    const form = store.formants[i];
+  const limit = Math.min(formants.length, mask.length);
+  for (let i=0;i<limit;i++){
+    if (!mask[i]) continue;
+    const form = formants[i];
     if (!form) continue;
     const f1=form[0], f2=form[1];
     if (!Number.isFinite(f1) || !Number.isFinite(f2)) continue;

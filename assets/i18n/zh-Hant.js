@@ -441,9 +441,36 @@ export default {
         label: "偏氣聲",
         hint: "氣聲略多。做法：先做幾次『zzz』讓聲帶貼近，再開始說話，並把氣往前送而不是往上冒。",
       },
+      style: {
+        label: "偏多（風格）",
+        hint: "氣聲帶來甜亮質地，屬風格選擇。請確認你喜歡現在的聲音，再記錄下口形與呼吸節奏以利複製。",
+      },
       tooAiry: {
         label: "氣聲過多",
         hint: "氣流外洩明顯。做法：先做短促的『呃』檢查聲帶閉合，接著用短句練習在子音前把氣收好。",
+      },
+    },
+    brightness: {
+      insufficient: { label: "資料不足", hint: "需要更多穩定母音才能評估亮度。" },
+      balanced: {
+        label: "亮度均衡",
+        hint: "F3 與頻譜傾斜度在建議區間，甜度穩定。維持目前的共鳴位置即可。",
+      },
+      warm: {
+        label: "偏暖圓潤",
+        hint: "亮度略低，聲音比較圓。若想再提亮，可在母音前加上輕微的鼻腔共鳴或想像微笑口形。",
+      },
+      sparkle: {
+        label: "甜亮帶閃",
+        hint: "亮度偏高但仍在控制內，帶有閃亮質感。記下此時的口腔開合與眉心感受以利複製。",
+      },
+      sweet: {
+        label: "甜美聚焦",
+        hint: "F3 偏高但氣息穩定，呈現甜亮聲線。維持喉頭放鬆並保持現在的共鳴分佈即可。",
+      },
+      sharp: {
+        label: "亮度偏尖",
+        hint: "亮度與高頻能量都偏強，容易聽起來尖。放鬆肩頸並以圓口『喔』起音，降低喉頭緊張。",
       },
     },
     formant: {
@@ -588,6 +615,7 @@ export default {
       resonance: "共鳴：{{label}}",
       speechRate: "語速：{{label}}",
       breathiness: "氣聲：{{label}}",
+      brightness: "亮度：{{label}}",
     },
     speechRateDisplay: "{{value}} 音節/秒",
     speechRateWpm: "（約 {{value}} wpm）",
@@ -606,6 +634,7 @@ export default {
         f1: "F1（第一共振峰）· Median（中位數）",
         f2: "F2（第二共振峰）· Median（中位數）",
         f3: "F3（第三共振峰）· Median（中位數）",
+        brightness: "Brightness / Sweetness（亮度/甜度）",
         tilt: "Spectral Tilt（頻譜傾斜度）",
       },
       intonationCards: {
