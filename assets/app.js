@@ -270,17 +270,11 @@ function updatePlayerCopy(forcePlaying){
     }
   }
 }
-ensurePlayerUI();
-setupExportButton();
-
 const calibrationDraft = { ambient: null, reference: null };
 const calibrationUi = { messages: [] };
 let calibrationCapture = null;
 let calibrationData = loadCalibrationData();
 let currentCalibrationMode = getCalibrationMode();
-
-initCalibrationControls();
-refreshCalibrationUi();
 
 function initCalibrationControls(){
   try{
@@ -729,6 +723,11 @@ let mediaRecorder = null, chunks = [];
 let clf = null, busy = false, heartbeatTimer = null;
 let currentDevice = "wasm";
 let isRecording = false;
+
+initCalibrationControls();
+refreshCalibrationUi();
+ensurePlayerUI();
+setupExportButton();
 
 let analysisSeq = 0;
 let activeAnalysisToken = 0;
