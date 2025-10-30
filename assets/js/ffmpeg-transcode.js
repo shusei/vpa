@@ -1,14 +1,96 @@
-import { FFmpeg } from "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/ffmpeg.min.js";
-import { fetchFile } from "https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.10/dist/umd/index.js";
+import { fetchFile } from "https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.15/dist/umd/index.js";
 
-const CORE_BASE_URL = "https://cdn.jsdelivr.net/npm/@ffmpeg/core-mt@0.12.10/dist/umd";
+const FFMPEG_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/umd/ffmpeg.min.js";
+const FFMPEG_MODULE_URL = `${FFMPEG_SCRIPT_URL}?module`;
+
+const CORE_BASE_URL = "https://cdn.jsdelivr.net/npm/@ffmpeg/core-mt@0.12.15/dist/umd";
 const CORE_JS_URL = `${CORE_BASE_URL}/ffmpeg-core.js`;
 const CORE_WORKER_URL = `${CORE_BASE_URL}/ffmpeg-core.worker.js`;
 const CORE_WASM_URL = `${CORE_BASE_URL}/ffmpeg-core.wasm`;
 
 let ffmpegInstance = null;
 let ffmpegLoadingPromise = null;
+let ffmpegModulePromise = null;
 const progressSubscribers = new Set();
+
+async function loadFFmpegModule() {
+  if (!ffmpegModulePromise) {
+    ffmpegModulePromise = (async () => {
+      const namespace = await (async () => {
+        const globalNamespace = globalThis?.FFmpeg;
+        if (globalNamespace && typeof globalNamespace.createFFmpeg === "function") {
+          return globalNamespace;
+        }
+
+        if (typeof document !== "undefined" && document) {
+          await new Promise((resolve, reject) => {
+            const existingScript = Array.from(document.getElementsByTagName("script")).find(
+              (script) => script.src === FFMPEG_SCRIPT_URL,
+            );
+
+            if (existingScript) {
+              if (existingScript.getAttribute("data-ffmpeg-loaded") === "true") {
+                resolve();
+                return;
+              }
+              existingScript.addEventListener(
+                "load",
+                () => {
+                  existingScript.setAttribute("data-ffmpeg-loaded", "true");
+                  resolve();
+                },
+                { once: true },
+              );
+              existingScript.addEventListener(
+                "error",
+                () => reject(new Error(`Failed to load FFmpeg script at ${FFMPEG_SCRIPT_URL}`)),
+                { once: true },
+              );
+              return;
+            }
+
+            const script = document.createElement("script");
+            script.src = FFMPEG_SCRIPT_URL;
+            script.async = true;
+            script.onload = () => {
+              script.setAttribute("data-ffmpeg-loaded", "true");
+              resolve();
+            };
+            script.onerror = () => {
+              reject(new Error(`Failed to load FFmpeg script at ${FFMPEG_SCRIPT_URL}`));
+            };
+            (document.head || document.body || document.documentElement).appendChild(script);
+          });
+
+          const loadedNamespace = globalThis?.FFmpeg;
+          if (loadedNamespace && typeof loadedNamespace.createFFmpeg === "function") {
+            return loadedNamespace;
+          }
+          throw new Error("FFmpeg UMD module did not expose the expected API");
+        }
+
+        try {
+          const module = await import(/* webpackIgnore: true */ FFMPEG_MODULE_URL);
+          const candidate = module?.default ?? module;
+          if (candidate && typeof candidate.createFFmpeg === "function") {
+            return candidate;
+          }
+        } catch (error) {
+          throw new Error(
+            `Failed to dynamically import FFmpeg module from ${FFMPEG_MODULE_URL}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+        throw new Error("FFmpeg module loading failed");
+      })();
+
+      return namespace;
+    })();
+  }
+
+  return ffmpegModulePromise;
+}
 
 function notifyStatus(callback, event) {
   if (typeof callback === "function") {
@@ -57,7 +139,17 @@ async function ensureFFmpegLoaded(statusCallback) {
         ffmpegLoadingPromise = null;
         throw error;
       }
-      const instance = new FFmpeg();
+      const module = await loadFFmpegModule();
+      const { createFFmpeg } = module;
+      if (typeof createFFmpeg !== "function") {
+        ffmpegLoadingPromise = null;
+        throw new Error("FFmpeg module did not provide createFFmpeg");
+      }
+      const instance = createFFmpeg({
+        corePath: CORE_JS_URL,
+        wasmPath: CORE_WASM_URL,
+        workerPath: CORE_WORKER_URL,
+      });
       instance.on("progress", (event) => {
         if (!event || typeof event.progress !== "number") return;
         for (const callback of progressSubscribers) {
@@ -70,7 +162,7 @@ async function ensureFFmpegLoaded(statusCallback) {
       });
 
       try {
-        await instance.load({ coreURL: CORE_JS_URL, wasmURL: CORE_WASM_URL, workerURL: CORE_WORKER_URL });
+        await instance.load();
       } catch (error) {
         ffmpegLoadingPromise = null;
         throw error;
@@ -93,11 +185,11 @@ export async function transcodeToMonoFloat32(input, targetSampleRate, statusCall
     const inputName = `input-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const outputName = `output-${Date.now()}-${Math.random().toString(36).slice(2)}.f32`;
     const data = await fetchFile(input);
-    await ffmpeg.writeFile(inputName, data);
+    ffmpeg.FS("writeFile", inputName, data);
 
     notifyStatus(statusCallback, { type: "transcode-start" });
     try {
-      await ffmpeg.exec([
+      await ffmpeg.run(
         "-hide_banner",
         "-loglevel",
         "error",
@@ -111,19 +203,19 @@ export async function transcodeToMonoFloat32(input, targetSampleRate, statusCall
         "-f",
         "f32le",
         outputName,
-      ]);
+      );
     } finally {
       try {
-        await ffmpeg.deleteFile(inputName);
+        ffmpeg.FS("unlink", inputName);
       } catch (_err) {
         // ignore clean-up failure
       }
     }
 
     notifyStatus(statusCallback, { type: "transcode-complete" });
-    const rawOutput = await ffmpeg.readFile(outputName);
+    const rawOutput = ffmpeg.FS("readFile", outputName);
     try {
-      await ffmpeg.deleteFile(outputName);
+      ffmpeg.FS("unlink", outputName);
     } catch (_err) {
       // ignore clean-up failure
     }
