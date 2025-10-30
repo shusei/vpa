@@ -96,7 +96,8 @@ Voice Presentation Analyzer（以下簡稱 VPA）是一款完全以 Web 技術�
 ## 輸出解讀指南
 
 - **傾向儀表**：顯示模型推估的 feminine / masculine 百分比。40–60% 為灰色帶，建議再錄幾段觀察趨勢。【F:index.html†L351-L397】
-- **Pitch 卡**：包含平均、Median、5th / 95th 百分位數並標記常見頻帶（男性常見、重疊帶、女性常見）。【F:index.html†L416-L447】
+- **Pitch 卡**：包含平均、Median、5th / 95th 百分位數並標記常見頻帶（男性常見、重疊帶、女性常見、高混聲 310–450 Hz 與 Soprano / Falsetto 450–600 Hz）。【F:index.html†L416-L447】【F:assets/i18n/zh-Hant.js†L360-L376】
+- **高音涵蓋提醒**：圖軸延伸至 600 Hz，新增淡紫帶標示 Soprano / Falsetto，提醒假聲與頭聲練習者注意。既有範例（如 `fixtures/analysis/sweet_feminine.json`）回歸檢查後仍落在原粉色帶，確保解讀一致。【F:index.html†L416-L447】【F:fixtures/analysis/sweet_feminine.json†L1-L40】
 - **Volume 卡**：平均、Median、標準差與 5th / 95th 百分位，用來評估音量穩定度。【F:index.html†L449-L486】
 - **Environment 卡**：估計環境底噪（10th 百分位）與 SNR，提供錄音環境建議。【F:index.html†L488-L520】
 - **Formant & Resonance 卡**：展示 F1–F3 中位數、共鳴亮度與氣聲比例，並附上提示文字。【F:index.html†L522-L566】
