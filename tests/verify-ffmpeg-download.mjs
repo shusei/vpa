@@ -25,7 +25,15 @@ async function headOrRange(url) {
     }
   }
 
-  return response && response.ok ? response : null;
+  if (!response) {
+    return null;
+  }
+
+  if (response.ok || response.status === 206) {
+    return response;
+  }
+
+  return null;
 }
 
 const FFMPEG_VER = '0.12.15';
@@ -100,7 +108,8 @@ async function main() {
 
   const workerUrl = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/ffmpeg-core.worker.js`;
   const workerResponse = await headOrRange(workerUrl);
-  const workerOk = Boolean(workerResponse && workerResponse.ok);
+  const status = workerResponse?.status || 0;
+  const workerOk = Boolean(workerResponse && (workerResponse.ok || status === 206));
   assert.equal(
     workerOk,
     true,
