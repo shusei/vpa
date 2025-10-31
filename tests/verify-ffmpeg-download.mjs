@@ -1,21 +1,28 @@
 import assert from 'node:assert/strict';
 import dns from 'node:dns/promises';
 
+const FFMPEG_VER = '0.12.15';
+const CORE_VER = '0.12.10';
 const CHECKS = [
   {
-    url: 'https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.15/dist/umd/index.js',
-    expect: 'javascript',
-    label: '@ffmpeg/util',
-  },
-  {
-    url: 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/umd/ffmpeg.min.js',
+    url: `https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@${FFMPEG_VER}/dist/esm/index.js`,
     expect: 'javascript',
     label: '@ffmpeg/ffmpeg',
   },
   {
-    url: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core-mt@0.12.15/dist/umd/ffmpeg-core.wasm',
+    url: `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/esm/ffmpeg-core.js`,
+    expect: 'javascript',
+    label: '@ffmpeg/core js',
+  },
+  {
+    url: `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/esm/ffmpeg-core.wasm`,
     expect: 'application/wasm',
-    label: '@ffmpeg/core-mt wasm',
+    label: '@ffmpeg/core wasm',
+  },
+  {
+    url: `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/esm/ffmpeg-core.worker.js`,
+    expect: 'javascript',
+    label: '@ffmpeg/core worker',
   },
 ];
 const HOST = new URL(CHECKS[0].url).hostname;
