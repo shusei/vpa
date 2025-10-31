@@ -2,13 +2,59 @@ import * as FF from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
 
 const FFMPEG_VER = "0.12.15";
-const CORE_VER = "0.12.10";
-const CORE_BASE_ESM = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/esm`;
-const CORE_BASE_UMD = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist`;
+const CORE_VER = "0.12.15";
+const CORE_BASE_OLD = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/esm`;
+const CORE_BASE_NEW = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist`;
 const FFMPEG_BASE = `https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@${FFMPEG_VER}/dist/esm`;
-const CORE_JS_URL = `${CORE_BASE_ESM}/ffmpeg-core.js`;
-const CORE_WASM_URL = `${CORE_BASE_ESM}/ffmpeg-core.wasm`;
-const CORE_WORKER_URL = `${CORE_BASE_UMD}/ffmpeg-core.worker.js`;
+
+// fallback: core script file may be .mjs instead of .js
+const CORE_SCRIPT_CANDIDATES = [
+  `${CORE_BASE_NEW}/ffmpeg-core.js`,
+  `${CORE_BASE_NEW}/ffmpeg-core.js?module`,
+  `${CORE_BASE_NEW}/ffmpeg-core.mjs`,
+  `${CORE_BASE_NEW}/ffmpeg-core.mjs?module`,
+  `${CORE_BASE_NEW}/js/ffmpeg-core.js`,
+  `${CORE_BASE_NEW}/js/ffmpeg-core.mjs`,
+  `${CORE_BASE_NEW}/esm/ffmpeg-core.js`,
+  `${CORE_BASE_NEW}/esm/ffmpeg-core.mjs`,
+  `${CORE_BASE_NEW}/wasm/ffmpeg-core.js`,
+  `${CORE_BASE_NEW}/wasm/ffmpeg-core.mjs`,
+  `${CORE_BASE_OLD}/ffmpeg-core.js`,
+  `${CORE_BASE_OLD}/ffmpeg-core.js?module`,
+  `${CORE_BASE_OLD}/ffmpeg-core.mjs`,
+  `${CORE_BASE_OLD}/ffmpeg-core.mjs?module`,
+  `${CORE_BASE_OLD}/js/ffmpeg-core.js`,
+  `${CORE_BASE_OLD}/js/ffmpeg-core.mjs`,
+  `${CORE_BASE_OLD}/wasm/ffmpeg-core.js`,
+  `${CORE_BASE_OLD}/wasm/ffmpeg-core.mjs`,
+];
+
+const CORE_WASM_CANDIDATES = [
+  `${CORE_BASE_NEW}/ffmpeg-core.wasm`,
+  `${CORE_BASE_NEW}/wasm/ffmpeg-core.wasm`,
+  `${CORE_BASE_NEW}/esm/ffmpeg-core.wasm`,
+  `${CORE_BASE_NEW}/js/ffmpeg-core.wasm`,
+  `${CORE_BASE_OLD}/ffmpeg-core.wasm`,
+  `${CORE_BASE_OLD}/wasm/ffmpeg-core.wasm`,
+  `${CORE_BASE_OLD}/esm/ffmpeg-core.wasm`,
+];
+
+const CORE_WORKER_CANDIDATES = [
+  `${CORE_BASE_NEW}/ffmpeg-core.worker.js`,
+  `${CORE_BASE_NEW}/ffmpeg-core.worker.js?module`,
+  `${CORE_BASE_NEW}/esm/ffmpeg-core.worker.js`,
+  `${CORE_BASE_NEW}/js/ffmpeg-core.worker.js`,
+  `${CORE_BASE_NEW}/wasm/ffmpeg-core.worker.js`,
+  `${CORE_BASE_OLD}/ffmpeg-core.worker.js`,
+  `${CORE_BASE_OLD}/ffmpeg-core.worker.js?module`,
+  `${CORE_BASE_OLD}/esm/ffmpeg-core.worker.js`,
+  `${CORE_BASE_OLD}/js/ffmpeg-core.worker.js`,
+  `${CORE_BASE_OLD}/wasm/ffmpeg-core.worker.js`,
+];
+
+let CORE_JS_URL = `${CORE_BASE_NEW}/ffmpeg-core.js`;
+let CORE_WASM_URL = `${CORE_BASE_NEW}/ffmpeg-core.wasm`;
+let CORE_WORKER_URL = `${CORE_BASE_NEW}/ffmpeg-core.worker.js`;
 const FFMPEG_WRAPPER_URL = `${FFMPEG_BASE}/worker.js`;
 
 let ffmpegInstance = null;
@@ -26,10 +72,104 @@ function subscribeProgress(callback) {
   return () => progressSubscribers.delete(callback);
 }
 
+async function tryPick(urls, expectMime, { batch = 4, timeoutMs = 3000 } = {}) {
+  if (typeof fetch !== "function") {
+    return urls[0];
+  }
+
+  const groups = [];
+  for (let i = 0; i < urls.length; i += batch) {
+    groups.push(urls.slice(i, i + batch));
+  }
+
+  const makeController = () => {
+    if (typeof AbortController !== "function") {
+      return { signal: undefined, done: () => {} };
+    }
+    const ac = new AbortController();
+    const id = setTimeout(() => ac.abort(), timeoutMs);
+    return {
+      signal: ac.signal,
+      done: () => clearTimeout(id),
+    };
+  };
+
+  const raceAny =
+    typeof Promise.any === "function"
+      ? Promise.any.bind(Promise)
+      : (promises) =>
+          new Promise((resolve, reject) => {
+            let rejected = 0;
+            const total = promises.length;
+            if (total === 0) {
+              reject(new Error("No promises provided"));
+              return;
+            }
+            promises.forEach((promise) => {
+              Promise.resolve(promise).then(resolve, () => {
+                rejected += 1;
+                if (rejected === total) {
+                  reject(new Error("All promises rejected"));
+                }
+              });
+            });
+          });
+
+  const probeOne = async (url) => {
+    const { signal, done } = makeController();
+    try {
+      let response = await fetch(url, { method: "HEAD", cache: "no-store", signal }).catch(() => null);
+      if (!response || !(response.ok || response.status === 206)) {
+        response = await fetch(url, {
+          method: "GET",
+          headers: { Range: "bytes=0-16" },
+          cache: "no-store",
+          signal,
+        }).catch(() => null);
+      }
+
+      if (response && (response.ok || response.status === 206)) {
+        const contentType = (response.headers.get("content-type") || "").toLowerCase();
+        if (!expectMime || (contentType && contentType.includes(expectMime))) {
+          return url;
+        }
+      }
+
+      throw new Error("probe-failed");
+    } finally {
+      done();
+    }
+  };
+
+  for (const group of groups) {
+    try {
+      const picked = await raceAny(group.map((url) => probeOne(url)));
+      if (picked) {
+        return picked;
+      }
+    } catch (_err) {
+      // fall through to next group
+    }
+  }
+
+  return urls[0];
+}
+
 async function verifyCoreReachable() {
   if (typeof fetch !== "function") {
     return;
   }
+
+  // fallback: 若新路徑 404 就改用舊路徑
+  CORE_JS_URL = await tryPick(CORE_SCRIPT_CANDIDATES, "javascript");
+  CORE_WASM_URL = await tryPick(CORE_WASM_CANDIDATES, "application/wasm");
+  CORE_WORKER_URL = await tryPick(CORE_WORKER_CANDIDATES, "javascript");
+
+  console.debug("[ffmpeg] picked core:", {
+    js: CORE_JS_URL,
+    wasm: CORE_WASM_URL,
+    worker: CORE_WORKER_URL,
+  });
 
   try {
     const resources = [
