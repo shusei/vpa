@@ -98,16 +98,20 @@ async function main() {
     );
   }
 
-  const workerESM = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/esm/ffmpeg-core.worker.js`;
-  const workerUMD = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/ffmpeg-core.worker.js`;
-  const workerESMResponse = await headOrRange(workerESM);
-  const workerUMDResponse = workerESMResponse ? null : await headOrRange(workerUMD);
-  const workerResponse = workerESMResponse || workerUMDResponse;
-
-  assert.ok(workerResponse, 'HEAD/GET probe for @ffmpeg/core worker failed (checked ESM & UMD)');
+  const workerUrl = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/ffmpeg-core.worker.js`;
+  const workerResponse = await headOrRange(workerUrl);
+  const workerOk = Boolean(workerResponse && workerResponse.ok);
+  assert.equal(
+    workerOk,
+    true,
+    `Probe failed for @ffmpeg/core worker: ${workerUrl} — status=${workerResponse?.status} ${workerResponse?.statusText}`,
+  );
 
   const allowOrigin = workerResponse.headers.get('access-control-allow-origin');
-  assert.ok(allowOrigin && allowOrigin.trim() !== '', 'Access-Control-Allow-Origin header missing for @ffmpeg/core worker');
+  assert.ok(
+    allowOrigin && allowOrigin.trim() !== '',
+    'Access-Control-Allow-Origin header missing for @ffmpeg/core worker',
+  );
   const contentType = workerResponse.headers.get('content-type');
   assert.ok(
     contentType && contentType.toLowerCase().includes('javascript'),
@@ -120,7 +124,7 @@ async function main() {
   );
 
   console.log(
-    `[ffmpeg-check] Verified @ffmpeg/core worker (${workerESMResponse ? workerESM : workerUMD}) — ${workerResponse.status} ${workerResponse.statusText}, CORS: ${allowOrigin}`,
+    `[ffmpeg-check] Verified @ffmpeg/core worker (${workerUrl}) — ${workerResponse.status} ${workerResponse.statusText}, CORS: ${allowOrigin}`,
   );
 }
 

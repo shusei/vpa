@@ -3,12 +3,12 @@ import { fetchFile, toBlobURL } from "@ffmpeg/util";
 
 const FFMPEG_VER = "0.12.15";
 const CORE_VER = "0.12.10";
-const CORE_BASE = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/esm`;
+const CORE_BASE_ESM = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/esm`;
+const CORE_BASE_UMD = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist`;
 const FFMPEG_BASE = `https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@${FFMPEG_VER}/dist/esm`;
-const CORE_JS_URL = `${CORE_BASE}/ffmpeg-core.js`;
-const CORE_WORKER_URL_ESM = `${CORE_BASE}/ffmpeg-core.worker.js`;
-const CORE_WORKER_URL_UMD = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/ffmpeg-core.worker.js`;
-const CORE_WASM_URL = `${CORE_BASE}/ffmpeg-core.wasm`;
+const CORE_JS_URL = `${CORE_BASE_ESM}/ffmpeg-core.js`;
+const CORE_WASM_URL = `${CORE_BASE_ESM}/ffmpeg-core.wasm`;
+const CORE_WORKER_URL = `${CORE_BASE_UMD}/ffmpeg-core.worker.js`;
 const FFMPEG_WRAPPER_URL = `${FFMPEG_BASE}/worker.js`;
 
 let ffmpegInstance = null;
@@ -126,8 +126,7 @@ async function getFFmpeg(mirrored) {
         mirrored.push(url);
         return url;
       }),
-      toBlobURL(CORE_WORKER_URL_ESM, "text/javascript")
-        .catch(() => toBlobURL(CORE_WORKER_URL_UMD, "text/javascript"))
+      toBlobURL(CORE_WORKER_URL, "text/javascript")
         .then((url) => {
           if (url) {
             mirrored.push(url);
@@ -175,9 +174,7 @@ async function ensureFFmpegLoaded(statusCallback) {
             toBlobURL(FFMPEG_WRAPPER_URL, "text/javascript"),
             toBlobURL(CORE_JS_URL, "text/javascript"),
             toBlobURL(CORE_WASM_URL, "application/wasm"),
-            toBlobURL(CORE_WORKER_URL_ESM, "text/javascript")
-              .catch(() => toBlobURL(CORE_WORKER_URL_UMD, "text/javascript"))
-              .catch(() => undefined),
+            toBlobURL(CORE_WORKER_URL, "text/javascript").catch(() => undefined),
           ]);
           [classWorkerURL, coreURL, wasmURL, workerURL]
             .filter(Boolean)
