@@ -2,6 +2,7 @@
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
 
 import { initI18n, t, getLocaleValue, onLocaleChange } from "./js/i18n.js";
+import { mixChannelDataToMono } from "./js/audio-utils.js";
 
 import {
   recordBtn,
@@ -1576,11 +1577,15 @@ async function decodeViaWebAudio(blobOrFile, targetSR=16000){
     }
     const mono = ctx.createBuffer(1, audioBuf.length, audioBuf.sampleRate);
     const outCh = mono.getChannelData(0);
-    const ch0 = audioBuf.getChannelData(0);
-    if (audioBuf.numberOfChannels > 1){
-      const ch1 = audioBuf.getChannelData(1);
-      for (let i=0;i<ch0.length;i++) outCh[i] = (ch0[i] + ch1[i]) / 2;
-    } else { outCh.set(ch0); }
+    const channels = [];
+    for (let i = 0; i < audioBuf.numberOfChannels; i++){
+      const chData = audioBuf.getChannelData(i);
+      if (chData) channels.push(chData);
+    }
+    const mixed = mixChannelDataToMono(channels, outCh);
+    if (mixed === 0 && channels[0]){
+      outCh.set(channels[0]);
+    }
 
     let out;
     if (audioBuf.sampleRate === targetSR){
