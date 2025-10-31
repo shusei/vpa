@@ -2,13 +2,22 @@ import * as FF from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
 
 const FFMPEG_VER = "0.12.15";
-const CORE_VER = "0.12.10";
-const CORE_BASE_ESM = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/esm`;
-const CORE_BASE_UMD = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist`;
+const CORE_VER = "0.12.15";
+const CORE_BASE_OLD = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/esm`;
+const CORE_BASE_NEW = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist`;
 const FFMPEG_BASE = `https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@${FFMPEG_VER}/dist/esm`;
-const CORE_JS_URL = `${CORE_BASE_ESM}/ffmpeg-core.js`;
-const CORE_WASM_URL = `${CORE_BASE_ESM}/ffmpeg-core.wasm`;
-const CORE_WORKER_URL = `${CORE_BASE_UMD}/ffmpeg-core.worker.js`;
+
+// fallback: core script file may be .mjs instead of .js
+const CORE_SCRIPT_CANDIDATES = [
+  `${CORE_BASE_NEW}/ffmpeg-core.js`,
+  `${CORE_BASE_NEW}/ffmpeg-core.mjs`,
+  `${CORE_BASE_OLD}/ffmpeg-core.js`,
+  `${CORE_BASE_OLD}/ffmpeg-core.mjs`,
+];
+
+let CORE_JS_URL = `${CORE_BASE_NEW}/ffmpeg-core.js`;
+let CORE_WASM_URL = `${CORE_BASE_NEW}/ffmpeg-core.wasm`;
+let CORE_WORKER_URL = `${CORE_BASE_NEW}/ffmpeg-core.worker.js`;
 const FFMPEG_WRAPPER_URL = `${FFMPEG_BASE}/worker.js`;
 
 let ffmpegInstance = null;
@@ -26,10 +35,51 @@ function subscribeProgress(callback) {
   return () => progressSubscribers.delete(callback);
 }
 
+async function tryFetchHead(urls) {
+  if (typeof fetch !== "function") {
+    return urls[0];
+  }
+
+  for (const url of urls) {
+    try {
+      let response = await fetch(url, { method: "HEAD", cache: "no-store" });
+      if (response?.ok) {
+        return url;
+      }
+
+      if (!response || !response.ok) {
+        response = await fetch(url, {
+          method: "GET",
+          headers: { Range: "bytes=0-16" },
+          cache: "no-store",
+        });
+        if (response?.ok || response?.status === 206) {
+          return url;
+        }
+      }
+    } catch (_err) {
+      // ignore fetch failure and try the next URL
+    }
+  }
+
+  return urls[0];
+}
+
 async function verifyCoreReachable() {
   if (typeof fetch !== "function") {
     return;
   }
+
+  // fallback: 若新路徑 404 就改用舊路徑
+  CORE_JS_URL = await tryFetchHead(CORE_SCRIPT_CANDIDATES);
+  CORE_WASM_URL = await tryFetchHead([
+    `${CORE_BASE_NEW}/ffmpeg-core.wasm`,
+    `${CORE_BASE_OLD}/ffmpeg-core.wasm`,
+  ]);
+  CORE_WORKER_URL = await tryFetchHead([
+    `${CORE_BASE_NEW}/ffmpeg-core.worker.js`,
+    `${CORE_BASE_OLD}/ffmpeg-core.worker.js`,
+  ]);
 
   try {
     const resources = [
