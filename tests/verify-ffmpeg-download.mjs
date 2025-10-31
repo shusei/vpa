@@ -59,8 +59,9 @@ async function pickReachableUrl(urls) {
 }
 
 const FFMPEG_VER = '0.12.15';
+const CORE_VER = '0.12.10';
 const FFMPEG_BASE = `https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@${FFMPEG_VER}/dist/esm`;
-const CORE_BASE = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
+const CORE_BASE = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/esm`;
 
 const FFMPEG_CHECKS = [
   {

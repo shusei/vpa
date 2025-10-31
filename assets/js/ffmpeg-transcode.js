@@ -3,7 +3,7 @@ import { fetchFile, toBlobURL } from "@ffmpeg/util";
 
 const FFMPEG_VER = "0.12.15";
 const CORE_VER = "0.12.10";
-const CORE_BASE = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm";
+const CORE_BASE = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/esm`;
 const CORE_JS_URL = `${CORE_BASE}/ffmpeg-core.js`;
 const CORE_WASM_URL = `${CORE_BASE}/ffmpeg-core.wasm`;
 
@@ -138,7 +138,7 @@ async function ensureFFmpegLoaded(statusCallback) {
             toBlobURL(CORE_JS_URL, "text/javascript"),
             toBlobURL(CORE_WASM_URL, "application/wasm"),
           ]);
-          [coreURL, wasmURL].forEach((url) => mirrored.push(url));
+          mirrored.push(coreURL, wasmURL);
           await instance.load({ coreURL, wasmURL });
         } else if (typeof instance.load === "function") {
           await instance.load();
