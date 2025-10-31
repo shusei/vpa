@@ -3,15 +3,17 @@ import dns from 'node:dns/promises';
 
 async function headOrRange(url) {
   let response = null;
+  let networkIssue = false;
   try {
     response = await fetch(url, { method: 'HEAD', cache: 'no-store' });
   } catch (error) {
     if (!isSkippableError(error)) {
       throw error;
     }
+    networkIssue = true;
   }
 
-  if (!response || !response.ok) {
+  if (!response || !(response.ok || response.status === 206)) {
     try {
       response = await fetch(url, {
         method: 'GET',
@@ -22,40 +24,67 @@ async function headOrRange(url) {
       if (!isSkippableError(error)) {
         throw error;
       }
+      return { response: null, status: response?.status, networkIssue: true };
     }
   }
 
   if (!response) {
-    return null;
+    return { response: null, status: undefined, networkIssue };
   }
 
   if (response.ok || response.status === 206) {
-    return response;
+    return { response, status: response.status, networkIssue };
   }
 
-  return null;
+  return { response: null, status: response.status, networkIssue };
+}
+
+async function pickReachableUrl(urls) {
+  let networkIssue = false;
+  let lastStatus;
+  for (const url of urls) {
+    const { response, status, networkIssue: candidateIssue } = await headOrRange(url);
+    if (response) {
+      return { url, response, networkIssue: false };
+    }
+    if (candidateIssue) {
+      networkIssue = true;
+    }
+    if (typeof status === 'number') {
+      lastStatus = status;
+    }
+  }
+
+  return { url: urls[0], response: null, networkIssue, status: lastStatus };
 }
 
 const FFMPEG_VER = '0.12.15';
-const CORE_VER = '0.12.15';
-const CHECKS = [
+const CORE_VER = '0.12.10';
+const FFMPEG_BASE = `https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@${FFMPEG_VER}/dist/esm`;
+const CORE_BASE = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/esm`;
+
+const FFMPEG_CHECKS = [
   {
-    url: `https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@${FFMPEG_VER}/dist/esm/index.js`,
-    expect: 'javascript',
     label: '@ffmpeg/ffmpeg',
-  },
-  {
-    url: `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/esm/ffmpeg-core.js`,
     expect: 'javascript',
-    label: '@ffmpeg/core js',
-  },
-  {
-    url: `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/esm/ffmpeg-core.wasm`,
-    expect: 'application/wasm',
-    label: '@ffmpeg/core wasm',
+    urls: [`${FFMPEG_BASE}/index.js`],
   },
 ];
-const HOST = new URL(CHECKS[0].url).hostname;
+
+const CORE_CHECKS = [
+  {
+    label: '@ffmpeg/core js',
+    expect: 'javascript',
+    urls: [`${CORE_BASE}/ffmpeg-core.js`],
+  },
+  {
+    label: '@ffmpeg/core wasm',
+    expect: 'application/wasm',
+    urls: [`${CORE_BASE}/ffmpeg-core.wasm`],
+  },
+];
+
+const HOST = new URL(FFMPEG_CHECKS[0].urls[0]).hostname;
 
 function isSkippableError(error) {
   const codes = new Set(['ENOTFOUND', 'ENETUNREACH', 'ECONNRESET', 'ECONNREFUSED', 'EAI_AGAIN', 'ETIMEDOUT']);
@@ -72,6 +101,23 @@ function isSkippableError(error) {
   return false;
 }
 
+function validateResponse(response, expect, label) {
+  const allowOrigin = response.headers.get('access-control-allow-origin');
+  assert.ok(allowOrigin && allowOrigin.trim() !== '', `Access-Control-Allow-Origin header missing for ${label}`);
+  const contentType = response.headers.get('content-type');
+  assert.ok(
+    contentType && contentType.toLowerCase().includes(expect),
+    `Unexpected content-type for ${label}: ${contentType}`,
+  );
+  const contentLength = response.headers.get('content-length');
+  assert.ok(
+    contentLength && Number.parseInt(contentLength, 10) > 0,
+    `Content-Length header missing or zero for ${label}`,
+  );
+
+  return { allowOrigin };
+}
+
 async function main() {
   try {
     await dns.lookup(HOST);
@@ -81,65 +127,41 @@ async function main() {
     return;
   }
 
-  for (const { url, expect, label } of CHECKS) {
-    const response = await headOrRange(url);
+  for (const { label, expect, urls } of FFMPEG_CHECKS) {
+    const { url, response, networkIssue } = await pickReachableUrl(urls);
     if (!response) {
-      console.warn(`[ffmpeg-check] Probe skipped for ${label} (${url}) due to network issues.`);
-      return;
+      if (networkIssue) {
+        console.warn(`[ffmpeg-check] Probe skipped for ${label} (${urls.join(' or ')}) due to network issues.`);
+        return;
+      }
+      throw new Error(`Unable to reach ${label} asset (tried ${urls.join(', ')})`);
     }
 
-    const allowOrigin = response.headers.get('access-control-allow-origin');
-    assert.ok(allowOrigin && allowOrigin.trim() !== '', `Access-Control-Allow-Origin header missing for ${label}`);
-    const contentType = response.headers.get('content-type');
-    assert.ok(
-      contentType && contentType.toLowerCase().includes(expect),
-      `Unexpected content-type for ${label}: ${contentType}`,
-    );
-    const contentLength = response.headers.get('content-length');
-    assert.ok(
-      contentLength && Number.parseInt(contentLength, 10) > 0,
-      `Content-Length header missing or zero for ${label}`,
-    );
+    const { allowOrigin } = validateResponse(response, expect, label);
 
     console.log(
       `[ffmpeg-check] Verified ${label} (${url}) — ${response.status} ${response.statusText}, CORS: ${allowOrigin}`,
     );
   }
 
-  const workerUrl = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/ffmpeg-core.worker.js`;
-  const workerResponse = await headOrRange(workerUrl);
-  if (!workerResponse) {
-    console.warn('[ffmpeg-check] Skipping @ffmpeg/core worker probe — network unavailable or no response.');
-    return;
-  }
+  for (const { label, expect, urls } of CORE_CHECKS) {
+    const { url, response, networkIssue, status } = await pickReachableUrl(urls);
+    if (!response) {
+      if (networkIssue) {
+        console.warn(`[ffmpeg-check] Probe skipped for ${label} (${urls.join(' or ')}) due to network issues.`);
+        return;
+      }
+      throw new Error(
+        `Unable to reach ${label} asset (tried ${urls.join(', ')}, last status: ${status ?? 'unknown'})`,
+      );
+    }
 
-  const status = workerResponse.status;
-  if (!(workerResponse.ok || status === 206)) {
-    console.warn(
-      `[ffmpeg-check] Worker probe returned ${status} ${workerResponse.statusText}; skipping failure.`,
+    const { allowOrigin } = validateResponse(response, expect, label);
+
+    console.log(
+      `[ffmpeg-check] Verified ${label} (${url}) — ${response.status} ${response.statusText}, CORS: ${allowOrigin}`,
     );
-    return;
   }
-
-  const allowOrigin = workerResponse.headers.get('access-control-allow-origin');
-  assert.ok(
-    allowOrigin && allowOrigin.trim() !== '',
-    'Access-Control-Allow-Origin header missing for @ffmpeg/core worker',
-  );
-  const contentType = workerResponse.headers.get('content-type');
-  assert.ok(
-    contentType && contentType.toLowerCase().includes('javascript'),
-    `Unexpected content-type for @ffmpeg/core worker: ${contentType}`,
-  );
-  const contentLength = workerResponse.headers.get('content-length');
-  assert.ok(
-    contentLength && Number.parseInt(contentLength, 10) > 0,
-    'Content-Length header missing or zero for @ffmpeg/core worker',
-  );
-
-  console.log(
-    `[ffmpeg-check] Verified @ffmpeg/core worker (${workerUrl}) — ${workerResponse.status} ${workerResponse.statusText}, CORS: ${allowOrigin}`,
-  );
 }
 
 main().catch((err) => {
