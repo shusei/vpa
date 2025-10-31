@@ -24,13 +24,32 @@ import {
 } from "./dom.js";
 import { EPS } from "./constants.js";
 
+const doc = typeof document !== "undefined" ? document : null;
+const spinnerTemplate = doc ? doc.createElement("span") : null;
+if (spinnerTemplate) {
+  spinnerTemplate.className = "spinner";
+}
+
 export function setStatus(text, spin = false) {
   if (!statusEl) return;
-  statusEl.innerHTML = spin ? `<span class="spinner"></span> ${text}` : text;
+  const message = text == null ? "" : String(text);
   if (spin) {
+    const nodes = [];
+    if (spinnerTemplate) {
+      nodes.push(spinnerTemplate.cloneNode(false));
+    }
+    if (message) {
+      nodes.push(doc ? doc.createTextNode(nodes.length ? ` ${message}` : message) : message);
+    }
+    if (nodes.length && typeof statusEl.replaceChildren === "function") {
+      statusEl.replaceChildren(...nodes);
+    } else {
+      statusEl.textContent = message;
+    }
     statusEl.dataset.busy = "true";
     statusEl.setAttribute("aria-busy", "true");
   } else {
+    statusEl.textContent = message;
     delete statusEl.dataset.busy;
     statusEl.removeAttribute("aria-busy");
   }
