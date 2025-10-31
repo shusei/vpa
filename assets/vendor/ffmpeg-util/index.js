@@ -95,4 +95,15 @@ export async function fetchFile(input) {
   throw new TypeError("fetchFile: unsupported input type");
 }
 
+export async function toBlobURL(url, mimeType) {
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response || !response.ok) {
+    const status = response ? `${response.status} ${response.statusText}` : "unknown";
+    throw new Error(`toBlobURL fetch failed: ${status}`);
+  }
+  const buffer = await response.arrayBuffer();
+  const blob = new Blob([buffer], { type: mimeType });
+  return URL.createObjectURL(blob);
+}
+
 export default fetchFile;
