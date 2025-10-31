@@ -1,12 +1,14 @@
 import * as FF from "@ffmpeg/ffmpeg";
-import { fetchFile } from "@ffmpeg/util";
+import { fetchFile, toBlobURL } from "@ffmpeg/util";
 
 const FFMPEG_VER = "0.12.15";
 const CORE_VER = "0.12.10";
 const CORE_BASE = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/esm`;
+const FFMPEG_BASE = `https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@${FFMPEG_VER}/dist/esm`;
 const CORE_JS_URL = `${CORE_BASE}/ffmpeg-core.js`;
 const CORE_WORKER_URL = `${CORE_BASE}/ffmpeg-core.worker.js`;
 const CORE_WASM_URL = `${CORE_BASE}/ffmpeg-core.wasm`;
+const FFMPEG_WRAPPER_URL = `${FFMPEG_BASE}/worker.js`;
 
 let ffmpegInstance = null;
 let ffmpegLoadingPromise = null;
@@ -29,21 +31,50 @@ async function verifyCoreReachable() {
   }
 
   try {
-    const response = await fetch(CORE_WASM_URL, { method: "HEAD", cache: "no-store" });
-    if (!response || !response.ok) {
-      const status = response ? `${response.status} ${response.statusText}` : "unknown";
-      throw new Error(`HEAD request failed: ${status}`);
-    }
+    const resources = [
+      {
+        url: CORE_WASM_URL,
+        label: "@ffmpeg/core wasm",
+        expect: "application/wasm",
+      },
+      {
+        url: FFMPEG_WRAPPER_URL,
+        label: "@ffmpeg/ffmpeg worker",
+        expect: "javascript",
+      },
+    ];
 
-    const allowOrigin = response.headers.get("access-control-allow-origin");
-    if (!allowOrigin) {
-      console.warn(
-        "[ffmpeg] HEAD ok but ACAO missing; will rely on load() for CORS check",
-      );
+    for (const { url, label, expect } of resources) {
+      let response = await fetch(url, { method: "HEAD", cache: "no-store" });
+      if (!response || !response.ok) {
+        response = await fetch(url, {
+          method: "GET",
+          headers: { Range: "bytes=0-16" },
+          cache: "no-store",
+        });
+        if (!response || !response.ok) {
+          const status = response ? `${response.status} ${response.statusText}` : "unknown";
+          throw new Error(`[${label}] probe failed: ${status}`);
+        }
+      }
+
+      const contentType = (response.headers.get("content-type") || "").toLowerCase();
+      if (expect && contentType && !contentType.includes(expect)) {
+        console.warn(
+          `[ffmpeg] Unexpected Content-Type for ${label}: ${contentType}`,
+        );
+      }
+
+      const allowOrigin = response.headers.get("access-control-allow-origin");
+      if (!allowOrigin) {
+        console.warn(
+          `[ffmpeg] HEAD ok but ACAO missing for ${label}; will rely on load() for CORS check`,
+        );
+      }
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error ?? "unknown error");
-    throw new Error(`Unable to reach ffmpeg-core.wasm at ${CORE_WASM_URL}: ${message}`);
+    throw new Error(`Unable to reach ffmpeg asset: ${message}`);
   }
 }
 
@@ -79,19 +110,33 @@ function attachProgressHandler(instance) {
   }
 }
 
-async function getFFmpeg() {
-  if (typeof FF.createFFmpeg === "function") {
-    return FF.createFFmpeg({
-      corePath: CORE_JS_URL,
-      wasmPath: CORE_WASM_URL,
-      workerPath: CORE_WORKER_URL,
-    });
+async function getFFmpeg(mirrored) {
+  if (typeof FF.FFmpeg === "function") {
+    return new FF.FFmpeg({ log: false });
   }
 
-  const instance = new FF.FFmpeg({
-    log: false,
-  });
-  return instance;
+  if (typeof FF.createFFmpeg === "function") {
+    const [corePath, wasmPath, workerPath] = await Promise.all([
+      toBlobURL(CORE_JS_URL, "text/javascript").then((url) => {
+        mirrored.push(url);
+        return url;
+      }),
+      toBlobURL(CORE_WASM_URL, "application/wasm").then((url) => {
+        mirrored.push(url);
+        return url;
+      }),
+      toBlobURL(CORE_WORKER_URL, "text/javascript")
+        .then((url) => {
+          mirrored.push(url);
+          return url;
+        })
+        .catch(() => undefined),
+    ]);
+
+    return FF.createFFmpeg({ log: false, corePath, wasmPath, workerPath });
+  }
+
+  throw new Error("@ffmpeg/ffmpeg: no compatible constructor available");
 }
 
 function isModernInstance(instance) {
@@ -116,19 +161,34 @@ async function ensureFFmpegLoaded(statusCallback) {
         ffmpegLoadingPromise = null;
         throw error;
       }
-      const instance = await getFFmpeg();
+      const mirrored = [];
+      const instance = await getFFmpeg(mirrored);
       attachProgressHandler(instance);
 
       try {
         if (isModernInstance(instance)) {
-          await instance.load({
-            coreURL: CORE_JS_URL,
-            wasmURL: CORE_WASM_URL,
-            workerURL: CORE_WORKER_URL,
-          });
+          const [classWorkerURL, coreURL, wasmURL, workerURL] = await Promise.all([
+            toBlobURL(FFMPEG_WRAPPER_URL, "text/javascript"),
+            toBlobURL(CORE_JS_URL, "text/javascript"),
+            toBlobURL(CORE_WASM_URL, "application/wasm"),
+            toBlobURL(CORE_WORKER_URL, "text/javascript").catch(() => undefined),
+          ]);
+          [classWorkerURL, coreURL, wasmURL, workerURL]
+            .filter(Boolean)
+            .forEach((url) => mirrored.push(url));
+          await instance.load({ coreURL, wasmURL, workerURL, classWorkerURL });
         } else if (typeof instance.load === "function") {
           await instance.load();
         }
+        setTimeout(() => {
+          mirrored.forEach((url) => {
+            try {
+              URL.revokeObjectURL(url);
+            } catch (_err) {
+              // ignore revoke failure
+            }
+          });
+        }, 30_000);
       } catch (error) {
         ffmpegLoadingPromise = null;
         throw error;

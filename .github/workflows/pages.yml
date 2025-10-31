@@ -19,6 +19,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          NODE_OPTIONS: "--dns-result-order=ipv4first"
+
+      - name: Run tests
+        run: npm test
+        env:
+          CI: "true"
+
       # 你的站是純靜態，直接把整個專案夾上傳當成網站內容
       - uses: actions/upload-pages-artifact@v3
         with:
