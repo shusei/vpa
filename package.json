@@ -4,10 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "npm run test:syntax && npm run test:markup && npm run test:ffmpeg",
+    "test": "npm run test:syntax && npm run test:markup && npm run test:ffmpeg && npm run test:decode",
     "test:syntax": "node --check assets/app.js",
     "test:markup": "node scripts/check-static.js",
     "test:ffmpeg": "node tests/verify-ffmpeg-download.mjs",
+    "test:decode": "node tests/verify-multichannel-mix.mjs",
     "regression": "node scripts/run-regression.js"
   }
 }
