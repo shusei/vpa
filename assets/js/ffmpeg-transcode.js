@@ -2,6 +2,7 @@ import * as FF from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
 
 const FFMPEG_VER = "0.12.15";
+const FFMPEG_BASE = `https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@${FFMPEG_VER}/dist/esm`;
 const CORE_VER = "0.12.10";
 const CORE_BASE = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/esm`;
 const CORE_JS_URL = `${CORE_BASE}/ffmpeg-core.js`;
@@ -134,12 +135,31 @@ async function ensureFFmpegLoaded(statusCallback) {
 
       try {
         if (isModernInstance(instance)) {
-          const [coreURL, wasmURL] = await Promise.all([
-            toBlobURL(CORE_JS_URL, "text/javascript"),
-            toBlobURL(CORE_WASM_URL, "application/wasm"),
+          const [classWorkerURL, coreURL, wasmURL] = await Promise.all([
+            toBlobURL(`${FFMPEG_BASE}/worker.js`, "text/javascript")
+              .then((url) => {
+                if (url) {
+                  mirrored.push(url);
+                }
+                return url;
+              })
+              .catch(() => undefined),
+            toBlobURL(CORE_JS_URL, "text/javascript").then((url) => {
+              mirrored.push(url);
+              return url;
+            }),
+            toBlobURL(CORE_WASM_URL, "application/wasm").then((url) => {
+              mirrored.push(url);
+              return url;
+            }),
           ]);
-          mirrored.push(coreURL, wasmURL);
-          await instance.load({ coreURL, wasmURL });
+
+          const loadOptions = { coreURL, wasmURL };
+          if (classWorkerURL) {
+            loadOptions.classWorkerURL = classWorkerURL;
+          }
+
+          await instance.load(loadOptions);
         } else if (typeof instance.load === "function") {
           await instance.load();
         }
