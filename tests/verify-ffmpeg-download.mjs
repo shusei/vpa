@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import dns from 'node:dns/promises';
 
-const TARGET_URL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core-mt@0.12.10/dist/umd/ffmpeg-core.wasm';
+const TARGET_URL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core-mt@0.12.15/dist/umd/ffmpeg-core.wasm';
 const HOST = new URL(TARGET_URL).hostname;
 
 function isSkippableError(error) {
