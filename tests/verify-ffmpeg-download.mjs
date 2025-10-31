@@ -59,10 +59,8 @@ async function pickReachableUrl(urls) {
 }
 
 const FFMPEG_VER = '0.12.15';
-const CORE_VER = '0.12.15';
 const FFMPEG_BASE = `https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@${FFMPEG_VER}/dist/esm`;
-const CORE_BASE_NEW = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist`;
-const CORE_BASE_OLD = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/esm`;
+const CORE_BASE = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
 
 const FFMPEG_CHECKS = [
   {
@@ -72,59 +70,16 @@ const FFMPEG_CHECKS = [
   },
 ];
 
-const CORE_CANDIDATE_CHECKS = [
+const CORE_CHECKS = [
   {
     label: '@ffmpeg/core js',
     expect: 'javascript',
-    urls: [
-      `${CORE_BASE_NEW}/ffmpeg-core.js`,
-      `${CORE_BASE_NEW}/ffmpeg-core.js?module`,
-      `${CORE_BASE_NEW}/ffmpeg-core.mjs`,
-      `${CORE_BASE_NEW}/ffmpeg-core.mjs?module`,
-      `${CORE_BASE_NEW}/js/ffmpeg-core.js`,
-      `${CORE_BASE_NEW}/js/ffmpeg-core.mjs`,
-      `${CORE_BASE_NEW}/esm/ffmpeg-core.js`,
-      `${CORE_BASE_NEW}/esm/ffmpeg-core.mjs`,
-      `${CORE_BASE_NEW}/wasm/ffmpeg-core.js`,
-      `${CORE_BASE_NEW}/wasm/ffmpeg-core.mjs`,
-      `${CORE_BASE_OLD}/ffmpeg-core.js`,
-      `${CORE_BASE_OLD}/ffmpeg-core.js?module`,
-      `${CORE_BASE_OLD}/ffmpeg-core.mjs`,
-      `${CORE_BASE_OLD}/ffmpeg-core.mjs?module`,
-      `${CORE_BASE_OLD}/js/ffmpeg-core.js`,
-      `${CORE_BASE_OLD}/js/ffmpeg-core.mjs`,
-      `${CORE_BASE_OLD}/wasm/ffmpeg-core.js`,
-      `${CORE_BASE_OLD}/wasm/ffmpeg-core.mjs`,
-    ],
+    urls: [`${CORE_BASE}/ffmpeg-core.js`],
   },
   {
     label: '@ffmpeg/core wasm',
     expect: 'application/wasm',
-    urls: [
-      `${CORE_BASE_NEW}/ffmpeg-core.wasm`,
-      `${CORE_BASE_NEW}/wasm/ffmpeg-core.wasm`,
-      `${CORE_BASE_NEW}/esm/ffmpeg-core.wasm`,
-      `${CORE_BASE_NEW}/js/ffmpeg-core.wasm`,
-      `${CORE_BASE_OLD}/ffmpeg-core.wasm`,
-      `${CORE_BASE_OLD}/wasm/ffmpeg-core.wasm`,
-      `${CORE_BASE_OLD}/esm/ffmpeg-core.wasm`,
-    ],
-  },
-  {
-    label: '@ffmpeg/core worker',
-    expect: 'javascript',
-    urls: [
-      `${CORE_BASE_NEW}/ffmpeg-core.worker.js`,
-      `${CORE_BASE_NEW}/ffmpeg-core.worker.js?module`,
-      `${CORE_BASE_NEW}/esm/ffmpeg-core.worker.js`,
-      `${CORE_BASE_NEW}/js/ffmpeg-core.worker.js`,
-      `${CORE_BASE_NEW}/wasm/ffmpeg-core.worker.js`,
-      `${CORE_BASE_OLD}/ffmpeg-core.worker.js`,
-      `${CORE_BASE_OLD}/ffmpeg-core.worker.js?module`,
-      `${CORE_BASE_OLD}/esm/ffmpeg-core.worker.js`,
-      `${CORE_BASE_OLD}/js/ffmpeg-core.worker.js`,
-      `${CORE_BASE_OLD}/wasm/ffmpeg-core.worker.js`,
-    ],
+    urls: [`${CORE_BASE}/ffmpeg-core.wasm`],
   },
 ];
 
@@ -188,7 +143,7 @@ async function main() {
     );
   }
 
-  for (const { label, expect, urls } of CORE_CANDIDATE_CHECKS) {
+  for (const { label, expect, urls } of CORE_CHECKS) {
     const { url, response, networkIssue, status } = await pickReachableUrl(urls);
     if (!response) {
       if (networkIssue) {
