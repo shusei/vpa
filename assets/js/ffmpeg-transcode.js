@@ -2,7 +2,7 @@ import * as FF from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
 
 const FFMPEG_VER = "0.12.15";
-const CORE_VER = "0.12.10";
+const CORE_VER = "0.12.15";
 const CORE_BASE_ESM = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/esm`;
 const CORE_BASE_UMD = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist`;
 const FFMPEG_BASE = `https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@${FFMPEG_VER}/dist/esm`;
