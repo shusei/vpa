@@ -1,8 +1,24 @@
 import assert from 'node:assert/strict';
 import dns from 'node:dns/promises';
 
-const TARGET_URL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core-mt@0.12.15/dist/umd/ffmpeg-core.wasm';
-const HOST = new URL(TARGET_URL).hostname;
+const CHECKS = [
+  {
+    url: 'https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.15/dist/umd/index.js',
+    expect: 'javascript',
+    label: '@ffmpeg/util',
+  },
+  {
+    url: 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/umd/ffmpeg.min.js',
+    expect: 'javascript',
+    label: '@ffmpeg/ffmpeg',
+  },
+  {
+    url: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core-mt@0.12.15/dist/umd/ffmpeg-core.wasm',
+    expect: 'application/wasm',
+    label: '@ffmpeg/core-mt wasm',
+  },
+];
+const HOST = new URL(CHECKS[0].url).hostname;
 
 function isSkippableError(error) {
   const codes = new Set(['ENOTFOUND', 'ENETUNREACH', 'ECONNRESET', 'ECONNREFUSED', 'EAI_AGAIN', 'ETIMEDOUT']);
@@ -28,28 +44,30 @@ async function main() {
     return;
   }
 
-  let response;
-  try {
-    response = await fetch(TARGET_URL, { method: 'HEAD', cache: 'no-store' });
-  } catch (err) {
-    if (isSkippableError(err)) {
-      const causeCode = err?.cause?.code || err?.cause?.errno;
-      const detail = err?.code || causeCode || err?.message;
-      console.warn(`[ffmpeg-check] Network unavailable (${detail}); skipping ffmpeg download verification.`);
+  for (const { url, expect, label } of CHECKS) {
+    const response = await performHeadRequest(url);
+    if (!response) {
       return;
     }
-    throw err;
+
+    assert.ok(response.ok, `HEAD request for ${label} failed with ${response.status} ${response.statusText}`);
+    const allowOrigin = response.headers.get('access-control-allow-origin');
+    assert.ok(allowOrigin && allowOrigin.trim() !== '', `Access-Control-Allow-Origin header missing for ${label}`);
+    const contentType = response.headers.get('content-type');
+    assert.ok(
+      contentType && contentType.toLowerCase().includes(expect),
+      `Unexpected content-type for ${label}: ${contentType}`,
+    );
+    const contentLength = response.headers.get('content-length');
+    assert.ok(
+      contentLength && Number.parseInt(contentLength, 10) > 0,
+      `Content-Length header missing or zero for ${label}`,
+    );
+
+    console.log(
+      `[ffmpeg-check] Verified ${label} (${url}) — ${response.status} ${response.statusText}, CORS: ${allowOrigin}`,
+    );
   }
-
-  assert.ok(response.ok, `HEAD request failed with ${response.status} ${response.statusText}`);
-  const allowOrigin = response.headers.get('access-control-allow-origin');
-  assert.ok(allowOrigin && allowOrigin.trim() !== '', 'Access-Control-Allow-Origin header missing in response');
-  const contentType = response.headers.get('content-type');
-  assert.ok(contentType && contentType.includes('application/wasm'), `Unexpected content-type: ${contentType}`);
-  const contentLength = response.headers.get('content-length');
-  assert.ok(contentLength && Number.parseInt(contentLength, 10) > 0, 'Content-Length header missing or zero');
-
-  console.log(`[ffmpeg-check] Verified ${TARGET_URL} — ${response.status} ${response.statusText}, CORS: ${allowOrigin}`);
 }
 
 main().catch((err) => {
@@ -63,3 +81,21 @@ main().catch((err) => {
   console.error(err);
   process.exitCode = 1;
 });
+
+async function performHeadRequest(url) {
+  try {
+    const response = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+    if (response.status === 405) {
+      return fetch(url, { method: 'GET', cache: 'no-store' });
+    }
+    return response;
+  } catch (err) {
+    if (isSkippableError(err)) {
+      const causeCode = err?.cause?.code || err?.cause?.errno;
+      const detail = err?.code || causeCode || err?.message;
+      console.warn(`[ffmpeg-check] Network unavailable (${detail}); skipping ffmpeg download verification.`);
+      return null;
+    }
+    throw err;
+  }
+}
