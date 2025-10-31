@@ -37,7 +37,7 @@ async function headOrRange(url) {
 }
 
 const FFMPEG_VER = '0.12.15';
-const CORE_VER = '0.12.10';
+const CORE_VER = '0.12.15';
 const CHECKS = [
   {
     url: `https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@${FFMPEG_VER}/dist/esm/index.js`,
