@@ -238,7 +238,7 @@ VPA 遵循相對路徑，可直接放在 `https://domain/app/vpa/` 等子路徑�
 
 - **網站程式碼**：依 repository 所附授權（預設 MIT，請依實際授權檔確認）。
 - **模型**：`prithivMLmods/Common-Voice-Gender-Detection-ONNX`（Apache-2.0）。
-- **第三方致謝**：`@xenova/transformers`、`@ffmpeg/ffmpeg`（ffmpeg.wasm）等開源專案。
+- **第三方致謝**：`@xenova/transformers`、`@ffmpeg/ffmpeg`（ffmpeg.wasm）、`@ffmpeg/util`（vendored ESM `fetchFile`）等開源專案。
 - **版本標記**：載入頁面時會自動填入 `build-YYYYMMDD-HHMM`，可於頁面右下角查看。【F:assets/app.js†L214-L244】【F:index.html†L577-L607】
 
 若本 README 與程式碼有出入，請以程式碼邏輯為準並歡迎提出 Issue 或 PR。
