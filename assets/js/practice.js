@@ -459,6 +459,44 @@ function renderList(cats = byCategory(state.data)) {
 
 function createCard(phrase) {
   const card = createEl("article", { class: "practice-card", dataset: { id: phrase.id } });
+  const closeLabel = t("practice.close") || "Close card";
+  const closeBtn = createEl("button", {
+    class: "practice-card__close",
+    type: "button",
+    title: closeLabel,
+    "aria-label": closeLabel,
+  }, document.createTextNode("×"));
+  closeBtn.addEventListener("click", async (event) => {
+    event.preventDefault();
+    const cards = Array.from(document.querySelectorAll(".practice-card"));
+    const currentIndex = cards.indexOf(card);
+    const recorder = getRecorder();
+    if (state.playingId === phrase.id) {
+      stopPracticePlayback();
+    }
+    if (state.lastPlayableId === phrase.id) {
+      state.lastPlayableId = null;
+    }
+    if (state.activeId === phrase.id) {
+      try {
+        if (recorder?.isRecording) {
+          await Promise.resolve(recorder.stop());
+        }
+      } catch (err) {
+        console.warn("[practice] stop recording on close failed", err);
+      }
+      cancelActiveRun(card);
+    }
+    const fallbackCard = cards[currentIndex + 1] || cards[currentIndex - 1] || null;
+    const fallbackTarget = fallbackCard?.querySelector('[data-act="toggle"]')
+      || document.querySelector("#practiceToggle");
+    card.remove();
+    if (fallbackTarget instanceof HTMLElement) {
+      requestAnimationFrame(() => {
+        fallbackTarget.focus();
+      });
+    }
+  });
   const text = createEl("div", { class: "practice-text" }, document.createTextNode(phrase.text || ""));
   const tip = createEl("div", { class: "practice-tip" }, document.createTextNode(phrase.tip || ""));
   const controls = createEl("div", { class: "practice-controls" });
@@ -483,7 +521,7 @@ function createCard(phrase) {
   const lastBadge = createEl("span", { class: "badge muted last" }, document.createTextNode(t("practice.lastNone") || "尚無紀錄"));
   badges.appendChild(lastBadge);
 
-  card.append(text, tip, controls, result, badges);
+  card.append(closeBtn, text, tip, controls, result, badges);
   bindCardEvents(card, phrase);
   hydrateLastBadge(card, phrase.id);
   setCardRecording(card, false);
