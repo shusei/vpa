@@ -81,6 +81,7 @@ export default {
     lastScore: "Last",
     playLast: "Play last take",
     playStop: "Stop playback",
+    close: "Close card",
   },
   upload: {
     title: "Upload audio (mp3 / m4a / mp4 / mov)",
