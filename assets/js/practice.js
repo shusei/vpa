@@ -3,6 +3,30 @@ import { loadPracticeData } from "./practice-data.js";
 
 const LS_SETTINGS = "vpa.practice.v1.settings";
 const LS_HISTORY = "vpa.practice.v1.history";
+const REF_VOICE_MODE_KEY = "practice:refVoiceMode";
+const REF_VOICE_LOCALE_KEY = "practice:refVoiceLocale";
+const DEFAULT_REF_LOCALE = "zh-Hant";
+
+const VOICE_PACK_BASE = {
+  "zh-Hant": {
+    oneesan: "assets/audio/zh-Hant/oneesan/",
+    loli: "assets/audio/zh-Hant/loli/",
+  },
+  "zh-Hans": {
+    oneesan: "assets/audio/zh-Hans/oneesan/",
+    loli: "assets/audio/zh-Hans/loli/",
+  },
+  en: {
+    oneesan: "assets/audio/en/oneesan/",
+    loli: "assets/audio/en/loli/",
+  },
+};
+
+const SYSTEM_TTS_PRESETS = {
+  oneesan: { rate: 0.95, pitch: 0.95 },
+  loli: { rate: 1.08, pitch: 1.22 },
+  system: { rate: 1.0, pitch: 1.0 },
+};
 
 const bridge = {
   subscribeInference: null,
@@ -22,7 +46,7 @@ const state = {
 
 const ttsState = {
   bound: false,
-  pendingText: null,
+  pending: null,
 };
 
 function ensureTtsListeners() {
@@ -31,14 +55,14 @@ function ensureTtsListeners() {
     const synth = window?.speechSynthesis;
     if (!synth) return;
     const handler = () => {
-      if (!ttsState.pendingText) return;
+      if (!ttsState.pending) return;
       if (state.runToken || getRecorder()?.isRecording) {
-        ttsState.pendingText = null;
+        ttsState.pending = null;
         return;
       }
-      const text = ttsState.pendingText;
-      ttsState.pendingText = null;
-      speak(text, { allowRetry: false });
+      const pending = ttsState.pending;
+      ttsState.pending = null;
+      requestSystemTts(pending.text, pending.locale, pending.style, { allowRetry: false });
     };
     synth.addEventListener("voiceschanged", handler);
     ttsState.bound = true;
@@ -91,6 +115,19 @@ function createEl(tag, attrs = {}, content = null) {
     }
   }
   return el;
+}
+
+function setSelectValue(select, value) {
+  if (!select) return null;
+  const options = Array.from(select.options || []);
+  if (!options.length) {
+    select.value = value;
+    return value;
+  }
+  const has = options.some((opt) => opt.value === value);
+  const finalValue = has ? value : options[0].value;
+  select.value = finalValue;
+  return finalValue;
 }
 
 function loadSettings() {
@@ -163,41 +200,118 @@ function byCategory(data) {
   return Array.from(map.values());
 }
 
-function selectVoice(voices) {
-  return voices.find((voice) => /zh|han|mandarin/i.test(voice.lang) && /female|woman|zh-TW/i.test(voice.name))
-    || voices.find((voice) => /zh|han|mandarin/i.test(voice.lang));
-}
-
-function speak(text, { allowRetry = true } = {}) {
+async function tryPlayPackAudio(phraseId, mode = "oneesan", locale = DEFAULT_REF_LOCALE) {
   try {
-    const synth = window.speechSynthesis;
-    if (!synth) return false;
-    ensureTtsListeners();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1.0;
-    utterance.pitch = 1.3;
-    const voices = synth.getVoices() || [];
-    if (!voices.length) {
-      if (allowRetry) {
-        ttsState.pendingText = text;
-      }
-      return false;
-    }
-    ttsState.pendingText = null;
-    const preferred = selectVoice(voices);
-    if (preferred) utterance.voice = preferred;
-    synth.cancel();
-    synth.speak(utterance);
+    const base = VOICE_PACK_BASE[locale]?.[mode];
+    if (!base) return false;
+    const url = `${base}${phraseId}.mp3`;
+    const res = await fetch(url, { method: "HEAD", cache: "no-store" });
+    if (!res.ok) return false;
+    const audio = new Audio(url);
+    await audio.play();
     return true;
   } catch (err) {
-    console.warn("[practice] speak failed", err);
     return false;
   }
 }
 
-async function playReference(phrase) {
+async function speakSystemTTS(text, locale = "zh-TW", style = "system") {
+  if (!("speechSynthesis" in window)) return false;
+  const synth = window.speechSynthesis;
+  const voices = synth.getVoices();
+
+  const prefer = (voice) => {
+    const name = (voice.name || "").toLowerCase();
+    const lang = (voice.lang || "").toLowerCase();
+    return (
+      (lang.includes(locale.toLowerCase()) ? 10 : 0)
+      + (/(natural|neural|aria|sara|xiao|hsiao|han|female)/.test(name) ? 3 : 0)
+      + (/female|女|小姐|sara/.test(name) ? 1 : 0)
+    );
+  };
+
+  const sorted = [...voices].sort((a, b) => prefer(b) - prefer(a));
+  const best = sorted[0];
+  const utterance = new SpeechSynthesisUtterance(text);
+  if (best) utterance.voice = best;
+
+  const preset = SYSTEM_TTS_PRESETS[style] || SYSTEM_TTS_PRESETS.system;
+  utterance.rate = preset.rate;
+  utterance.pitch = preset.pitch;
+
+  return new Promise((resolve) => {
+    utterance.onend = () => resolve(true);
+    utterance.onerror = () => resolve(false);
+    try {
+      synth.cancel();
+      synth.speak(utterance);
+    } catch (err) {
+      console.warn("[practice] system TTS failed", err);
+      resolve(false);
+    }
+  });
+}
+
+async function requestSystemTts(text, locale = "zh-TW", style = "system", { allowRetry = true } = {}) {
+  try {
+    const synth = window.speechSynthesis;
+    if (!synth) return false;
+    ensureTtsListeners();
+    const ok = await speakSystemTTS(text, locale, style);
+    if (!ok && allowRetry) {
+      ttsState.pending = { text, locale, style };
+    } else if (ok) {
+      ttsState.pending = null;
+    }
+    return ok;
+  } catch (err) {
+    console.warn("[practice] request system TTS failed", err);
+    return false;
+  }
+}
+
+function resolvePreferredRefLocale(locale) {
+  if (locale && VOICE_PACK_BASE[locale]) {
+    return locale;
+  }
+  return DEFAULT_REF_LOCALE;
+}
+
+export async function playReferenceForPhrase(phrase) {
   if (!phrase || !phrase.text) return false;
-  return speak(phrase.text);
+  let mode = "system";
+  try {
+    const storedMode = localStorage.getItem(REF_VOICE_MODE_KEY);
+    if (storedMode && ["system", "oneesan", "loli"].includes(storedMode)) {
+      mode = storedMode;
+    }
+  } catch (err) {
+    console.warn("[practice] read ref voice mode failed", err);
+  }
+  const uiLocale = getCurrentLocale();
+  let storedLocale = null;
+  try {
+    storedLocale = localStorage.getItem(REF_VOICE_LOCALE_KEY);
+  } catch (err) {
+    console.warn("[practice] read ref voice locale failed", err);
+  }
+  const locale = storedLocale && VOICE_PACK_BASE[storedLocale]
+    ? storedLocale
+    : resolvePreferredRefLocale(uiLocale);
+
+  if (mode === "oneesan" || mode === "loli") {
+    const ok = await tryPlayPackAudio(phrase.id, mode, locale);
+    if (ok) {
+      return true;
+    }
+  }
+
+  const ttsLocale = locale === "zh-Hant"
+    ? "zh-TW"
+    : locale === "zh-Hans"
+      ? "zh-CN"
+      : "en-US";
+  return requestSystemTts(phrase.text, ttsLocale, mode);
 }
 
 function showCountdown(card, seconds = 3) {
@@ -338,7 +452,7 @@ function bindCardEvents(card, phrase) {
     }
 
     if (action === "play") {
-      await playReference(phrase);
+      await playReferenceForPhrase(phrase);
       return;
     }
 
@@ -349,10 +463,6 @@ function bindCardEvents(card, phrase) {
       setBusyCard(card, true);
 
       if (state.shadowMode) {
-        await playReference(phrase);
-        if (state.runToken !== runToken) {
-          return;
-        }
         await showCountdown(card, 3);
         if (state.runToken !== runToken) {
           return;
@@ -524,6 +634,8 @@ export async function setupPracticeUI({ subscribeInference, recorder } = {}) {
   const shadow = qs("#practiceShadowMode");
   const advance = qs("#practiceAutoAdvance");
   const randomBtn = qs("#practiceRandomBtn");
+  const refMode = qs("#refVoiceMode");
+  const refLocale = qs("#refVoiceLocale");
 
   if (!toggle || !panel || !list || !nav || !shadow || !advance || !randomBtn) {
     return;
@@ -533,6 +645,56 @@ export async function setupPracticeUI({ subscribeInference, recorder } = {}) {
   loadHistory();
 
   await refreshData(getCurrentLocale());
+
+  if (refMode) {
+    let storedMode = "system";
+    try {
+      const read = localStorage.getItem(REF_VOICE_MODE_KEY);
+      if (read) storedMode = read;
+    } catch (err) {
+      console.warn("[practice] read ref voice mode failed", err);
+    }
+    const appliedMode = setSelectValue(refMode, storedMode);
+    if (!appliedMode) {
+      setSelectValue(refMode, "system");
+    }
+    refMode.addEventListener("change", () => {
+      try {
+        localStorage.setItem(REF_VOICE_MODE_KEY, refMode.value || "system");
+      } catch (err) {
+        console.warn("[practice] save ref voice mode failed", err);
+      }
+    });
+  }
+
+  let hasExplicitRefLocale = false;
+  if (refLocale) {
+    let storedLocale = null;
+    try {
+      storedLocale = localStorage.getItem(REF_VOICE_LOCALE_KEY);
+    } catch (err) {
+      console.warn("[practice] read ref voice locale failed", err);
+    }
+    const defaultLocale = resolvePreferredRefLocale(getCurrentLocale());
+    const initialLocale = storedLocale && VOICE_PACK_BASE[storedLocale]
+      ? storedLocale
+      : defaultLocale;
+    setSelectValue(refLocale, initialLocale);
+    hasExplicitRefLocale = Boolean(storedLocale && VOICE_PACK_BASE[storedLocale]);
+    refLocale.addEventListener("change", () => {
+      const next = refLocale.value;
+      hasExplicitRefLocale = Boolean(next);
+      try {
+        if (next) {
+          localStorage.setItem(REF_VOICE_LOCALE_KEY, next);
+        } else {
+          localStorage.removeItem(REF_VOICE_LOCALE_KEY);
+        }
+      } catch (err) {
+        console.warn("[practice] save ref voice locale failed", err);
+      }
+    });
+  }
 
   nav.addEventListener("click", (event) => {
     const target = event.target instanceof HTMLElement
@@ -622,6 +784,10 @@ export async function setupPracticeUI({ subscribeInference, recorder } = {}) {
 
   onLocaleChange(async (locale) => {
     await refreshData(locale);
+    if (refLocale && !hasExplicitRefLocale) {
+      const nextLocale = resolvePreferredRefLocale(locale);
+      setSelectValue(refLocale, nextLocale);
+    }
   });
 
   document.addEventListener("keydown", (event) => {
