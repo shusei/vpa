@@ -277,13 +277,6 @@ const RECORDING_TIMER_INTERVAL_MS = 250;
 let recordingTimerStartMs = 0;
 let recordingTimerInterval = null;
 
-function nowMs(){
-  if (typeof performance !== "undefined" && typeof performance.now === "function"){
-    return performance.now();
-  }
-  return Date.now();
-}
-
 function formatRecordingTimer(ms){
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
   const minutes = Math.floor(totalSeconds / 60);
