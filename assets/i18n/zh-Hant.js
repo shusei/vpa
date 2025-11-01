@@ -73,6 +73,8 @@ export default {
     shadowMode: "影子跟讀",
     autoAdvance: "自動下一句",
     randomOne: "隨機一句",
+    filterLabel: "依分類瀏覽句子",
+    allCategories: "全部",
     shadowHint: "會先播放參考語音，接著 3-2-1 倒數後開始錄音。每句建議 3–7 秒。",
     playRef: "播放參考",
     record: "錄音",

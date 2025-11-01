@@ -73,6 +73,8 @@ export default {
     shadowMode: "Shadowing mode",
     autoAdvance: "Auto next phrase",
     randomOne: "Random phrase",
+    filterLabel: "Browse by category",
+    allCategories: "All",
     shadowHint: "We’ll play the reference audio, count down 3-2-1, then start recording. Each phrase works best at 3–7 seconds.",
     playRef: "Play reference",
     record: "Record",

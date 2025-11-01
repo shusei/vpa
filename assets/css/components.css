@@ -736,6 +736,64 @@ html[data-faction="dark"] .summary-line{
   flex-wrap:wrap;
   gap:10px 14px;
 }
+.practice-nav{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:6px 0 16px;
+  padding:6px;
+  border-radius:16px;
+  border:1px solid color-mix(in oklab, var(--panel-border) 80%, transparent 20%);
+  background:color-mix(in oklab, var(--panel) 94%, #fff 6%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55);
+}
+.practice-nav__item{
+  appearance:none;
+  border:none;
+  border-radius:999px;
+  padding:6px 14px;
+  font-size:0.85rem;
+  font-weight:600;
+  letter-spacing:0.01em;
+  color:color-mix(in oklab, var(--ink) 84%, var(--muted) 16%);
+  background:transparent;
+  cursor:pointer;
+  position:relative;
+  transition:color .2s ease, background-color .2s ease, box-shadow .2s ease;
+  white-space:nowrap;
+}
+.practice-nav__item:hover,
+.practice-nav__item:focus-visible{
+  color:color-mix(in oklab, var(--ink) 92%, var(--muted) 8%);
+  background:color-mix(in oklab, var(--accent-2) 22%, var(--panel) 78%);
+  box-shadow:0 0 0 1px color-mix(in oklab, var(--accent-2) 45%, transparent 55%);
+  outline:none;
+}
+.practice-nav__item.is-active{
+  background:color-mix(in oklab, var(--accent-1) 62%, var(--panel) 38%);
+  color:color-mix(in oklab, var(--ink) 94%, #fff 6%);
+  box-shadow:0 6px 14px rgba(0,0,0,.16);
+}
+.practice-nav__item.is-active::after{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  border-radius:inherit;
+  border:1px solid color-mix(in oklab, var(--accent-1) 60%, transparent 40%);
+  opacity:.6;
+}
+html[data-faction="dark"] .practice-nav{
+  background:color-mix(in oklab, var(--panel) 78%, rgba(255,255,255,.04) 22%);
+  border-color:color-mix(in oklab, var(--panel-border) 70%, transparent 30%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+}
+html[data-faction="dark"] .practice-nav__item{
+  color:color-mix(in oklab, var(--ink) 88%, var(--muted) 12%);
+}
+html[data-faction="dark"] .practice-nav__item.is-active{
+  color:color-mix(in oklab, var(--ink) 94%, #fff 6%);
+  box-shadow:0 8px 20px rgba(0,0,0,.35);
+}
 .practice-list{
   display:grid;
   gap:12px;

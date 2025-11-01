@@ -2,15 +2,307 @@
   "version": 1,
   "license": "CC BY-NC 4.0",
   "categories": [
-    { "id": "greet", "title": "问候开场" },
-    { "id": "order", "title": "点餐 / 外带" },
-    { "id": "shop",  "title": "逛店 / 试穿" }
+    {
+      "id": "greet",
+      "title": "开场 / 礼貌"
+    },
+    {
+      "id": "assist",
+      "title": "请求协助"
+    },
+    {
+      "id": "time",
+      "title": "时间安排"
+    },
+    {
+      "id": "nav",
+      "title": "地点 / 导航"
+    },
+    {
+      "id": "shop",
+      "title": "购物 / 一般"
+    },
+    {
+      "id": "size",
+      "title": "尺码 / 试穿"
+    },
+    {
+      "id": "return",
+      "title": "换货 / 退货"
+    },
+    {
+      "id": "pay",
+      "title": "付款 / 发票"
+    },
+    {
+      "id": "cs",
+      "title": "电话 / 客服"
+    },
+    {
+      "id": "work",
+      "title": "工作 / 协作"
+    },
+    {
+      "id": "life",
+      "title": "生活 / 维修"
+    },
+    {
+      "id": "food",
+      "title": "餐饮（中性客制）"
+    }
   ],
   "phrases": [
-    { "id": "greet_wc", "cat": "greet", "text": "不好意思，请问洗手间在哪里？", "tip": "语尾上扬 100–200 ms", "difficulty": 1 },
-    { "id": "greet_ask", "cat": "greet", "text": "可以请你帮我一下吗？谢谢你。", "tip": "“你”拉长 120 ms", "difficulty": 1 },
-    { "id": "order_latte", "cat": "order", "text": "我要一杯热拿铁，中杯，少糖。", "tip": "关键词轻点、语速稳", "difficulty": 2 },
-    { "id": "order_bag", "cat": "order", "text": "可以帮我装袋吗？谢谢。", "tip": "收尾放松不下坠", "difficulty": 1 },
-    { "id": "shop_size", "cat": "shop", "text": "这件有 L 或 XL 吗？", "tip": "L/XL 清楚但不压喉", "difficulty": 2 }
+    {
+      "id": "greet.ask-please",
+      "cat": "greet",
+      "text": "不好意思，想请问一下…",
+      "tip": "变体：不好意思，我想询问一下… / 打扰一下，想请教…",
+      "difficulty": 1
+    },
+    {
+      "id": "greet.thanks",
+      "cat": "greet",
+      "text": "麻烦你了，谢谢。",
+      "tip": "变体：辛苦你了，谢谢。",
+      "difficulty": 1
+    },
+    {
+      "id": "greet.minute",
+      "cat": "greet",
+      "text": "可以占用你一分钟吗？",
+      "tip": "变体：方便耽误你一下吗？",
+      "difficulty": 1
+    },
+    {
+      "id": "assist.look",
+      "cat": "assist",
+      "text": "能帮我看一下这个设定吗？",
+      "tip": "变体：可以帮我确认一下这个选项吗？",
+      "difficulty": 1
+    },
+    {
+      "id": "assist.blocked",
+      "cat": "assist",
+      "text": "我这边卡住了，可以指一下做法吗？",
+      "tip": "变体：遇到问题了，可以给我方向吗？",
+      "difficulty": 1
+    },
+    {
+      "id": "assist.power",
+      "cat": "assist",
+      "text": "方便借我插一下电吗？",
+      "tip": "变体：能借用一下插座吗？",
+      "difficulty": 1
+    },
+    {
+      "id": "time.free5",
+      "cat": "time",
+      "text": "你什么时候有空聊五分钟？",
+      "tip": "变体：有空的时候可以聊一下吗？",
+      "difficulty": 1
+    },
+    {
+      "id": "time.move",
+      "cat": "time",
+      "text": "我们改到明天早上可以吗？",
+      "tip": "变体：能否改期到明天上午？",
+      "difficulty": 1
+    },
+    {
+      "id": "time.late10",
+      "cat": "time",
+      "text": "我可能会晚到十分钟，到时再跟你说。",
+      "tip": "变体：可能会稍微晚到，到了会通知。",
+      "difficulty": 1
+    },
+    {
+      "id": "nav.where",
+      "cat": "nav",
+      "text": "××在第几楼、哪个方向？",
+      "tip": "变体：请问××怎么走？",
+      "difficulty": 1
+    },
+    {
+      "id": "nav.mrt",
+      "cat": "nav",
+      "text": "这里离地铁站大概多久？",
+      "tip": "变体：走到地铁站大约要几分钟？",
+      "difficulty": 1
+    },
+    {
+      "id": "nav.entrance",
+      "cat": "nav",
+      "text": "我找不到入口，可以指路吗？",
+      "tip": "变体：入口在哪里？",
+      "difficulty": 1
+    },
+    {
+      "id": "shop.warranty",
+      "cat": "shop",
+      "text": "这个有保固吗？",
+      "tip": "变体：保固多久？",
+      "difficulty": 1
+    },
+    {
+      "id": "shop.variants",
+      "cat": "shop",
+      "text": "有其他颜色或款式吗？",
+      "tip": "变体：还有别的选择吗？",
+      "difficulty": 1
+    },
+    {
+      "id": "shop.invoice",
+      "cat": "shop",
+      "text": "可以开发票吗？",
+      "tip": "变体：可以提供发票吗？",
+      "difficulty": 1
+    },
+    {
+      "id": "size.updown",
+      "cat": "size",
+      "text": "这件有大一号或小一号吗？",
+      "tip": "变体：有其他尺码吗？",
+      "difficulty": 1
+    },
+    {
+      "id": "size.try",
+      "cat": "size",
+      "text": "可以试穿/试走一下吗？",
+      "tip": "变体：可以试一下吗？",
+      "difficulty": 1
+    },
+    {
+      "id": "size.foot",
+      "cat": "size",
+      "text": "我脚长 27.5，有对应的尺码吗？",
+      "tip": "变体：27.5cm 有对应号码吗？",
+      "difficulty": 1
+    },
+    {
+      "id": "return.swap",
+      "cat": "return",
+      "text": "我想换同款不同色，可以吗？",
+      "tip": "变体：能换成别的颜色吗？",
+      "difficulty": 1
+    },
+    {
+      "id": "return.defect",
+      "cat": "return",
+      "text": "这个有瑕疵，能协助处理吗？",
+      "tip": "变体：这里有问题，怎么处理比较好？",
+      "difficulty": 1
+    },
+    {
+      "id": "return.need",
+      "cat": "return",
+      "text": "需要带发票或包装吗？",
+      "tip": "变体：退换需要什么资料？",
+      "difficulty": 1
+    },
+    {
+      "id": "pay.card",
+      "cat": "pay",
+      "text": "可以刷卡或行动支付吗？",
+      "tip": "变体：支持哪些付款方式？",
+      "difficulty": 1
+    },
+    {
+      "id": "pay.carrier",
+      "cat": "pay",
+      "text": "载具在这，帮我存一下。",
+      "tip": "变体：帮我把发票存载具，谢谢。",
+      "difficulty": 1
+    },
+    {
+      "id": "pay.split",
+      "cat": "pay",
+      "text": "能帮我分成两张结账吗？",
+      "tip": "变体：可以拆成两笔吗？",
+      "difficulty": 1
+    },
+    {
+      "id": "cs.order",
+      "cat": "cs",
+      "text": "我想查询订单进度。",
+      "tip": "变体：可以帮我看一下订单目前到哪？",
+      "difficulty": 1
+    },
+    {
+      "id": "cs.link",
+      "cat": "cs",
+      "text": "刚刚的链接打不开，能再发一次吗？",
+      "tip": "变体：链接失效了，请再提供一次。",
+      "difficulty": 1
+    },
+    {
+      "id": "cs.cancel",
+      "cat": "cs",
+      "text": "想取消并退款，流程是什么？",
+      "tip": "变体：要怎么申请退款？",
+      "difficulty": 2
+    },
+    {
+      "id": "work.notes",
+      "cat": "work",
+      "text": "我把修改意见整理在备注，请帮我看一下。",
+      "tip": "变体：备注区有重点说明，麻烦过目。",
+      "difficulty": 1
+    },
+    {
+      "id": "work.block",
+      "cat": "work",
+      "text": "这张单卡在授权，可以协助吗？",
+      "tip": "变体：目前等授权，能帮忙推进吗？",
+      "difficulty": 2
+    },
+    {
+      "id": "work.more",
+      "cat": "work",
+      "text": "还需要我补什么资料？",
+      "tip": "变体：是否还缺什么资讯？",
+      "difficulty": 1
+    },
+    {
+      "id": "life.leak",
+      "cat": "life",
+      "text": "水龙头一直滴水，可以帮忙检查吗？",
+      "tip": "变体：水龙头在漏水，能派人来看吗？",
+      "difficulty": 1
+    },
+    {
+      "id": "life.voltage",
+      "cat": "life",
+      "text": "这台需要 110V 还是 220V？",
+      "tip": "变体：电压规格是 110 还是 220？",
+      "difficulty": 1
+    },
+    {
+      "id": "life.eta",
+      "cat": "life",
+      "text": "大概多久能修好？",
+      "tip": "变体：预计完成时间大约多久？",
+      "difficulty": 1
+    },
+    {
+      "id": "food.drink",
+      "cat": "food",
+      "text": "这杯无糖少冰，外带，谢谢。",
+      "tip": "变体：无糖去冰，外带。",
+      "difficulty": 1
+    },
+    {
+      "id": "food.spicy",
+      "cat": "food",
+      "text": "可以不要辣，酱另外放吗？",
+      "tip": "变体：不要辣，酱分开。",
+      "difficulty": 1
+    },
+    {
+      "id": "food.seats",
+      "cat": "food",
+      "text": "两位，用餐时间大约一小时。",
+      "tip": "变体：两位，大约一小时。",
+      "difficulty": 1
+    }
   ]
 }
