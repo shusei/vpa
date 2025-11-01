@@ -1,6 +1,8 @@
 import { t } from "./i18n.js";
 import {
   statusEl,
+  statusLabel,
+  statusTimer,
   pitchWrap,
   formantWrap,
   pitchNowEl,
@@ -30,30 +32,59 @@ if (spinnerTemplate) {
   spinnerTemplate.className = "spinner";
 }
 
+export const STATUS_TIMER_RESET = "00:00";
+
 export function setStatus(text, spin = false) {
   if (!statusEl) return;
   const message = text == null ? "" : String(text);
+  const labelTarget = statusLabel || statusEl;
   if (spin) {
     const nodes = [];
     if (spinnerTemplate) {
       nodes.push(spinnerTemplate.cloneNode(false));
     }
     if (message) {
-      nodes.push(doc ? doc.createTextNode(nodes.length ? ` ${message}` : message) : message);
+      nodes.push(
+        doc ? doc.createTextNode(nodes.length ? ` ${message}` : message) : message
+      );
     }
-    if (nodes.length && typeof statusEl.replaceChildren === "function") {
-      statusEl.replaceChildren(...nodes);
-    } else {
-      statusEl.textContent = message;
+    if (labelTarget && typeof labelTarget.replaceChildren === "function") {
+      if (nodes.length) {
+        labelTarget.replaceChildren(...nodes);
+      } else {
+        labelTarget.replaceChildren();
+      }
+    } else if (labelTarget) {
+      labelTarget.textContent = message;
     }
     statusEl.dataset.busy = "true";
     statusEl.setAttribute("aria-busy", "true");
   } else {
-    statusEl.textContent = message;
+    if (labelTarget && typeof labelTarget.replaceChildren === "function") {
+      const textNode = doc ? doc.createTextNode(message) : message;
+      labelTarget.replaceChildren(textNode);
+    } else if (labelTarget) {
+      labelTarget.textContent = message;
+    }
     delete statusEl.dataset.busy;
     statusEl.removeAttribute("aria-busy");
   }
   statusEl.classList.toggle("is-busy", spin);
+}
+
+export function setStatusTimer(value) {
+  if (!statusTimer) return;
+  const text = value == null ? STATUS_TIMER_RESET : String(value);
+  statusTimer.textContent = text;
+}
+
+export function toggleStatusTimer(active) {
+  if (statusEl) {
+    statusEl.classList.toggle("show-timer", !!active);
+  }
+  if (!active) {
+    setStatusTimer(STATUS_TIMER_RESET);
+  }
 }
 
 export function log(...args) {

@@ -59,6 +59,9 @@ import {
   resetRealtimePanels,
   resetMeter,
   isOOMError,
+  setStatusTimer,
+  toggleStatusTimer,
+  STATUS_TIMER_RESET,
 } from "./js/ui.js";
 import {
   PS_INTERVAL_MS,
@@ -269,6 +272,45 @@ let mediaRecorder = null, chunks = [];
 let clf = null, busy = false, heartbeatTimer = null;
 let currentDevice = "wasm";
 let isRecording = false;
+
+const RECORDING_TIMER_INTERVAL_MS = 250;
+let recordingTimerStartMs = 0;
+let recordingTimerInterval = null;
+
+function nowMs(){
+  if (typeof performance !== "undefined" && typeof performance.now === "function"){
+    return performance.now();
+  }
+  return Date.now();
+}
+
+function formatRecordingTimer(ms){
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function startRecordingTimer(){
+  if (recordingTimerInterval !== null){
+    clearInterval(recordingTimerInterval);
+  }
+  toggleStatusTimer(true);
+  setStatusTimer(STATUS_TIMER_RESET);
+  recordingTimerStartMs = nowMs();
+  recordingTimerInterval = setInterval(()=>{
+    const elapsedMs = nowMs() - recordingTimerStartMs;
+    setStatusTimer(formatRecordingTimer(elapsedMs));
+  }, RECORDING_TIMER_INTERVAL_MS);
+}
+
+function stopRecordingTimer(){
+  if (recordingTimerInterval !== null){
+    clearInterval(recordingTimerInterval);
+    recordingTimerInterval = null;
+  }
+  toggleStatusTimer(false);
+}
 
 ensurePlayerUI();
 setupExportButton();
@@ -1436,6 +1478,7 @@ async function startRecording(){
     }
   };
   mediaRecorder.onstop = async ()=>{
+    stopRecordingTimer();
     const resetBusyState = ()=>{
       busy = false;
       updateUploadAvailability();
@@ -1473,6 +1516,7 @@ async function startRecording(){
   document.body.classList.add("recording");
   document.querySelector(".container")?.classList.add("recording");
   setStatus(t("status.recording"));
+  startRecordingTimer();
   isRecording = true;
   updateUploadAvailability();
   updatePlaybackAvailability();
@@ -1487,6 +1531,7 @@ async function startRecording(){
     document.body.classList.remove("recording");
     document.querySelector(".container")?.classList.remove("recording");
     stream.getTracks().forEach(t=>t.stop());
+    stopRecordingTimer();
     throw err;
   }
 
@@ -1494,6 +1539,7 @@ async function startRecording(){
   startPitchStream(stream);
 }
 async function stopRecording(){
+  stopRecordingTimer();
   if (mediaRecorder && mediaRecorder.state!=="inactive"){
     busy = true;
     isRecording = false;
