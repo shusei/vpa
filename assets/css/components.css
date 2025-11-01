@@ -1089,3 +1089,24 @@ html[data-faction="dark"] .practice-result b{
   content:none !important;
 }
 
+/* 防止全域關閉／dismiss 樣式污染練習卡片 */
+#practiceList .practice-card[data-dismissable]::before,
+#practiceList .practice-card[data-dismissable]::after,
+#practiceList .practice-card.has-dismiss::before,
+#practiceList .practice-card.has-dismiss::after,
+#practiceList .practice-card.practice-card--dismissable::before,
+#practiceList .practice-card.practice-card--dismissable::after{
+  content:none !important;
+}
+
+#practiceList .practice-card .practice-dismiss,
+#practiceList .practice-card .practice-card__dismiss,
+#practiceList .practice-card [data-act="dismiss"]{
+  display:none !important;
+}
+
+#practiceList .practice-card::before,
+#practiceList .practice-card::after{
+  content:none !important;
+}
+

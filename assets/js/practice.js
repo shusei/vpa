@@ -676,12 +676,6 @@ export async function setupPracticeUI({ subscribeInference, recorder } = {}) {
     }
   });
 
-  closeBtn?.addEventListener("click", async () => {
-    if (!panel.hasAttribute("hidden")) {
-      await hidePracticePanel({ focusToggle: true });
-    }
-  });
-
   onLocaleChange(async (locale) => {
     await refreshData(locale);
   });
