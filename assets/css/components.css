@@ -659,3 +659,171 @@ html[data-faction="dark"] .summary-line{
   border-color:color-mix(in oklab, var(--panel-border) 48%, rgba(255,255,255,.12) 52%);
 }
 
+/* ---------- Generic buttons ---------- */
+.btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:6px 14px;
+  border-radius:999px;
+  border:1px solid var(--panel-border);
+  background:color-mix(in oklab, var(--panel) 82%, var(--surface) 18%);
+  color:color-mix(in oklab, var(--ink) 90%, var(--text) 10%);
+  font-weight:600;
+  font-size:0.95rem;
+  cursor:pointer;
+  transition:transform .2s ease, box-shadow .2s ease, background .2s ease;
+}
+.btn:hover{
+  transform:translateY(-1px);
+  box-shadow:0 6px 12px rgba(0,0,0,.08);
+}
+.btn:active{ transform:translateY(0); }
+.btn:focus-visible{
+  outline:2px solid var(--ring);
+  outline-offset:2px;
+}
+.btn[disabled],
+.btn:disabled{
+  opacity:0.55;
+  cursor:not-allowed;
+  box-shadow:none;
+  transform:none;
+}
+.btn.sm{
+  padding:4px 10px;
+  font-size:0.85rem;
+}
+.btn.ghost{
+  background:transparent;
+  border-style:dashed;
+}
+.btn.primary{
+  background:color-mix(in oklab, var(--accent-1) 62%, var(--panel) 38%);
+  border-color:color-mix(in oklab, var(--accent-1) 55%, var(--panel-border) 45%);
+  color:color-mix(in oklab, var(--ink) 85%, #fff 15%);
+}
+.btn.danger{
+  background:color-mix(in oklab, #f87171 70%, var(--panel) 30%);
+  border-color:color-mix(in oklab, #ef4444 65%, var(--panel-border) 35%);
+  color:color-mix(in oklab, var(--ink) 88%, #fff 12%);
+}
+
+/* ---------- Practice drawer ---------- */
+.practice-panel{
+  margin-top:12px;
+  padding:12px 16px;
+  border:1px solid var(--panel-border);
+  border-radius:14px;
+  background:color-mix(in oklab, var(--panel) 92%, #fff 8%);
+  box-shadow:0 4px 16px rgba(0,0,0,.06);
+}
+.practice-header{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:12px 16px;
+  margin-bottom:8px;
+}
+.practice-header h3{
+  margin:0;
+  font-size:1.1rem;
+}
+.practice-tools{
+  display:inline-flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:10px 14px;
+}
+.practice-list{
+  display:grid;
+  gap:12px;
+}
+.practice-cat{
+  margin:8px 0 0;
+  font-size:0.95rem;
+  font-weight:700;
+  color:color-mix(in oklab, var(--ink) 88%, var(--muted) 12%);
+}
+.practice-card{
+  border:1px solid var(--panel-border);
+  border-radius:12px;
+  padding:12px;
+  background:color-mix(in oklab, var(--panel) 88%, #fff 12%);
+}
+.practice-text{
+  font-size:1.05rem;
+  font-weight:600;
+  margin:0 0 4px;
+}
+.practice-tip{
+  font-size:0.9rem;
+  color:color-mix(in oklab, var(--ink) 78%, var(--muted) 22%);
+  margin:0 0 8px;
+}
+.practice-controls{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:8px;
+}
+.practice-result{
+  display:grid;
+  grid-auto-flow:column;
+  gap:16px;
+  align-items:baseline;
+  font-size:0.9rem;
+}
+.practice-result b{
+  font-size:1.2rem;
+  display:block;
+}
+.practice-badges{
+  margin-top:6px;
+}
+.muted{
+  color:var(--muted);
+}
+.badge.last{
+  background:color-mix(in oklab, var(--panel) 70%, var(--accent-1) 30%);
+}
+.countdown{
+  margin-top:6px;
+  font-size:1.4rem;
+  font-weight:700;
+  letter-spacing:0.05em;
+  display:inline-block;
+  min-width:2.5ch;
+  text-align:center;
+  will-change:transform, opacity;
+}
+.countdown.is-counting{
+  animation:practiceCountdownPop 0.8s ease-out;
+}
+.countdown[hidden]{
+  display:none !important;
+}
+
+@keyframes practiceCountdownPop{
+  0%{ transform:scale(0.6); opacity:0; }
+  45%{ transform:scale(1.15); opacity:1; }
+  100%{ transform:scale(1); opacity:1; }
+}
+.switch{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:0.9rem;
+  color:color-mix(in oklab, var(--ink) 88%, var(--muted) 12%);
+}
+.switch input{
+  accent-color:var(--accent-1);
+}
+
+@media (max-width: 640px){
+  .practice-controls{ gap:6px; }
+  .practice-result{ gap:10px; font-size:0.85rem; }
+  .practice-header{ flex-direction:column; align-items:flex-start; }
+}
+

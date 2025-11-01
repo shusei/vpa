@@ -21,6 +21,7 @@
 - [隱私、定位與免責聲明](#隱私定位與免責聲明)
 - [專案結構](#專案結構)
 - [版本資訊與授權](#版本資訊與授權)
+- [句庫 A + 自訂 UI B](#句庫-a--自訂-ui-b)
 
 ---
 
@@ -48,6 +49,7 @@ Voice Presentation Analyzer（以下簡稱 VPA）是一款完全以 Web 技術�
 
 - **錄音／上傳二合一流程**：支援 MediaRecorder 錄音，或從檔案系統挑選音訊／影片檔（自動抽出音軌）。【F:assets/app.js†L196-L320】【F:index.html†L311-L348】
 - **即時儀表與提示**：分析期間的儀表會即時刷新，狀態列同步顯示目前片段、進度百分比與預估剩餘時間。【F:assets/app.js†L566-L628】【F:index.html†L351-L397】
+- **句庫練習抽屜**：錄音鍵旁提供句子清單、影子跟讀倒數、自動下一句與隨機一句；卡片僅顯示女性傾向／男性傾向兩個百分比，不打擾主儀表。【F:index.html†L150-L208】【F:assets/js/practice.js†L1-L520】
 - **多主題與派別**：內建 30+ 顏色主題，可在 Auto / Light / Dark / 彩色派別中切換並記憶選擇。【F:index.html†L61-L123】【F:assets/js/theme.js†L1-L220】
 - **新手引導與使用指南**：首次造訪會出現提示泡泡，右上角 ❓ 可開啟圖文說明覆蓋層，支援鍵盤 `Esc` 關閉。【F:index.html†L214-L308】【F:assets/js/theme.js†L222-L339】
 
@@ -81,14 +83,15 @@ Voice Presentation Analyzer（以下簡稱 VPA）是一款完全以 Web 技術�
    - 點擊「開始錄音」並說話 5–10 秒（建議自然口語，避免唱歌）。
    - 或點擊右下角的上傳按鈕，挑選 `mp3 / m4a / mp4 / mov / wav` 等檔案。
      按下浮動按鈕時頁面會自動捲回頂端，方便直接看到上傳區塊與狀態列。【F:assets/app.js†L700-L730】
-3. **即時觀察**：錄音期間會顯示 Pitch Stream 與 Formant / Resonance 面板；上傳檔案則會離線抽樣並於統計卡展示。
-4. **等待推論完成**：儀表盤會顯示模型即時傾向、狀態列同步告知進度與預估剩餘時間。
-5. **檢視結果**：推論完成後，可在儀表下方閱讀統計卡與簡評，必要時點擊播放器回放剛才的音檔。
-6. **重複練習**：新的錄音或上傳會覆蓋舊音檔，快取的模型仍保留以加快後續推論。
+3. **需要靈感？** 錄音鍵旁的「句庫練習」提供多語句子，可開啟影子跟讀（播放參考音 + 3-2-1 倒數）後自動開始錄音；建議每句練習 3–7 秒。
+4. **即時觀察**：錄音期間會顯示 Pitch Stream 與 Formant / Resonance 面板；上傳檔案則會離線抽樣並於統計卡展示。
+5. **等待推論完成**：儀表盤會顯示模型即時傾向、狀態列同步告知進度與預估剩餘時間。
+6. **檢視結果**：推論完成後，可在儀表下方閱讀統計卡與簡評，必要時點擊播放器回放剛才的音檔。
+7. **重複練習**：新的錄音或上傳會覆蓋舊音檔，快取的模型仍保留以加快後續推論。
 
 錄音建議：
 - 環境盡量安靜，與麥克風保持 10–15 公分距離。
-- 使用自然說話聲音與語速。
+- 使用自然說話聲音與語速；句庫練習卡可搭配 <kbd>Space</kbd> 開始錄音、<kbd>J</kbd>/<kbd>K</kbd> 快速切換句子。
 - 若要上傳 iOS 語音備忘錄，可先在「檔案」App 儲存，再於本頁上傳。
 
 ---
@@ -103,6 +106,7 @@ Voice Presentation Analyzer（以下簡稱 VPA）是一款完全以 Web 技術�
 - **Formant & Resonance 卡**：展示 F1–F3 中位數、共鳴亮度與氣聲比例，並附上提示文字。【F:index.html†L522-L566】
 - **Speech Rate 卡**：統計語速與語音佔比，提醒是否語音不足。【F:index.html†L568-L575】
 - **簡評**：整合以上指標，標示指標分歧或錄音品質提醒。【F:assets/app.js†L1365-L1406】
+- **句庫練習卡**：沿用同一條推論管線，只在卡片顯示女性傾向／男性傾向兩個百分比；每句保存最近 20 筆歷程於本機，徽章會標出上次成績。【F:assets/js/practice.js†L1-L520】
 - **Volume / Environment 校正面板**：頁面中段的「麥克風音量校正」可依序量測背景噪音與 1 kHz 參考音，並輸入校正器輸出的 dB SPL（預設 94 dB）。完成後 Volume / Environment 會改以實際 dB 顯示並標記為「已校正」；未校正時仍維持原本的相對提示。校正需能產生穩定 1 kHz / 94 dB SPL 的聲級計或音訊介面，無法提供時建議保持相對模式。【F:index.html†L179-L215】【F:assets/app.js†L1974-L2077】【F:assets/i18n/zh-Hant.js†L108-L149】
 
 ---
@@ -122,6 +126,7 @@ Voice Presentation Analyzer（以下簡稱 VPA）是一款完全以 Web 技術�
 - **音訊處理**：WebAudio 進行即時頻譜、pitch、formant 與噪音估計；必要時退回 `ffmpeg.wasm` 解析影片音軌。【F:assets/app.js†L320-L565】
 - **分段策略**：根據裝置（WebGPU / WASM）與長度決定視窗與 hop，並顯示策略描述（如「WebGPU：24 秒窗 / hop 6 秒」）。【F:assets/app.js†L600-L704】
 - **聚合方法**：長檔使用對數勝算（log-odds）加權整合片段結果，以貼近整段一次推論的輸出。【F:assets/app.js†L566-L628】
+- **句庫練習流程**：播放裝置 TTS（若 voices 為空會等待 `voiceschanged`，仍不可用則略過）→ 3-2-1 倒數 → 單例 MediaRecorder 錄音 → 回寫 pf / pm 並以 localStorage 保存最近 20 筆歷程。【F:assets/js/practice.js†L1-L520】
 - **狀態管理**：透過 `analysisSeq` / `activeAnalysisToken` 確保並行操作時只保留最新一輪結果，避免 race condition。【F:assets/app.js†L70-L118】
 
 ---
@@ -145,6 +150,7 @@ npm test         # 依序執行 JS 語法檢查與 HTML/CSS 結構檢查
 - `npm run test:syntax`：使用 `node --check` 檢查 `assets/app.js` 語法。【F:package.json†L6-L11】
 - `npm run test:markup`：執行 `scripts/check-static.js`，掃描預設的 HTML / CSS 檔案是否存在未配對標籤、括號或引號。【F:scripts/check-static.js†L1-L207】
   - 可加上額外檔案：`npm run test:markup -- docs/landing.html assets/css/custom.css`
+- `npm run test:phrases`：驗證 Core‑36 句庫的結構（筆數、分類、ID、版本）。【F:tests/verify-phrases-core36.js†L1-L24】
 
 ### 本地預覽
 
@@ -153,6 +159,49 @@ npm test         # 依序執行 JS 語法檢查與 HTML/CSS 結構檢查
 ```bash
 npx serve .
 ```
+
+---
+
+## 句庫 A + 自訂 UI B
+
+### 句庫核心資料（Core‑36）
+
+- **檔案位置**：`assets/data/phrases/zh-Hant-core-36.json`
+- **格式定義**：請參考 `assets/js/phrases/types.d.ts`；`PhrasePack` 內含 `categories` 與 `items`，每筆 `PhraseItem` 可附 `alts`、`tags`、`difficulty` 與 `notes`。
+- **授權**：`license` 欄位標示為 `CC0-1.0`，示例句可自由再利用。
+- **驗收**：執行 `npm run test:phrases` 會檢查 Core‑36 結構（36 句、分類存在、ID 唯一、版本符合 `x.y.z`）。
+
+### Phrase Lab（使用者自訂介面）
+
+- **入口**：開啟 `assets/ui/phrases-lab.html`（靜態頁面），即可載入 Core‑36 與使用者在 `localStorage` (`phrases:userEdits`) 留存的客製資料。
+- **瀏覽與篩選**：
+  - 頂部提供搜尋（主句、變體、標籤、備註皆會匹配）。
+  - 可依分類、難度、收藏切換列表；收藏標記存於 `favorites`。
+- **分類管理**：
+  - 左側清單支援新增、改名、刪除、拖曳重排（拖動同時更新 `categories.order`）。
+  - 刪除分類時會同步移除底下句子與收藏紀錄。
+- **句子管理**：
+  - 右側卡片顯示主句、變體、標籤與備註；支援星標、編輯、刪除。
+  - 拖曳卡片可重新排序，或拖到其他分類；變更即寫入 `items.order` 與 `items.updated`。
+- **練習模式**：底部控制列提供依序／隨機、30/60/90 秒計時、隱藏提示、下一句等功能；進度顯示會跟著篩選結果更新。
+- **匯入/匯出**：
+  - 匯出會下載一份 `phrases-user-edits-YYYYMMDD-HHmmss.json`，包含 `schema`、基底版本與所有使用者修改。
+  - 匯入支援拖檔或點選檔案；若 `baseId` 不符 `zh-Hant-core-36` 會跳錯，避免混入其他語系。
+  - `重設` 會清除 `localStorage`，恢復為純 Core‑36。
+
+### JSON 格式與相容性
+
+- `categories.added / updated / removed / order`：記錄分類的增刪改與排序。
+- `items.added / updated / removed / order`：記錄句子的增刪改與分類內排序。
+- `favorites`：收藏句子的 ID 陣列，匯入時會自動過濾不存在的 ID。
+- 版本升級時可參考 `USER_EDITS_SCHEMA`（目前為 `1`），若未來 schema 變動請記得提供轉換邏輯。
+
+### 常見錯誤與排查
+
+- **`JSON 解析失敗`**：匯入的檔案非有效 JSON，重新輸出或檢查是否被編輯器插入註解。
+- **`基底句庫不符`**：匯入檔案的 `baseId` 與 Core‑36 不一致，請確認是否匯入了其他語言或舊專案的備份。
+- **LocalStorage 滿**：瀏覽器儲存空間不足時 `saveUserEdits` 會丟出例外，建議匯出備份後清除快取再重新匯入。
+- **排序失真**：若外部編輯 JSON 手動刪除 `items.order`，重載後會依現有排序重新建立，不影響資料內容。
 
 啟動後於瀏覽器開啟 `http://localhost:3000` 即可操作。
 
@@ -195,6 +244,7 @@ VPA 遵循相對路徑，可直接放在 `https://domain/app/vpa/` 等子路徑�
 | 模型載入失敗 | 首次載入網路不穩、Hugging Face CDN 無法存取 | 重整頁面，或在離線前確保模型已載入一次（IndexedDB 快取）。【F:assets/app.js†L520-L565】 |
 | 推論速度與桌機不同 | 系統會依 `navigator.hardwareConcurrency` 自動挑選 1–4 個 WASM 執行緒；Safari 與行動裝置為穩定性固定 1 執行緒 | 桌機若清除快取會重新偵測，可於 DevTools console 查看實際執行緒數；行動裝置回退單執行緒以避免排程過載。【F:assets/app.js†L1-L120】 |
 | 要清除舊音檔 | 重新錄音或上傳新檔案 | 系統僅保留「最新一段」的回放 URL，換檔即釋放。【F:assets/app.js†L710-L756】 |
+| 句庫參考音沒有聲音 | Safari / iOS 初次載入時 `speechSynthesis.getVoices()` 可能為空，或裝置未提供對應語音 | 等待系統觸發 `voiceschanged` 後會自動重試；若仍無語音則略過參考音直接倒數，錄音流程不受影響。【F:assets/js/practice.js†L1-L120】 |
 
 ---
 
@@ -204,6 +254,7 @@ VPA 遵循相對路徑，可直接放在 `https://domain/app/vpa/` 等子路徑�
 - 建議用於自我練習或語音訓練回饋，不應用於歧視或未經當事人同意的評估。
 - 灰色帶：若結果介於 **40–60%**，代表模型不確定，請多錄幾段觀察趨勢。
 - 已知侷限：模型以 Mozilla Common Voice 英語朗讀資料訓練，面對中文、方言、唱歌、戲腔等聲音時可能有偏差；噪音、回音、鼻音或刻意拉高音高亦可能影響結果。【F:assets/app.js†L566-L628】【F:index.html†L351-L397】
+- 句庫練習結果僅存於瀏覽器 localStorage，可隨時清除；參考音由裝置的語音合成器播放，聲線與口音會依平台而異。【F:assets/js/practice.js†L1-L200】
 
 ---
 
@@ -238,6 +289,7 @@ VPA 遵循相對路徑，可直接放在 `https://domain/app/vpa/` 等子路徑�
 
 - **網站程式碼**：依 repository 所附授權（預設 MIT，請依實際授權檔確認）。
 - **模型**：`prithivMLmods/Common-Voice-Gender-Detection-ONNX`（Apache-2.0）。
+- **句庫資料**：Core‑36 句庫（`assets/data/phrases/zh-Hant-core-36.json`）以 CC0-1.0 釋出；練習抽屜示例句（`assets/data/practice/*.json`）以 CC BY-NC 4.0 提供，可依需求替換或擴充。【F:assets/data/phrases/zh-Hant-core-36.json†L1-L70】【F:assets/data/practice/zh-Hant.json†L1-L25】
 - **第三方致謝**：`@xenova/transformers`、`@ffmpeg/ffmpeg`（ffmpeg.wasm）、`@ffmpeg/util`（vendored ESM `fetchFile`）等開源專案。
 - **版本標記**：載入頁面時會自動填入 `build-YYYYMMDD-HHMM`，可於頁面右下角查看。【F:assets/app.js†L214-L244】【F:index.html†L577-L607】
 
