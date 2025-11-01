@@ -1,0 +1,70 @@
+{
+  "id": "zh-Hant-core-36",
+  "lang": "zh-Hant",
+  "version": "1.0.0",
+  "title": "核心 36 句（中性版）",
+  "license": "CC0-1.0",
+  "categories": [
+    { "id": "greet", "name": "開場 / 禮貌" },
+    { "id": "assist", "name": "請求協助" },
+    { "id": "time", "name": "時間安排" },
+    { "id": "nav", "name": "地點 / 導航" },
+    { "id": "shop", "name": "購物 / 一般" },
+    { "id": "size", "name": "尺寸 / 試穿" },
+    { "id": "return", "name": "換貨 / 退貨" },
+    { "id": "pay", "name": "付款 / 發票" },
+    { "id": "cs", "name": "電話 / 客服" },
+    { "id": "work", "name": "工作 / 協作" },
+    { "id": "life", "name": "生活 / 維修" },
+    { "id": "food", "name": "餐飲（中性客製）" }
+  ],
+  "items": [
+    {"id":"greet.ask-please","cat":"greet","text":"不好意思，想請問一下…","alts":["不好意思，我想詢問一下…","打擾一下，想請教…"],"tags":["禮貌","開場"],"difficulty":"E"},
+    {"id":"greet.thanks","cat":"greet","text":"麻煩你了，謝謝。","alts":["辛苦你了，謝謝。"],"tags":["禮貌"],"difficulty":"E"},
+    {"id":"greet.minute","cat":"greet","text":"可以占用你一分鐘嗎？","alts":["方便耽誤你一下嗎？"],"tags":["禮貌","請求"],"difficulty":"E"},
+
+    {"id":"assist.look","cat":"assist","text":"能幫我看一下這個設定嗎？","alts":["可以幫我確認一下這個選項嗎？"],"tags":["請求","技術"],"difficulty":"E"},
+    {"id":"assist.blocked","cat":"assist","text":"我這邊卡住了，可以指一下做法嗎？","alts":["遇到問題了，可以給我方向嗎？"],"tags":["請求"],"difficulty":"E"},
+    {"id":"assist.power","cat":"assist","text":"方便借我插一下電嗎？","alts":["能借用一下插座嗎？"],"tags":["請求","場地"],"difficulty":"E"},
+
+    {"id":"time.free5","cat":"time","text":"你什麼時候有空聊五分鐘？","alts":["有空的時候可以聊一下嗎？"],"tags":["時間","協作"],"difficulty":"E"},
+    {"id":"time.move","cat":"time","text":"我們改到明天早上可以嗎？","alts":["能否改期到明天上午？"],"tags":["改期"],"difficulty":"E"},
+    {"id":"time.late10","cat":"time","text":"我可能會晚到十分鐘，到時再跟你說。","alts":["可能會稍微晚到，到了會通知。"],"tags":["遲到","通知"],"difficulty":"E"},
+
+    {"id":"nav.where","cat":"nav","text":"××在第幾樓、哪個方向？","alts":["請問××怎麼走？"],"tags":["導航"],"difficulty":"E"},
+    {"id":"nav.mrt","cat":"nav","text":"這裡離捷運站大概多久？","alts":["走到捷運站大約要幾分鐘？"],"tags":["導航","時間"],"difficulty":"E"},
+    {"id":"nav.entrance","cat":"nav","text":"我找不到入口，可以指路嗎？","alts":["入口在哪邊？"],"tags":["導航"],"difficulty":"E"},
+
+    {"id":"shop.warranty","cat":"shop","text":"這個有保固嗎？","alts":["保固多久？"],"tags":["購物"],"difficulty":"E"},
+    {"id":"shop.variants","cat":"shop","text":"有其他顏色或款式嗎？","alts":["還有別的選擇嗎？"],"tags":["購物","款式"],"difficulty":"E"},
+    {"id":"shop.invoice","cat":"shop","text":"可以開發票嗎？","alts":["可以提供發票嗎？"],"tags":["發票"],"difficulty":"E"},
+
+    {"id":"size.updown","cat":"size","text":"這件有大一號或小一號嗎？","alts":["有其他尺寸嗎？"],"tags":["尺寸","試穿"],"difficulty":"E"},
+    {"id":"size.try","cat":"size","text":"可以試穿/試走一下嗎？","alts":["可以試一下嗎？"],"tags":["試穿"],"difficulty":"E"},
+    {"id":"size.foot","cat":"size","text":"我腳長 27.5，有對應的尺寸嗎？","alts":["27.5cm 有對應號碼嗎？"],"tags":["尺寸","鞋"],"difficulty":"E"},
+
+    {"id":"return.swap","cat":"return","text":"我想換同款不同色，可以嗎？","alts":["能換成別的顏色嗎？"],"tags":["換貨"],"difficulty":"E"},
+    {"id":"return.defect","cat":"return","text":"這個有瑕疵，能協助處理嗎？","alts":["這邊有問題，怎麼處理比較好？"],"tags":["退換","問題"],"difficulty":"E"},
+    {"id":"return.need","cat":"return","text":"需要帶發票或包裝嗎？","alts":["退換需要什麼資料？"],"tags":["退換","規定"],"difficulty":"E"},
+
+    {"id":"pay.card","cat":"pay","text":"可以刷卡或行動支付嗎？","alts":["支援哪些付款方式？"],"tags":["付款"],"difficulty":"E"},
+    {"id":"pay.carrier","cat":"pay","text":"載具在這，幫我存一下。","alts":["幫我把發票存載具，謝謝。"],"tags":["發票","載具"],"difficulty":"E"},
+    {"id":"pay.split","cat":"pay","text":"能幫我分成兩張結帳嗎？","alts":["可以拆成兩筆嗎？"],"tags":["付款","分單"],"difficulty":"E"},
+
+    {"id":"cs.order","cat":"cs","text":"我想查詢訂單進度。","alts":["可以幫我看一下訂單目前到哪？"],"tags":["客服","訂單"],"difficulty":"E"},
+    {"id":"cs.link","cat":"cs","text":"剛剛的連結打不開，能再發一次嗎？","alts":["連結失效了，請再提供一次。"],"tags":["客服","連結"],"difficulty":"E"},
+    {"id":"cs.cancel","cat":"cs","text":"想取消並退款，流程是什麼？","alts":["要怎麼申請退款？"],"tags":["客服","退款"],"difficulty":"M"},
+
+    {"id":"work.notes","cat":"work","text":"我把修改意見整理在備註，請幫我看一下。","alts":["備註區有重點說明，麻煩過目。"],"tags":["工作","協作"],"difficulty":"E"},
+    {"id":"work.block","cat":"work","text":"這張單卡在授權，可以協助嗎？","alts":["目前等授權，能幫忙推進嗎？"],"tags":["工作","流程"],"difficulty":"M"},
+    {"id":"work.more","cat":"work","text":"還需要我補什麼資料？","alts":["是否還缺什麼資訊？"],"tags":["工作","協作"],"difficulty":"E"},
+
+    {"id":"life.leak","cat":"life","text":"水龍頭一直滴水，可以幫忙檢查嗎？","alts":["水龍頭在漏水，能派人來看嗎？"],"tags":["維修","居家"],"difficulty":"E"},
+    {"id":"life.voltage","cat":"life","text":"這台需要 110V 還是 220V？","alts":["電壓規格是 110 還是 220？"],"tags":["設備","電力"],"difficulty":"E"},
+    {"id":"life.eta","cat":"life","text":"大概多久能修好？","alts":["預計完成時間大約多久？"],"tags":["維修","時間"],"difficulty":"E"},
+
+    {"id":"food.drink","cat":"food","text":"這杯無糖少冰，外帶，謝謝。","alts":["無糖去冰，外帶。"],"tags":["餐飲","客製"],"difficulty":"E"},
+    {"id":"food.spicy","cat":"food","text":"可以不要辣，醬另外放嗎？","alts":["不要辣，醬分開。"],"tags":["餐飲","客製"],"difficulty":"E"},
+    {"id":"food.seats","cat":"food","text":"兩位，用餐時間大約一小時。","alts":["兩位，大約一小時。"],"tags":["餐飲","候位"],"difficulty":"E"}
+  ]
+}

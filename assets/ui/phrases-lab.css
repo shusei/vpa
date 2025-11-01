@@ -1,0 +1,423 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f7f8fb;
+  --panel: #ffffff;
+  --border: rgba(0,0,0,0.1);
+  --border-strong: rgba(0,0,0,0.18);
+  --text: #1f2933;
+  --text-subtle: #4b5563;
+  --accent: #2563eb;
+  --accent-muted: rgba(37, 99, 235, 0.12);
+  --danger: #dc2626;
+  font-family: "Noto Sans TC", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.lab-app {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 1.5rem;
+  padding: 1.5rem clamp(1rem, 4vw, 3rem) 2rem;
+}
+
+.lab-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lab-header__titles h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 2vw + 1rem, 2.25rem);
+}
+
+.lab-subtitle {
+  margin: 0.15rem 0 0;
+  color: var(--text-subtle);
+  font-size: 0.95rem;
+}
+
+.lab-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.lab-search input {
+  width: min(320px, 60vw);
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  font-size: 0.95rem;
+}
+
+.lab-filter-group select,
+.lab-filter-group input[type="checkbox"] {
+  font-size: 0.9rem;
+}
+
+.lab-filter-group select {
+  padding: 0.45rem 0.6rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.lab-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  color: var(--text-subtle);
+}
+
+.lab-header__buttons .btn {
+  font-size: 0.9rem;
+}
+
+.lab-main {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(220px, 280px) 1fr;
+}
+
+.lab-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.lab-section-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.lab-categories,
+.lab-phrases,
+.lab-practice {
+  background: var(--panel);
+  border-radius: 18px;
+  padding: 1.25rem;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.05);
+  border: 1px solid var(--border);
+}
+
+.category-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.category-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.75rem;
+  background: rgba(15, 23, 42, 0.03);
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: grab;
+}
+
+.category-item.is-active {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+}
+
+.category-item:focus-within,
+.category-item.drag-over {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+}
+
+.category-item__label {
+  flex: 1;
+  text-align: left;
+  background: transparent;
+  border: none;
+  font-size: 0.95rem;
+  color: inherit;
+}
+
+.category-item__actions {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.category-item .btn.icon {
+  border: none;
+  background: transparent;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.category-item .btn.icon:hover {
+  background: rgba(15, 23, 42, 0.08);
+}
+
+.lab-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-subtle);
+}
+
+.lab-counter {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-subtle);
+}
+
+.phrase-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.phrase-card {
+  background: rgba(15, 23, 42, 0.02);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  padding: 1rem;
+  display: grid;
+  gap: 0.6rem;
+  cursor: grab;
+}
+
+.phrase-card.drag-over {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+}
+
+.phrase-card header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.phrase-card h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.35;
+}
+
+.phrase-meta {
+  margin: 0;
+  color: var(--text-subtle);
+  font-size: 0.88rem;
+}
+
+.phrase-alts {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--text-subtle);
+  font-size: 0.9rem;
+}
+
+.phrase-alts li {
+  margin: 0.2rem 0;
+}
+
+.phrase-notes {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-subtle);
+}
+
+.phrase-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.phrase-star {
+  border: none;
+  background: transparent;
+  font-size: 1.35rem;
+  cursor: pointer;
+  line-height: 1;
+  color: #d97706;
+}
+
+.phrase-star[aria-pressed="true"] {
+  text-shadow: 0 0 6px rgba(217, 119, 6, 0.4);
+}
+
+.lab-empty {
+  margin: 1rem 0 0;
+  text-align: center;
+  color: var(--text-subtle);
+}
+
+.btn {
+  border-radius: 999px;
+  border: 1px solid transparent;
+  padding: 0.45rem 1rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  background: rgba(15, 23, 42, 0.05);
+  color: var(--text);
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn.ghost {
+  background: transparent;
+  border-color: var(--border);
+}
+
+.btn.sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.lab-practice {
+  display: grid;
+  gap: 1rem;
+}
+
+.practice-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  align-items: center;
+}
+
+.practice-controls label {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.practice-controls select {
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.practice-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.practice-status {
+  font-size: 0.9rem;
+  color: var(--text-subtle);
+}
+
+.practice-card {
+  border: 1px dashed var(--accent);
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.practice-card h3 {
+  margin: 0 0 0.6rem;
+}
+
+.practice-card p {
+  margin: 0 0 0.5rem;
+}
+
+.practice-card ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.lab-dialog {
+  border: none;
+  border-radius: 16px;
+  padding: 1.5rem;
+  max-width: 420px;
+  width: calc(100% - 2rem);
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.25);
+}
+
+.lab-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.lab-dialog form {
+  display: grid;
+  gap: 1rem;
+}
+
+.lab-dialog label {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.lab-dialog input,
+.lab-dialog textarea,
+.lab-dialog select {
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.65rem;
+  font-size: 0.95rem;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+@media (max-width: 1024px) {
+  .lab-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .lab-app {
+    padding: 1rem;
+  }
+  .lab-header__actions {
+    width: 100%;
+  }
+  .lab-search input {
+    width: 100%;
+  }
+}

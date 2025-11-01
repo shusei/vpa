@@ -86,6 +86,7 @@ import {
   fmt1,
   logPostProcessingDiagnostics,
 } from "./js/pitch-shared.js";
+import { setupPracticeUI } from "./js/practice.js";
 
 /** 只用遠端（Hugging Face Hub），停用本機 /models 尋址 */
 env.allowLocalModels = false;
@@ -273,6 +274,36 @@ let clf = null, busy = false, heartbeatTimer = null;
 let currentDevice = "wasm";
 let isRecording = false;
 
+const inferenceListeners = new Set();
+
+export function onInferenceDone(cb){
+  if (typeof cb !== "function") return () => {};
+  inferenceListeners.add(cb);
+  return () => inferenceListeners.delete(cb);
+}
+
+function notifyInferenceListeners(pf, pm){
+  if (!inferenceListeners.size) return;
+  const payload = {
+    pf: Number.isFinite(pf) ? pf : 0,
+    pm: Number.isFinite(pm) ? pm : 0,
+  };
+  inferenceListeners.forEach((listener) => {
+    try {
+      listener(payload);
+    } catch (err) {
+      console.warn("[practice] listener error", err);
+    }
+  });
+}
+
+export const recorderCtl = {
+  get isRecording(){ return isRecording; },
+  get busy(){ return busy; },
+  start: () => startRecording(),
+  stop: () => stopRecording(),
+};
+
 const RECORDING_TIMER_INTERVAL_MS = 250;
 let recordingTimerStartMs = 0;
 let recordingTimerInterval = null;
@@ -307,6 +338,11 @@ function stopRecordingTimer(){
 
 ensurePlayerUI();
 setupExportButton();
+try{
+  await setupPracticeUI({ subscribeInference: onInferenceDone, recorder: recorderCtl });
+}catch(err){
+  console.error("[practice] init failed", err);
+}
 
 let analysisSeq = 0;
 let activeAnalysisToken = 0;
@@ -1610,6 +1646,7 @@ async function handleFileOrBlob(fileOrBlob, source = "upload"){
     if (isAnalysisActive(token)){
       setStatus(t("status.errorPrefix", { message: e?.message || t("status.decodeFailure") }));
     }
+    notifyInferenceListeners(0, 0);
   }finally{
     if (decoded) decoded.float32 = null;
     decoded = null;
@@ -2643,6 +2680,9 @@ function rms(arr, a, b){ let s=0; for(let i=a;i<b;i++){ const v=arr[i]; s += v*v
 function finishStreamStats(){
   try{
     const statsEl = document.getElementById("streamStats");
+    const pfVal = Number.isFinite(lastPf) ? lastPf : 0;
+    const pmVal = Number.isFinite(lastPm) ? lastPm : 0;
+    notifyInferenceListeners(pfVal, pmVal);
     if (!statsEl) return;
 
     const headerHTML = `

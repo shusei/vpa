@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "license": "CC BY-NC 4.0",
+  "categories": [
+    { "id": "greet", "title": "问候开场" },
+    { "id": "order", "title": "点餐 / 外带" },
+    { "id": "shop",  "title": "逛店 / 试穿" }
+  ],
+  "phrases": [
+    { "id": "greet_wc", "cat": "greet", "text": "不好意思，请问洗手间在哪里？", "tip": "语尾上扬 100–200 ms", "difficulty": 1 },
+    { "id": "greet_ask", "cat": "greet", "text": "可以请你帮我一下吗？谢谢你。", "tip": "“你”拉长 120 ms", "difficulty": 1 },
+    { "id": "order_latte", "cat": "order", "text": "我要一杯热拿铁，中杯，少糖。", "tip": "关键词轻点、语速稳", "difficulty": 2 },
+    { "id": "order_bag", "cat": "order", "text": "可以帮我装袋吗？谢谢。", "tip": "收尾放松不下坠", "difficulty": 1 },
+    { "id": "shop_size", "cat": "shop", "text": "这件有 L 或 XL 吗？", "tip": "L/XL 清楚但不压喉", "difficulty": 2 }
+  ]
+}
