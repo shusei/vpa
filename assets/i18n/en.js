@@ -65,6 +65,7 @@ export default {
     idle: "🎙️ Start recording",
     active: "⏹ Stop recording",
     statusReady: "Ready",
+    timerTitle: "Recording duration",
   },
   upload: {
     title: "Upload audio (mp3 / m4a / mp4 / mov)",
