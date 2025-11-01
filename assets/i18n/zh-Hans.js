@@ -65,6 +65,7 @@ export default {
     idle: "🎙️ 开始录音",
     active: "⏹ 停止录音",
     statusReady: "准备就绪",
+    timerTitle: "录音时间",
   },
   upload: {
     title: "上传音频文件（mp3 / m4a / mp4 / mov）",
