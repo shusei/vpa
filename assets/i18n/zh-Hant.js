@@ -332,6 +332,7 @@ export default {
     recordFailed: "錄音啟動失敗",
     uploadFailed: "上傳處理失敗",
     recordProcessingFailed: "錄音處理失敗",
+    recordProcessingTimeout: "錄音資料逾時，請重試",
     recording: "錄音中… 再按一次停止",
     uploadWhileRecording: "錄音時無法上傳，請先停止錄音。",
     processingAudio: "處理音訊…",

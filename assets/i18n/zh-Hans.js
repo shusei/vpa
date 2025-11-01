@@ -331,6 +331,7 @@ export default {
     recordFailed: "录音启动失败",
     uploadFailed: "上传处理失败",
     recordProcessingFailed: "录音处理失败",
+    recordProcessingTimeout: "录音数据逾时，请重试",
     recording: "录音中… 再按一次停止",
     uploadWhileRecording: "录音时无法上传，请先停止录音。",
     processingAudio: "处理中…",

@@ -332,6 +332,7 @@ export default {
     recordFailed: "Recording failed to start",
     uploadFailed: "Upload processing failed",
     recordProcessingFailed: "Recording processing failed",
+    recordProcessingTimeout: "Recording data timed out. Please try again.",
     recording: "Recording… tap again to stop",
     uploadWhileRecording: "Stop recording before uploading a file.",
     processingAudio: "Processing audio…",
