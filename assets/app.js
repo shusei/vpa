@@ -300,8 +300,12 @@ function notifyInferenceListeners(pf, pm){
 export const recorderCtl = {
   get isRecording(){ return isRecording; },
   get busy(){ return busy; },
+  get hasLastRecording(){ return !!lastAudioUrl; },
+  getLastRecordingUrl: () => lastAudioUrl,
   start: () => startRecording(),
   stop: () => stopRecording(),
+  stopPlayback: () => stopPlayback(),
+  playLast: () => playLastRecording(),
 };
 
 const RECORDING_TIMER_INTERVAL_MS = 250;
@@ -2078,6 +2082,20 @@ function stopPlayback(){
     }
   }catch(e){ console.error("[stopPlayback]", e); }
   updatePlayerCopy(false);
+}
+async function playLastRecording(){
+  if (!audioEl || !audioEl.src) return false;
+  try {
+    const playPromise = audioEl.play();
+    if (playPromise && typeof playPromise.then === "function") {
+      await playPromise;
+    }
+    updatePlayerCopy(true);
+    return true;
+  } catch (err) {
+    console.error("[playLastRecording]", err);
+    return false;
+  }
 }
 function setPlaybackSource(blob){
   try{

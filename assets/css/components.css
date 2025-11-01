@@ -956,28 +956,6 @@ html[data-faction="dark"] .practice-nav__item.is-active{
 .badge.last{
   background:color-mix(in oklab, var(--panel) 70%, var(--accent-1) 30%);
 }
-.countdown{
-  margin-top:6px;
-  font-size:1.4rem;
-  font-weight:700;
-  letter-spacing:0.05em;
-  display:inline-block;
-  min-width:2.5ch;
-  text-align:center;
-  will-change:transform, opacity;
-}
-.countdown.is-counting{
-  animation:practiceCountdownPop 0.8s ease-out;
-}
-.countdown[hidden]{
-  display:none !important;
-}
-
-@keyframes practiceCountdownPop{
-  0%{ transform:scale(0.6); opacity:0; }
-  45%{ transform:scale(1.15); opacity:1; }
-  100%{ transform:scale(1); opacity:1; }
-}
 .switch{
   display:inline-flex;
   align-items:center;

@@ -3,31 +3,6 @@ import { loadPracticeData } from "./practice-data.js";
 
 const LS_SETTINGS = "vpa.practice.v1.settings";
 const LS_HISTORY = "vpa.practice.v1.history";
-const REF_VOICE_MODE_KEY = "practice:refVoiceMode";
-const REF_VOICE_LOCALE_KEY = "practice:refVoiceLocale";
-const DEFAULT_REF_LOCALE = "zh-Hant";
-
-const VOICE_PACK_BASE = {
-  "zh-Hant": {
-    oneesan: "assets/audio/zh-Hant/oneesan/",
-    loli: "assets/audio/zh-Hant/loli/",
-  },
-  "zh-Hans": {
-    oneesan: "assets/audio/zh-Hans/oneesan/",
-    loli: "assets/audio/zh-Hans/loli/",
-  },
-  en: {
-    oneesan: "assets/audio/en/oneesan/",
-    loli: "assets/audio/en/loli/",
-  },
-};
-
-const SYSTEM_TTS_PRESETS = {
-  oneesan: { rate: 0.95, pitch: 0.95 },
-  loli: { rate: 1.08, pitch: 1.22 },
-  system: { rate: 1.0, pitch: 1.0 },
-};
-
 const bridge = {
   subscribeInference: null,
   recorder: null,
@@ -36,40 +11,15 @@ const bridge = {
 const state = {
   data: { categories: [], phrases: [] },
   selectedCategory: null,
-  shadowMode: true,
   autoAdvance: true,
   history: new Map(),
   activeId: null,
   unsub: null,
   runToken: null,
+  lastPlayableId: null,
+  playingId: null,
+  player: null,
 };
-
-const ttsState = {
-  bound: false,
-  pending: null,
-};
-
-function ensureTtsListeners() {
-  try {
-    if (ttsState.bound) return;
-    const synth = window?.speechSynthesis;
-    if (!synth) return;
-    const handler = () => {
-      if (!ttsState.pending) return;
-      if (state.runToken || getRecorder()?.isRecording) {
-        ttsState.pending = null;
-        return;
-      }
-      const pending = ttsState.pending;
-      ttsState.pending = null;
-      requestSystemTts(pending.text, pending.locale, pending.style, { allowRetry: false });
-    };
-    synth.addEventListener("voiceschanged", handler);
-    ttsState.bound = true;
-  } catch (err) {
-    console.warn("[practice] bind voiceschanged failed", err);
-  }
-}
 
 function qs(selector, root = document) {
   return root ? root.querySelector(selector) : null;
@@ -117,26 +67,12 @@ function createEl(tag, attrs = {}, content = null) {
   return el;
 }
 
-function setSelectValue(select, value) {
-  if (!select) return null;
-  const options = Array.from(select.options || []);
-  if (!options.length) {
-    select.value = value;
-    return value;
-  }
-  const has = options.some((opt) => opt.value === value);
-  const finalValue = has ? value : options[0].value;
-  select.value = finalValue;
-  return finalValue;
-}
-
 function loadSettings() {
   try {
     const raw = localStorage.getItem(LS_SETTINGS);
     if (!raw) return;
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed === "object") {
-      if (parsed.shadowMode != null) state.shadowMode = Boolean(parsed.shadowMode);
       if (parsed.autoAdvance != null) state.autoAdvance = Boolean(parsed.autoAdvance);
     }
   } catch (err) {
@@ -147,7 +83,6 @@ function loadSettings() {
 function saveSettings() {
   try {
     const payload = {
-      shadowMode: state.shadowMode,
       autoAdvance: state.autoAdvance,
     };
     localStorage.setItem(LS_SETTINGS, JSON.stringify(payload));
@@ -200,152 +135,103 @@ function byCategory(data) {
   return Array.from(map.values());
 }
 
-async function tryPlayPackAudio(phraseId, mode = "oneesan", locale = DEFAULT_REF_LOCALE) {
-  try {
-    const base = VOICE_PACK_BASE[locale]?.[mode];
-    if (!base) return false;
-    const url = `${base}${phraseId}.mp3`;
-    const res = await fetch(url, { method: "HEAD", cache: "no-store" });
-    if (!res.ok) return false;
-    const audio = new Audio(url);
-    await audio.play();
-    return true;
-  } catch (err) {
-    return false;
+function setCardRecording(card, recording) {
+  if (!card) return;
+  const button = card.querySelector('[data-act="toggle"]');
+  if (!button) return;
+  const startLabel = t("practice.recordStart") || t("practice.record") || "開始錄音";
+  const stopLabel = t("practice.recordStop") || t("practice.stop") || "停止錄音";
+  button.textContent = recording ? stopLabel : startLabel;
+  button.setAttribute("aria-pressed", recording ? "true" : "false");
+  button.classList.toggle("danger", recording);
+  button.classList.toggle("primary", !recording);
+}
+
+function setCardBusy(card, busy) {
+  if (!card) return;
+  const button = card.querySelector('[data-act="toggle"]');
+  if (button) {
+    button.disabled = Boolean(busy);
+    button.classList.toggle("is-busy", Boolean(busy));
+  }
+  const playBtn = card.querySelector('[data-act="play"]');
+  if (playBtn) {
+    if (busy) {
+      playBtn.disabled = true;
+      playBtn.setAttribute("aria-disabled", "true");
+    } else {
+      const recorder = getRecorder();
+      const canPlay = Boolean(recorder?.hasLastRecording) && state.lastPlayableId === card.dataset.id;
+      setCardPlayable(card, canPlay);
+    }
   }
 }
 
-async function speakSystemTTS(text, locale = "zh-TW", style = "system") {
-  if (!("speechSynthesis" in window)) return false;
-  const synth = window.speechSynthesis;
-  const voices = synth.getVoices();
+function setCardPlayable(card, playable) {
+  if (!card) return;
+  const playBtn = card.querySelector('[data-act="play"]');
+  if (!playBtn) return;
+  playBtn.disabled = !playable;
+  playBtn.setAttribute("aria-disabled", playable ? "false" : "true");
+}
 
-  const prefer = (voice) => {
-    const name = (voice.name || "").toLowerCase();
-    const lang = (voice.lang || "").toLowerCase();
-    return (
-      (lang.includes(locale.toLowerCase()) ? 10 : 0)
-      + (/(natural|neural|aria|sara|xiao|hsiao|han|female)/.test(name) ? 3 : 0)
-      + (/female|女|小姐|sara/.test(name) ? 1 : 0)
-    );
-  };
+function setCardPlaying(card, playing) {
+  if (!card) return;
+  const playBtn = card.querySelector('[data-act="play"]');
+  if (!playBtn) return;
+  const playLabel = t("practice.playLast") || "播放上一段";
+  const stopLabel = t("practice.playStop") || "停止播放";
+  playBtn.textContent = playing ? stopLabel : playLabel;
+  playBtn.setAttribute("aria-pressed", playing ? "true" : "false");
+}
 
-  const sorted = [...voices].sort((a, b) => prefer(b) - prefer(a));
-  const best = sorted[0];
-  const utterance = new SpeechSynthesisUtterance(text);
-  if (best) utterance.voice = best;
+function getCardById(id) {
+  if (!id) return null;
+  const safe = typeof CSS !== "undefined" && typeof CSS.escape === "function"
+    ? CSS.escape(id)
+    : String(id).replace(/["\\]/g, "\\$&");
+  return qs(`.practice-card[data-id="${safe}"]`);
+}
 
-  const preset = SYSTEM_TTS_PRESETS[style] || SYSTEM_TTS_PRESETS.system;
-  utterance.rate = preset.rate;
-  utterance.pitch = preset.pitch;
+function resetPlayingState() {
+  if (!state.playingId) return;
+  const active = getCardById(state.playingId);
+  setCardPlaying(active, false);
+  state.playingId = null;
+}
 
-  return new Promise((resolve) => {
-    utterance.onend = () => resolve(true);
-    utterance.onerror = () => resolve(false);
-    try {
-      synth.cancel();
-      synth.speak(utterance);
-    } catch (err) {
-      console.warn("[practice] system TTS failed", err);
-      resolve(false);
-    }
+function ensurePlayer() {
+  if (state.player) {
+    return state.player;
+  }
+  if (typeof Audio !== "function") {
+    return null;
+  }
+  const audio = new Audio();
+  audio.preload = "auto";
+  audio.addEventListener("ended", () => {
+    resetPlayingState();
   });
-}
-
-async function requestSystemTts(text, locale = "zh-TW", style = "system", { allowRetry = true } = {}) {
-  try {
-    const synth = window.speechSynthesis;
-    if (!synth) return false;
-    ensureTtsListeners();
-    const ok = await speakSystemTTS(text, locale, style);
-    if (!ok && allowRetry) {
-      ttsState.pending = { text, locale, style };
-    } else if (ok) {
-      ttsState.pending = null;
-    }
-    return ok;
-  } catch (err) {
-    console.warn("[practice] request system TTS failed", err);
-    return false;
-  }
-}
-
-function resolvePreferredRefLocale(locale) {
-  if (locale && VOICE_PACK_BASE[locale]) {
-    return locale;
-  }
-  return DEFAULT_REF_LOCALE;
-}
-
-export async function playReferenceForPhrase(phrase) {
-  if (!phrase || !phrase.text) return false;
-  let mode = "system";
-  try {
-    const storedMode = localStorage.getItem(REF_VOICE_MODE_KEY);
-    if (storedMode && ["system", "oneesan", "loli"].includes(storedMode)) {
-      mode = storedMode;
-    }
-  } catch (err) {
-    console.warn("[practice] read ref voice mode failed", err);
-  }
-  const uiLocale = getCurrentLocale();
-  let storedLocale = null;
-  try {
-    storedLocale = localStorage.getItem(REF_VOICE_LOCALE_KEY);
-  } catch (err) {
-    console.warn("[practice] read ref voice locale failed", err);
-  }
-  const locale = storedLocale && VOICE_PACK_BASE[storedLocale]
-    ? storedLocale
-    : resolvePreferredRefLocale(uiLocale);
-
-  if (mode === "oneesan" || mode === "loli") {
-    const ok = await tryPlayPackAudio(phrase.id, mode, locale);
-    if (ok) {
-      return true;
-    }
-  }
-
-  const ttsLocale = locale === "zh-Hant"
-    ? "zh-TW"
-    : locale === "zh-Hans"
-      ? "zh-CN"
-      : "en-US";
-  return requestSystemTts(phrase.text, ttsLocale, mode);
-}
-
-function showCountdown(card, seconds = 3) {
-  const el = card ? card.querySelector(".countdown") : null;
-  if (!el) return Promise.resolve();
-  if (el.dataset.timerId) {
-    clearInterval(Number(el.dataset.timerId));
-    delete el.dataset.timerId;
-  }
-  el.hidden = false;
-  el.textContent = String(seconds);
-  el.classList.remove("is-counting");
-  // force reflow to restart animation when reused
-  void el.offsetWidth;
-  el.classList.add("is-counting");
-  let remaining = seconds;
-  return new Promise((resolve) => {
-    const timer = window.setInterval(() => {
-      remaining -= 1;
-      if (remaining <= 0) {
-        clearInterval(timer);
-        delete el.dataset.timerId;
-        el.hidden = true;
-        el.classList.remove("is-counting");
-        resolve();
-        return;
-      }
-      el.textContent = String(remaining);
-      el.classList.remove("is-counting");
-      void el.offsetWidth;
-      el.classList.add("is-counting");
-    }, 1000);
-    el.dataset.timerId = String(timer);
+  audio.addEventListener("pause", () => {
+    if (audio.ended) return;
+    resetPlayingState();
   });
+  audio.addEventListener("error", () => {
+    resetPlayingState();
+  });
+  state.player = audio;
+  return audio;
+}
+
+function stopPracticePlayback() {
+  if (!state.player) return;
+  try {
+    state.player.pause();
+    state.player.currentTime = 0;
+  } catch (err) {
+    console.warn("[practice] stop playback failed", err);
+  }
+  resetPlayingState();
 }
 
 function hydrateLastBadge(card, id) {
@@ -373,12 +259,14 @@ function writeResult(card, pf, pm) {
   const femPct = `${(femVal * 100).toFixed(1)}%`;
   const mascPct = `${(mascVal * 100).toFixed(1)}%`;
   if (femEl) {
-    femEl.textContent = femPct;
-    femEl.setAttribute("aria-label", `${t("practice.feminine") || "Feminine"} ${femPct}`);
+    const femLabel = t("practice.feminineLabel") || t("practice.feminine") || "女性傾向";
+    femEl.textContent = `${femLabel} ${femPct}`;
+    femEl.setAttribute("aria-label", `${femLabel} ${femPct}`);
   }
   if (mascEl) {
-    mascEl.textContent = mascPct;
-    mascEl.setAttribute("aria-label", `${t("practice.masculine") || "Masculine"} ${mascPct}`);
+    const mascLabel = t("practice.masculineLabel") || t("practice.masculine") || "男性傾向";
+    mascEl.textContent = `${mascLabel} ${mascPct}`;
+    mascEl.setAttribute("aria-label", `${mascLabel} ${mascPct}`);
   }
 }
 
@@ -390,14 +278,6 @@ function persistHistory(id, pf, pm) {
   saveHistory();
 }
 
-function setBusyCard(card, busy) {
-  if (!card) return;
-  const recordBtn = card.querySelector('[data-act="record"]');
-  const stopBtn = card.querySelector('[data-act="stop"]');
-  if (recordBtn) recordBtn.disabled = Boolean(busy);
-  if (stopBtn) stopBtn.disabled = !busy;
-}
-
 function focusNextCard(card) {
   const cards = Array.from(document.querySelectorAll(".practice-card"));
   if (!cards.length) return;
@@ -405,7 +285,7 @@ function focusNextCard(card) {
   const next = cards[(index + 1) % cards.length];
   if (next) {
     next.scrollIntoView({ behavior: "smooth", block: "center" });
-    const focusable = next.querySelector('[data-act="play"]');
+    const focusable = next.querySelector('[data-act="toggle"]');
     focusable?.focus();
   }
 }
@@ -426,16 +306,8 @@ function cancelActiveRun(card) {
   state.unsub = null;
   state.activeId = null;
   state.runToken = null;
-  setBusyCard(card, false);
-  const countdown = card?.querySelector?.(".countdown");
-  if (countdown) {
-    if (countdown.dataset.timerId) {
-      clearInterval(Number(countdown.dataset.timerId));
-      delete countdown.dataset.timerId;
-    }
-    countdown.hidden = true;
-    countdown.classList.remove("is-counting");
-  }
+  setCardRecording(card, false);
+  setCardBusy(card, false);
 }
 
 function bindCardEvents(card, phrase) {
@@ -447,27 +319,38 @@ function bindCardEvents(card, phrase) {
     const recorder = getRecorder();
     if (!recorder) return;
 
-    if (recorder.busy || (recorder.isRecording && action === "record")) {
+    if (recorder.busy && action !== "toggle") {
       return;
     }
 
-    if (action === "play") {
-      await playReferenceForPhrase(phrase);
-      return;
-    }
+    if (action === "toggle") {
+      const isActiveCard = state.activeId === phrase.id && recorder.isRecording;
+      if (isActiveCard) {
+        setCardBusy(card, true);
+        try {
+          await Promise.resolve(recorder.stop());
+        } catch (err) {
+          console.error("[practice] stop recording failed", err);
+          cancelActiveRun(card);
+        }
+        return;
+      }
+      if (recorder.isRecording) {
+        return;
+      }
 
-    if (action === "record") {
+      const previousPlayableId = state.lastPlayableId;
       const runToken = Symbol("practiceRun");
       state.activeId = phrase.id;
       state.runToken = runToken;
-      setBusyCard(card, true);
-
-      if (state.shadowMode) {
-        await showCountdown(card, 3);
-        if (state.runToken !== runToken) {
-          return;
-        }
+      setCardBusy(card, true);
+      if (state.lastPlayableId && state.lastPlayableId !== phrase.id) {
+        const previous = getCardById(state.lastPlayableId);
+        setCardPlayable(previous, false);
+        setCardPlaying(previous, false);
       }
+      state.lastPlayableId = null;
+      stopPracticePlayback();
 
       state.unsub?.();
       state.unsub = subscribeInference(({ pf, pm }) => {
@@ -478,6 +361,20 @@ function bindCardEvents(card, phrase) {
         writeResult(card, pf, pm);
         persistHistory(phrase.id, pf, pm);
         hydrateLastBadge(card, phrase.id);
+        const recorderCtl = getRecorder();
+        const prevPlayable = state.lastPlayableId;
+        if (recorderCtl?.hasLastRecording) {
+          state.lastPlayableId = phrase.id;
+          setCardPlayable(card, true);
+          setCardPlaying(card, false);
+          if (prevPlayable && prevPlayable !== phrase.id) {
+            const previous = getCardById(prevPlayable);
+            setCardPlayable(previous, false);
+            setCardPlaying(previous, false);
+          }
+        } else {
+          state.lastPlayableId = null;
+        }
         if (state.autoAdvance) {
           focusNextCard(card);
         }
@@ -485,23 +382,53 @@ function bindCardEvents(card, phrase) {
 
       try {
         await Promise.resolve(recorder.start());
+        setCardRecording(card, true);
+        setCardBusy(card, false);
       } catch (err) {
         console.error("[practice] start recording failed", err);
         cancelActiveRun(card);
+        if (previousPlayableId) {
+          state.lastPlayableId = previousPlayableId;
+          const prevCard = getCardById(previousPlayableId);
+          if (prevCard) {
+            setCardPlayable(prevCard, Boolean(getRecorder()?.hasLastRecording));
+          }
+        }
       }
       return;
     }
-
-    if (action === "stop") {
-      if (!recorder.isRecording) {
-        cancelActiveRun(card);
+    if (action === "play") {
+      const recorderCtl = getRecorder();
+      if (!recorderCtl?.hasLastRecording) {
+        return;
+      }
+      const player = ensurePlayer();
+      if (!player) {
+        return;
+      }
+      const currentId = state.playingId;
+      if (currentId === phrase.id) {
+        stopPracticePlayback();
+        return;
+      }
+      stopPracticePlayback();
+      const url = typeof recorderCtl.getLastRecordingUrl === "function"
+        ? recorderCtl.getLastRecordingUrl()
+        : null;
+      if (!url) {
         return;
       }
       try {
-        await Promise.resolve(recorder.stop());
+        player.src = url;
+        state.playingId = phrase.id;
+        setCardPlaying(card, true);
+        const maybePromise = player.play();
+        if (maybePromise && typeof maybePromise.then === "function") {
+          await maybePromise;
+        }
       } catch (err) {
-        console.error("[practice] stop recording failed", err);
-        cancelActiveRun(card);
+        console.error("[practice] play failed", err);
+        resetPlayingState();
       }
     }
   });
@@ -576,26 +503,35 @@ function createCard(phrase) {
   const text = createEl("div", { class: "practice-text" }, document.createTextNode(phrase.text || ""));
   const tip = createEl("div", { class: "practice-tip" }, document.createTextNode(phrase.tip || ""));
   const controls = createEl("div", { class: "practice-controls" });
-  const playBtn = createEl("button", { class: "btn sm", dataset: { act: "play" } }, document.createTextNode(t("practice.playRef") || "播放參考"));
-  const recordBtn = createEl("button", { class: "btn sm primary", dataset: { act: "record" } }, document.createTextNode(t("practice.record") || "錄音"));
-  const stopBtn = createEl("button", { class: "btn sm danger", dataset: { act: "stop" }, disabled: true }, document.createTextNode(t("practice.stop") || "停止"));
-  controls.append(playBtn, recordBtn, stopBtn);
+  const recordBtn = createEl("button", { class: "btn sm primary", dataset: { act: "toggle" }, "aria-pressed": "false" }, document.createTextNode(t("practice.recordStart") || t("practice.record") || "開始錄音"));
+  const playBtn = createEl("button", {
+    class: "btn sm secondary",
+    dataset: { act: "play" },
+    "aria-pressed": "false",
+    type: "button",
+    disabled: true,
+  }, document.createTextNode(t("practice.playLast") || "播放上一段"));
+  controls.append(recordBtn);
+  controls.append(playBtn);
 
   const result = createEl("div", { class: "practice-result", "aria-live": "polite" });
   result.innerHTML = `
-    <div><b class="fem" aria-label="${t("practice.feminine") || "Feminine"} --%">--%</b><span>${t("practice.feminine") || "Feminine"}</span></div>
-    <div><b class="masc" aria-label="${t("practice.masculine") || "Masculine"} --%">--%</b><span>${t("practice.masculine") || "Masculine"}</span></div>
+    <div><b class="fem" aria-label="${t("practice.feminineLabel") || t("practice.feminine") || "女性傾向"} --%">${t("practice.feminineLabel") || t("practice.feminine") || "女性傾向"} --%</b></div>
+    <div><b class="masc" aria-label="${t("practice.masculineLabel") || t("practice.masculine") || "男性傾向"} --%">${t("practice.masculineLabel") || t("practice.masculine") || "男性傾向"} --%</b></div>
   `;
 
   const badges = createEl("div", { class: "practice-badges" });
   const lastBadge = createEl("span", { class: "badge muted last" }, document.createTextNode(t("practice.lastNone") || "尚無紀錄"));
   badges.appendChild(lastBadge);
 
-  const countdown = createEl("div", { class: "countdown", hidden: true });
-
-  card.append(text, tip, controls, result, badges, countdown);
+  card.append(text, tip, controls, result, badges);
   bindCardEvents(card, phrase);
   hydrateLastBadge(card, phrase.id);
+  setCardRecording(card, false);
+  setCardBusy(card, false);
+  const canPlay = state.lastPlayableId === phrase.id && getRecorder()?.hasLastRecording;
+  setCardPlayable(card, Boolean(canPlay));
+  setCardPlaying(card, state.playingId === phrase.id);
   return card;
 }
 
@@ -608,8 +544,9 @@ function focusRelative(current, delta) {
   const target = cards[index];
   if (target) {
     target.scrollIntoView({ behavior: "smooth", block: "center" });
-    const play = target.querySelector('[data-act="play"]');
-    play?.focus();
+    const focusable = target.querySelector('[data-act="toggle"]')
+      || target.querySelector('[data-act="play"]');
+    focusable?.focus();
   }
 }
 
@@ -631,71 +568,18 @@ export async function setupPracticeUI({ subscribeInference, recorder } = {}) {
   const panel = qs("#practicePanel");
   const list = qs("#practiceList");
   const nav = qs("#practiceNav");
-  const shadow = qs("#practiceShadowMode");
   const advance = qs("#practiceAutoAdvance");
   const randomBtn = qs("#practiceRandomBtn");
-  const refMode = qs("#refVoiceMode");
-  const refLocale = qs("#refVoiceLocale");
 
-  if (!toggle || !panel || !list || !nav || !shadow || !advance || !randomBtn) {
+  if (!toggle || !panel || !list || !nav || !advance || !randomBtn) {
     return;
   }
 
   loadSettings();
   loadHistory();
+  ensurePlayer();
 
   await refreshData(getCurrentLocale());
-
-  if (refMode) {
-    let storedMode = "system";
-    try {
-      const read = localStorage.getItem(REF_VOICE_MODE_KEY);
-      if (read) storedMode = read;
-    } catch (err) {
-      console.warn("[practice] read ref voice mode failed", err);
-    }
-    const appliedMode = setSelectValue(refMode, storedMode);
-    if (!appliedMode) {
-      setSelectValue(refMode, "system");
-    }
-    refMode.addEventListener("change", () => {
-      try {
-        localStorage.setItem(REF_VOICE_MODE_KEY, refMode.value || "system");
-      } catch (err) {
-        console.warn("[practice] save ref voice mode failed", err);
-      }
-    });
-  }
-
-  let hasExplicitRefLocale = false;
-  if (refLocale) {
-    let storedLocale = null;
-    try {
-      storedLocale = localStorage.getItem(REF_VOICE_LOCALE_KEY);
-    } catch (err) {
-      console.warn("[practice] read ref voice locale failed", err);
-    }
-    const defaultLocale = resolvePreferredRefLocale(getCurrentLocale());
-    const initialLocale = storedLocale && VOICE_PACK_BASE[storedLocale]
-      ? storedLocale
-      : defaultLocale;
-    setSelectValue(refLocale, initialLocale);
-    hasExplicitRefLocale = Boolean(storedLocale && VOICE_PACK_BASE[storedLocale]);
-    refLocale.addEventListener("change", () => {
-      const next = refLocale.value;
-      hasExplicitRefLocale = Boolean(next);
-      try {
-        if (next) {
-          localStorage.setItem(REF_VOICE_LOCALE_KEY, next);
-        } else {
-          localStorage.removeItem(REF_VOICE_LOCALE_KEY);
-        }
-      } catch (err) {
-        console.warn("[practice] save ref voice locale failed", err);
-      }
-    });
-  }
-
   nav.addEventListener("click", (event) => {
     const target = event.target instanceof HTMLElement
       ? event.target.closest("button[data-cat]")
@@ -760,13 +644,7 @@ export async function setupPracticeUI({ subscribeInference, recorder } = {}) {
     toggle.setAttribute("aria-expanded", String(isHidden));
   });
 
-  shadow.checked = state.shadowMode;
   advance.checked = state.autoAdvance;
-
-  shadow.addEventListener("change", () => {
-    state.shadowMode = Boolean(shadow.checked);
-    saveSettings();
-  });
 
   advance.addEventListener("change", () => {
     state.autoAdvance = Boolean(advance.checked);
@@ -779,15 +657,11 @@ export async function setupPracticeUI({ subscribeInference, recorder } = {}) {
     const index = Math.floor(Math.random() * cards.length);
     const target = cards[index];
     target.scrollIntoView({ behavior: "smooth", block: "center" });
-    target.querySelector('[data-act="play"]')?.focus();
+    target.querySelector('[data-act="toggle"]')?.focus();
   });
 
   onLocaleChange(async (locale) => {
     await refreshData(locale);
-    if (refLocale && !hasExplicitRefLocale) {
-      const nextLocale = resolvePreferredRefLocale(locale);
-      setSelectValue(refLocale, nextLocale);
-    }
   });
 
   document.addEventListener("keydown", (event) => {
@@ -796,8 +670,8 @@ export async function setupPracticeUI({ subscribeInference, recorder } = {}) {
       ? document.activeElement.closest(".practice-card")
       : null;
     if (event.code === "Space") {
-      const recordButton = (active?.querySelector('[data-act="record"]')
-        || document.querySelector(".practice-card [data-act=\"record\"]"));
+      const recordButton = (active?.querySelector('[data-act="toggle"]')
+        || document.querySelector(".practice-card [data-act=\"toggle\"]"));
       if (recordButton) {
         event.preventDefault();
         recordButton.click();
