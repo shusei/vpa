@@ -166,6 +166,22 @@
         <header class="practice-header">
           <h3 id="practiceHeading" data-i18n="practice.heading">句庫練習</h3>
           <div class="practice-tools">
+            <label class="practice-select">
+              <span data-i18n="practice.voiceModeLabel">參考聲線</span>
+              <select id="refVoiceMode" data-i18n-attrs="aria-label:practice.voiceModeLabel">
+                <option value="system" data-i18n="practice.voiceModeSystem">系統 TTS</option>
+                <option value="oneesan" data-i18n="practice.voiceModeOneesan">御姐（雲端）</option>
+                <option value="loli" data-i18n="practice.voiceModeLoli">蘿莉（雲端）</option>
+              </select>
+            </label>
+            <label class="practice-select">
+              <span data-i18n="practice.voiceLocaleLabel">語系</span>
+              <select id="refVoiceLocale" data-i18n-attrs="aria-label:practice.voiceLocaleLabel">
+                <option value="zh-Hant" data-i18n="practice.voiceLocaleZhHant">中文（繁體）</option>
+                <option value="zh-Hans" data-i18n="practice.voiceLocaleZhHans">中文（簡體）</option>
+                <option value="en" data-i18n="practice.voiceLocaleEn">英文</option>
+              </select>
+            </label>
             <label class="switch">
               <input id="practiceShadowMode" type="checkbox" aria-describedby="shadowHint" checked>
               <span data-i18n="practice.shadowMode">影子跟讀</span>
