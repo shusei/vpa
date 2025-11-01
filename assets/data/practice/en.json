@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "license": "CC BY-NC 4.0",
+  "categories": [
+    { "id": "greet", "title": "Greetings" },
+    { "id": "order", "title": "Ordering / Takeout" },
+    { "id": "shop",  "title": "Shopping / Fitting" }
+  ],
+  "phrases": [
+    { "id": "greet_wc", "cat": "greet", "text": "Excuse me, where's the restroom?", "tip": "Lift the ending for 100–200 ms", "difficulty": 1 },
+    { "id": "greet_ask", "cat": "greet", "text": "Could you give me a hand? Thank you!", "tip": "Hold “you” for about 120 ms", "difficulty": 1 },
+    { "id": "order_latte", "cat": "order", "text": "I'd like a medium hot latte with less sugar.", "tip": "Tap the keywords, keep the tempo steady", "difficulty": 2 },
+    { "id": "order_bag", "cat": "order", "text": "Could you bag this for me? Thanks.", "tip": "Relax the ending without dropping", "difficulty": 1 },
+    { "id": "shop_size", "cat": "shop", "text": "Do you have this in L or XL?", "tip": "Say L / XL clearly without straining", "difficulty": 2 }
+  ]
+}

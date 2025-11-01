@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <title>句庫工作室 | Voice Practice Assistant</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="./phrases-lab.css" />
+</head>
+<body>
+  <div class="lab-app" aria-labelledby="lab-title">
+    <header class="lab-header">
+      <div class="lab-header__titles">
+        <h1 id="lab-title">句庫工作室</h1>
+        <p id="lab-base-info" class="lab-subtitle"></p>
+      </div>
+      <div class="lab-header__actions">
+        <label class="lab-search">
+          <span class="sr-only">搜尋句子</span>
+          <input id="searchInput" type="search" placeholder="搜尋句子、標籤或備註…" aria-label="搜尋句子" />
+        </label>
+        <div class="lab-filter-group" role="group" aria-label="篩選條件">
+          <select id="filterCategory" aria-label="分類篩選"></select>
+          <select id="filterDifficulty" aria-label="難度篩選"></select>
+          <label class="lab-checkbox">
+            <input id="filterFavorites" type="checkbox" />
+            <span>只看收藏</span>
+          </label>
+        </div>
+        <div class="lab-header__buttons">
+          <button id="importBtn" class="btn ghost">匯入</button>
+          <button id="exportBtn" class="btn ghost">匯出</button>
+          <button id="resetBtn" class="btn ghost">重設</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="lab-main">
+      <section class="lab-categories" aria-labelledby="cat-title">
+        <div class="lab-section-header">
+          <h2 id="cat-title">分類</h2>
+          <button id="addCategoryBtn" class="btn sm">新增分類</button>
+        </div>
+        <p class="lab-hint" id="cat-hint">拖曳分類可重排</p>
+        <ul id="categoryList" class="category-list" role="listbox" aria-describedby="cat-hint"></ul>
+      </section>
+
+      <section class="lab-phrases" aria-labelledby="phrase-title">
+        <div class="lab-section-header">
+          <div>
+            <h2 id="phrase-title">句子</h2>
+            <p id="phrase-count" class="lab-counter"></p>
+          </div>
+          <button id="addPhraseBtn" class="btn sm primary">新增句子</button>
+        </div>
+        <p class="lab-hint" id="phrase-hint">拖曳句子可調整順序或拖到其他分類</p>
+        <div id="phraseList" class="phrase-list" aria-live="polite" aria-describedby="phrase-hint"></div>
+        <p id="emptyState" class="lab-empty" hidden>目前沒有符合條件的句子。</p>
+      </section>
+    </main>
+
+    <section class="lab-practice" aria-labelledby="practice-title">
+      <div class="lab-section-header">
+        <h2 id="practice-title">練習模式</h2>
+      </div>
+      <div class="practice-controls">
+        <label>
+          <span>模式</span>
+          <select id="practiceMode">
+            <option value="sequential">依序</option>
+            <option value="random">隨機</option>
+          </select>
+        </label>
+        <label>
+          <span>計時</span>
+          <select id="practiceDuration">
+            <option value="0">不計時</option>
+            <option value="30">30 秒</option>
+            <option value="60">60 秒</option>
+            <option value="90">90 秒</option>
+          </select>
+        </label>
+        <label class="lab-checkbox">
+          <input id="practiceHideHints" type="checkbox" />
+          <span>隱藏變體與備註</span>
+        </label>
+        <div class="practice-buttons">
+          <button id="practiceStart" class="btn primary">開始</button>
+          <button id="practicePause" class="btn" disabled>暫停</button>
+          <button id="practiceStop" class="btn ghost" disabled>結束</button>
+          <button id="practiceNext" class="btn ghost" disabled>下一句</button>
+        </div>
+      </div>
+      <div id="practiceStatus" class="practice-status" aria-live="polite"></div>
+      <div id="practiceCard" class="practice-card" hidden>
+        <h3 id="practicePhrase"></h3>
+        <p id="practiceMeta"></p>
+        <ul id="practiceHints"></ul>
+      </div>
+    </section>
+  </div>
+
+  <dialog id="categoryDialog" class="lab-dialog">
+    <form method="dialog">
+      <h2 id="categoryDialogTitle">分類</h2>
+      <label>
+        <span>名稱</span>
+        <input id="categoryNameInput" type="text" required />
+      </label>
+      <menu class="dialog-actions">
+        <button value="cancel" class="btn ghost">取消</button>
+        <button id="categoryDialogSave" value="default" class="btn primary">儲存</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="phraseDialog" class="lab-dialog">
+    <form method="dialog">
+      <h2 id="phraseDialogTitle">句子</h2>
+      <label>
+        <span>主句</span>
+        <textarea id="phraseTextInput" required rows="3"></textarea>
+      </label>
+      <label>
+        <span>變體（每行一筆）</span>
+        <textarea id="phraseAltsInput" rows="3"></textarea>
+      </label>
+      <label>
+        <span>標籤（逗號分隔）</span>
+        <input id="phraseTagsInput" type="text" />
+      </label>
+      <label>
+        <span>備註</span>
+        <textarea id="phraseNotesInput" rows="3"></textarea>
+      </label>
+      <label>
+        <span>難度</span>
+        <select id="phraseDifficultyInput">
+          <option value="">未設定</option>
+          <option value="E">入門</option>
+          <option value="M">進階</option>
+          <option value="H">挑戰</option>
+        </select>
+      </label>
+      <label>
+        <span>分類</span>
+        <select id="phraseCategoryInput"></select>
+      </label>
+      <menu class="dialog-actions">
+        <button value="cancel" class="btn ghost">取消</button>
+        <button id="phraseDialogSave" value="default" class="btn primary">儲存</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <input id="importFile" type="file" accept="application/json" hidden />
+
+  <template id="categoryItemTemplate">
+    <li class="category-item" draggable="true">
+      <button type="button" class="category-item__label"></button>
+      <div class="category-item__actions">
+        <button type="button" class="btn icon rename" aria-label="重新命名分類">✎</button>
+        <button type="button" class="btn icon delete" aria-label="刪除分類">✕</button>
+      </div>
+    </li>
+  </template>
+
+  <template id="phraseCardTemplate">
+    <article class="phrase-card" draggable="true">
+      <header>
+        <button type="button" class="phrase-star" aria-label="收藏這句" aria-pressed="false">☆</button>
+        <h3 class="phrase-text"></h3>
+      </header>
+      <p class="phrase-meta"></p>
+      <ul class="phrase-alts"></ul>
+      <p class="phrase-notes"></p>
+      <footer class="phrase-actions">
+        <button type="button" class="btn sm ghost edit">編輯</button>
+        <button type="button" class="btn sm ghost delete">刪除</button>
+      </footer>
+    </article>
+  </template>
+
+  <script type="module" src="./phrases-lab.js"></script>
+</body>
+</html>

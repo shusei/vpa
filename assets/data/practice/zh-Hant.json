@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "license": "CC BY-NC 4.0",
+  "categories": [
+    { "id": "greet", "title": "問候起手" },
+    { "id": "order", "title": "點餐 / 外帶" },
+    { "id": "shop",  "title": "逛店 / 試穿" }
+  ],
+  "phrases": [
+    { "id": "greet_wc", "cat": "greet", "text": "不好意思，請問洗手間在哪裡？", "tip": "語尾上揚 100–200 ms", "difficulty": 1 },
+    { "id": "greet_ask", "cat": "greet", "text": "可以請你幫我一下嗎？謝謝你。", "tip": "『你』拉長 120 ms", "difficulty": 1 },
+    { "id": "order_latte", "cat": "order", "text": "我要一杯熱拿鐵，中杯，少糖。", "tip": "關鍵字輕點、語速穩", "difficulty": 2 },
+    { "id": "order_bag", "cat": "order", "text": "可以幫我裝袋嗎？謝謝。", "tip": "收尾放鬆不下墜", "difficulty": 1 },
+    { "id": "shop_size", "cat": "shop", "text": "這件有 L 或 XL 嗎？", "tip": "L/XL 清楚但不壓喉", "difficulty": 2 }
+  ]
+}

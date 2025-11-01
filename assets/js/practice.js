@@ -1,0 +1,539 @@
+import { t, getCurrentLocale, onLocaleChange } from "./i18n.js";
+import { loadPracticeData } from "./practice-data.js";
+
+const LS_SETTINGS = "vpa.practice.v1.settings";
+const LS_HISTORY = "vpa.practice.v1.history";
+
+const bridge = {
+  subscribeInference: null,
+  recorder: null,
+};
+
+const state = {
+  data: { categories: [], phrases: [] },
+  shadowMode: true,
+  autoAdvance: true,
+  history: new Map(),
+  activeId: null,
+  unsub: null,
+  runToken: null,
+};
+
+const ttsState = {
+  bound: false,
+  pendingText: null,
+};
+
+function ensureTtsListeners() {
+  try {
+    if (ttsState.bound) return;
+    const synth = window?.speechSynthesis;
+    if (!synth) return;
+    const handler = () => {
+      if (!ttsState.pendingText) return;
+      if (state.runToken || getRecorder()?.isRecording) {
+        ttsState.pendingText = null;
+        return;
+      }
+      const text = ttsState.pendingText;
+      ttsState.pendingText = null;
+      speak(text, { allowRetry: false });
+    };
+    synth.addEventListener("voiceschanged", handler);
+    ttsState.bound = true;
+  } catch (err) {
+    console.warn("[practice] bind voiceschanged failed", err);
+  }
+}
+
+function qs(selector, root = document) {
+  return root ? root.querySelector(selector) : null;
+}
+
+function qsa(selector, root = document) {
+  return root ? Array.from(root.querySelectorAll(selector) || []) : [];
+}
+
+function createEl(tag, attrs = {}, content = null) {
+  const el = document.createElement(tag);
+  if (attrs && typeof attrs === "object") {
+    for (const [key, value] of Object.entries(attrs)) {
+      if (value == null) continue;
+      if (key === "class") {
+        el.className = value;
+      } else if (key === "dataset" && value && typeof value === "object") {
+        for (const [dKey, dValue] of Object.entries(value)) {
+          if (dValue == null) continue;
+          el.dataset[dKey] = dValue;
+        }
+      } else if (key in el) {
+        try {
+          el[key] = value;
+        } catch {
+          el.setAttribute(key, value);
+        }
+      } else {
+        el.setAttribute(key, value);
+      }
+    }
+  }
+  if (content != null) {
+    if (Array.isArray(content)) {
+      for (const child of content) {
+        if (child == null) continue;
+        el.append(child);
+      }
+    } else if (typeof content === "string") {
+      el.innerHTML = content;
+    } else {
+      el.append(content);
+    }
+  }
+  return el;
+}
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(LS_SETTINGS);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") {
+      if (parsed.shadowMode != null) state.shadowMode = Boolean(parsed.shadowMode);
+      if (parsed.autoAdvance != null) state.autoAdvance = Boolean(parsed.autoAdvance);
+    }
+  } catch (err) {
+    console.warn("[practice] read settings failed", err);
+  }
+}
+
+function saveSettings() {
+  try {
+    const payload = {
+      shadowMode: state.shadowMode,
+      autoAdvance: state.autoAdvance,
+    };
+    localStorage.setItem(LS_SETTINGS, JSON.stringify(payload));
+  } catch (err) {
+    console.warn("[practice] save settings failed", err);
+  }
+}
+
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(LS_HISTORY);
+    if (!raw) {
+      state.history = new Map();
+      return;
+    }
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr)) {
+      state.history = new Map(arr);
+    } else {
+      state.history = new Map();
+    }
+  } catch (err) {
+    console.warn("[practice] read history failed", err);
+    state.history = new Map();
+  }
+}
+
+function saveHistory() {
+  try {
+    const serialized = Array.from(state.history.entries());
+    localStorage.setItem(LS_HISTORY, JSON.stringify(serialized));
+  } catch (err) {
+    console.warn("[practice] save history failed", err);
+  }
+}
+
+function byCategory(data) {
+  const map = new Map();
+  for (const cat of data.categories || []) {
+    map.set(cat.id, { ...cat, items: [] });
+  }
+  for (const phrase of data.phrases || []) {
+    const target = map.get(phrase.cat) || map.get(phrase.category);
+    if (target) {
+      target.items.push(phrase);
+    } else {
+      map.set(phrase.cat, { id: phrase.cat, title: phrase.cat, items: [phrase] });
+    }
+  }
+  return Array.from(map.values());
+}
+
+function selectVoice(voices) {
+  return voices.find((voice) => /zh|han|mandarin/i.test(voice.lang) && /female|woman|zh-TW/i.test(voice.name))
+    || voices.find((voice) => /zh|han|mandarin/i.test(voice.lang));
+}
+
+function speak(text, { allowRetry = true } = {}) {
+  try {
+    const synth = window.speechSynthesis;
+    if (!synth) return false;
+    ensureTtsListeners();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.3;
+    const voices = synth.getVoices() || [];
+    if (!voices.length) {
+      if (allowRetry) {
+        ttsState.pendingText = text;
+      }
+      return false;
+    }
+    ttsState.pendingText = null;
+    const preferred = selectVoice(voices);
+    if (preferred) utterance.voice = preferred;
+    synth.cancel();
+    synth.speak(utterance);
+    return true;
+  } catch (err) {
+    console.warn("[practice] speak failed", err);
+    return false;
+  }
+}
+
+async function playReference(phrase) {
+  if (!phrase || !phrase.text) return false;
+  return speak(phrase.text);
+}
+
+function showCountdown(card, seconds = 3) {
+  const el = card ? card.querySelector(".countdown") : null;
+  if (!el) return Promise.resolve();
+  if (el.dataset.timerId) {
+    clearInterval(Number(el.dataset.timerId));
+    delete el.dataset.timerId;
+  }
+  el.hidden = false;
+  el.textContent = String(seconds);
+  el.classList.remove("is-counting");
+  // force reflow to restart animation when reused
+  void el.offsetWidth;
+  el.classList.add("is-counting");
+  let remaining = seconds;
+  return new Promise((resolve) => {
+    const timer = window.setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(timer);
+        delete el.dataset.timerId;
+        el.hidden = true;
+        el.classList.remove("is-counting");
+        resolve();
+        return;
+      }
+      el.textContent = String(remaining);
+      el.classList.remove("is-counting");
+      void el.offsetWidth;
+      el.classList.add("is-counting");
+    }, 1000);
+    el.dataset.timerId = String(timer);
+  });
+}
+
+function hydrateLastBadge(card, id) {
+  if (!card) return;
+  const badge = card.querySelector(".badge.last");
+  const history = state.history.get(id);
+  if (!badge) return;
+  if (Array.isArray(history) && history.length) {
+    const last = history[history.length - 1];
+    const pct = Number.isFinite(last?.pf) ? Math.round(last.pf * 100) : 0;
+    badge.textContent = `${t("practice.lastScore") || "上次"} ${pct}%`;
+    badge.classList.remove("muted");
+  } else {
+    badge.textContent = t("practice.lastNone") || "尚無紀錄";
+    badge.classList.add("muted");
+  }
+}
+
+function writeResult(card, pf, pm) {
+  if (!card) return;
+  const femEl = card.querySelector(".practice-result .fem");
+  const mascEl = card.querySelector(".practice-result .masc");
+  const femVal = Number.isFinite(pf) ? pf : 0;
+  const mascVal = Number.isFinite(pm) ? pm : 0;
+  const femPct = `${(femVal * 100).toFixed(1)}%`;
+  const mascPct = `${(mascVal * 100).toFixed(1)}%`;
+  if (femEl) {
+    femEl.textContent = femPct;
+    femEl.setAttribute("aria-label", `${t("practice.feminine") || "Feminine"} ${femPct}`);
+  }
+  if (mascEl) {
+    mascEl.textContent = mascPct;
+    mascEl.setAttribute("aria-label", `${t("practice.masculine") || "Masculine"} ${mascPct}`);
+  }
+}
+
+function persistHistory(id, pf, pm) {
+  const list = state.history.get(id) || [];
+  list.push({ ts: Date.now(), pf, pm });
+  while (list.length > 20) list.shift();
+  state.history.set(id, list);
+  saveHistory();
+}
+
+function setBusyCard(card, busy) {
+  if (!card) return;
+  const recordBtn = card.querySelector('[data-act="record"]');
+  const stopBtn = card.querySelector('[data-act="stop"]');
+  if (recordBtn) recordBtn.disabled = Boolean(busy);
+  if (stopBtn) stopBtn.disabled = !busy;
+}
+
+function focusNextCard(card) {
+  const cards = Array.from(document.querySelectorAll(".practice-card"));
+  if (!cards.length) return;
+  const index = cards.indexOf(card);
+  const next = cards[(index + 1) % cards.length];
+  if (next) {
+    next.scrollIntoView({ behavior: "smooth", block: "center" });
+    const focusable = next.querySelector('[data-act="play"]');
+    focusable?.focus();
+  }
+}
+
+function subscribeInference(cb) {
+  if (typeof bridge.subscribeInference === "function") {
+    return bridge.subscribeInference(cb);
+  }
+  return () => {};
+}
+
+function getRecorder() {
+  return bridge.recorder || null;
+}
+
+function cancelActiveRun(card) {
+  state.unsub?.();
+  state.unsub = null;
+  state.activeId = null;
+  state.runToken = null;
+  setBusyCard(card, false);
+  const countdown = card?.querySelector?.(".countdown");
+  if (countdown) {
+    if (countdown.dataset.timerId) {
+      clearInterval(Number(countdown.dataset.timerId));
+      delete countdown.dataset.timerId;
+    }
+    countdown.hidden = true;
+    countdown.classList.remove("is-counting");
+  }
+}
+
+function bindCardEvents(card, phrase) {
+  card.addEventListener("click", async (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const action = target.getAttribute("data-act");
+    if (!action) return;
+    const recorder = getRecorder();
+    if (!recorder) return;
+
+    if (recorder.busy || (recorder.isRecording && action === "record")) {
+      return;
+    }
+
+    if (action === "play") {
+      await playReference(phrase);
+      return;
+    }
+
+    if (action === "record") {
+      const runToken = Symbol("practiceRun");
+      state.activeId = phrase.id;
+      state.runToken = runToken;
+      setBusyCard(card, true);
+
+      if (state.shadowMode) {
+        await playReference(phrase);
+        if (state.runToken !== runToken) {
+          return;
+        }
+        await showCountdown(card, 3);
+        if (state.runToken !== runToken) {
+          return;
+        }
+      }
+
+      state.unsub?.();
+      state.unsub = subscribeInference(({ pf, pm }) => {
+        if (state.runToken !== runToken) {
+          return;
+        }
+        cancelActiveRun(card);
+        writeResult(card, pf, pm);
+        persistHistory(phrase.id, pf, pm);
+        hydrateLastBadge(card, phrase.id);
+        if (state.autoAdvance) {
+          focusNextCard(card);
+        }
+      });
+
+      try {
+        await Promise.resolve(recorder.start());
+      } catch (err) {
+        console.error("[practice] start recording failed", err);
+        cancelActiveRun(card);
+      }
+      return;
+    }
+
+    if (action === "stop") {
+      if (!recorder.isRecording) {
+        cancelActiveRun(card);
+        return;
+      }
+      try {
+        await Promise.resolve(recorder.stop());
+      } catch (err) {
+        console.error("[practice] stop recording failed", err);
+        cancelActiveRun(card);
+      }
+    }
+  });
+}
+
+function renderList() {
+  const list = qs("#practiceList");
+  if (!list) return;
+  list.setAttribute("aria-busy", "true");
+  list.innerHTML = "";
+  const cats = byCategory(state.data);
+  for (const cat of cats) {
+    const heading = createEl("h4", { class: "practice-cat" }, document.createTextNode(cat.title || cat.id || ""));
+    list.appendChild(heading);
+    for (const phrase of cat.items) {
+      const card = createCard(phrase);
+      list.appendChild(card);
+    }
+  }
+  list.removeAttribute("aria-busy");
+}
+
+function createCard(phrase) {
+  const card = createEl("article", { class: "practice-card", dataset: { id: phrase.id } });
+  const text = createEl("div", { class: "practice-text" }, document.createTextNode(phrase.text || ""));
+  const tip = createEl("div", { class: "practice-tip" }, document.createTextNode(phrase.tip || ""));
+  const controls = createEl("div", { class: "practice-controls" });
+  const playBtn = createEl("button", { class: "btn sm", dataset: { act: "play" } }, document.createTextNode(t("practice.playRef") || "播放參考"));
+  const recordBtn = createEl("button", { class: "btn sm primary", dataset: { act: "record" } }, document.createTextNode(t("practice.record") || "錄音"));
+  const stopBtn = createEl("button", { class: "btn sm danger", dataset: { act: "stop" }, disabled: true }, document.createTextNode(t("practice.stop") || "停止"));
+  controls.append(playBtn, recordBtn, stopBtn);
+
+  const result = createEl("div", { class: "practice-result", "aria-live": "polite" });
+  result.innerHTML = `
+    <div><b class="fem" aria-label="${t("practice.feminine") || "Feminine"} --%">--%</b><span>${t("practice.feminine") || "Feminine"}</span></div>
+    <div><b class="masc" aria-label="${t("practice.masculine") || "Masculine"} --%">--%</b><span>${t("practice.masculine") || "Masculine"}</span></div>
+  `;
+
+  const badges = createEl("div", { class: "practice-badges" });
+  const lastBadge = createEl("span", { class: "badge muted last" }, document.createTextNode(t("practice.lastNone") || "尚無紀錄"));
+  badges.appendChild(lastBadge);
+
+  const countdown = createEl("div", { class: "countdown", hidden: true });
+
+  card.append(text, tip, controls, result, badges, countdown);
+  bindCardEvents(card, phrase);
+  hydrateLastBadge(card, phrase.id);
+  return card;
+}
+
+function focusRelative(current, delta) {
+  const cards = Array.from(document.querySelectorAll(".practice-card"));
+  if (!cards.length) return;
+  let index = cards.indexOf(current);
+  if (index === -1) index = 0;
+  index = (index + delta + cards.length) % cards.length;
+  const target = cards[index];
+  if (target) {
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    const play = target.querySelector('[data-act="play"]');
+    play?.focus();
+  }
+}
+
+async function refreshData(locale) {
+  state.data = await loadPracticeData(locale);
+  renderList();
+}
+
+export async function setupPracticeUI({ subscribeInference, recorder } = {}) {
+  bridge.subscribeInference = subscribeInference || bridge.subscribeInference;
+  bridge.recorder = recorder || bridge.recorder;
+
+  const toggle = qs("#practiceToggle");
+  const panel = qs("#practicePanel");
+  const list = qs("#practiceList");
+  const shadow = qs("#practiceShadowMode");
+  const advance = qs("#practiceAutoAdvance");
+  const randomBtn = qs("#practiceRandomBtn");
+
+  if (!toggle || !panel || !list || !shadow || !advance || !randomBtn) {
+    return;
+  }
+
+  loadSettings();
+  loadHistory();
+
+  await refreshData(getCurrentLocale());
+
+  toggle.addEventListener("click", () => {
+    const isHidden = panel.hasAttribute("hidden");
+    if (isHidden) {
+      panel.removeAttribute("hidden");
+    } else {
+      panel.setAttribute("hidden", "");
+    }
+    toggle.setAttribute("aria-expanded", String(isHidden));
+  });
+
+  shadow.checked = state.shadowMode;
+  advance.checked = state.autoAdvance;
+
+  shadow.addEventListener("change", () => {
+    state.shadowMode = Boolean(shadow.checked);
+    saveSettings();
+  });
+
+  advance.addEventListener("change", () => {
+    state.autoAdvance = Boolean(advance.checked);
+    saveSettings();
+  });
+
+  randomBtn.addEventListener("click", () => {
+    const cards = Array.from(document.querySelectorAll(".practice-card"));
+    if (!cards.length) return;
+    const index = Math.floor(Math.random() * cards.length);
+    const target = cards[index];
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    target.querySelector('[data-act="play"]')?.focus();
+  });
+
+  onLocaleChange(async (locale) => {
+    await refreshData(locale);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (panel.hasAttribute("hidden")) return;
+    const active = document.activeElement instanceof HTMLElement
+      ? document.activeElement.closest(".practice-card")
+      : null;
+    if (event.code === "Space") {
+      const recordButton = (active?.querySelector('[data-act="record"]')
+        || document.querySelector(".practice-card [data-act=\"record\"]"));
+      if (recordButton) {
+        event.preventDefault();
+        recordButton.click();
+      }
+    } else if (event.key === "j" || event.key === "J") {
+      event.preventDefault();
+      focusRelative(active, 1);
+    } else if (event.key === "k" || event.key === "K") {
+      event.preventDefault();
+      focusRelative(active, -1);
+    }
+  });
+}

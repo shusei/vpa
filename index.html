@@ -154,6 +154,35 @@
         <span class="idle" data-i18n="record.idle">🎙️ 開始錄音</span>
         <span class="rec" data-i18n="record.active">⏹ 停止錄音</span>
       </button>
+      <button id="practiceToggle"
+        class="btn ghost"
+        data-i18n="practice.toggle"
+        aria-expanded="false"
+        aria-controls="practicePanel">
+        句庫練習
+      </button>
+
+      <aside id="practicePanel" class="practice-panel" hidden role="region" aria-labelledby="practiceHeading">
+        <header class="practice-header">
+          <h3 id="practiceHeading" data-i18n="practice.heading">句庫練習</h3>
+          <div class="practice-tools">
+            <label class="switch">
+              <input id="practiceShadowMode" type="checkbox" aria-describedby="shadowHint" checked>
+              <span data-i18n="practice.shadowMode">影子跟讀</span>
+            </label>
+            <label class="switch">
+              <input id="practiceAutoAdvance" type="checkbox" checked>
+              <span data-i18n="practice.autoAdvance">自動下一句</span>
+            </label>
+            <button id="practiceRandomBtn" class="btn sm" data-i18n="practice.randomOne">隨機一句</button>
+          </div>
+          <p id="shadowHint" class="muted" data-i18n="practice.shadowHint">
+            會先播放參考語音，接著 3-2-1 倒數後開始錄音。
+          </p>
+        </header>
+
+        <div id="practiceList" class="practice-list" aria-live="polite" aria-busy="false"></div>
+      </aside>
       <div class="status" id="status" role="status" aria-live="polite">
         <span id="statusLabel" class="status-label" data-i18n="record.statusReady">準備就緒</span>
         <span
