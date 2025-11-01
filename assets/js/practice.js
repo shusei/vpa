@@ -1,7 +1,6 @@
 import { t, getCurrentLocale, onLocaleChange } from "./i18n.js";
 import { loadPracticeData } from "./practice-data.js";
 
-const LS_SETTINGS = "vpa.practice.v1.settings";
 const LS_HISTORY = "vpa.practice.v1.history";
 const bridge = {
   subscribeInference: null,
@@ -11,7 +10,6 @@ const bridge = {
 const state = {
   data: { categories: [], phrases: [] },
   selectedCategory: null,
-  autoAdvance: true,
   history: new Map(),
   activeId: null,
   unsub: null,
@@ -65,30 +63,6 @@ function createEl(tag, attrs = {}, content = null) {
     }
   }
   return el;
-}
-
-function loadSettings() {
-  try {
-    const raw = localStorage.getItem(LS_SETTINGS);
-    if (!raw) return;
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === "object") {
-      if (parsed.autoAdvance != null) state.autoAdvance = Boolean(parsed.autoAdvance);
-    }
-  } catch (err) {
-    console.warn("[practice] read settings failed", err);
-  }
-}
-
-function saveSettings() {
-  try {
-    const payload = {
-      autoAdvance: state.autoAdvance,
-    };
-    localStorage.setItem(LS_SETTINGS, JSON.stringify(payload));
-  } catch (err) {
-    console.warn("[practice] save settings failed", err);
-  }
 }
 
 function loadHistory() {
@@ -278,18 +252,6 @@ function persistHistory(id, pf, pm) {
   saveHistory();
 }
 
-function focusNextCard(card) {
-  const cards = Array.from(document.querySelectorAll(".practice-card"));
-  if (!cards.length) return;
-  const index = cards.indexOf(card);
-  const next = cards[(index + 1) % cards.length];
-  if (next) {
-    next.scrollIntoView({ behavior: "smooth", block: "center" });
-    const focusable = next.querySelector('[data-act="toggle"]');
-    focusable?.focus();
-  }
-}
-
 function subscribeInference(cb) {
   if (typeof bridge.subscribeInference === "function") {
     return bridge.subscribeInference(cb);
@@ -374,9 +336,6 @@ function bindCardEvents(card, phrase) {
           }
         } else {
           state.lastPlayableId = null;
-        }
-        if (state.autoAdvance) {
-          focusNextCard(card);
         }
       });
 
@@ -568,14 +527,10 @@ export async function setupPracticeUI({ subscribeInference, recorder } = {}) {
   const panel = qs("#practicePanel");
   const list = qs("#practiceList");
   const nav = qs("#practiceNav");
-  const advance = qs("#practiceAutoAdvance");
-  const randomBtn = qs("#practiceRandomBtn");
-
-  if (!toggle || !panel || !list || !nav || !advance || !randomBtn) {
+  if (!toggle || !panel || !list || !nav) {
     return;
   }
 
-  loadSettings();
   loadHistory();
   ensurePlayer();
 
@@ -642,22 +597,6 @@ export async function setupPracticeUI({ subscribeInference, recorder } = {}) {
       panel.setAttribute("hidden", "");
     }
     toggle.setAttribute("aria-expanded", String(isHidden));
-  });
-
-  advance.checked = state.autoAdvance;
-
-  advance.addEventListener("change", () => {
-    state.autoAdvance = Boolean(advance.checked);
-    saveSettings();
-  });
-
-  randomBtn.addEventListener("click", () => {
-    const cards = Array.from(document.querySelectorAll(".practice-card"));
-    if (!cards.length) return;
-    const index = Math.floor(Math.random() * cards.length);
-    const target = cards[index];
-    target.scrollIntoView({ behavior: "smooth", block: "center" });
-    target.querySelector('[data-act="toggle"]')?.focus();
   });
 
   onLocaleChange(async (locale) => {
