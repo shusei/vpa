@@ -469,6 +469,7 @@ function renderList(cats = byCategory(state.data)) {
       list.appendChild(card);
     }
   }
+  stripCardDismissals(list);
   list.removeAttribute("aria-busy");
 }
 
