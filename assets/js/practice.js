@@ -159,6 +159,20 @@ function setCardPlaying(card, playing) {
   playBtn.setAttribute("aria-pressed", playing ? "true" : "false");
 }
 
+function stripCardDismissals(root) {
+  if (!root) return;
+  const extras = root.querySelectorAll('[data-act="dismiss"], .practice-card__dismiss, .practice-dismiss');
+  if (!extras.length) return;
+  for (const control of extras) {
+    const card = control.closest(".practice-card");
+    control.remove();
+    if (card) {
+      card.removeAttribute("data-dismissable");
+      card.classList.remove("has-dismiss", "practice-card--dismissable", "practice-card_has-dismiss");
+    }
+  }
+}
+
 function getCardById(id) {
   if (!id) return null;
   const safe = typeof CSS !== "undefined" && typeof CSS.escape === "function"
@@ -454,6 +468,7 @@ function renderList(cats = byCategory(state.data)) {
       list.appendChild(card);
     }
   }
+  stripCardDismissals(list);
   list.removeAttribute("aria-busy");
 }
 
@@ -589,14 +604,36 @@ export async function setupPracticeUI({ subscribeInference, recorder } = {}) {
     }
   });
 
-  toggle.addEventListener("click", () => {
-    const isHidden = panel.hasAttribute("hidden");
-    if (isHidden) {
-      panel.removeAttribute("hidden");
-    } else {
-      panel.setAttribute("hidden", "");
+  async function hidePracticePanel({ focusToggle = false } = {}) {
+    stopPracticePlayback();
+    const recorder = getRecorder();
+    if (state.activeId) {
+      const activeCard = getCardById(state.activeId);
+      if (recorder?.isRecording) {
+        try {
+          await Promise.resolve(recorder.stop());
+        } catch (err) {
+          console.warn("[practice] stop recording on panel close failed", err);
+        }
+      }
+      cancelActiveRun(activeCard);
     }
-    toggle.setAttribute("aria-expanded", String(isHidden));
+    panel.setAttribute("hidden", "");
+    toggle.setAttribute("aria-expanded", "false");
+    if (focusToggle && toggle instanceof HTMLElement) {
+      requestAnimationFrame(() => {
+        toggle.focus();
+      });
+    }
+  }
+
+  toggle.addEventListener("click", async () => {
+    if (panel.hasAttribute("hidden")) {
+      panel.removeAttribute("hidden");
+      toggle.setAttribute("aria-expanded", "true");
+    } else {
+      await hidePracticePanel();
+    }
   });
 
   onLocaleChange(async (locale) => {
