@@ -135,7 +135,7 @@ async function ensureFFmpegLoaded(statusCallback) {
 
       try {
         if (isModernInstance(instance)) {
-          const [classWorkerURL, coreURL, wasmURL] = await Promise.all([
+          const [workerURL, coreURL, wasmURL] = await Promise.all([
             toBlobURL(`${FFMPEG_BASE}/worker.js`, "text/javascript")
               .then((url) => {
                 if (url) {
@@ -155,8 +155,8 @@ async function ensureFFmpegLoaded(statusCallback) {
           ]);
 
           const loadOptions = { coreURL, wasmURL };
-          if (classWorkerURL) {
-            loadOptions.classWorkerURL = classWorkerURL;
+          if (workerURL) {
+            loadOptions.workerURL = workerURL;
           }
 
           await instance.load(loadOptions);
