@@ -49,7 +49,7 @@ Voice Presentation Analyzer（以下簡稱 VPA）是一款完全以 Web 技術�
 
 - **錄音／上傳二合一流程**：支援 MediaRecorder 錄音，或從檔案系統挑選音訊／影片檔（自動抽出音軌）。【F:assets/app.js†L196-L320】【F:index.html†L311-L348】
 - **即時儀表與提示**：分析期間的儀表會即時刷新，狀態列同步顯示目前片段、進度百分比與預估剩餘時間。【F:assets/app.js†L566-L628】【F:index.html†L351-L397】
-- **句庫練習抽屜**：錄音鍵旁提供句子清單、自動下一句與隨機一句；卡片左側按鈕負責錄音／停止，右側播放鍵可快速回聽上一段，完成後回寫女性傾向／男性傾向百分比，主儀表維持乾淨。【F:index.html†L150-L197】【F:assets/js/practice.js†L1-L520】
+- **句庫練習抽屜**：錄音鍵旁提供句子清單與練習歷程；卡片左側按鈕負責錄音／停止，右側播放鍵可快速回聽上一段，完成後回寫女性傾向／男性傾向百分比，主儀表維持乾淨。【F:index.html†L150-L189】【F:assets/js/practice.js†L1-L520】
 - **多主題與派別**：內建 30+ 顏色主題，可在 Auto / Light / Dark / 彩色派別中切換並記憶選擇。【F:index.html†L61-L123】【F:assets/js/theme.js†L1-L220】
 - **新手引導與使用指南**：首次造訪會出現提示泡泡，右上角 ❓ 可開啟圖文說明覆蓋層，支援鍵盤 `Esc` 關閉。【F:index.html†L214-L308】【F:assets/js/theme.js†L222-L339】
 
