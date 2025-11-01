@@ -16,7 +16,7 @@
     { "id": "cs", "name": "電話 / 客服" },
     { "id": "work", "name": "工作 / 協作" },
     { "id": "life", "name": "生活 / 維修" },
-    { "id": "food", "name": "餐飲（中性客製）" }
+    { "id": "food", "name": "餐飲" }
   ],
   "items": [
     {"id":"greet.ask-please","cat":"greet","text":"不好意思，想請問一下…","alts":["不好意思，我想詢問一下…","打擾一下，想請教…"],"tags":["禮貌","開場"],"difficulty":"E"},
