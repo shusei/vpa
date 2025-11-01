@@ -89,6 +89,7 @@ env.allowLocalModels = false;
 env.allowRemoteModels = true;
 const THREAD_STORAGE_KEY = "vpa::onnxThreads";
 const VOLUME_DISPLAY_MODE = "relative";
+const MEDIA_RECORDER_DATA_TIMEOUT_MS = 5000;
 
 function readCachedThreadCount() {
   try {
@@ -1372,15 +1373,101 @@ async function startRecording(){
   chunks = [];
   const mimeType = pickSupportedMime();
   mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-  mediaRecorder.ondataavailable = (ev)=>{ if(ev.data?.size) chunks.push(ev.data); };
+  let finalDataReady = false;
+  let finalDataPromise = null;
+  let resolveFinalData = null;
+  let rejectFinalData = null;
+  let finalDataTimer = null;
+
+  const clearFinalDataTimer = ()=>{
+    if(finalDataTimer !== null){
+      clearTimeout(finalDataTimer);
+      finalDataTimer = null;
+    }
+  };
+
+  const resolveFinalDataPromise = ()=>{
+    const resolver = resolveFinalData;
+    clearFinalDataTimer();
+    finalDataPromise = null;
+    resolveFinalData = null;
+    rejectFinalData = null;
+    if(typeof resolver === "function") resolver();
+  };
+
+  const rejectFinalDataPromise = (error)=>{
+    const rejecter = rejectFinalData;
+    clearFinalDataTimer();
+    finalDataPromise = null;
+    resolveFinalData = null;
+    rejectFinalData = null;
+    if(typeof rejecter === "function") rejecter(error);
+  };
+
+  const waitForFinalData = ()=>{
+    if(finalDataReady){
+      return Promise.resolve();
+    }
+    if(finalDataPromise){
+      return finalDataPromise;
+    }
+    finalDataPromise = new Promise((resolve, reject)=>{
+      resolveFinalData = resolve;
+      rejectFinalData = reject;
+    });
+    finalDataTimer = setTimeout(()=>{
+      const timeoutError = new Error("Timed out while waiting for recording data.");
+      timeoutError.name = "MediaRecorderTimeoutError";
+      rejectFinalDataPromise(timeoutError);
+    }, MEDIA_RECORDER_DATA_TIMEOUT_MS);
+    return finalDataPromise;
+  };
+
+  const markFinalDataReady = ()=>{
+    if(finalDataReady) return;
+    finalDataReady = true;
+    resolveFinalDataPromise();
+  };
+
+  mediaRecorder.ondataavailable = (ev)=>{
+    if(ev.data?.size) chunks.push(ev.data);
+    if(mediaRecorder?.state === "inactive"){
+      markFinalDataReady();
+    }
+  };
   mediaRecorder.onstop = async ()=>{
+    const resetBusyState = ()=>{
+      busy = false;
+      updateUploadAvailability();
+      updatePlaybackAvailability();
+      updateRecordAvailability();
+    };
+
+    try{
+      await waitForFinalData();
+    }catch(waitErr){
+      console.error("[onstop] waiting for data failed", waitErr);
+      stopPitchStream();
+      chunks.length = 0;
+      resetBusyState();
+      setStatus(t(waitErr?.name === "MediaRecorderTimeoutError" ? "status.recordProcessingTimeout" : "status.recordProcessingFailed"));
+      stream.getTracks().forEach(t=>t.stop());
+      return;
+    }
+
+    stopPitchStream();                 // 停止即時圖，但保留資料做統計
     try{
       const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
-      chunks.length = 0;
-      stopPitchStream();                 // 停止即時圖，但保留資料做統計
       await handleFileOrBlob(blob, "recording");      // 分析完成後會呼叫 finishStreamStats()
-    }catch(e){ console.error("[onstop]", e); setStatus(t("status.recordProcessingFailed")); }
-    finally{ stream.getTracks().forEach(t=>t.stop()); }
+      chunks.length = 0;
+    }catch(e){
+      console.error("[onstop]", e);
+      setStatus(t("status.recordProcessingFailed"));
+      chunks.length = 0;
+      resetBusyState();
+    }finally{
+      stream.getTracks().forEach(t=>t.stop());
+    }
   };
 
   document.body.classList.add("recording");
