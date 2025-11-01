@@ -66,6 +66,52 @@ html[data-faction="dark"] #dropZone.dropzone-active{
   box-shadow:0 22px 48px color-mix(in oklab, var(--accent-2) 26%, #000 74%), 0 10px 18px rgba(0,0,0,.18);
   transform:translateY(0); transition:transform .12s ease, filter .15s ease, box-shadow .15s ease;
 }
+#practiceToggle{
+  flex:0 0 auto;
+  padding:15px 22px;
+  min-height:56px;
+  border-radius:18px;
+  font-size:1.02rem;
+  font-weight:700;
+  letter-spacing:.2px;
+  gap:10px;
+  position:relative;
+  overflow:hidden;
+  transition:background .2s ease, box-shadow .2s ease, border-color .2s ease, transform .2s ease;
+}
+#practiceToggle::before{
+  content:"🗂️";
+  font-size:1.25rem;
+  line-height:1;
+}
+#practiceToggle:hover{
+  transform:translateY(-1px);
+}
+#practiceToggle:active{
+  transform:translateY(0);
+}
+#practiceToggle[aria-expanded="true"]{
+  background:color-mix(in oklab, var(--accent-1) 66%, var(--panel) 34%);
+  border-color:color-mix(in oklab, var(--accent-1) 72%, var(--panel-border) 28%);
+  color:color-mix(in oklab, var(--ink) 70%, #fff 30%);
+  box-shadow:0 18px 38px color-mix(in oklab, rgba(0,0,0,.28) 64%, var(--accent-1) 36%);
+}
+#practiceToggle[aria-expanded="true"]::before{
+  content:"📖";
+}
+html[data-faction="dark"] #practiceToggle{
+  background:color-mix(in oklab, var(--surface) 32%, var(--panel) 68%);
+  color:color-mix(in oklab, var(--text) 96%, #fff 4%);
+  border-color:color-mix(in oklab, var(--panel-border) 48%, var(--accent-1) 52%);
+  box-shadow:0 12px 28px rgba(0,0,0,.34);
+}
+html[data-faction="dark"] #practiceToggle:hover{
+  background:color-mix(in oklab, var(--surface) 20%, var(--accent-1) 80%);
+}
+html[data-faction="dark"] #practiceToggle[aria-expanded="true"]{
+  background:color-mix(in oklab, var(--accent-1) 58%, var(--surface) 42%);
+  color:color-mix(in oklab, var(--text) 97%, #fff 3%);
+}
 html[data-faction="dark"] .record-btn{
   --btn-h1: color-mix(in oklab, var(--accent-1) 88%, #fff 12%);
   --btn-h2: color-mix(in oklab, var(--accent-2) 88%, #fff 12%);
@@ -696,8 +742,33 @@ html[data-faction="dark"] .summary-line{
   font-size:0.85rem;
 }
 .btn.ghost{
-  background:transparent;
-  border-style:dashed;
+  background:color-mix(in oklab, var(--panel) 78%, var(--surface) 22%);
+  border-style:solid;
+  border-color:color-mix(in oklab, var(--panel-border) 65%, var(--accent-1) 35%);
+  color:color-mix(in oklab, var(--ink) 82%, var(--text) 18%);
+  box-shadow:0 8px 18px rgba(0,0,0,.08);
+}
+.btn.ghost:hover{
+  background:color-mix(in oklab, var(--panel) 64%, var(--accent-1) 36%);
+}
+.btn.ghost:active{
+  background:color-mix(in oklab, var(--panel) 58%, var(--accent-1) 42%);
+}
+.btn.ghost:focus-visible{
+  border-color:color-mix(in oklab, var(--accent-1) 70%, var(--panel-border) 30%);
+}
+
+html[data-faction="dark"] .btn.ghost{
+  background:color-mix(in oklab, var(--surface) 46%, var(--panel) 54%);
+  color:color-mix(in oklab, var(--text) 94%, #fff 6%);
+  border-color:color-mix(in oklab, var(--panel-border) 45%, var(--accent-1) 55%);
+  box-shadow:0 10px 24px rgba(0,0,0,.32);
+}
+html[data-faction="dark"] .btn.ghost:hover{
+  background:color-mix(in oklab, var(--surface) 28%, var(--accent-1) 72%);
+}
+html[data-faction="dark"] .btn.ghost:active{
+  background:color-mix(in oklab, var(--surface) 20%, var(--accent-1) 80%);
 }
 .btn.primary{
   background:color-mix(in oklab, var(--accent-1) 62%, var(--panel) 38%);
