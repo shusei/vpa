@@ -2,15 +2,307 @@
   "version": 1,
   "license": "CC BY-NC 4.0",
   "categories": [
-    { "id": "greet", "title": "Greetings" },
-    { "id": "order", "title": "Ordering / Takeout" },
-    { "id": "shop",  "title": "Shopping / Fitting" }
+    {
+      "id": "greet",
+      "title": "Greetings / Polite Openers"
+    },
+    {
+      "id": "assist",
+      "title": "Asking for Help"
+    },
+    {
+      "id": "time",
+      "title": "Scheduling"
+    },
+    {
+      "id": "nav",
+      "title": "Directions"
+    },
+    {
+      "id": "shop",
+      "title": "Shopping"
+    },
+    {
+      "id": "size",
+      "title": "Sizing & Fitting"
+    },
+    {
+      "id": "return",
+      "title": "Returns & Exchanges"
+    },
+    {
+      "id": "pay",
+      "title": "Payment & Receipts"
+    },
+    {
+      "id": "cs",
+      "title": "Customer Support"
+    },
+    {
+      "id": "work",
+      "title": "Work & Collaboration"
+    },
+    {
+      "id": "life",
+      "title": "Home & Maintenance"
+    },
+    {
+      "id": "food",
+      "title": "Food & Custom Orders"
+    }
   ],
   "phrases": [
-    { "id": "greet_wc", "cat": "greet", "text": "Excuse me, where's the restroom?", "tip": "Lift the ending for 100–200 ms", "difficulty": 1 },
-    { "id": "greet_ask", "cat": "greet", "text": "Could you give me a hand? Thank you!", "tip": "Hold “you” for about 120 ms", "difficulty": 1 },
-    { "id": "order_latte", "cat": "order", "text": "I'd like a medium hot latte with less sugar.", "tip": "Tap the keywords, keep the tempo steady", "difficulty": 2 },
-    { "id": "order_bag", "cat": "order", "text": "Could you bag this for me? Thanks.", "tip": "Relax the ending without dropping", "difficulty": 1 },
-    { "id": "shop_size", "cat": "shop", "text": "Do you have this in L or XL?", "tip": "Say L / XL clearly without straining", "difficulty": 2 }
+    {
+      "id": "greet.ask-please",
+      "cat": "greet",
+      "text": "Excuse me, could I ask you something?",
+      "tip": "Variant: Excuse me, I had a quick question. / Sorry to bother you—may I ask?",
+      "difficulty": 1
+    },
+    {
+      "id": "greet.thanks",
+      "cat": "greet",
+      "text": "Thanks so much for your help.",
+      "tip": "Variant: I really appreciate it—thank you.",
+      "difficulty": 1
+    },
+    {
+      "id": "greet.minute",
+      "cat": "greet",
+      "text": "Do you have a minute I could borrow?",
+      "tip": "Variant: Would it be alright if I take a moment of your time?",
+      "difficulty": 1
+    },
+    {
+      "id": "assist.look",
+      "cat": "assist",
+      "text": "Could you take a look at this setting for me?",
+      "tip": "Variant: Would you check this option with me?",
+      "difficulty": 1
+    },
+    {
+      "id": "assist.blocked",
+      "cat": "assist",
+      "text": "I'm stuck on this—could you point me in the right direction?",
+      "tip": "Variant: I hit a snag; could you give me some guidance?",
+      "difficulty": 1
+    },
+    {
+      "id": "assist.power",
+      "cat": "assist",
+      "text": "Could I borrow a power outlet for a bit?",
+      "tip": "Variant: Is there somewhere I can plug in quickly?",
+      "difficulty": 1
+    },
+    {
+      "id": "time.free5",
+      "cat": "time",
+      "text": "When would you have five minutes to chat?",
+      "tip": "Variant: Let me know when you have a moment to talk.",
+      "difficulty": 1
+    },
+    {
+      "id": "time.move",
+      "cat": "time",
+      "text": "Could we move it to tomorrow morning?",
+      "tip": "Variant: Would rescheduling for tomorrow a.m. work?",
+      "difficulty": 1
+    },
+    {
+      "id": "time.late10",
+      "cat": "time",
+      "text": "I might be ten minutes late; I'll keep you posted.",
+      "tip": "Variant: I may run a bit late—I'll let you know when I'm close.",
+      "difficulty": 1
+    },
+    {
+      "id": "nav.where",
+      "cat": "nav",
+      "text": "Which floor and direction is ___?",
+      "tip": "Variant: Could you tell me how to get to ___?",
+      "difficulty": 1
+    },
+    {
+      "id": "nav.mrt",
+      "cat": "nav",
+      "text": "About how long is the walk to the metro station?",
+      "tip": "Variant: Roughly how many minutes to the subway?",
+      "difficulty": 1
+    },
+    {
+      "id": "nav.entrance",
+      "cat": "nav",
+      "text": "I can't find the entrance—could you point me there?",
+      "tip": "Variant: Where's the entrance located?",
+      "difficulty": 1
+    },
+    {
+      "id": "shop.warranty",
+      "cat": "shop",
+      "text": "Does this come with a warranty?",
+      "tip": "Variant: How long is the warranty period?",
+      "difficulty": 1
+    },
+    {
+      "id": "shop.variants",
+      "cat": "shop",
+      "text": "Do you have this in other colors or styles?",
+      "tip": "Variant: Are there any other options available?",
+      "difficulty": 1
+    },
+    {
+      "id": "shop.invoice",
+      "cat": "shop",
+      "text": "Could I get an invoice for this?",
+      "tip": "Variant: Would you be able to issue a receipt?",
+      "difficulty": 1
+    },
+    {
+      "id": "size.updown",
+      "cat": "size",
+      "text": "Do you have this one size up or down?",
+      "tip": "Variant: Are there other sizes in stock?",
+      "difficulty": 1
+    },
+    {
+      "id": "size.try",
+      "cat": "size",
+      "text": "Could I try this on or take a quick walk in it?",
+      "tip": "Variant: Would it be alright if I try it on?",
+      "difficulty": 1
+    },
+    {
+      "id": "size.foot",
+      "cat": "size",
+      "text": "I'm a 27.5 cm—do you have that size available?",
+      "tip": "Variant: Do you carry a 27.5 in this style?",
+      "difficulty": 1
+    },
+    {
+      "id": "return.swap",
+      "cat": "return",
+      "text": "I'd like to swap this for the same item in another color—would that be okay?",
+      "tip": "Variant: Could I exchange it for a different color?",
+      "difficulty": 1
+    },
+    {
+      "id": "return.defect",
+      "cat": "return",
+      "text": "This one has a defect—could you help me take care of it?",
+      "tip": "Variant: There's an issue here; what's the best way to handle it?",
+      "difficulty": 1
+    },
+    {
+      "id": "return.need",
+      "cat": "return",
+      "text": "Do I need to bring the receipt or packaging?",
+      "tip": "Variant: What paperwork do I need for a return?",
+      "difficulty": 1
+    },
+    {
+      "id": "pay.card",
+      "cat": "pay",
+      "text": "Do you take cards or mobile payments?",
+      "tip": "Variant: Which payment methods do you accept?",
+      "difficulty": 1
+    },
+    {
+      "id": "pay.carrier",
+      "cat": "pay",
+      "text": "Here's my e-receipt ID—could you save it there?",
+      "tip": "Variant: Please store the invoice on my barcode—thanks.",
+      "difficulty": 1
+    },
+    {
+      "id": "pay.split",
+      "cat": "pay",
+      "text": "Could you split this into two receipts?",
+      "tip": "Variant: Would it be possible to ring it up as two transactions?",
+      "difficulty": 1
+    },
+    {
+      "id": "cs.order",
+      "cat": "cs",
+      "text": "I'd like to check on my order status.",
+      "tip": "Variant: Could you see where my order is at right now?",
+      "difficulty": 1
+    },
+    {
+      "id": "cs.link",
+      "cat": "cs",
+      "text": "The link you sent won't open—could you send it again?",
+      "tip": "Variant: The link expired; could you provide a new one?",
+      "difficulty": 1
+    },
+    {
+      "id": "cs.cancel",
+      "cat": "cs",
+      "text": "I'd like to cancel and get a refund—what's the process?",
+      "tip": "Variant: How do I request a refund?",
+      "difficulty": 2
+    },
+    {
+      "id": "work.notes",
+      "cat": "work",
+      "text": "I've gathered the edits in the notes—could you take a look?",
+      "tip": "Variant: Key points are in the comments; please review.",
+      "difficulty": 1
+    },
+    {
+      "id": "work.block",
+      "cat": "work",
+      "text": "This request is waiting on approval—could you help move it along?",
+      "tip": "Variant: We're blocked on authorization; could you assist?",
+      "difficulty": 2
+    },
+    {
+      "id": "work.more",
+      "cat": "work",
+      "text": "Is there anything else you need me to add?",
+      "tip": "Variant: Are you missing any information from me?",
+      "difficulty": 1
+    },
+    {
+      "id": "life.leak",
+      "cat": "life",
+      "text": "The faucet keeps dripping—could someone come take a look?",
+      "tip": "Variant: There's a leak at the tap; could you send someone?",
+      "difficulty": 1
+    },
+    {
+      "id": "life.voltage",
+      "cat": "life",
+      "text": "Does this run on 110V or 220V?",
+      "tip": "Variant: Which voltage does this unit need—110 or 220?",
+      "difficulty": 1
+    },
+    {
+      "id": "life.eta",
+      "cat": "life",
+      "text": "About how long will the repair take?",
+      "tip": "Variant: What's the estimated completion time?",
+      "difficulty": 1
+    },
+    {
+      "id": "food.drink",
+      "cat": "food",
+      "text": "No sugar, light ice, to go please—thanks!",
+      "tip": "Variant: No sugar, no ice, and make it to go, please.",
+      "difficulty": 1
+    },
+    {
+      "id": "food.spicy",
+      "cat": "food",
+      "text": "Could you leave out the spice and keep the sauce on the side?",
+      "tip": "Variant: No spice, and serve the sauce separately.",
+      "difficulty": 1
+    },
+    {
+      "id": "food.seats",
+      "cat": "food",
+      "text": "Table for two—we'll need about an hour.",
+      "tip": "Variant: Two guests; we'll be here roughly an hour.",
+      "difficulty": 1
+    }
   ]
 }
