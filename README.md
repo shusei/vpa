@@ -49,7 +49,7 @@ Voice Presentation Analyzer（以下簡稱 VPA）是一款完全以 Web 技術�
 
 - **錄音／上傳二合一流程**：支援 MediaRecorder 錄音，或從檔案系統挑選音訊／影片檔（自動抽出音軌）。【F:assets/app.js†L196-L320】【F:index.html†L311-L348】
 - **即時儀表與提示**：分析期間的儀表會即時刷新，狀態列同步顯示目前片段、進度百分比與預估剩餘時間。【F:assets/app.js†L566-L628】【F:index.html†L351-L397】
-- **句庫練習抽屜**：錄音鍵旁提供句子清單、影子跟讀倒數、自動下一句與隨機一句；卡片僅顯示女性傾向／男性傾向兩個百分比，不打擾主儀表。【F:index.html†L150-L208】【F:assets/js/practice.js†L1-L520】
+- **句庫練習抽屜**：錄音鍵旁提供句子清單、自動下一句與隨機一句；卡片左側按鈕負責錄音／停止，右側播放鍵可快速回聽上一段，完成後回寫女性傾向／男性傾向百分比，主儀表維持乾淨。【F:index.html†L150-L197】【F:assets/js/practice.js†L1-L520】
 - **多主題與派別**：內建 30+ 顏色主題，可在 Auto / Light / Dark / 彩色派別中切換並記憶選擇。【F:index.html†L61-L123】【F:assets/js/theme.js†L1-L220】
 - **新手引導與使用指南**：首次造訪會出現提示泡泡，右上角 ❓ 可開啟圖文說明覆蓋層，支援鍵盤 `Esc` 關閉。【F:index.html†L214-L308】【F:assets/js/theme.js†L222-L339】
 
@@ -83,7 +83,7 @@ Voice Presentation Analyzer（以下簡稱 VPA）是一款完全以 Web 技術�
    - 點擊「開始錄音」並說話 5–10 秒（建議自然口語，避免唱歌）。
    - 或點擊右下角的上傳按鈕，挑選 `mp3 / m4a / mp4 / mov / wav` 等檔案。
      按下浮動按鈕時頁面會自動捲回頂端，方便直接看到上傳區塊與狀態列。【F:assets/app.js†L700-L730】
-3. **需要靈感？** 錄音鍵旁的「句庫練習」提供多語句子，可開啟影子跟讀（播放參考音 + 3-2-1 倒數）後自動開始錄音；建議每句練習 3–7 秒。
+3. **需要靈感？** 錄音鍵旁的「句庫練習」提供多語句子：挑一句後按卡片按鈕（或按 <kbd>Space</kbd>）立即錄音，再用右側播放鍵重聽上一段。建議每句練習 3–7 秒，卡片會回寫女性傾向／男性傾向百分比。
 4. **即時觀察**：錄音期間會顯示 Pitch Stream 與 Formant / Resonance 面板；上傳檔案則會離線抽樣並於統計卡展示。
 5. **等待推論完成**：儀表盤會顯示模型即時傾向、狀態列同步告知進度與預估剩餘時間。
 6. **檢視結果**：推論完成後，可在儀表下方閱讀統計卡與簡評，必要時點擊播放器回放剛才的音檔。
@@ -126,7 +126,7 @@ Voice Presentation Analyzer（以下簡稱 VPA）是一款完全以 Web 技術�
 - **音訊處理**：WebAudio 進行即時頻譜、pitch、formant 與噪音估計；必要時退回 `ffmpeg.wasm` 解析影片音軌。【F:assets/app.js†L320-L565】
 - **分段策略**：根據裝置（WebGPU / WASM）與長度決定視窗與 hop，並顯示策略描述（如「WebGPU：24 秒窗 / hop 6 秒」）。【F:assets/app.js†L600-L704】
 - **聚合方法**：長檔使用對數勝算（log-odds）加權整合片段結果，以貼近整段一次推論的輸出。【F:assets/app.js†L566-L628】
-- **句庫練習流程**：播放裝置 TTS（若 voices 為空會等待 `voiceschanged`，仍不可用則略過）→ 3-2-1 倒數 → 單例 MediaRecorder 錄音 → 回寫 pf / pm 並以 localStorage 保存最近 20 筆歷程。【F:assets/js/practice.js†L1-L520】
+- **句庫練習流程**：共用單一 MediaRecorder 錄音（卡片按鈕切換錄音／停止、右側播放鍵重播上一段）→ 回寫 pf / pm 並以 localStorage 保存最近 20 筆歷程。【F:assets/js/practice.js†L1-L520】
 - **狀態管理**：透過 `analysisSeq` / `activeAnalysisToken` 確保並行操作時只保留最新一輪結果，避免 race condition。【F:assets/app.js†L70-L118】
 
 ---
@@ -244,7 +244,6 @@ VPA 遵循相對路徑，可直接放在 `https://domain/app/vpa/` 等子路徑�
 | 模型載入失敗 | 首次載入網路不穩、Hugging Face CDN 無法存取 | 重整頁面，或在離線前確保模型已載入一次（IndexedDB 快取）。【F:assets/app.js†L520-L565】 |
 | 推論速度與桌機不同 | 系統會依 `navigator.hardwareConcurrency` 自動挑選 1–4 個 WASM 執行緒；Safari 與行動裝置為穩定性固定 1 執行緒 | 桌機若清除快取會重新偵測，可於 DevTools console 查看實際執行緒數；行動裝置回退單執行緒以避免排程過載。【F:assets/app.js†L1-L120】 |
 | 要清除舊音檔 | 重新錄音或上傳新檔案 | 系統僅保留「最新一段」的回放 URL，換檔即釋放。【F:assets/app.js†L710-L756】 |
-| 句庫參考音沒有聲音 | Safari / iOS 初次載入時 `speechSynthesis.getVoices()` 可能為空，或裝置未提供對應語音 | 等待系統觸發 `voiceschanged` 後會自動重試；若仍無語音則略過參考音直接倒數，錄音流程不受影響。【F:assets/js/practice.js†L1-L120】 |
 
 ---
 
@@ -254,7 +253,7 @@ VPA 遵循相對路徑，可直接放在 `https://domain/app/vpa/` 等子路徑�
 - 建議用於自我練習或語音訓練回饋，不應用於歧視或未經當事人同意的評估。
 - 灰色帶：若結果介於 **40–60%**，代表模型不確定，請多錄幾段觀察趨勢。
 - 已知侷限：模型以 Mozilla Common Voice 英語朗讀資料訓練，面對中文、方言、唱歌、戲腔等聲音時可能有偏差；噪音、回音、鼻音或刻意拉高音高亦可能影響結果。【F:assets/app.js†L566-L628】【F:index.html†L351-L397】
-- 句庫練習結果僅存於瀏覽器 localStorage，可隨時清除；參考音由裝置的語音合成器播放，聲線與口音會依平台而異。【F:assets/js/practice.js†L1-L200】
+- 句庫練習結果僅存於瀏覽器 localStorage，可隨時清除；卡片按鈕可快速切換錄音／停止，完成後回寫女性／男性傾向百分比。【F:assets/js/practice.js†L1-L460】
 
 ---
 
