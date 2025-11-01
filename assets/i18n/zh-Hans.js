@@ -81,6 +81,7 @@ export default {
     lastScore: "上次",
     playLast: "播放上一段",
     playStop: "停止播放",
+    close: "关闭卡片",
   },
   upload: {
     title: "上传音频文件（mp3 / m4a / mp4 / mov）",
