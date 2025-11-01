@@ -11,6 +11,7 @@ const bridge = {
 
 const state = {
   data: { categories: [], phrases: [] },
+  selectedCategory: null,
   shadowMode: true,
   autoAdvance: true,
   history: new Map(),
@@ -396,13 +397,60 @@ function bindCardEvents(card, phrase) {
   });
 }
 
-function renderList() {
+function renderCategoryNav(cats = byCategory(state.data)) {
+  const nav = qs("#practiceNav");
+  if (!nav) return;
+  const usable = cats.filter((cat) => Array.isArray(cat.items) && cat.items.length);
+  const label = t("practice.filterLabel") || "Browse by category";
+  nav.setAttribute("aria-label", label);
+  nav.setAttribute("role", "radiogroup");
+  nav.innerHTML = "";
+
+  if (!usable.length) {
+    nav.hidden = true;
+    return;
+  }
+
+  nav.hidden = usable.length <= 1;
+
+  const activeId = state.selectedCategory || "";
+
+  const makeButton = (title, catId) => {
+    const button = createEl("button", {
+      type: "button",
+      class: "practice-nav__item",
+      dataset: { cat: catId ?? "" },
+      title,
+    }, document.createTextNode(title));
+    button.setAttribute("role", "radio");
+    const id = catId ?? "";
+    const isActive = id === activeId;
+    button.setAttribute("aria-checked", String(isActive));
+    if (isActive) {
+      button.classList.add("is-active");
+    }
+    return button;
+  };
+
+  const allTitle = t("practice.allCategories") || "All";
+  nav.appendChild(makeButton(allTitle, null));
+
+  for (const cat of usable) {
+    const title = cat.title || cat.name || cat.id || "";
+    nav.appendChild(makeButton(title, cat.id));
+  }
+}
+
+function renderList(cats = byCategory(state.data)) {
   const list = qs("#practiceList");
   if (!list) return;
   list.setAttribute("aria-busy", "true");
   list.innerHTML = "";
-  const cats = byCategory(state.data);
-  for (const cat of cats) {
+  const filtered = state.selectedCategory
+    ? cats.filter((cat) => cat.id === state.selectedCategory)
+    : cats;
+  for (const cat of filtered) {
+    if (!cat.items || !cat.items.length) continue;
     const heading = createEl("h4", { class: "practice-cat" }, document.createTextNode(cat.title || cat.id || ""));
     list.appendChild(heading);
     for (const phrase of cat.items) {
@@ -457,7 +505,12 @@ function focusRelative(current, delta) {
 
 async function refreshData(locale) {
   state.data = await loadPracticeData(locale);
-  renderList();
+  const cats = byCategory(state.data);
+  if (state.selectedCategory && !cats.some((cat) => cat.id === state.selectedCategory && cat.items && cat.items.length)) {
+    state.selectedCategory = null;
+  }
+  renderCategoryNav(cats);
+  renderList(cats);
 }
 
 export async function setupPracticeUI({ subscribeInference, recorder } = {}) {
@@ -467,11 +520,12 @@ export async function setupPracticeUI({ subscribeInference, recorder } = {}) {
   const toggle = qs("#practiceToggle");
   const panel = qs("#practicePanel");
   const list = qs("#practiceList");
+  const nav = qs("#practiceNav");
   const shadow = qs("#practiceShadowMode");
   const advance = qs("#practiceAutoAdvance");
   const randomBtn = qs("#practiceRandomBtn");
 
-  if (!toggle || !panel || !list || !shadow || !advance || !randomBtn) {
+  if (!toggle || !panel || !list || !nav || !shadow || !advance || !randomBtn) {
     return;
   }
 
@@ -479,6 +533,60 @@ export async function setupPracticeUI({ subscribeInference, recorder } = {}) {
   loadHistory();
 
   await refreshData(getCurrentLocale());
+
+  nav.addEventListener("click", (event) => {
+    const target = event.target instanceof HTMLElement
+      ? event.target.closest("button[data-cat]")
+      : null;
+    if (!target) return;
+    const catId = target.dataset.cat || "";
+    const normalized = catId ? catId : null;
+    if (state.selectedCategory === normalized) return;
+    state.selectedCategory = normalized;
+    const cats = byCategory(state.data);
+    renderCategoryNav(cats);
+    renderList(cats);
+    const safeCat = typeof CSS !== "undefined" && typeof CSS.escape === "function"
+      ? CSS.escape(catId)
+      : catId.replace(/["\\]/g, "\\$&");
+    const selector = `[data-cat="${safeCat}"]`;
+    requestAnimationFrame(() => {
+      const active = nav.querySelector(selector);
+      if (active instanceof HTMLElement) {
+        active.focus();
+      }
+    });
+  });
+
+  nav.addEventListener("keydown", (event) => {
+    const keys = ["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp", "Home", "End"];
+    if (!keys.includes(event.key)) return;
+    const buttons = Array.from(nav.querySelectorAll('[role="radio"]'));
+    if (!buttons.length) return;
+    event.preventDefault();
+    const focused = document.activeElement instanceof HTMLElement
+      ? document.activeElement.closest('[role="radio"]')
+      : null;
+    let index = buttons.indexOf(focused);
+    if (index === -1) {
+      index = buttons.findIndex((btn) => btn.classList.contains("is-active"));
+    }
+    if (index === -1) index = 0;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      index = (index + 1) % buttons.length;
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      index = (index - 1 + buttons.length) % buttons.length;
+    } else if (event.key === "Home") {
+      index = 0;
+    } else if (event.key === "End") {
+      index = buttons.length - 1;
+    }
+    const next = buttons[index];
+    if (next instanceof HTMLElement) {
+      next.focus();
+      next.click();
+    }
+  });
 
   toggle.addEventListener("click", () => {
     const isHidden = panel.hasAttribute("hidden");
