@@ -941,10 +941,39 @@ html[data-faction="dark"] .practice-nav__item.is-active{
   color:color-mix(in oklab, var(--ink) 88%, var(--muted) 12%);
 }
 .practice-card{
+  position:relative;
   border:1px solid var(--panel-border);
   border-radius:12px;
   padding:12px;
+  padding-right:44px;
   background:color-mix(in oklab, var(--panel) 88%, #fff 12%);
+}
+.practice-card__close{
+  position:absolute;
+  top:8px;
+  right:8px;
+  width:28px;
+  height:28px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:none;
+  border-radius:8px;
+  background:transparent;
+  color:color-mix(in oklab, var(--ink) 68%, var(--muted) 32%);
+  font-size:1rem;
+  line-height:1;
+  cursor:pointer;
+  transition:background-color .2s ease,color .2s ease;
+}
+.practice-card__close:hover,
+.practice-card__close:focus-visible{
+  background:color-mix(in oklab, var(--panel-border) 35%, transparent 65%);
+  color:color-mix(in oklab, var(--ink) 90%, var(--muted) 10%);
+}
+.practice-card__close:focus-visible{
+  outline:2px solid color-mix(in oklab, var(--accent-1) 70%, transparent 30%);
+  outline-offset:2px;
 }
 .practice-text{
   font-size:1.05rem;
