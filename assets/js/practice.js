@@ -159,6 +159,20 @@ function setCardPlaying(card, playing) {
   playBtn.setAttribute("aria-pressed", playing ? "true" : "false");
 }
 
+function stripCardDismissals(root) {
+  if (!root) return;
+  const extras = root.querySelectorAll('[data-act="dismiss"], .practice-card__dismiss, .practice-dismiss');
+  if (!extras.length) return;
+  for (const control of extras) {
+    const card = control.closest(".practice-card");
+    control.remove();
+    if (card) {
+      card.removeAttribute("data-dismissable");
+      card.classList.remove("has-dismiss", "practice-card--dismissable", "practice-card_has-dismiss");
+    }
+  }
+}
+
 function getCardById(id) {
   if (!id) return null;
   const safe = typeof CSS !== "undefined" && typeof CSS.escape === "function"
@@ -441,6 +455,7 @@ function renderList(cats = byCategory(state.data)) {
   const list = qs("#practiceList");
   if (!list) return;
   list.setAttribute("aria-busy", "true");
+  stripCardDismissals(list);
   list.innerHTML = "";
   const filtered = state.selectedCategory
     ? cats.filter((cat) => cat.id === state.selectedCategory)
