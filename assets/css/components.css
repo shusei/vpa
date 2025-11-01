@@ -790,6 +790,11 @@ html[data-faction="dark"] .btn.ghost:active{
   background:color-mix(in oklab, var(--panel) 92%, #fff 8%);
   box-shadow:0 4px 16px rgba(0,0,0,.06);
 }
+html[data-faction="dark"] .practice-panel{
+  background:color-mix(in oklab, var(--surface-strong) 72%, rgba(255,255,255,.08) 28%);
+  border-color:color-mix(in oklab, var(--border) 72%, rgba(255,255,255,.08) 28%);
+  box-shadow:0 18px 40px rgba(0,0,0,.45);
+}
 .practice-header{
   display:flex;
   flex-wrap:wrap;
@@ -914,21 +919,35 @@ html[data-faction="dark"] .practice-nav__item.is-active{
   font-weight:700;
   color:color-mix(in oklab, var(--ink) 88%, var(--muted) 12%);
 }
+html[data-faction="dark"] .practice-cat{
+  color:color-mix(in oklab, var(--text) 94%, var(--muted) 6%);
+}
 .practice-card{
   border:1px solid var(--panel-border);
   border-radius:12px;
   padding:12px;
   background:color-mix(in oklab, var(--panel) 88%, #fff 12%);
 }
+html[data-faction="dark"] .practice-card{
+  background:color-mix(in oklab, var(--surface) 80%, rgba(255,255,255,.08) 20%);
+  border-color:color-mix(in oklab, var(--border) 70%, rgba(255,255,255,.08) 30%);
+  box-shadow:0 14px 34px rgba(0,0,0,.4);
+}
 .practice-text{
   font-size:1.05rem;
   font-weight:600;
   margin:0 0 4px;
 }
+html[data-faction="dark"] .practice-text{
+  color:color-mix(in oklab, var(--text) 96%, #fff 4%);
+}
 .practice-tip{
   font-size:0.9rem;
   color:color-mix(in oklab, var(--ink) 78%, var(--muted) 22%);
   margin:0 0 8px;
+}
+html[data-faction="dark"] .practice-tip{
+  color:color-mix(in oklab, var(--text) 86%, var(--muted) 14%);
 }
 .practice-controls{
   display:flex;
@@ -943,9 +962,15 @@ html[data-faction="dark"] .practice-nav__item.is-active{
   align-items:baseline;
   font-size:0.9rem;
 }
+html[data-faction="dark"] .practice-result{
+  color:color-mix(in oklab, var(--text) 88%, var(--muted) 12%);
+}
 .practice-result b{
   font-size:1.2rem;
   display:block;
+}
+html[data-faction="dark"] .practice-result b{
+  color:color-mix(in oklab, var(--text) 96%, #fff 4%);
 }
 .practice-badges{
   margin-top:6px;
@@ -971,5 +996,26 @@ html[data-faction="dark"] .practice-nav__item.is-active{
   .practice-controls{ gap:6px; }
   .practice-result{ gap:10px; font-size:0.85rem; }
   .practice-header{ flex-direction:column; align-items:flex-start; }
+}
+
+/* 防止全域關閉／dismiss 樣式污染練習卡片 */
+#practiceList .practice-card[data-dismissable]::before,
+#practiceList .practice-card[data-dismissable]::after,
+#practiceList .practice-card.has-dismiss::before,
+#practiceList .practice-card.has-dismiss::after,
+#practiceList .practice-card.practice-card--dismissable::before,
+#practiceList .practice-card.practice-card--dismissable::after{
+  content:none !important;
+}
+
+#practiceList .practice-card .practice-dismiss,
+#practiceList .practice-card .practice-card__dismiss,
+#practiceList .practice-card [data-act="dismiss"]{
+  display:none !important;
+}
+
+#practiceList .practice-card::before,
+#practiceList .practice-card::after{
+  content:none !important;
 }
 
