@@ -807,6 +807,45 @@ html[data-faction="dark"] .btn.ghost:active{
   flex-wrap:wrap;
   gap:10px 14px;
 }
+.practice-select{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  font-size:0.78rem;
+  color:color-mix(in oklab, var(--muted) 65%, var(--ink) 35%);
+}
+.practice-select span{
+  font-weight:600;
+  letter-spacing:0.01em;
+  color:color-mix(in oklab, var(--ink) 82%, var(--muted) 18%);
+}
+.practice-select select{
+  min-width:140px;
+  padding:6px 12px;
+  border-radius:12px;
+  border:1px solid color-mix(in oklab, var(--panel-border) 85%, transparent 15%);
+  background:color-mix(in oklab, var(--panel) 96%, #fff 4%);
+  color:var(--ink);
+  font-size:0.85rem;
+  line-height:1.3;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55);
+}
+.practice-select select:focus{
+  outline:2px solid color-mix(in oklab, var(--accent-2) 65%, transparent 35%);
+  outline-offset:2px;
+}
+html[data-faction="dark"] .practice-select span{
+  color:color-mix(in oklab, var(--ink) 74%, #fff 26%);
+}
+html[data-faction="dark"] .practice-select select{
+  background:color-mix(in oklab, var(--panel) 82%, rgba(255,255,255,.04) 18%);
+  border-color:color-mix(in oklab, var(--panel-border) 78%, transparent 22%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
+  color:color-mix(in oklab, var(--ink) 94%, #fff 6%);
+}
+.practice-select select option{
+  color:initial;
+}
 .practice-nav{
   display:flex;
   flex-wrap:wrap;
