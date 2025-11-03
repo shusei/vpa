@@ -3329,11 +3329,12 @@ function averageEnergy(arr, info = {}){
   };
 }
 
-const RESONANCE_PRIOR_WEIGHT = 6;
-const RESONANCE_DOMINANCE_DELTA = 0.26;
-const RESONANCE_HEAD_MIN = 0.40;
-const RESONANCE_MASK_MIN = 0.38;
-const RESONANCE_CHEST_MIN = 0.52;
+const RESONANCE_PRIOR_WEIGHT = 0.02;
+const RESONANCE_PRIOR_MIN = 0.6;
+const RESONANCE_DOMINANCE_DELTA = 0.12;
+const RESONANCE_HEAD_MIN = 0.50;
+const RESONANCE_MASK_MIN = 0.46;
+const RESONANCE_CHEST_MIN = 0.54;
 const RESONANCE_MIN_SAMPLES = 18;
 const RESONANCE_MIN_COVERAGE = 0.2;
 const RESONANCE_COVERAGE_GOOD = 0.35;
@@ -3461,7 +3462,7 @@ function normalizeResonanceBands(energy){
   if (!Number.isFinite(total) || total <= EPS){
     return { chest: NaN, mask: NaN, head: NaN, total: 0, coverage: Number.isFinite(energy.coverage) ? energy.coverage : 0 };
   }
-  const prior = total * RESONANCE_PRIOR_WEIGHT;
+  const prior = Math.max(RESONANCE_PRIOR_MIN, total * RESONANCE_PRIOR_WEIGHT);
   const perBand = prior / 3;
   const denom = total + prior;
   return {
@@ -3510,15 +3511,16 @@ function describeResonanceFromEnergy(energy){
     return insufficientEntry();
   }
 
-  const maxVal = Math.max(chest, mask, head);
-  const minVal = Math.min(chest, mask, head);
-  const span = maxVal - minVal;
-
+  const chestLead = chest - Math.max(mask, head);
+  const maskLead = mask - Math.max(chest, head);
+  const headLead = head - Math.max(chest, mask);
   let key = "balanced";
-  if (span >= 0.10){
-    if (chest >= 0.45 && chest === maxVal) key = "chestHeavy";
-    else if (mask >= 0.45 && mask === maxVal) key = "maskLead";
-    else if (head >= 0.45 && head === maxVal) key = "headBright";
+  if (chestLead >= RESONANCE_DOMINANCE_DELTA && chest >= RESONANCE_CHEST_MIN){
+    key = "chestHeavy";
+  } else if (maskLead >= RESONANCE_DOMINANCE_DELTA && mask >= RESONANCE_MASK_MIN){
+    key = "maskLead";
+  } else if (headLead >= RESONANCE_DOMINANCE_DELTA && head >= RESONANCE_HEAD_MIN){
+    key = "headBright";
   }
 
   const entry = analysisText?.resonanceBalance?.[key];
