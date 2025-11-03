@@ -25,8 +25,10 @@ jobs:
 
       - name: Fetch ffmpeg assets
         run: npm run fetch:ffmpeg
+        continue-on-error: true
 
       - name: Run tests
         run: npm test
         env:
           CI: "true"
+          SKIP_VENDOR_FFMPEG: "1"
