@@ -107,7 +107,7 @@ export default {
       tiltPlaceholder: "Spectral Tilt（频谱倾斜度）— dB",
       tiltValue: "Spectral Tilt（频谱倾斜度） {{value}} dB",
       chest: "胸 {{value}}%",
-      mask: "面罩 {{value}}%",
+      mask: "前置 {{value}}%",
       head: "头 {{value}}%",
     },
     meter: {
@@ -244,7 +244,7 @@ export default {
       '<h3>录音时会看到什么？</h3>',
       '<ul>',
       '<li><strong>Hz Stream（音高走势）：</strong>以 50 ms 更新 50–600 Hz 音高与瞬时音量，色带标示常见音高区（含 Soprano / 假声带），方便判断语尾是否上扬或落在女性常见带。</li>',
-      '<li><strong>Formant / Resonance 即时监控：</strong>估计 F1–F3、气声比例与胸 / 面罩 / 头腔共鸣分布，横条颜色依序为胸（桃色）、面罩（粉色）、头腔（浅灰蓝）。</li>',
+      '<li><strong>Formant / Resonance 即时监控：</strong>估计 F1–F3、气声比例与胸腔 / 前置 / 头腔共鸣分布，横条颜色依序为胸腔（桃色）、前置（粉色）、头腔（浅灰蓝）。</li>',
       '<li><strong>状态列：</strong>显示当前流程（录音中、解析、推论、整理统计等），若遇到长档也会提示串流分段策略。</li>',
       '</ul>',
       '<div class="help-why"><strong>为什么横条或曲线会先空白？</strong> 需要至少数百毫秒的有效语音，若开头全是噪音或咳嗽，系统会等待抓到稳定语音后再绘制。</div>',
@@ -260,7 +260,7 @@ export default {
       '<h4>Formant 与共鸣卡</h4>',
       '<ul>',
       '<li><strong>F1 / F2 / F3：</strong>取录音期间的中位数，对照建议范围可判断母音开口、舌头位置与声音明亮度。</li>',
-      '<li><strong>共鸣横条：</strong>胸 / 面罩 / 头腔三段百分比填满同一条带，代表能量聚焦位置。面罩 + 头腔越稳定，声线越明亮。</li>',
+      '<li><strong>共鸣横条：</strong>胸腔 / 前置 / 头腔三段百分比填满同一条带，代表能量聚焦位置。前置 + 头腔越稳定，声线越明亮。</li>',
       '<li><strong>Spectral Tilt：</strong>监控高频能量是否充足，可搭配共鸣横条调整嘴型或支撑。</li>',
       '</ul>',
       '<h4>语调与语速卡</h4>',
@@ -313,7 +313,7 @@ export default {
       '<h3>名词解释</h3>',
       '<div class="term-grid">',
       '<div class="term-card"><h4>Formant（共振峰）</h4><p>声道不同腔室产生的共鸣频率，F1 代表口腔开口大小，F2 代表舌头前后位置，F3 与声音明亮度相关。</p></div>',
-      '<div class="term-card"><h4>Resonance（共鸣）</h4><p>胸、面罩、头腔的能量分布。更多面罩与头腔会让声音更明亮；胸腔占比高则声音厚实。</p></div>',
+      '<div class="term-card"><h4>Resonance（共鸣）</h4><p>胸腔、前置、头腔的能量分布。前置与头腔越多，声音越明亮；胸腔占比高则声音厚实。</p></div>',
       '<div class="term-card"><h4>Vowel Focus（元音聚焦）</h4><p>统计母音是否落在女性常见音高区。聚焦越高，代表舌面前上、母音更集中。</p></div>',
       '<div class="term-card"><h4>Breathiness（气声）</h4><p>估计气流外泄的比例。适度气声让声音柔和，过多会失去支撑，过少会变得紧。</p></div>',
       '<div class="term-card"><h4>Spectral Tilt（频谱倾斜度）</h4><p>比较高频与低频能量，用来判断声音是偏暖还是明亮。</p></div>',
@@ -421,7 +421,7 @@ export default {
       insufficient: { label: "资料不足", hint: "需要更多稳定语音才能估算共鸣分布。" },
       balanced: {
         label: "平衡",
-        hint: "胸 / 面罩 / 头腔能量分布均衡，可依需求微调亮度。做法：记住此时的口腔形状，之后想要同样的音色就回到这个感觉。",
+        hint: "胸腔 / 前置 / 头腔能量分布均衡，可依需求微调亮度。做法：记住此时的口腔形状，之后想要同样的音色就回到这个感觉。",
       },
       headBright: {
         label: "头腔亮度强",
@@ -432,8 +432,8 @@ export default {
         hint: "胸腔能量较多，声音偏厚。做法：先吸一口气轻哼『嗯』，让震动跑到鼻梁，再把句子接在后面维持那个位置。",
       },
       maskLead: {
-        label: "面罩共鸣主导",
-        hint: "面罩区域占比最高。做法：保持牙齿轻松分开，让气息像哈气一样往前喷，同时喉部放松，避免紧张。",
+        label: "前置共鸣主导",
+        hint: "前置区域占比最高。做法：保持牙齿轻松分开，让气息像哈气一样往前喷，同时喉部放松，避免紧张。",
       },
       coverageHint: "有效片段约 {{value}}%，趋势仅供参考。",
       coverageLowHint: "有效片段不足（{{value}}%），建议延长录音或提高音量。",
@@ -443,7 +443,7 @@ export default {
       referenceOnly: "（仅供参考）",
     },
     resonanceBar: {
-      default: { chest: "胸 0%", mask: "面罩 0%", head: "头 0%" },
+      default: { chest: "胸 0%", mask: "前置 0%", head: "头 0%" },
     },
     tilt: {
       insufficient: { label: "资料不足", hint: "录制更多稳定语音片段以估算共鸣倾向。" },
