@@ -1,6 +1,6 @@
 # ffmpeg.wasm vendored assets
 
-The ffmpeg fallback requires the upstream worker and core assets to be served from the same origin as the app:
+The ffmpeg fallback mirrors the upstream worker and core assets so they can be served from the same origin as the app:
 
 - `worker.js` from `@ffmpeg/ffmpeg@0.12.15/dist/esm/worker.js`
 - `ffmpeg-core.js` from `@ffmpeg/core@0.12.10/dist/esm/ffmpeg-core.js`
@@ -12,4 +12,4 @@ These files are downloaded automatically in CI/CD via `npm run fetch:ffmpeg`, wh
 npm run fetch:ffmpeg
 ```
 
-If you need to audit or mirror the assets yourself, fetch them from the upstream packages and drop them in this folder so `tests/verify-ffmpeg-download.mjs` can verify their presence.
+If you need to audit or mirror the assets yourself, fetch them from the upstream packages and drop them in this folder so `tests/verify-ffmpeg-download.mjs` can verify their presence. At runtime the app will fall back to streaming the assets directly from the CDN when local copies are missing, but shipping the vendored versions keeps worker loading reliable across browsers and improves startup time.
