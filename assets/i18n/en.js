@@ -137,8 +137,8 @@ export default {
       '<li><b>Practice drawer:</b> sits beside the record button and lists phrases plus your recent results. Each card toggles between record and stop and includes a play button for the previous take, while keeping the feminine / masculine percentages out of the main meter.</li>',
       '<li><b>Pitch stream:</b> visible only while recording; tracks 50–600 Hz pitch and loudness. Axis labels stay in Hz and the statistics reuse the same samples for uploads.</li>',
       '<li><b>Formant / Resonance:</b> estimates F1–F3, breathiness, and resonance distribution every 50 ms so you can inspect timbre shifts.</li>',
-      '<li><b>Summary cards:</b> aggregate pitch / volume percentiles, noise and SNR, plus coaching notes to track progress.</li>',
-      '<li><b>Theme menu:</b> the gear lets you switch among Auto / light / dark themes and remembers the latest pick for each faction.</li>',
+      '<li><b>Summary cards:</b> aggregate pitch / volume percentiles, noise and SNR, plus coaching notes. The advanced section adds the intonation curve, speech rate, liaison ratio, and brightness tags, with a toggle to compare raw detections.</li>',
+      '<li><b>Theme & detection controls:</b> the gear switches among Auto / light / dark themes and remembers your picks, exposes “Voice profile” presets (Feminine, Soprano, etc.) or custom pitch limits, and includes an “Export analysis (JSON)” action for the latest run.</li>',
       '</ul>',
     ].join(""),
     modelHtml: [
