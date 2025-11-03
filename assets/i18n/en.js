@@ -277,7 +277,7 @@ export default {
       '<li><strong>Needs work:</strong> very few hits. Sustain front vowels for 5 seconds with the tongue tip resting on the lower teeth before returning to the line.</li>',
       '<li><strong>Breathiness:</strong> 8%–18% is the sweet spot; add a soft h onset when it’s too dense, or buzz a few “zzz” when it’s too airy.</li>',
       '</ul>',
-      '<div class="help-why"><strong>Seeing 0%?</strong> Short or consonant-heavy clips can’t supply enough vowels. Hold “ee”/“yay” for 5–10 seconds with a relaxed throat, then retry the sentence.</div>',
+      '<div class="help-why"><strong>How do I keep the focus score steady?</strong> Stable vowels feed the “Vowel focus”, “Breathiness”, and resonance metrics. Clips that end too fast or lean on consonants leave the model guessing. Sustain “ee”/“yay” for 5–10 seconds with a gentle smile, then return to the sentence to lock in the placement.</div>',
       '</section>',
       '<section id="help-practice" class="help-section">',
       '<h3>Practice ideas & warm-ups</h3>',
