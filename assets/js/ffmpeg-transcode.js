@@ -8,6 +8,9 @@ const LOCAL_VENDOR_BASE = new URL("../vendor/ffmpeg/", import.meta.url).href;
 const LOCAL_WORKER_SRC = `${LOCAL_VENDOR_BASE}worker.js`;
 const LOCAL_CORE_JS_SRC = `${LOCAL_VENDOR_BASE}ffmpeg-core.js`;
 const LOCAL_CORE_WASM_SRC = `${LOCAL_VENDOR_BASE}ffmpeg-core.wasm`;
+const CDN_WORKER_SRC = `https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@${FFMPEG_VER}/dist/esm/worker.js`;
+const CDN_CORE_JS_SRC = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/esm/ffmpeg-core.js`;
+const CDN_CORE_WASM_SRC = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/esm/ffmpeg-core.wasm`;
 
 let ffmpegInstance = null;
 let ffmpegLoadingPromise = null;
@@ -58,42 +61,61 @@ function attachProgressHandler(instance) {
 
 async function resolveLocalFFmpegURLs(mirrored) {
   const sources = [
-    [LOCAL_WORKER_SRC, "text/javascript", "worker"],
-    [LOCAL_CORE_JS_SRC, "text/javascript", "core"],
-    [LOCAL_CORE_WASM_SRC, "application/wasm", "wasm"],
+    {
+      label: "worker",
+      mime: "text/javascript",
+      urls: [LOCAL_WORKER_SRC, CDN_WORKER_SRC],
+    },
+    {
+      label: "core",
+      mime: "text/javascript",
+      urls: [LOCAL_CORE_JS_SRC, CDN_CORE_JS_SRC],
+    },
+    {
+      label: "wasm",
+      mime: "application/wasm",
+      urls: [LOCAL_CORE_WASM_SRC, CDN_CORE_WASM_SRC],
+    },
   ];
 
-  try {
-    const [workerURL, coreURL, wasmURL] = await Promise.all(
-      sources.map(async ([src, mime]) => {
+  const attempts = [];
+
+  async function fetchWithFallback({ label, mime, urls }) {
+    for (const src of urls) {
+      try {
         const blobUrl = await toBlobURL(src, mime);
         mirrored?.push(blobUrl);
         return blobUrl;
-      }),
+      } catch (error) {
+        const original = error instanceof Error ? error.message : String(error ?? "");
+        attempts.push(`- ${label} (${src}): ${original}`);
+      }
+    }
+
+    throw new Error(`Unable to mirror ffmpeg ${label} asset.`);
+  }
+
+  try {
+    const [workerURL, coreURL, wasmURL] = await Promise.all(
+      sources.map((entry) => fetchWithFallback(entry)),
     );
 
-    return { workerURL, coreURL, wasmURL };
+    const resolved = { workerURL, coreURL, wasmURL };
+    console.info("[ffmpeg] using", resolved);
+    return resolved;
   } catch (error) {
-    const missingList = sources
-      .map(([src]) => `- ${src}`)
-      .join("\n");
+    const attemptDetails = attempts.length ? `\nTried sources:\n${attempts.join("\n")}` : "";
     const original = error instanceof Error ? error.message : String(error ?? "");
-    throw new Error(
-      `FFmpeg assets missing or blocked. Expected same-origin copies of:\n${missingList}\nOriginal error: ${original}`,
-    );
+    throw new Error(`FFmpeg assets missing or blocked. ${original}${attemptDetails}`);
   }
 }
 
-function getFFmpeg(urls) {
-  if (typeof FF.FFmpeg === "function") {
-    return new FF.FFmpeg({ log: false });
+function getFFmpeg() {
+  if (typeof FF.FFmpeg !== "function") {
+    throw new Error("@ffmpeg/ffmpeg is missing FFmpeg class constructor.");
   }
 
-  if (typeof FF.createFFmpeg === "function") {
-    return FF.createFFmpeg({ log: false, corePath: urls.coreURL, wasmPath: urls.wasmURL });
-  }
-
-  throw new Error("@ffmpeg/ffmpeg: no compatible constructor available");
+  return new FF.FFmpeg({ log: false });
 }
 
 function isModernInstance(instance) {
@@ -120,24 +142,15 @@ async function ensureFFmpegLoaded(statusCallback) {
       });
       const mirrored = [];
       const urls = await resolveLocalFFmpegURLs(mirrored);
-      const instance = await getFFmpeg(urls);
+      const instance = getFFmpeg();
       attachProgressHandler(instance);
 
       try {
-        if (isModernInstance(instance)) {
-          const loadOptions = {
-            coreURL: urls.coreURL,
-            wasmURL: urls.wasmURL,
-          };
-
-          if (urls.workerURL) {
-            loadOptions.workerURL = urls.workerURL;
-          }
-
-          await instance.load(loadOptions);
-        } else if (typeof instance.load === "function") {
-          await instance.load();
-        }
+        await instance.load({
+          workerURL: urls.workerURL,
+          coreURL: urls.coreURL,
+          wasmURL: urls.wasmURL,
+        });
         setTimeout(() => {
           mirrored.forEach((url) => {
             try {
