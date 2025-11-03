@@ -2,11 +2,12 @@ import * as FF from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
 
 const FFMPEG_VER = "0.12.15";
-const FFMPEG_BASE = `https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@${FFMPEG_VER}/dist/esm`;
 const CORE_VER = "0.12.10";
-const CORE_BASE = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VER}/dist/esm`;
-const CORE_JS_URL = `${CORE_BASE}/ffmpeg-core.js`;
-const CORE_WASM_URL = `${CORE_BASE}/ffmpeg-core.wasm`;
+const LOCAL_VENDOR_BASE = new URL("../vendor/ffmpeg/", import.meta.url).href;
+
+const LOCAL_WORKER_SRC = `${LOCAL_VENDOR_BASE}worker.js`;
+const LOCAL_CORE_JS_SRC = `${LOCAL_VENDOR_BASE}ffmpeg-core.js`;
+const LOCAL_CORE_WASM_SRC = `${LOCAL_VENDOR_BASE}ffmpeg-core.wasm`;
 
 let ffmpegInstance = null;
 let ffmpegLoadingPromise = null;
@@ -21,35 +22,6 @@ function notifyStatus(callback, event) {
 function subscribeProgress(callback) {
   progressSubscribers.add(callback);
   return () => progressSubscribers.delete(callback);
-}
-
-async function verifyCoreReachable() {
-  if (typeof fetch !== "function") {
-    return;
-  }
-
-  let response = null;
-  try {
-    response = await fetch(CORE_WASM_URL, { method: "HEAD", cache: "no-store" });
-  } catch (_err) {
-    // ignore and retry with range request
-  }
-
-  if (!response || !response.ok) {
-    try {
-      response = await fetch(CORE_WASM_URL, {
-        method: "GET",
-        headers: { Range: "bytes=0-16" },
-        cache: "no-store",
-      });
-    } catch (_err) {
-      response = null;
-    }
-  }
-
-  if (!response || !(response.ok || response.status === 206)) {
-    throw new Error("[@ffmpeg/core wasm] probe failed");
-  }
 }
 
 function attachProgressHandler(instance) {
@@ -84,24 +56,41 @@ function attachProgressHandler(instance) {
   }
 }
 
-async function getFFmpeg(mirrored) {
+async function resolveLocalFFmpegURLs(mirrored) {
+  const sources = [
+    [LOCAL_WORKER_SRC, "text/javascript", "worker"],
+    [LOCAL_CORE_JS_SRC, "text/javascript", "core"],
+    [LOCAL_CORE_WASM_SRC, "application/wasm", "wasm"],
+  ];
+
+  try {
+    const [workerURL, coreURL, wasmURL] = await Promise.all(
+      sources.map(async ([src, mime]) => {
+        const blobUrl = await toBlobURL(src, mime);
+        mirrored?.push(blobUrl);
+        return blobUrl;
+      }),
+    );
+
+    return { workerURL, coreURL, wasmURL };
+  } catch (error) {
+    const missingList = sources
+      .map(([src]) => `- ${src}`)
+      .join("\n");
+    const original = error instanceof Error ? error.message : String(error ?? "");
+    throw new Error(
+      `FFmpeg assets missing or blocked. Expected same-origin copies of:\n${missingList}\nOriginal error: ${original}`,
+    );
+  }
+}
+
+function getFFmpeg(urls) {
   if (typeof FF.FFmpeg === "function") {
     return new FF.FFmpeg({ log: false });
   }
 
   if (typeof FF.createFFmpeg === "function") {
-    const [corePath, wasmPath] = await Promise.all([
-      toBlobURL(CORE_JS_URL, "text/javascript").then((url) => {
-        mirrored.push(url);
-        return url;
-      }),
-      toBlobURL(CORE_WASM_URL, "application/wasm").then((url) => {
-        mirrored.push(url);
-        return url;
-      }),
-    ]);
-
-    return FF.createFFmpeg({ log: false, corePath, wasmPath });
+    return FF.createFFmpeg({ log: false, corePath: urls.coreURL, wasmPath: urls.wasmURL });
   }
 
   throw new Error("@ffmpeg/ffmpeg: no compatible constructor available");
@@ -112,6 +101,12 @@ function isModernInstance(instance) {
 }
 
 async function ensureFFmpegLoaded(statusCallback) {
+  if (typeof location !== "undefined" && location.protocol === "file:") {
+    throw new Error(
+      "ffmpeg 回退需要透過 HTTP 伺服器載入資產；請用本機伺服器啟動專案（例如：npx serve .）。",
+    );
+  }
+
   if (ffmpegInstance) {
     return ffmpegInstance;
   }
@@ -123,40 +118,20 @@ async function ensureFFmpegLoaded(statusCallback) {
         ffmpegVersion: FFMPEG_VER,
         coreVersion: CORE_VER,
       });
-      try {
-        await verifyCoreReachable();
-      } catch (error) {
-        ffmpegLoadingPromise = null;
-        throw error;
-      }
       const mirrored = [];
-      const instance = await getFFmpeg(mirrored);
+      const urls = await resolveLocalFFmpegURLs(mirrored);
+      const instance = await getFFmpeg(urls);
       attachProgressHandler(instance);
 
       try {
         if (isModernInstance(instance)) {
-          const [workerURL, coreURL, wasmURL] = await Promise.all([
-            toBlobURL(`${FFMPEG_BASE}/worker.js`, "text/javascript")
-              .then((url) => {
-                if (url) {
-                  mirrored.push(url);
-                }
-                return url;
-              })
-              .catch(() => undefined),
-            toBlobURL(CORE_JS_URL, "text/javascript").then((url) => {
-              mirrored.push(url);
-              return url;
-            }),
-            toBlobURL(CORE_WASM_URL, "application/wasm").then((url) => {
-              mirrored.push(url);
-              return url;
-            }),
-          ]);
+          const loadOptions = {
+            coreURL: urls.coreURL,
+            wasmURL: urls.wasmURL,
+          };
 
-          const loadOptions = { coreURL, wasmURL };
-          if (workerURL) {
-            loadOptions.workerURL = workerURL;
+          if (urls.workerURL) {
+            loadOptions.workerURL = urls.workerURL;
           }
 
           await instance.load(loadOptions);
@@ -174,11 +149,21 @@ async function ensureFFmpegLoaded(statusCallback) {
         }, 30_000);
       } catch (error) {
         ffmpegLoadingPromise = null;
+        mirrored.forEach((url) => {
+          try {
+            URL.revokeObjectURL(url);
+          } catch (_err) {
+            // ignore revoke failure
+          }
+        });
         throw error;
       }
       ffmpegInstance = instance;
       return instance;
     })();
+    ffmpegLoadingPromise.catch(() => {
+      ffmpegLoadingPromise = null;
+    });
   }
 
   return ffmpegLoadingPromise;
