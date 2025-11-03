@@ -1,5 +1,21 @@
 import * as FF from "@ffmpeg/ffmpeg";
-import { fetchFile, toBlobURL } from "@ffmpeg/util";
+
+// ---- tiny local shims: drop @ffmpeg/util dependency ----
+async function toBlobURL(src, mime) {
+  const res = await fetch(src, { cache: "no-store" });
+  if (!res.ok) throw new Error(`toBlobURL: ${res.status} ${res.statusText}`);
+  const blob = new Blob([await res.arrayBuffer()], { type: mime });
+  return URL.createObjectURL(blob);
+}
+
+async function fetchFile(input) {
+  if (input instanceof Blob) {
+    return new Uint8Array(await input.arrayBuffer());
+  }
+  const res = await fetch(input);
+  if (!res.ok) throw new Error(`fetchFile: ${res.status} ${res.statusText}`);
+  return new Uint8Array(await res.arrayBuffer());
+}
 
 const FFMPEG_VER = "0.12.15";
 const CORE_VER = "0.12.10";
