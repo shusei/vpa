@@ -51,7 +51,9 @@ Voice Presentation Analyzer（以下簡稱 VPA）是一款完全以 Web 技術�
 - **即時儀表與提示**：分析期間的儀表會即時刷新，狀態列同步顯示目前片段、進度百分比與預估剩餘時間。【F:assets/app.js†L566-L628】【F:index.html†L351-L397】
 - **句庫練習抽屜**：錄音鍵旁提供句子清單與練習歷程；卡片左側按鈕負責錄音／停止，右側播放鍵可快速回聽上一段，完成後回寫女性傾向／男性傾向百分比，主儀表維持乾淨。【F:index.html†L150-L189】【F:assets/js/practice.js†L1-L520】
 - **多主題與派別**：內建 30+ 顏色主題，可在 Auto / Light / Dark / 彩色派別中切換並記憶選擇。【F:index.html†L61-L123】【F:assets/js/theme.js†L1-L220】
+- **主題與偵測設定**：齒輪選單可在 Auto / Light / Dark 派別間切換並記住偏好，亦可展開「說話者設定」套用 Feminine / Soprano 等偵測預設或手動調整音高上下限。【F:index.html†L61-L161】【F:assets/js/theme.js†L222-L339】
 - **新手引導與使用指南**：首次造訪會出現提示泡泡，右上角 ❓ 可開啟圖文說明覆蓋層，支援鍵盤 `Esc` 關閉。【F:index.html†L214-L308】【F:assets/js/theme.js†L222-L339】
+- **匯出分析**：最新一次結果會整理成 JSON，透過齒輪選單的「匯出分析（JSON）」即可下載，方便留存或進一步分析。【F:index.html†L150-L161】【F:assets/app.js†L2038-L2078】
 
 ### 即時監測與統計
 
@@ -60,6 +62,7 @@ Voice Presentation Analyzer（以下簡稱 VPA）是一款完全以 Web 技術�
 - **統計卡**：分析完成後輸出 Pitch、Volume、Environment、Formant & Resonance、Speech Rate 等指標的平均值、百分位數與建議範圍。【F:assets/app.js†L1407-L1642】【F:index.html†L400-L575】
 - **自適應音高與精緻共鳴分析**：內建條件啟用的 YIN-lite 音高偵測與進階共鳴摘要，會根據裝置得分與即時計時決定是否啟用，並在預算不足或發生錯誤時自動回退至基線 ACF／FFT 演算法，過載解除後再度嘗試升級。【F:assets/app.js†L251-L517】【F:assets/app.js†L568-L650】【F:assets/app.js†L2048-L2364】
 - **模型簡評**：整合模型輸出與統計指標，給予 1 行摘要並凸顯指標矛盾或建議。【F:assets/app.js†L1365-L1406】
+- **語調與進階摘要**：統計區塊新增語調曲線、語速、連音與亮度標籤；圖例可切換原始偵測點，協助比對平滑後的洋紅曲線與灰色靜音區段。【F:assets/i18n/zh-Hant.js†L667-L703】【F:assets/app.js†L2898-L3040】
 
 ### 長檔案處理
 
@@ -83,11 +86,13 @@ Voice Presentation Analyzer（以下簡稱 VPA）是一款完全以 Web 技術�
    - 點擊「開始錄音」並說話 5–10 秒（建議自然口語，避免唱歌）。
    - 或點擊右下角的上傳按鈕，挑選 `mp3 / m4a / mp4 / mov / wav` 等檔案。
      按下浮動按鈕時頁面會自動捲回頂端，方便直接看到上傳區塊與狀態列。【F:assets/app.js†L700-L730】
+   若音高偵測需要更貼合自身聲域，可在齒輪 →「說話者設定」選擇 Feminine / Masculine / Soprano 等預設，或手動輸入音高上下限。【F:index.html†L104-L151】
 3. **需要靈感？** 錄音鍵旁的「句庫練習」提供多語句子：挑一句後按卡片按鈕（或按 <kbd>Space</kbd>）立即錄音，再用右側播放鍵重聽上一段。建議每句練習 3–7 秒，卡片會回寫女性傾向／男性傾向百分比。
 4. **即時觀察**：錄音期間會顯示 Pitch Stream 與 Formant / Resonance 面板；上傳檔案則會離線抽樣並於統計卡展示。
 5. **等待推論完成**：儀表盤會顯示模型即時傾向、狀態列同步告知進度與預估剩餘時間。
 6. **檢視結果**：推論完成後，可在儀表下方閱讀統計卡與簡評，必要時點擊播放器回放剛才的音檔。
 7. **重複練習**：新的錄音或上傳會覆蓋舊音檔，快取的模型仍保留以加快後續推論。
+8. **下載分析**：需要備份或自訂分析時，可開啟齒輪選單並點擊「匯出分析（JSON）」取得最新完整結果。【F:index.html†L150-L161】【F:assets/app.js†L2038-L2078】
 
 錄音建議：
 - 環境盡量安靜，與麥克風保持 10–15 公分距離。
@@ -105,9 +110,9 @@ Voice Presentation Analyzer（以下簡稱 VPA）是一款完全以 Web 技術�
 - **Environment 卡**：估計環境底噪（10th 百分位）與 SNR，提供錄音環境建議。【F:index.html†L488-L520】
 - **Formant & Resonance 卡**：展示 F1–F3 中位數、共鳴亮度與氣聲比例，並附上提示文字。【F:index.html†L522-L566】
 - **Speech Rate 卡**：統計語速與語音佔比，提醒是否語音不足。【F:index.html†L568-L575】
+- **語調與進階面板**：洋紅線描繪平滑後的語調曲線，灰色區塊代表低信心或無聲；可切換原始偵測點比對，也會標示語速、連音比例與亮度標籤。【F:assets/i18n/zh-Hant.js†L667-L703】【F:assets/app.js†L2898-L3040】
 - **簡評**：整合以上指標，標示指標分歧或錄音品質提醒。【F:assets/app.js†L1365-L1406】
 - **句庫練習卡**：沿用同一條推論管線，只在卡片顯示女性傾向／男性傾向兩個百分比；每句保存最近 20 筆歷程於本機，徽章會標出上次成績。【F:assets/js/practice.js†L1-L520】
-- **Volume / Environment 校正面板**：頁面中段的「麥克風音量校正」可依序量測背景噪音與 1 kHz 參考音，並輸入校正器輸出的 dB SPL（預設 94 dB）。完成後 Volume / Environment 會改以實際 dB 顯示並標記為「已校正」；未校正時仍維持原本的相對提示。校正需能產生穩定 1 kHz / 94 dB SPL 的聲級計或音訊介面，無法提供時建議保持相對模式。【F:index.html†L179-L215】【F:assets/app.js†L1974-L2077】【F:assets/i18n/zh-Hant.js†L108-L149】
 
 ---
 
