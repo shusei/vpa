@@ -107,7 +107,7 @@ export default {
       tiltPlaceholder: "Spectral Tilt（頻譜傾斜度）— dB",
       tiltValue: "Spectral Tilt（頻譜傾斜度） {{value}} dB",
       chest: "胸 {{value}}%",
-      mask: "面罩 {{value}}%",
+      mask: "前置 {{value}}%",
       head: "頭 {{value}}%",
     },
     meter: {
@@ -244,7 +244,7 @@ export default {
       '<h3>錄音時會看到什麼？</h3>',
       '<ul>',
       '<li><strong>Hz Stream（音高走勢）：</strong>以 50 ms 更新 50–600 Hz 音高與瞬時音量，色帶標示常見音高區（含 Soprano / 假聲帶），方便判斷語尾是否上揚或落在女性常見帶。</li>',
-      '<li><strong>Formant / Resonance 即時監控：</strong>估計 F1–F3、氣聲比例與胸 / 面罩 / 頭腔共鳴分佈，橫條顏色依序為胸（桃色）、面罩（粉色）、頭腔（淺灰藍）。</li>',
+      '<li><strong>Formant / Resonance 即時監控：</strong>估計 F1–F3、氣聲比例與胸腔 / 前置 / 頭腔共鳴分佈，橫條顏色依序為胸腔（桃色）、前置（粉色）、頭腔（淺灰藍）。</li>',
       '<li><strong>狀態列：</strong>顯示當前流程（錄音中、解析、推論、整理統計等），若遇到長檔也會提示串流分段策略。</li>',
       '</ul>',
       '<div class="help-why"><strong>為什麼橫條或曲線會先空白？</strong> 需要至少數百毫秒的有效語音，若開頭全是噪音或咳嗽，系統會等待抓到穩定語音後再繪製。</div>',
@@ -260,7 +260,7 @@ export default {
       '<h4>Formant 與共鳴卡</h4>',
       '<ul>',
       '<li><strong>F1 / F2 / F3：</strong>取錄音期間的中位數，對照建議範圍可判斷母音開口、舌頭位置與聲音明亮度。</li>',
-      '<li><strong>共鳴橫條：</strong>胸 / 面罩 / 頭腔三段百分比填滿同一條帶，代表能量聚焦位置。面罩＋頭腔越穩定，聲線越明亮。</li>',
+      '<li><strong>共鳴橫條：</strong>胸腔 / 前置 / 頭腔三段百分比填滿同一條帶，代表能量聚焦位置。前置＋頭腔越穩定，聲線越明亮。</li>',
       '<li><strong>Spectral Tilt：</strong>監控高頻能量是否充足，可搭配共鳴橫條調整嘴型或支撐。</li>',
       '</ul>',
       '<h4>語調與語速卡</h4>',
@@ -313,7 +313,7 @@ export default {
       '<h3>名詞解釋</h3>',
       '<div class="term-grid">',
       '<div class="term-card"><h4>Formant（共振峰）</h4><p>聲道不同腔室產生的共鳴頻率，F1 代表口腔開口大小，F2 代表舌頭前後位置，F3 與聲音明亮度相關。</p></div>',
-      '<div class="term-card"><h4>Resonance（共鳴）</h4><p>胸、面罩、頭腔的能量分布。更多面罩與頭腔會讓聲音更明亮；胸腔占比高則聲音厚實。</p></div>',
+      '<div class="term-card"><h4>Resonance（共鳴）</h4><p>胸腔、前置、頭腔的能量分布。前置與頭腔越多，聲音越明亮；胸腔占比高則聲音厚實。</p></div>',
       '<div class="term-card"><h4>Vowel Focus（元音聚焦）</h4><p>統計母音是否落在女性常見音高區。聚焦越高，代表舌面前上、母音更集中。</p></div>',
       '<div class="term-card"><h4>Breathiness（氣聲）</h4><p>估計氣流外洩的比例。適度氣聲讓聲音柔和，過多會失去支撐，過少會變得緊。</p></div>',
       '<div class="term-card"><h4>Spectral Tilt（頻譜傾斜度）</h4><p>比較高頻與低頻能量，用來判斷聲音是偏暖還是明亮。</p></div>',
@@ -423,7 +423,7 @@ export default {
       insufficient: { label: "資料不足", hint: "需要更多穩定語音才能估算共鳴分布。" },
       balanced: {
         label: "平衡",
-        hint: "胸 / 面罩 / 頭腔能量分布均衡，可依需求微調亮度。做法：記住此時的口腔形狀，之後想要同樣的音色就回到這個感覺。",
+        hint: "胸腔 / 前置 / 頭腔能量分布均衡，可依需求微調亮度。做法：記住此時的口腔形狀，之後想要同樣的音色就回到這個感覺。",
       },
       headBright: {
         label: "頭腔亮度強",
@@ -434,8 +434,8 @@ export default {
         hint: "胸腔能量較多，聲音偏厚。做法：先吸一口氣輕哼『嗯』，讓震動跑到鼻梁，再把句子接在後面維持那個位置。",
       },
       maskLead: {
-        label: "面罩共鳴主導",
-        hint: "面罩區域占比最高。做法：保持牙齒輕鬆分開，讓氣息像哈氣一樣往前噴，同時喉部放鬆，避免緊張。",
+        label: "前置共鳴主導",
+        hint: "前置區域占比最高。做法：保持牙齒輕鬆分開，讓氣息像哈氣一樣往前噴，同時喉部放鬆，避免緊張。",
       },
       coverageHint: "有效片段約 {{value}}%，趨勢僅供參考。",
       coverageLowHint: "有效片段不足（{{value}}%），建議延長錄音或提高音量。",
@@ -445,7 +445,7 @@ export default {
       referenceOnly: "（僅供參考）",
     },
     resonanceBar: {
-      default: { chest: "胸 0%", mask: "面罩 0%", head: "頭 0%" },
+      default: { chest: "胸 0%", mask: "前置 0%", head: "頭 0%" },
     },
     tilt: {
       insufficient: { label: "資料不足", hint: "錄製更多穩定語音片段以估算共鳴傾向。" },

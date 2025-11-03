@@ -243,6 +243,18 @@
     const breathOk = ["balanced", "style"].includes(breathInfo.key);
     (breathOk ? PASS : FAIL)("BREATHINESS_LABEL ∈ {平衡/風格}", `avg=${Number.isFinite(breathSummary.avg) ? breathSummary.avg.toFixed(3) : "NaN"}, label=${breathInfo.label}`);
 
+    const energyPct = data?.advanced?.energyPct || {};
+    const chestPct = Number(energyPct.chest);
+    const maskPct = Number(energyPct.mask);
+    const headPct = Number(energyPct.head);
+    const pctValues = [chestPct, maskPct, headPct];
+    const energySum = pctValues.reduce((acc, val)=> Number.isFinite(val) ? acc + val : acc, 0);
+    const energyValid = pctValues.every((val)=> Number.isFinite(val));
+    (energyValid && Math.abs(energySum - 1) <= 1e-6 ? PASS : FAIL)("RESONANCE_ENERGY_SUM == 1", `sum=${energyValid ? energySum.toFixed(6) : "NaN"}`);
+    const targets = [0.19899625304760646, 0.33760414274166645, 0.4633996042107273];
+    const withinTolerance = energyValid && pctValues.every((val, idx)=> Math.abs(val - targets[idx]) <= 0.01);
+    (withinTolerance ? PASS : FAIL)("RESONANCE_ENERGY_MATCH", `values=${energyValid ? pctValues.map((v)=> v.toFixed(4)).join(",") : "NaN"}`);
+
     const intonation = computeIntonationMetrics({
       processed: arrays.smooth,
       raw: arrays.raw,
