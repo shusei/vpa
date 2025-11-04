@@ -3706,6 +3706,7 @@ function renderAdvancedSummary(summary){
             </span>
             <span class="label">${summary.resonanceDisplay||summary.resonanceLabel||""}</span>
           </div>
+          <div class="h">${safeHint(summary.resonanceHint)}</div>
         </div>
       </details>
 
