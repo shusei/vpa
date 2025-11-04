@@ -61,8 +61,6 @@
     "note": "Volume / Environment 指標為相對音量，提供噪音與音量變化參考。"
   },
   "summary": {
-    "oneLinerLabel": "簡評：",
-    "oneLinerBodyHtml": "模型傾向（多特徵） F 99.6% / M 0.4% ｜ 音高（單一特徵）Median 232.8 Hz · 散布 63.5 Hz（常見音高區：女性常見區（180–310Hz）；中等變化）｜ SNR（訊雜比）：22.2 dB（安靜／很清楚） ",
     "diverge": false,
     "divergeBadge": "",
     "divergeNoteHtml": "",
@@ -138,7 +136,12 @@
     "envLabel": "Environment（環境底噪）",
     "envDb": 59.90440038979301,
     "volumeNote": "Volume / Environment 指標為相對音量，提供噪音與音量變化參考。",
-    "volumeMode": "relative"
+    "volumeMode": "relative",
+    "focus": {
+      "heading": "本次錄音重點",
+      "empty": "整體均衡，可繼續嘗試不同句子。",
+      "items": []
+    }
   },
   "advanced": {
     "formants": {
@@ -189,7 +192,8 @@
       "syllPerSec": 2.6262626262626263,
       "wordsPerMin": 105.05050505050505,
       "label": "適中",
-      "hint": "語速落在常見練習區間。做法：維持現在的節奏，偶爾錄音回聽確認吐字清晰。"
+      "hint": "語速落在常見練習區間。做法：維持現在的節奏，偶爾錄音回聽確認吐字清晰。",
+      "key": "balanced"
     },
     "speechRateLabel": "適中",
     "speechRateHint": "語速落在常見練習區間。做法：維持現在的節奏，偶爾錄音回聽確認吐字清晰。",

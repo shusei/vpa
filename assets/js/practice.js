@@ -17,6 +17,7 @@ const state = {
   lastPlayableId: null,
   playingId: null,
   player: null,
+  pendingCategory: null,
 };
 
 function qs(selector, root = document) {
@@ -473,6 +474,54 @@ function renderList(cats = byCategory(state.data)) {
   list.removeAttribute("aria-busy");
 }
 
+function selectPracticeCategory(catId, { focusNav = false } = {}) {
+  const nav = qs("#practiceNav");
+  const normalized = catId ? String(catId) : null;
+  const cats = byCategory(state.data);
+  const hasTarget = !normalized || cats.some((cat) => cat.id === normalized && Array.isArray(cat.items) && cat.items.length);
+  const nextCat = hasTarget ? normalized : null;
+  state.selectedCategory = nextCat;
+  renderCategoryNav(cats);
+  renderList(cats);
+  if (focusNav && nav) {
+    const safe = normalized && typeof CSS !== "undefined" && typeof CSS.escape === "function"
+      ? CSS.escape(normalized)
+      : normalized
+        ? normalized.replace(/["\\]/g, "\\$&")
+        : "";
+    const selector = normalized ? `[data-cat="${safe}"]` : '[data-cat=""]';
+    requestAnimationFrame(() => {
+      const btn = nav.querySelector(selector);
+      if (btn instanceof HTMLElement) {
+        btn.focus();
+      }
+    });
+  }
+}
+
+export function openPracticeCategory(catId) {
+  const panel = qs("#practicePanel");
+  const toggle = qs("#practiceToggle");
+  const nav = qs("#practiceNav");
+  const normalized = catId ? String(catId) : null;
+  if (!panel || !nav) {
+    state.pendingCategory = normalized;
+    return false;
+  }
+  if (panel.hasAttribute("hidden")) {
+    panel.removeAttribute("hidden");
+    if (toggle) {
+      toggle.setAttribute("aria-expanded", "true");
+    }
+  }
+  state.pendingCategory = null;
+  selectPracticeCategory(normalized, { focusNav: true });
+  if (typeof panel.scrollIntoView === "function") {
+    panel.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  return true;
+}
+
 function createCard(phrase) {
   const card = createEl("article", { class: "practice-card", dataset: { id: phrase.id } });
   const text = createEl("div", { class: "practice-text" }, document.createTextNode(phrase.text || ""));
@@ -531,8 +580,10 @@ async function refreshData(locale) {
   if (state.selectedCategory && !cats.some((cat) => cat.id === state.selectedCategory && cat.items && cat.items.length)) {
     state.selectedCategory = null;
   }
-  renderCategoryNav(cats);
-  renderList(cats);
+  selectPracticeCategory(state.selectedCategory, { focusNav: false });
+  if (state.pendingCategory != null) {
+    selectPracticeCategory(state.pendingCategory, { focusNav: false });
+  }
 }
 
 export async function setupPracticeUI({ subscribeInference, recorder } = {}) {
@@ -551,6 +602,11 @@ export async function setupPracticeUI({ subscribeInference, recorder } = {}) {
   ensurePlayer();
 
   await refreshData(getCurrentLocale());
+  if (state.pendingCategory != null) {
+    const pending = state.pendingCategory;
+    state.pendingCategory = null;
+    openPracticeCategory(pending);
+  }
   nav.addEventListener("click", (event) => {
     const target = event.target instanceof HTMLElement
       ? event.target.closest("button[data-cat]")
@@ -558,21 +614,7 @@ export async function setupPracticeUI({ subscribeInference, recorder } = {}) {
     if (!target) return;
     const catId = target.dataset.cat || "";
     const normalized = catId ? catId : null;
-    if (state.selectedCategory === normalized) return;
-    state.selectedCategory = normalized;
-    const cats = byCategory(state.data);
-    renderCategoryNav(cats);
-    renderList(cats);
-    const safeCat = typeof CSS !== "undefined" && typeof CSS.escape === "function"
-      ? CSS.escape(catId)
-      : catId.replace(/["\\]/g, "\\$&");
-    const selector = `[data-cat="${safeCat}"]`;
-    requestAnimationFrame(() => {
-      const active = nav.querySelector(selector);
-      if (active instanceof HTMLElement) {
-        active.focus();
-      }
-    });
+    selectPracticeCategory(normalized, { focusNav: true });
   });
 
   nav.addEventListener("keydown", (event) => {
@@ -639,6 +681,11 @@ export async function setupPracticeUI({ subscribeInference, recorder } = {}) {
 
   onLocaleChange(async (locale) => {
     await refreshData(locale);
+    if (state.pendingCategory != null) {
+      const pending = state.pendingCategory;
+      state.pendingCategory = null;
+      openPracticeCategory(pending);
+    }
   });
 
   document.addEventListener("keydown", (event) => {
