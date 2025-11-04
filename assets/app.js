@@ -4737,3 +4737,66 @@ if (typeof window !== "undefined"){
     },
   };
 }
+
+function setupIntonationLegend(intonation){
+  try{
+    const legend = document.getElementById("intonationLegend") || document.querySelector(".intonation-legend");
+    const hasRaw = Array.isArray(intonation?.rawPoints) && intonation.rawPoints.length > 0;
+
+    if (legend){
+      legend.setAttribute("data-show-raw", showIntonationRawPoints ? "true" : "false");
+      legend.setAttribute("data-has-raw", hasRaw ? "true" : "false");
+    }
+
+    // Support both the newer button (#intonationRawToggle) and legacy checkbox (#toggleRawDots)
+    const button = document.getElementById("intonationRawToggle");
+    const checkbox = document.getElementById("toggleRawDots");
+    const toggleEl = button || checkbox;
+    if (!toggleEl) return;
+
+    const setDisabled = (el, disabled)=>{
+      if (!el) return;
+      el.disabled = !!disabled;
+      if (disabled) el.setAttribute("aria-disabled", "true");
+      else el.removeAttribute("aria-disabled");
+    };
+
+    const updateToggleState = ()=>{
+      // Update ARIA/button state if button exists
+      if (button){
+        const legendCopy = summaryText?.advanced?.intonationLegend || {};
+        const labelShow = legendCopy.show || t("summary.advanced.intonationLegend.show");
+        const labelHide = legendCopy.hide || t("summary.advanced.intonationLegend.hide");
+        button.setAttribute("aria-pressed", showIntonationRawPoints ? "true" : "false");
+        const stateEl = button.querySelector(".legend-toggle-state");
+        if (stateEl){
+          stateEl.textContent = showIntonationRawPoints ? labelHide : labelShow;
+        }
+      }
+      // Sync checkbox state if present
+      if (checkbox){
+        checkbox.checked = !!showIntonationRawPoints;
+      }
+      if (legend){
+        legend.setAttribute("data-show-raw", showIntonationRawPoints ? "true" : "false");
+      }
+    };
+
+    setDisabled(button, !hasRaw);
+    setDisabled(checkbox, !hasRaw);
+
+    const handleToggle = ()=>{
+      if (!hasRaw) return;
+      showIntonationRawPoints = !showIntonationRawPoints;
+      saveIntonationRawPreference(showIntonationRawPoints);
+      updateToggleState();
+      const canvas = document.getElementById("intonationCanvas");
+      if (canvas) drawIntonationCurve(canvas, intonation || {});
+    };
+
+    if (button) button.onclick = handleToggle;
+    if (checkbox) checkbox.onchange = handleToggle;
+
+    updateToggleState();
+  }catch(err){ console.error("[setupIntonationLegend]", err); }
+}
