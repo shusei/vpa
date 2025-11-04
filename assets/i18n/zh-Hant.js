@@ -1,5 +1,12 @@
 export default {
   locale: "zh-Hant",
+  ui: {
+    advancedMode: {
+      title: "細節層級",
+      beginner: "切到 Beginner（預設收合）",
+      advanced: "切到 Advanced（全部展開）"
+    }
+  },
   meta: {
     title: "Voice Presentation Analyzer",
     description: "在瀏覽器本地推論，快速查看聲音被模型感知為女性化／男性化的傾向，並提供即時音高 Stream、統計與簡評。",
