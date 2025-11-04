@@ -3765,10 +3765,10 @@ function renderAdvancedSummary(summary){
           </span>
         </summary>
         <div class="advanced-grid advanced-grid--three">
-          <div class="adv-card" title="${escapeAttr(brightnessHint)}">
+          <div class="adv-card">
             <div class="k">${t("analysis.advanced.brightness")}</div>
             <div class="v">${escapeHtml(brightnessDisplay)}</div>
-            <div class="h">${safeHint(brightnessHint)}</div>
+            <div class="hint">${safeHint(brightnessHint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(summary.breathinessHint||"")}">
             <div class="k">${t("analysis.advanced.breathiness")}</div>
