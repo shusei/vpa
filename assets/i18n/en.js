@@ -1,5 +1,12 @@
 export default {
   locale: "en",
+  ui: {
+    advancedMode: {
+      title: "Detail level",
+      beginner: "Switch to Beginner (collapsed)",
+      advanced: "Switch to Advanced (expanded)"
+    }
+  },
   meta: {
     title: "Voice Presentation Analyzer",
     description: "Run voice tendency analysis entirely in the browser, monitor pitch in real time, and review statistics plus coaching tips after each take.",
