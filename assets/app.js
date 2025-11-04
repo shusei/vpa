@@ -4508,7 +4508,7 @@ function setupIntonationLegend(intonation){
     const hasRaw = Array.isArray(intonation?.rawPoints) && intonation.rawPoints.length > 0;
     legend.setAttribute("data-show-raw", showIntonationRawPoints ? "true" : "false");
     legend.setAttribute("data-has-raw", hasRaw ? "true" : "false");
-    const toggle = document.getElementById("intonationRawToggle");
+    const toggle = document.getElementById("toggleRawDots");
     if (toggle){
       toggle.disabled = !hasRaw;
       if (hasRaw){
