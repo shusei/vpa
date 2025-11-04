@@ -3103,7 +3103,6 @@ function finishStreamStats(){
       setupIntonationLegend(advSummary.intonation);
     }
 
-    const voicedHintLabel = voicedHintKey ? t(`summary.voicedHint.${voicedHintKey}`) : null;
     const focusExport = {
       heading: focusInsights.heading,
       empty: focusInsights.empty,
