@@ -1175,3 +1175,32 @@ html[data-faction="dark"] .practice-result b{
   max-height: none;
   visibility: visible;
 }
+
+/* Beginner 預設隱藏 hint；Advanced 再打開 */
+.advanced-section .adv-card .hint{ display:none; }
+.advanced-section[data-mode="advanced"] .adv-card .hint{
+  display:block; opacity:1; max-height:none; visibility:visible;
+}
+
+/* details 的箭頭與展開間距 */
+.adv-details > summary{ user-select:none; }
+.adv-details > summary::before{
+  content:"▸"; display:inline-block; margin-right:8px; transform:translateY(-1px); opacity:.85;
+}
+.adv-details[open] > summary::before{ content:"▾"; }
+.adv-details[open] > summary{ margin-bottom:6px; border-bottom:1px dashed var(--panel-border); }
+
+/* Intonation 畫布尺寸與底色 */
+.intonation-canvas{
+  display:block; width:100%; height:160px; border-radius:10px;
+  background:linear-gradient(180deg, #f7f7f7, #f0f0f0);
+}
+
+/* Baseline 更耐擠 */
+.adv-baselines .baseline{ min-width:140px; line-height:1.2; }
+
+/* Gauge 的可視性 */
+.gauge__range{
+  box-shadow:0 0 0 2px color-mix(in oklab, var(--accent-1) 60%, transparent 40%);
+}
+
