@@ -3748,8 +3748,8 @@ function renderAdvancedSummary(summary){
 
     <div class="intonation-wrap">
       <canvas id="intonationCanvas" class="intonation-canvas" aria-label="${escapeAttr(t("analysis.advanced.canvasAria") || "Intonation curve")}"></canvas>
-      <div class="intonation-legend">
-        <label><input id="toggleRawDots" type="checkbox" /> ${escapeHtml(t("analysis.advanced.intonationLegend.show") || "Show raw dots")}</label>
+      <div id="intonationLegend" class="intonation-legend">
+        <label><input id="intonationRawToggle" type="checkbox" /> ${escapeHtml(t("analysis.advanced.intonationLegend.show") || "Show raw dots")}</label>
       </div>
     </div>
   </details>
