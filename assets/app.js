@@ -109,30 +109,66 @@ function setDetailsOpen(id, open){
 }
 
 function setupAdvancedSection(root){
-  const modeToggle = root.querySelector("[data-adv-toggle]");
-  function applyMode(){
-    const mode = getAdvancedMode();
+  if (!root) return;
+
+  const toggleBtn = root.querySelector("[data-adv-toggle]");
+
+  const labelFor = (mode) =>
+    mode === "advanced"
+      ? (t("ui.advancedMode.beginner") || "Switch to Beginner (collapse all)")
+      : (t("ui.advancedMode.advanced") || "Switch to Advanced (expand all)");
+
+  // force: null=用記憶, "expand"=全部展開, "collapse"=全部收起
+  // persist: 是否把這次結果寫回每塊的記憶
+  function applyMode(force, persist){
+    const mode = getAdvancedMode(); // "beginner" | "advanced"
     root.setAttribute("data-mode", mode);
-    if (modeToggle) modeToggle.setAttribute("aria-pressed", mode === "advanced" ? "true" : "false");
-    const details = root.querySelectorAll("details[data-adv]");
-    for (const el of details){
-      const id = el.getAttribute("data-adv") || "";
-      const open = getDetailsOpen(id, mode === "advanced");
-      el.open = open;
-      el.setAttribute("aria-expanded", open ? "true" : "false");
+    if (toggleBtn){
+      toggleBtn.setAttribute("aria-pressed", mode === "advanced" ? "true" : "false");
+      toggleBtn.textContent = labelFor(mode);
     }
-  }
-  if (modeToggle){
-    modeToggle.addEventListener("click", ()=>{
-      setAdvancedMode(getAdvancedMode() === "advanced" ? "beginner" : "advanced");
-      applyMode();
+
+    const blocks = root.querySelectorAll("details[data-adv], details.adv-details, details.adv");
+    blocks.forEach(d => {
+      const key = d.getAttribute("data-adv") || "";
+      let open;
+      if (force === "expand") open = true;
+      else if (force === "collapse") open = false;
+      else open = getDetailsOpen(key, mode === "advanced"); // 用記憶，沒有就依模式預設
+
+      d.open = open;
+      d.setAttribute("aria-expanded", open ? "true" : "false");
+      if (persist === true) setDetailsOpen(key, open);
     });
   }
-  root.querySelectorAll("details[data-adv]").forEach(el=>{
-    const id = el.getAttribute("data-adv") || "";
-    el.addEventListener("toggle", ()=> setDetailsOpen(id, el.open));
+
+  // 初次套用：尊重既有記憶（不強制、不覆蓋）
+  applyMode(null, false);
+
+  // 一鍵切換：預設不覆蓋使用者記憶；按住 Shift/Alt 可「順便寫入記憶」
+  if (toggleBtn){
+    toggleBtn.addEventListener("click", (ev) => {
+      const next = getAdvancedMode() === "advanced" ? "beginner" : "advanced";
+      setAdvancedMode(next);
+
+      const force = next === "advanced" ? "expand" : "collapse";
+      const persist = ev.shiftKey || ev.altKey; // Shift/Alt 點擊 = 覆蓋記憶
+      applyMode(force, persist);
+    });
+  }
+
+  // 使用者手動展開/收起某一塊時，更新該塊的記憶
+  root.querySelectorAll("details[data-adv], details.adv-details, details.adv").forEach(d=>{
+    const key = d.getAttribute("data-adv") || "";
+    d.addEventListener("toggle", ()=> setDetailsOpen(key, d.open));
   });
-  applyMode();
+
+  // 語系切換時同步更新按鈕文案
+  if (typeof onLocaleChange === "function"){
+    onLocaleChange(() => {
+      if (toggleBtn) toggleBtn.textContent = labelFor(getAdvancedMode());
+    });
+  }
 }
 
 // Baseline ranges（保守預設，可按你的語料微調）
