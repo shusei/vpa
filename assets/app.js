@@ -3573,6 +3573,33 @@ function wireAdvancedIntonation(advRoot, advSummary){
   window.addEventListener("resize", window.__advIntonationOnResize, { passive: true });
 }
 
+// 兼容不同鍵名，必要時從 points 算出 rangeHz 與顯示字串
+function resolveIntonationData(summary){
+  const S = summary?.intonation || {};
+  const points = Array.isArray(S.points) ? S.points : [];
+
+  // 取 y 值（支援 {hz,f0} 或 [t, hz] 或單一數字）
+  const ys = points.map(p => {
+    if (typeof p === "number") return p;
+    if (Array.isArray(p)) return Number(p[1]);
+    if (p && typeof p === "object") return Number(p.hz ?? p.f0);
+    return NaN;
+  }).filter(Number.isFinite);
+
+  const rangeHz =
+    Number(S.rangeHz) ??
+    Number(S.range) ??
+    (ys.length ? (Math.max(...ys) - Math.min(...ys)) : NaN);
+
+  const slopeLabel = S.slopeLabel || S.trendLabel || S.trend || null;
+  const slopeHint  = S.slopeHint  || S.trendHint  || "";
+
+  const rangeDisplay =
+    S.rangeDisplay ||
+    (Number.isFinite(rangeHz) ? summaryString("rangeDisplayHz", { value: Math.round(rangeHz) }) : null);
+
+  return { points, rangeHz, rangeDisplay, slopeLabel, slopeHint };
+}
 
 function renderAdvancedSummary(summary){
   if (!summary){
@@ -3627,6 +3654,9 @@ function renderAdvancedSummary(summary){
   const titleIntonation = t("analysis.advanced.block.intonationSpeech")  || t("analysis.advanced.intonationTitle") || "Intonation & Speech";
   const titleVowel      = t("analysis.advanced.block.vowelBreathiness")  || t("analysis.advanced.vowelBreathTitle")|| "Vowel & Breathiness";
 
+  // 解析語調資料，兼容舊鍵名，必要時自算 range
+  const I = resolveIntonationData(summary);
+
   return `
     <div class="advanced-section" data-mode="${mode}">
       <div class="adv-controls">
@@ -3680,49 +3710,49 @@ function renderAdvancedSummary(summary){
       </details>
 
       <!-- Intonation & Speech -->
-      <details class="adv-details" data-adv="intonation" ${getDetailsOpen("intonation", mode==="advanced") ? "open": ""}>
-        <summary>
-          <span class="adv-title">${escapeHtml(titleIntonation)}</span>
-          <span class="adv-baselines">
-            <span class="baseline">${t("analysis.advanced.intonationCards.trend")}: ${escapeHtml(summary.intonation?.slopeLabel || "—")}</span>
-            <span class="baseline">${t("analysis.advanced.intonationCards.range")}: ${escapeHtml(summary.intonation?.rangeDisplay || (Number.isFinite(summary.intonation?.rangeHz) ? summaryString("rangeDisplayHz", { value: fmt1(summary.intonation.rangeHz) }) : "—"))}</span>
-            <span class="baseline">${t("analysis.advanced.intonationCards.speechRate")}: ${escapeHtml(speechRateDisplay)}</span>
-          </span>
-        </summary>
+  <details class="adv-details" data-adv="intonation" ${getDetailsOpen("intonation", mode==="advanced") ? "open": ""}>
+    <summary>
+      <span class="adv-title">${escapeHtml(titleIntonation)}</span>
+      <span class="adv-baselines">
+        <span class="baseline">${t("analysis.advanced.intonationCards.trend")}: ${escapeHtml(I.slopeLabel || "—")}</span>
+        <span class="baseline">${t("analysis.advanced.intonationCards.range")}: ${escapeHtml(I.rangeDisplay || "—")}</span>
+        <span class="baseline">${t("analysis.advanced.intonationCards.speechRate")}: ${escapeHtml(speechRateDisplay)}</span>
+      </span>
+    </summary>
 
-        <div class="advanced-grid advanced-grid--four">
-          <div class="adv-card">
-            <div class="k">${escapeHtml(t("analysis.advanced.intonationCards.trend") || "Trend")}</div>
-            <div class="v">${escapeHtml(summary.intonation?.slopeLabel || "—")}</div>
-            <div class="h">${safeHint(summary.intonation?.slopeHint || t("analysis.intonation.insufficient.slopeHint"))}</div>
-          </div>
+    <div class="advanced-grid advanced-grid--four">
+      <div class="adv-card">
+        <div class="k">${escapeHtml(t("analysis.advanced.intonationCards.trend") || "Trend")}</div>
+        <div class="v">${escapeHtml(I.slopeLabel || "—")}</div>
+        <div class="hint">${escapeHtml(I.slopeHint || t("analysis.intonation.insufficient.slopeHint") || "")}</div>
+      </div>
 
-          <div class="adv-card">
-            <div class="k">${escapeHtml(t("analysis.advanced.intonationCards.range") || "Range")}</div>
-            <div class="v">${escapeHtml(summary.intonation?.rangeDisplay || (Number.isFinite(summary.intonation?.rangeHz) ? summaryString("rangeDisplayHz", { value: fmt1(summary.intonation.rangeHz) }) : "—"))}</div>
-            <div class="h">${safeHint(summary.intonation?.rangeHint)}</div>
-          </div>
+      <div class="adv-card">
+        <div class="k">${escapeHtml(t("analysis.advanced.intonationCards.range") || "Range")}</div>
+        <div class="v">${escapeHtml(I.rangeDisplay || "—")}</div>
+        <div class="hint">${escapeHtml(summary.intonation?.rangeHint || "")}</div>
+      </div>
 
-          <div class="adv-card">
-            <div class="k">${escapeHtml(t("analysis.advanced.intonationCards.speechRate") || "Speech rate")}</div>
-            <div class="v">${escapeHtml(speechRateDisplay)} <span class="suffix">${escapeHtml(speechWpmDisplay)}</span></div>
-            <div class="h">${safeHint(summary.speechRateHint)}</div>
-          </div>
+      <div class="adv-card">
+        <div class="k">${escapeHtml(t("analysis.advanced.intonationCards.speechRate") || "Speech rate")}</div>
+        <div class="v">${escapeHtml(speechRateDisplay)} <span class="suffix">${escapeHtml(speechWpmDisplay)}</span></div>
+        <div class="hint">${escapeHtml(summary.speechRateHint || "")}</div>
+      </div>
 
-          <div class="adv-card">
-            <div class="k">${escapeHtml(t("analysis.advanced.intonationCards.liaison") || "Liaison")}</div>
-            <div class="v">${escapeHtml(liaisonDisplay || "—")}</div>
-            <div class="h">${safeHint(summary.liaisonHint)}</div>
-          </div>
-        </div>
+      <div class="adv-card">
+        <div class="k">${escapeHtml(t("analysis.advanced.intonationCards.liaison") || "Liaison")}</div>
+        <div class="v">${escapeHtml(liaisonDisplay || "—")}</div>
+        <div class="hint">${escapeHtml(summary.liaisonHint || "")}</div>
+      </div>
+    </div>
 
-        <div class="intonation-wrap">
-          <canvas id="intonationCanvas" class="intonation-canvas" aria-label="${escapeAttr(t("analysis.advanced.canvasAria") || "Intonation curve")}"></canvas>
-          <div class="intonation-legend">
-            <label><input id="toggleRawDots" type="checkbox" /> ${escapeHtml(t("analysis.advanced.intonationLegend.show") || "Show raw dots")}</label>
-          </div>
-        </div>
-      </details>
+    <div class="intonation-wrap">
+      <canvas id="intonationCanvas" class="intonation-canvas" aria-label="${escapeAttr(t("analysis.advanced.canvasAria") || "Intonation curve")}"></canvas>
+      <div class="intonation-legend">
+        <label><input id="toggleRawDots" type="checkbox" /> ${escapeHtml(t("analysis.advanced.intonationLegend.show") || "Show raw dots")}</label>
+      </div>
+    </div>
+  </details>
 
       <!-- Vowel & Breathiness -->
       <details class="adv-details" data-adv="vowel" ${getDetailsOpen("vowel", mode==="advanced") ? "open": ""}>
