@@ -1105,3 +1105,10 @@ html[data-faction="dark"] .practice-result b{
   #status[data-busy="true"]::before,
   .status[data-busy="true"]::before{ animation:none; }
 }
+
+.adv-details .h{
+  font-size:12px;
+  color:color-mix(in oklab, var(--ink) 76%, var(--muted) 24%);
+  margin-top:6px;
+}
+
