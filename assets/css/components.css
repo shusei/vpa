@@ -1121,3 +1121,49 @@ html[data-faction="dark"] .practice-result b{
   content:none !important;
 }
 
+/* Progressive Advanced Summary */
+.advanced-section .adv-controls{
+  display:flex; justify-content:flex-end; align-items:center; gap:8px;
+}
+.adv-details{
+  border:1px solid var(--panel-border);
+  border-radius:12px;
+  background:color-mix(in oklab, var(--panel) 92%, #fff 8%);
+  padding:6px 10px 10px;
+  margin-top:8px;
+}
+.adv-details > summary{
+  list-style:none; cursor:pointer; outline:none;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:6px 4px; margin:0;
+}
+.adv-details > summary::-webkit-details-marker{ display:none; }
+.adv-details:focus-within{ box-shadow:0 0 0 2px var(--ring) inset; border-color:var(--ring); }
+.adv-title{ font-size:16px; font-weight:800; color:var(--ink); }
+.adv-baselines{ display:flex; flex-wrap:wrap; gap:6px; }
+.baseline{
+  display:inline-block; font-size:12px; line-height:1;
+  padding:6px 8px; border-radius:999px;
+  border:1px solid var(--panel-border);
+  background:color-mix(in oklab, var(--surface) 92%, var(--accent-1) 8%);
+}
+.baseline.good{ outline:1px solid color-mix(in oklab, var(--success) 60%, transparent); }
+.baseline.warn{ outline:1px solid color-mix(in oklab, var(--warning) 60%, transparent); }
+.gauge{
+  position:relative; display:flex; align-items:center; gap:8px;
+  margin-top:6px; font-size:12px; font-weight:700;
+}
+.gauge__track{
+  position:relative; flex:1 1 auto; height:8px; border-radius:999px;
+  background:color-mix(in oklab, var(--surface-strong) 60%, var(--panel) 40%);
+  overflow:hidden;
+}
+.gauge__range{
+  position:absolute; top:0; bottom:0; width:2px; background:var(--accent-1);
+  transform:translateX(-1px);
+}
+.gauge__val{ flex:0 0 auto; font-variant-numeric:tabular-nums; }
+.gauge.is-ok .gauge__track{ box-shadow:inset 0 0 0 2px color-mix(in oklab, var(--accent-1) 65%, var(--panel-border) 35%); }
+.gauge.is-low .gauge__track{ box-shadow:inset 0 0 0 2px color-mix(in oklab, #ef4444 62%, var(--panel-border) 38%); }
+.gauge.is-high .gauge__track{ box-shadow:inset 0 0 0 2px color-mix(in oklab, #f97316 62%, var(--panel-border) 38%); }
+.gauge.is-na .gauge__track{ opacity:.5 }
