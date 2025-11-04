@@ -4527,49 +4527,14 @@ function setupIntonationLegend(intonation){
         }
         legend.setAttribute("data-show-raw", showIntonationRawPoints ? "true" : "false");
       };
-      // Support both checkbox and button semantics
-const isCheckbox = toggle.tagName === "INPUT" && (toggle.type === "checkbox" || toggle.getAttribute("type") === "checkbox");
-
-// keep UI in sync
-const updateToggleStateWithCheckbox = ()=>{
-  const legendCopy = summaryText?.advanced?.intonationLegend || {};
-  const labelShow = legendCopy.show || t("summary.advanced.intonationLegend.show");
-  const labelHide = legendCopy.hide || t("summary.advanced.intonationLegend.hide");
-  // if checkbox, reflect variable to the checked state
-  if (isCheckbox){
-    toggle.checked = !!showIntonationRawPoints;
-  }else{
-    toggle.setAttribute("aria-pressed", showIntonationRawPoints ? "true" : "false");
-    const stateEl = toggle.querySelector(".legend-toggle-state");
-    if (stateEl){
-      stateEl.textContent = showIntonationRawPoints ? labelHide : labelShow;
-    }
-  }
-  legend.setAttribute("data-show-raw", showIntonationRawPoints ? "true" : "false");
-};
-
-// wrap the original updater
-const _origUpdateToggleState = updateToggleState;
-const updateToggleStateMerged = ()=>{ try{ _origUpdateToggleState(); }catch{} updateToggleStateWithCheckbox(); };
-updateToggleState = updateToggleStateMerged;
-
-const handleToggle = ()=>{
-  if (!hasRaw) return;
-  if (isCheckbox){
-    showIntonationRawPoints = !!toggle.checked; // checked means show dots
-  }else{
-    showIntonationRawPoints = !showIntonationRawPoints; // button toggles
-  }
-  saveIntonationRawPreference(showIntonationRawPoints);
-  updateToggleState();
-  const canvas = document.getElementById("intonationCanvas");
-  if (canvas) drawIntonationCurve(canvas, intonation || {});
-};
-
-toggle.onclick = handleToggle;
-if (isCheckbox) toggle.onchange = handleToggle;
-
-updateToggleState();
+      toggle.onclick = ()=>{
+        if (!hasRaw) return;
+        showIntonationRawPoints = toggle.checked;
+        saveIntonationRawPreference(showIntonationRawPoints);
+        updateToggleState();
+        const canvas = document.getElementById("intonationCanvas");
+        if (canvas) drawIntonationCurve(canvas, intonation || {});
+      };
       updateToggleState();
     }
   }catch(err){ console.error("[setupIntonationLegend]", err); }
