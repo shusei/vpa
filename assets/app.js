@@ -175,11 +175,6 @@ function escapeHtml(input){
     .replace(/'/g, "&#39;");
 }
 
-function escapeAttr(input){
-  // 對屬性值再保守一點，順便處理反引號
-  return escapeHtml(input).replace(/`/g, "&#96;");
-}
-
 // fmt0：整數顯示用（aria-valuenow、區間標示等）
 function fmt0(x){
   return Number.isFinite(x) ? Math.round(x) : 0;
