@@ -1111,33 +1111,3 @@ html[data-faction="dark"] .practice-result b{
   color:color-mix(in oklab, var(--ink) 76%, var(--muted) 24%);
   margin-top:6px;
 }
-
-/* 1) 還原 checkbox / radio 的原生外觀與顏色 */
-input[type="checkbox"],
-input[type="radio"]{
-  -webkit-appearance: auto !important;
-  appearance: auto !important;
-  accent-color: var(--accent-1, #5a7df0) !important; /* 自訂主色；沒變色也會至少顯示 */
-  opacity: 1 !important;
-  transform: none !important;
-  filter: none !important;
-}
-
-/* 2) 還原清單項目的「點點」 */
-ul, ol { /* 若你有全域把 list-style 幹掉，這裡補回來 */
-  list-style-position: outside;
-}
-.focus-list,
-ul.focus-list {
-  list-style: disc outside !important;
-  padding-left: 1.25rem;           /* 給 marker 空間，不然會看起來像蒸發 */
-}
-.focus-list li::marker {           /* 想要灰點就上色 */
-  color: var(--muted, #888);
-}
-
-/* 3) 如果你有自訂 details/summary，marker 也可能被拔掉了，這裡恢復 */
-details > summary { list-style: disclosure-closed; }
-details[open] > summary { list-style: disclosure-open; }
-/* WebKit 友好 */
-summary::-webkit-details-marker { display: inline-block; }
