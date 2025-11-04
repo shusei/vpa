@@ -169,6 +169,9 @@ body.recording .record-btn .rec{ display:inline; }
   .help-dialog{ padding:24px 24px 28px; border-radius:20px; }
   .help-dialog h2{ font-size:20px; }
   .help-dialog h3{ font-size:16px; }
+  .focus-item{ flex-direction:column; align-items:stretch; }
+  .focus-actions{ justify-content:flex-start; }
+  .focus-actions .btn{ width:100%; }
 }
 
 .status{
@@ -526,15 +529,77 @@ body.recording .status{
   border:1px solid var(--panel-border);
 }
 
-.summary-line{
-  display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:10px 12px; border-radius:12px;
-  background:color-mix(in oklab, var(--panel) 92%, #fff 8%); border:1px dashed var(--panel-border);
-  margin-bottom:10px;
+.focus-block{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  border:1px solid var(--panel-border);
+  border-radius:14px;
+  background:color-mix(in oklab, var(--panel) 92%, #fff 8%);
+  padding:12px 14px;
+  margin-bottom:12px;
 }
-.summary-line strong{ font-weight:900; margin-right:4px; }
-
-html[data-faction="dark"] .summary-line{ color:#fff; }
-html[data-faction="dark"] .summary-line strong{ color:#fff; }
+.focus-heading{
+  margin:0;
+  font-size:15px;
+  font-weight:800;
+  color:var(--ink);
+}
+.focus-list{
+  list-style:none;
+  margin:0;
+  padding:0;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.focus-item{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:stretch;
+  gap:10px;
+}
+.focus-chip{
+  flex:1 1 220px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid var(--panel-border);
+  border-left:4px solid color-mix(in oklab, var(--accent-1) 40%, var(--panel-border) 60%);
+  background:color-mix(in oklab, var(--panel) 94%, var(--surface) 6%);
+}
+.focus-severity{
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.35px;
+  text-transform:uppercase;
+  color:color-mix(in oklab, var(--ink) 70%, var(--muted) 30%);
+}
+.focus-title{
+  font-size:14px;
+  font-weight:600;
+  line-height:1.55;
+  color:var(--ink);
+}
+.focus-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex:0 0 auto;
+}
+.focus-actions .btn{ white-space:nowrap; }
+.focus-empty{
+  font-size:14px;
+  font-weight:500;
+  color:color-mix(in oklab, var(--ink) 82%, var(--muted) 18%);
+  padding:6px 0 2px;
+}
+.focus-item--high .focus-chip{ border-left-color:color-mix(in oklab, #f97316 68%, var(--accent-2) 32%); }
+.focus-item--medium .focus-chip{ border-left-color:color-mix(in oklab, var(--accent-1) 62%, var(--accent-2) 38%); }
+.focus-item--low .focus-chip{ border-left-color:color-mix(in oklab, var(--muted) 70%, var(--panel-border) 30%); }
 .subline{
   color:color-mix(in oklab, var(--ink) 86%, var(--muted) 14%);
 }
@@ -700,9 +765,23 @@ html[data-faction="dark"] .player .hint{
 html[data-faction="dark"] .kv,
 html[data-faction="dark"] .adv-card,
 html[data-faction="dark"] .note,
-html[data-faction="dark"] .summary-line{
+html[data-faction="dark"] .focus-block{
   background:color-mix(in oklab, var(--surface-strong) 78%, rgba(0,0,0,.35) 22%);
   border-color:color-mix(in oklab, var(--panel-border) 48%, rgba(255,255,255,.12) 52%);
+}
+
+html[data-faction="dark"] .focus-chip{
+  background:color-mix(in oklab, var(--surface) 78%, rgba(0,0,0,.28) 22%);
+  border-color:color-mix(in oklab, var(--panel-border) 52%, rgba(255,255,255,.12) 48%);
+}
+html[data-faction="dark"] .focus-title{
+  color:color-mix(in oklab, var(--text) 94%, #fff 6%);
+}
+html[data-faction="dark"] .focus-severity{
+  color:color-mix(in oklab, var(--text) 82%, var(--muted) 18%);
+}
+html[data-faction="dark"] .focus-empty{
+  color:color-mix(in oklab, var(--text) 88%, var(--muted) 12%);
 }
 
 /* ---------- Generic buttons ---------- */
