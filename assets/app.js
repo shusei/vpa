@@ -88,6 +88,82 @@ import {
 } from "./js/pitch-shared.js";
 import { setupPracticeUI, openPracticeCategory } from "./js/practice.js";
 
+// ===== Advanced UI state & gauges =====
+const ADVANCED_MODE_KEY = "ui:advancedMode";           // "beginner" | "advanced"
+const ADV_DETAILS_KEY_PREFIX = "ui:advOpen:";          // per-section open memory
+
+function getAdvancedMode(){
+  try { return localStorage.getItem(ADVANCED_MODE_KEY) || "beginner"; } catch { return "beginner"; }
+}
+function setAdvancedMode(mode){
+  try { localStorage.setItem(ADVANCED_MODE_KEY, mode); } catch {}
+}
+function getDetailsOpen(id, fallbackOpen){
+  try{
+    const raw = localStorage.getItem(ADV_DETAILS_KEY_PREFIX + id);
+    return raw == null ? fallbackOpen : raw === "1";
+  }catch{ return fallbackOpen; }
+}
+function setDetailsOpen(id, open){
+  try{ localStorage.setItem(ADV_DETAILS_KEY_PREFIX + id, open ? "1" : "0"); }catch{}
+}
+
+function setupAdvancedSection(root){
+  const modeToggle = root.querySelector("[data-adv-toggle]");
+  function applyMode(){
+    const mode = getAdvancedMode();
+    root.setAttribute("data-mode", mode);
+    if (modeToggle) modeToggle.setAttribute("aria-pressed", mode === "advanced" ? "true" : "false");
+    const details = root.querySelectorAll("details[data-adv]");
+    for (const el of details){
+      const id = el.getAttribute("data-adv") || "";
+      const open = getDetailsOpen(id, mode === "advanced");
+      el.open = open;
+      el.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+  }
+  if (modeToggle){
+    modeToggle.addEventListener("click", ()=>{
+      setAdvancedMode(getAdvancedMode() === "advanced" ? "beginner" : "advanced");
+      applyMode();
+    });
+  }
+  root.querySelectorAll("details[data-adv]").forEach(el=>{
+    const id = el.getAttribute("data-adv") || "";
+    el.addEventListener("toggle", ()=> setDetailsOpen(id, el.open));
+  });
+  applyMode();
+}
+
+// Baseline ranges（保守預設，可按你的語料微調）
+const BASELINES = {
+  f1:  { min: 180,  max: 350,  unit: "Hz" },
+  f2:  { min: 1600, max: 2500, unit: "Hz" },
+  f3:  { min: 2500, max: 3200, unit: "Hz" },
+  tilt:{ min: -6,   max:  2,   unit: "dB" },
+  breath:{ min: 0.08, max: 0.18, unit: "" },      // 8–18%
+  syll:{ min: 3.2,  max: 5.2, unit: "syll/s" },
+  wpm: { min: 120,  max: 180, unit: "wpm" },
+  liaison:{ min: 0.20, max: 0.45, unit: "" }      // 20–45%
+};
+
+function renderGauge(value, baseline, label){
+  const { min, max, unit } = baseline;
+  if (!Number.isFinite(value)) {
+    return `<span class="gauge is-na" role="meter" aria-valuemin="${min}" aria-valuemax="${max}" aria-valuenow="0" aria-label="${escapeAttr(label)}">—</span>`;
+  }
+  const clamp = (v,a,b)=> Math.min(b, Math.max(a, v));
+  const pct = clamp((value - min) / Math.max(1e-6,(max - min)) * 100, 0, 100);
+  const cls = (value >= min && value <= max) ? "is-ok" : (value < min ? "is-low" : "is-high");
+  const title = `${label}: ${fmt1(value)}${unit || ""} · target ${fmt0(min)}–${fmt0(max)}${unit || ""}`;
+  return `
+    <span class="gauge ${cls}" title="${escapeAttr(title)}" role="meter" aria-valuemin="${min}" aria-valuemax="${max}" aria-valuenow="${fmt0(value)}" aria-label="${escapeAttr(label)}">
+      <span class="gauge__track"></span>
+      <span class="gauge__range" style="left:${pct}%;"></span>
+      <span class="gauge__val">${fmt1(value)}${unit || ""}</span>
+    </span>`;
+}
+
 /** 只用遠端（Hugging Face Hub），停用本機 /models 尋址 */
 env.allowLocalModels = false;
 env.allowRemoteModels = true;
@@ -3039,6 +3115,9 @@ function finishStreamStats(){
 
     statsEl.innerHTML = headerHTML + focusHTML + divergeNote + envNote + voicedNote + statsHTML + advancedHTML;
 
+    const advRoot = statsEl.querySelector(".advanced-section");
+    if (advRoot) setupAdvancedSection(advRoot);
+    
     const focusButtons = statsEl.querySelectorAll(".focus-cta");
     for (const button of focusButtons) {
       button.addEventListener("click", (event) => {
@@ -3350,117 +3429,152 @@ function computeAdvancedSummary(){
 
 function renderAdvancedSummary(summary){
   if (!summary){
-    return `
-      <div class="advanced-section">
-        <div class="note">${t("analysis.advanced.insufficient")}</div>
-      </div>
-    `;
+    return `<div class="advanced-section"><div class="note">${t("analysis.advanced.insufficient")}</div></div>`;
   }
+
+  // 共鳴比例
   const chestPct = Math.round((summary.energyPct?.chest ?? 0.33)*100);
   const maskPct  = Math.round((summary.energyPct?.mask ?? 0.33)*100);
   const headPct  = Math.round((summary.energyPct?.head ?? 0.34)*100);
-  const formants = summary.formants || {};
-  const f1Trend = formants.f1 || {};
-  const f2Trend = formants.f2 || {};
-  const f3Trend = formants.f3 || {};
-  const f1Value = f1Trend.display || fmt1(f1Trend.median);
-  const f2Value = f2Trend.display || fmt1(f2Trend.median);
-  const f3Value = f3Trend.display || fmt1(f3Trend.median);
-  const f1Hint = f1Trend.hint || makeFormantHint("F1", NaN, 180, 350);
-  const f2Hint = f2Trend.hint || makeFormantHint("F2", NaN, 1600, 2500);
-  const f3Hint = f3Trend.hint || makeFormantHint("F3", NaN, 2500, 3200);
+
+  // Formants
+  const f1 = Number(summary.formants?.f1?.median);
+  const f2 = Number(summary.formants?.f2?.median);
+  const f3 = Number(summary.formants?.f3?.median);
+  const f1Val = Number.isFinite(f1) ? fmt1(f1) : (summary.formants?.f1?.display || "—");
+  const f2Val = Number.isFinite(f2) ? fmt1(f2) : (summary.formants?.f2?.display || "—");
+  const f3Val = Number.isFinite(f3) ? fmt1(f3) : (summary.formants?.f3?.display || "—");
+  const f1Hint = summary.formants?.f1?.hint || `F1 ${f1Val}Hz`;
+  const f2Hint = summary.formants?.f2?.hint || `F2 ${f2Val}Hz`;
+  const f3Hint = summary.formants?.f3?.hint || `F3 ${f3Val}Hz`;
+
+  // 其它指標
+  const tiltAvg = Number(summary.tiltAvg);
+  const breath  = Number(summary.breathinessAvg);
+  const speechSyll = Number(summary.speechRate?.syllPerSec);
+  const speechWpm  = Number(summary.speechRate?.wordsPerMin);
+  const liaison    = Number(summary.liaisonRatio);
   const brightnessDisplay = summary.brightnessLabel || "—";
-  const brightnessHint = summary.brightnessHint || "";
-  const speechRateDisplay = Number.isFinite(summary.speechRate?.syllPerSec)
-    ? summaryString("speechRateDisplay", { value: fmt1(summary.speechRate.syllPerSec) })
+  const brightnessHint    = summary.brightnessHint  || "";
+
+  // 語調畫布
+  let intonationCanvas = "";
+  if (summary.intonation?.canvas){
+    intonationCanvas = `<div class="intonation-canvas">${summary.intonation.canvas}</div>`;
+  }
+
+  // 簡明文字
+  const speechRateDisplay = Number.isFinite(speechSyll)
+    ? summaryString("speechRateDisplay", { value: fmt1(speechSyll) })
     : "—";
-  const speechWpmDisplay = Number.isFinite(summary.speechRate?.wordsPerMin)
-    ? summaryString("speechRateWpm", { value: Math.round(summary.speechRate.wordsPerMin) })
+  const speechWpmDisplay = Number.isFinite(speechWpm)
+    ? summaryString("speechRateWpm", { value: Math.round(speechWpm) })
     : "";
   const percentSuffix = (value) => summaryString("percentSuffix", { value });
-  const liaisonDisplay = Number.isFinite(summary.liaisonRatio)
-    ? percentSuffix(Math.round(summary.liaisonRatio*100))
-    : "";
-  const vowelDisplay = summary.vowelLabel + (Number.isFinite(summary.vowelFocusRatio) ? percentSuffix(Math.round(summary.vowelFocusRatio*100)) : "");
-  const breathDisplay = summary.breathinessLabel + (Number.isFinite(summary.breathinessAvg) ? percentSuffix(Math.round(summary.breathinessAvg*100)) : "");
-  const rangeDisplay = Number.isFinite(summary.intonation?.range)
-    ? summaryString("rangeDisplayHz", { value: fmt1(summary.intonation.range) })
-    : "—";
-  const intonationLabel = summary.intonation?.slopeLabel || "—";
-  const intonationHint = summary.intonation?.hint || t("summary.summaryHint");
-  const rangeHint = summary.intonation?.rangeHint || "";
+  const liaisonDisplay = Number.isFinite(liaison) ? percentSuffix(Math.round(liaison*100)) : "";
+  const vowelDisplay = (summary.vowelLabel || "—") + (Number.isFinite(summary.vowelFocusRatio)
+    ? " · " + percentSuffix(Math.round(summary.vowelFocusRatio*100)) : "");
 
-  const advancedCopy = summaryText?.advanced || {};
-  const formantTitle = advancedCopy.formantTitle || t("summary.advanced.formantTitle");
-  const intonationTitle = advancedCopy.intonationTitle || t("summary.advanced.intonationTitle");
-  const vowelTitle = advancedCopy.vowelBreathTitle || t("summary.advanced.vowelBreathTitle");
-  const formantCards = advancedCopy.formantCards || {};
-  const intonationCards = advancedCopy.intonationCards || {};
-  const vowelCards = advancedCopy.vowelCards || {};
-  const canvasAria = advancedCopy.canvasAria || t("summary.advanced.canvasAria");
-  const canvasHint = advancedCopy.intonationCanvasHint || t("summary.advanced.intonationCanvasHint");
-  const legendCopy = advancedCopy.intonationLegend || {};
-  const legendLine = legendCopy.line || t("summary.advanced.intonationLegend.line");
-  const legendDots = legendCopy.dots || t("summary.advanced.intonationLegend.dots");
-  const legendShade = legendCopy.shade || t("summary.advanced.intonationLegend.shade");
-  const legendShow = legendCopy.show || t("summary.advanced.intonationLegend.show");
-  const legendHide = legendCopy.hide || t("summary.advanced.intonationLegend.hide");
-  const hasRawPoints = Array.isArray(summary.intonation?.rawPoints) && summary.intonation.rawPoints.length > 0;
-  const toggleDisabledAttr = hasRawPoints ? "" : " disabled aria-disabled=\"true\"";
-  const toggleStateLabel = showIntonationRawPoints ? legendHide : legendShow;
+  const mode = getAdvancedMode();
+  const advToggleLabel = mode === "advanced"
+    ? (t("ui.advancedMode.beginner") || "Switch to Beginner")
+    : (t("ui.advancedMode.advanced") || "Switch to Advanced");
 
-  const liaisonValue = summary.liaisonLabel + (liaisonDisplay ? liaisonDisplay : "");
-  const speechRateHint = speechWpmDisplay ? `${summary.speechRateHint} ${speechWpmDisplay}` : summary.speechRateHint;
-  const resonanceTail = summary.tiltLabel && summary.tiltLabel !== "—"
-    ? summaryString("resonanceTiltTail", { label: summary.tiltLabel })
-    : "";
-  const resonanceHintLine = [summary.resonanceHint, resonanceTail].filter(Boolean).join(" ").trim();
+  // 標題（盡量用現有 i18n，缺就回退英文）
+  const titleFormant   = (t("analysis.advanced.block.formantResonance") || t("analysis.advanced.formantTitle") || "Formant & Resonance");
+  const titleIntonation= (t("analysis.advanced.block.intonationSpeech") || t("analysis.advanced.intonationTitle") || "Intonation & Speech");
+  const titleVowel     = (t("analysis.advanced.block.vowelBreathiness") || t("analysis.advanced.vowelBreathTitle") || "Vowel & Breathiness");
 
   return `
-    <div class="advanced-section">
-      <h3 class="adv-title">${formantTitle}</h3>
-      <div class="advanced-grid advanced-grid--four">
-        <div class="adv-card"><div class="k">${formantCards.f1 || t("summary.advanced.formantCards.f1")}</div><div class="v">${f1Value}</div><div class="hint">${f1Hint}</div></div>
-        <div class="adv-card"><div class="k">${formantCards.f2 || t("summary.advanced.formantCards.f2")}</div><div class="v">${f2Value}</div><div class="hint">${f2Hint}</div></div>
-        <div class="adv-card"><div class="k">${formantCards.f3 || t("summary.advanced.formantCards.f3")}</div><div class="v">${f3Value}</div><div class="hint">${f3Hint}</div></div>
-        <div class="adv-card"><div class="k">${formantCards.brightness || t("summary.advanced.formantCards.brightness")}</div><div class="v">${brightnessDisplay}</div><div class="hint">${brightnessHint}</div></div>
-        <div class="adv-card"><div class="k">${formantCards.tilt || t("summary.advanced.formantCards.tilt")}</div><div class="v">${fmt1(summary.tiltAvg)} dB</div><div class="hint">${summary.tiltHint}</div></div>
+    <div class="advanced-section" data-mode="${mode}">
+      <div class="adv-controls">
+        <button type="button" class="btn sm ghost" data-adv-toggle aria-pressed="${mode==="advanced"}" aria-label="Toggle Beginner/Advanced">${escapeHtml(advToggleLabel)}</button>
       </div>
-      <div class="resonance-summary">
-        <div class="resonance-bar resonance-bar--summary">
-          <div class="res-part chest" style="flex:${Math.max(summary.energyPct?.chest ?? 0.001, 0.001)}">${chestPct}%</div>
-          <div class="res-part mask" style="flex:${Math.max(summary.energyPct?.mask ?? 0.001, 0.001)}">${maskPct}%</div>
-          <div class="res-part head" style="flex:${Math.max(summary.energyPct?.head ?? 0.001, 0.001)}">${headPct}%</div>
+
+      <details class="adv-details" data-adv="formant" ${getDetailsOpen("formant", mode==="advanced") ? "open": ""}>
+        <summary>
+          <span class="adv-title">${titleFormant}</span>
+          <span class="adv-baselines">
+            <span class="baseline">F1 ${f1Val}Hz (180–350Hz)</span>
+            <span class="baseline">F2 ${f2Val}Hz (1600–2500Hz)</span>
+            <span class="baseline">F3 ${f3Val}Hz (2500–3200Hz)</span>
+          </span>
+        </summary>
+        <div class="advanced-grid advanced-grid--four">
+          <div class="adv-card" title="${escapeAttr(f1Hint)}">
+            <div class="k">F1</div><div class="v">${f1Val}Hz</div>
+            ${renderGauge(f1, BASELINES.f1, "F1")}
+            <div class="hint">${escapeHtml(f1Hint)}</div>
+          </div>
+          <div class="adv-card" title="${escapeAttr(f2Hint)}">
+            <div class="k">F2</div><div class="v">${f2Val}Hz</div>
+            ${renderGauge(f2, BASELINES.f2, "F2")}
+            <div class="hint">${escapeHtml(f2Hint)}</div>
+          </div>
+          <div class="adv-card" title="${escapeAttr(f3Hint)}">
+            <div class="k">F3</div><div class="v">${f3Val}Hz</div>
+            ${renderGauge(f3, BASELINES.f3, "F3")}
+            <div class="hint">${escapeHtml(f3Hint)}</div>
+          </div>
+          <div class="adv-card" title="${escapeAttr(summary.tiltHint||"")}">
+            <div class="k">${t("analysis.advanced.tilt")}</div>
+            <div class="v">${summary.tiltLabel||"—"}</div>
+            ${renderGauge(tiltAvg, BASELINES.tilt, t("analysis.advanced.tilt"))}
+            <div class="hint">${escapeHtml(summary.tiltHint||"")}</div>
+          </div>
         </div>
-        <p class="subline">${resonanceHintLine}</p>
-      </div>
-    </div>
-    <div class="advanced-section">
-      <h3 class="adv-title">${intonationTitle}</h3>
-      <canvas id="intonationCanvas" width="520" height="140" aria-label="${canvasAria}" title="${escapeAttr(canvasHint)}"></canvas>
-      <div class="intonation-legend" id="intonationLegend" data-show-raw="${showIntonationRawPoints ? "true" : "false"}" data-has-raw="${hasRawPoints ? "true" : "false"}">
-        <div class="legend-item"><span class="legend-swatch legend-swatch--line"></span><span>${legendLine}</span></div>
-        <button type="button" class="legend-item legend-toggle" id="intonationRawToggle" aria-pressed="${showIntonationRawPoints ? "true" : "false"}"${toggleDisabledAttr}>
-          <span class="legend-swatch legend-swatch--dots"></span>
-          <span>${legendDots}</span>
-          <span class="legend-toggle-state">${toggleStateLabel}</span>
-        </button>
-        <div class="legend-item legend-item--shade"><span class="legend-swatch legend-swatch--shade"></span><span>${legendShade}</span></div>
-      </div>
-      <div class="advanced-grid advanced-grid--four">
-        <div class="adv-card"><div class="k">${intonationCards.trend || t("summary.advanced.intonationCards.trend")}</div><div class="v">${intonationLabel}</div><div class="hint">${intonationHint}</div></div>
-        <div class="adv-card"><div class="k">${intonationCards.range || t("summary.advanced.intonationCards.range")}</div><div class="v">${rangeDisplay}</div><div class="hint">${rangeHint}</div></div>
-        <div class="adv-card"><div class="k">${intonationCards.speechRate || t("summary.advanced.intonationCards.speechRate")}</div><div class="v">${speechRateDisplay}</div><div class="hint">${speechRateHint}</div></div>
-        <div class="adv-card"><div class="k">${intonationCards.liaison || t("summary.advanced.intonationCards.liaison")}</div><div class="v">${liaisonValue || "—"}</div><div class="hint">${summary.liaisonHint}</div></div>
-      </div>
-    </div>
-    <div class="advanced-section">
-      <h3 class="adv-title">${vowelTitle}</h3>
-      <div class="advanced-grid advanced-grid--three">
-        <div class="adv-card"><div class="k">${vowelCards.focus || t("summary.advanced.vowelCards.focus")}</div><div class="v">${vowelDisplay}</div><div class="hint">${summary.vowelHint}</div></div>
-        <div class="adv-card"><div class="k">${vowelCards.breathiness || t("summary.advanced.vowelCards.breathiness")}</div><div class="v">${breathDisplay}</div><div class="hint">${summary.breathinessHint}</div></div>
-        <div class="adv-card"><div class="k">${vowelCards.tilt || t("summary.advanced.vowelCards.tilt")}</div><div class="v">${summary.tiltLabel}</div><div class="hint">${summary.tiltHint}</div></div>
-      </div>
+        <div class="resonance-panel" role="group" aria-label="${escapeAttr(t("analysis.advanced.resonance"))}">
+          <div class="bar" title="${escapeAttr(summary.resonanceHint||"")}">
+            <span class="label">${t("analysis.advanced.resonance")}</span>
+            <span class="range">
+              <span class="part part--chest" style="width:${chestPct}%"></span>
+              <span class="part part--mask"  style="width:${maskPct}%"></span>
+              <span class="part part--head"  style="width:${headPct}%"></span>
+            </span>
+            <span class="label">${summary.resonanceDisplay||summary.resonanceLabel||""}</span>
+          </div>
+        </div>
+      </details>
+
+      <details class="adv-details" data-adv="intonation" ${getDetailsOpen("intonation", mode==="advanced") ? "open": ""}>
+        <summary>
+          <span class="adv-title">${titleIntonation}</span>
+          <span class="adv-baselines">
+            <span class="baseline">${t("analysis.advanced.trend")}: ${summary.intonation?.trend||"—"}</span>
+            <span class="baseline">${t("analysis.advanced.range")}: ${Number.isFinite(summary.intonation?.range)? fmt1(summary.intonation.range)+"Hz" : "—"}</span>
+            <span class="baseline">${t("analysis.advanced.speechRate")}: ${speechRateDisplay}</span>
+          </span>
+        </summary>
+        ${intonationCanvas}
+        <div class="advanced-grid advanced-grid--three">
+          <div class="adv-card"><div class="k">${t("analysis.advanced.trend")}</div><div class="v">${summary.intonation?.trend||"—"}</div></div>
+          <div class="adv-card"><div class="k">${t("analysis.advanced.range")}</div><div class="v">${Number.isFinite(summary.intonation?.range)? fmt1(summary.intonation.range)+"Hz" : "—"}</div></div>
+          <div class="adv-card" title="${escapeAttr(summary.speechRateHint||"")}">
+            <div class="k">${t("analysis.advanced.speechRate")}</div>
+            <div class="v">${speechRateDisplay}</div>
+            ${renderGauge(speechSyll, BASELINES.syll, "syll/s")}
+            <div class="hint">${escapeHtml(summary.speechRateHint||"")}</div>
+            <div class="hint">${escapeHtml(speechWpmDisplay)}</div>
+          </div>
+        </div>
+      </details>
+
+      <details class="adv-details" data-adv="vowel" ${getDetailsOpen("vowel", mode==="advanced") ? "open": ""}>
+        <summary>
+          <span class="adv-title">${titleVowel}</span>
+          <span class="adv-baselines">
+            <span class="baseline">${t("analysis.advanced.brightness")}: ${brightnessDisplay}</span>
+            <span class="baseline">${t("analysis.advanced.breathiness")}: ${Number.isFinite(breath) ? Math.round(breath*100) + "%" : "—"} (8–18%)</span>
+            <span class="baseline">${t("analysis.advanced.liaison")}: ${liaisonDisplay||"—"}</span>
+          </span>
+        </summary>
+        <div class="advanced-grid advanced-grid--three">
+          <div class="adv-card" title="${escapeAttr(brightnessHint)}"><div class="k">${t("analysis.advanced.brightness")}</div><div class="v">${brightnessDisplay}</div><div class="hint">${escapeHtml(brightnessHint)}</div></div>
+          <div class="adv-card" title="${escapeAttr(summary.breathinessHint||"")}"><div class="k">${t("analysis.advanced.breathiness")}</div><div class="v">${summary.breathinessLabel||"—"}</div>${renderGauge(breath, BASELINES.breath, t("analysis.advanced.breathiness"))}<div class="hint">${escapeHtml(summary.breathinessHint||"")}</div></div>
+          <div class="adv-card" title="${escapeAttr(summary.liaisonHint||"")}"><div class="k">${t("analysis.advanced.liaison")}</div><div class="v">${liaisonDisplay||"—"}</div>${renderGauge(liaison, BASELINES.liaison, t("analysis.advanced.liaison"))}<div class="hint">${escapeHtml(summary.liaisonHint||"")}</div></div>
+        </div>
+        <div class="adv-card"><div class="k">${t("analysis.advanced.vowelFocus")}</div><div class="v">${escapeHtml(vowelDisplay||"—")}</div><div class="hint">${escapeHtml(summary.vowelHint||"")}</div></div>
+      </details>
     </div>
   `;
 }
