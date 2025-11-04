@@ -2946,6 +2946,19 @@ function resetOfflineFeatureStore(){
 }
 function rms(arr, a, b){ let s=0; for(let i=a;i<b;i++){ const v=arr[i]; s += v*v; } return Math.sqrt(s/Math.max(1,b-a)); }
 
+// 讓曲線圖吃到容器實際寬度，避免在 details 關著時變 0
+function resizeIntonationCanvas(canvas) {
+  const pxRatio = Math.max(1, window.devicePixelRatio || 1);
+  const box = canvas.parentElement || canvas;
+  const cssWidth = Math.max(320, Math.floor(box.clientWidth || 600));
+  const cssHeight = 160; // 你原本的高度，如果有常數就沿用
+  canvas.style.width = cssWidth + "px";
+  canvas.style.height = cssHeight + "px";
+  canvas.width = Math.floor(cssWidth * pxRatio);
+  canvas.height = Math.floor(cssHeight * pxRatio);
+}
+
+
 // ===== 統計卡（停止&分析完成後，含「簡評」與分歧提示） =====
 function finishStreamStats(){
   try{
@@ -3131,8 +3144,43 @@ function finishStreamStats(){
 
     statsEl.innerHTML = headerHTML + focusHTML + divergeNote + envNote + voicedNote + statsHTML + advancedHTML;
 
-    const advRoot = statsEl.querySelector(".advanced-section");
-    if (advRoot) setupAdvancedSection(advRoot);
+const advRoot = statsEl.querySelector(".advanced-section");
+if (advRoot) setupAdvancedSection(advRoot);
+
+// ----- Intonation 曲線：展開才畫，resize 會重畫（清理舊監聽） -----
+if (typeof window.__advIntonationOnResize === "function") {
+  window.removeEventListener("resize", window.__advIntonationOnResize);
+  window.__advIntonationOnResize = null;
+}
+
+const det = advRoot?.querySelector('details[data-adv="intonation"]');
+function drawIntonationNow() {
+  const canvas = advRoot?.querySelector("#intonationCanvas");
+  if (!canvas || !advSummary) return;
+  resizeIntonationCanvas(canvas); // 這個你已經加過
+  if (Array.isArray(advSummary.intonation?.points) && advSummary.intonation.points.length) {
+    try { drawIntonationCurve(canvas, advSummary.intonation); } catch {}
+  } else {
+    const ctx = canvas.getContext("2d");
+    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  try { setupIntonationLegend(advSummary.intonation); } catch {}
+}
+
+// details 打開時再畫一次，確保不是 0 寬
+if (det) {
+  det.addEventListener("toggle", () => { if (det.open) drawIntonationNow(); });
+  // 如果預設就是開的，立刻畫一次
+  if (det.open) drawIntonationNow();
+}
+
+// 窗口尺寸改變時重畫：先清舊的，再綁新的，避免越綁越多
+window.__advIntonationOnResize = () => {
+  if (det?.open) drawIntonationNow();
+};
+window.addEventListener("resize", window.__advIntonationOnResize, { passive: true });
+
+
     
     const focusButtons = statsEl.querySelectorAll(".focus-cta");
     for (const button of focusButtons) {
@@ -3475,9 +3523,12 @@ function renderAdvancedSummary(summary){
 
   // 語調畫布
   let intonationCanvas = "";
-  if (summary.intonation?.canvas){
+  if (summary.intonation?.canvas) {
     intonationCanvas = `<div class="intonation-canvas">${summary.intonation.canvas}</div>`;
+  } else {
+    intonationCanvas = `<div class="intonation-canvas"><canvas id="intonationCanvas" width="600" height="160" aria-label="Intonation"></canvas></div>`;
   }
+
 
   // 簡明文字
   const speechRateDisplay = Number.isFinite(speechSyll)
