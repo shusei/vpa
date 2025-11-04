@@ -1167,3 +1167,11 @@ html[data-faction="dark"] .practice-result b{
 .gauge.is-low .gauge__track{ box-shadow:inset 0 0 0 2px color-mix(in oklab, #ef4444 62%, var(--panel-border) 38%); }
 .gauge.is-high .gauge__track{ box-shadow:inset 0 0 0 2px color-mix(in oklab, #f97316 62%, var(--panel-border) 38%); }
 .gauge.is-na .gauge__track{ opacity:.5 }
+
+/* Always show hints in Advanced mode */
+.advanced-section[data-mode="advanced"] .adv-card .hint {
+  display: block;
+  opacity: 1;
+  max-height: none;
+  visibility: visible;
+}
