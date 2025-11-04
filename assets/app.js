@@ -164,6 +164,27 @@ function renderGauge(value, baseline, label){
     </span>`;
 }
 
+// --- minimal helpers for advanced summary ---
+function escapeHtml(input){
+  if (input == null) return "";
+  return String(input)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function escapeAttr(input){
+  // 對屬性值再保守一點，順便處理反引號
+  return escapeHtml(input).replace(/`/g, "&#96;");
+}
+
+// fmt0：整數顯示用（aria-valuenow、區間標示等）
+function fmt0(x){
+  return Number.isFinite(x) ? Math.round(x) : 0;
+}
+
 /** 只用遠端（Hugging Face Hub），停用本機 /models 尋址 */
 env.allowLocalModels = false;
 env.allowRemoteModels = true;
