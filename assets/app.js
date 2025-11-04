@@ -2957,6 +2957,13 @@ function finishStreamStats(){
     const pfDisplay = (lastPf * 100).toFixed(1);
     const pmDisplay = (lastPm * 100).toFixed(1);
     const snrDisplay = isFinite(snr) ? `${fmt1(snr)} dB` : "—";
+    const trendLabel = lastPf >= lastPm
+      ? t("realtime.meter.feminine")
+      : t("realtime.meter.masculine");
+    const voicedHintLabel = voicedHintKey
+      ? t(`summary.voicedHint.${voicedHintKey}`)
+      : null;
+
     const advSummary = computeAdvancedSummary();
     const focusInsights = buildFocusInsights({
       band,
@@ -2975,7 +2982,6 @@ function finishStreamStats(){
     });
     const focusHTML = renderFocusBlock(focusInsights);
 
-    const trendLabel = lastPf >= lastPm ? t("realtime.meter.feminine") : t("realtime.meter.masculine");
     const divergeNote = diverge
       ? t("summary.divergenceNoteHtml", { band, trend: trendLabel })
       : "";
