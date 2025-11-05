@@ -443,7 +443,7 @@ function buildFocusInsights(context = {}) {
     }
   }
 
-  const vowelRatio = advSummary?.vowelFocusRatio;
+  const Ratio = advSummary?.vowelFocusRatio;
   const vowelLabel = advSummary?.vowelLabel;
   if (Number.isFinite(vowelRatio) && vowelLabel && vowelRatio < 0.32) {
     const severity = vowelRatio < 0.2 ? "high" : "medium";
@@ -3700,9 +3700,9 @@ function renderAdvancedSummary(summary){
             <div class="h">${escapeHtml(f3Hint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(summary.tiltHint||"")}">
-            <div class="k">${t("analysis.advanced.tilt")}</div>
+            <div class="k">${t("analysis.advanced.formantCards.tilt")}</div>
             <div class="v">${summary.tiltLabel||"—"}</div>
-            ${renderGauge(tiltAvg, BASELINES.tilt, t("analysis.advanced.tilt"))}
+            ${renderGauge(tiltAvg, BASELINES.tilt, t("analysis.advanced.formantCards.tilt"))}
             <div class="h">${safeHint(summary.tiltHint)}</div>
           </div>
         </div>
@@ -3769,34 +3769,34 @@ function renderAdvancedSummary(summary){
         <summary>
           <span class="adv-title">${escapeHtml(titleVowel)}</span>
           <span class="adv-baselines">
-            <span class="baseline">${t("analysis.advanced.brightness")}: ${escapeHtml(brightnessDisplay)}</span>
-            <span class="baseline">${t("analysis.advanced.breathiness")}: ${Number.isFinite(breath) ? Math.round(breath*100) + "%" : "—"} (8–18%)</span>
-            <span class="baseline">${t("analysis.advanced.liaison")}: ${escapeHtml(liaisonDisplay||"—")}</span>
+            <span class="baseline">${t("analysis.advanced.formantCards.brightness")}: ${escapeHtml(brightnessDisplay)}</span>
+            <span class="baseline">${t("analysis.advanced.vowelCards.breathiness")}: ${Number.isFinite(breath) ? Math.round(breath*100) + "%" : "—"} (8–18%)</span>
+            <span class="baseline">${t("analysis.advanced.intonationCards.liaison")}: ${escapeHtml(liaisonDisplay||"—")}</span>
           </span>
         <div class="adv-note">${safeHint(brightnessHint)}</div>
         </summary>
         <div class="advanced-grid advanced-grid--three">
           <div class="adv-card">
-            <div class="k">${t("analysis.advanced.brightness")}</div>
+            <div class="k">${t("analysis.advanced.formantCards.brightness")}</div>
             <div class="v">${escapeHtml(brightnessDisplay)}</div>
             <div class="hint">${safeHint(brightnessHint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(summary.breathinessHint||"")}">
-            <div class="k">${t("analysis.advanced.breathiness")}</div>
+            <div class="k">${t("analysis.advanced.vowelCards.breathiness")}</div>
             <div class="v">${escapeHtml(summary.breathinessLabel||"—")}</div>
-            ${renderGauge(breath, BASELINES.breath, t("analysis.advanced.breathiness"))}
+            ${renderGauge(breath, BASELINES.breath, t("analysis.advanced.vowelCards.breathiness"))}
             <div class="h">${safeHint(summary.breathinessHint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(summary.liaisonHint||"")}">
-            <div class="k">${t("analysis.advanced.liaison")}</div>
+            <div class="k">${t("analysis.advanced.intonationCards.liaison")}</div>
             <div class="v">${escapeHtml(liaisonDisplay||"—")}</div>
-            ${renderGauge(liaison, BASELINES.liaison, t("analysis.advanced.liaison"))}
+            ${renderGauge(liaison, BASELINES.liaison, t("analysis.advanced.intonationCards.liaison"))}
             <div class="h">${safeHint(summary.liaisonHint)}</div>
           </div>
         </div>
 
         <div class="adv-card">
-          <div class="k">${t("analysis.advanced.vowelFocus")}</div>
+          <div class="k">${t("analysis.advanced.vowelCards.focus")}</div>
           <div class="v">${escapeHtml(vowelDisplay||"—")}</div>
           <div class="h">${safeHint(summary.vowelHint)}</div>
         </div>
@@ -4221,7 +4221,7 @@ function buildFormantTrendDisplay(trendKey, coverage, hasAggregate){
   return `${base}${suffix}`;
 }
 
-function analyzeVowelFocus(store, maskInfo){
+function analyzeFocus(store, maskInfo){
   const formants = Array.isArray(store.formants) ? store.formants : [];
   let mask = null;
   if (Array.isArray(maskInfo)) mask = maskInfo;
@@ -4235,11 +4235,11 @@ function analyzeVowelFocus(store, maskInfo){
   }
 
   if (!mask || !mask.length){
-    const insufficient = analysisText?.vowelFocus?.insufficient;
+    const insufficient = analysisText?.Focus?.insufficient;
     return {
       ratio: NaN,
-      label: insufficient?.label || t("analysis.vowelFocus.insufficient.label"),
-      hint: insufficient?.hint || t("analysis.vowelFocus.insufficient.hint"),
+      label: insufficient?.label || t("analysis.Focus.insufficient.label"),
+      hint: insufficient?.hint || t("analysis.Focus.insufficient.hint"),
     };
   }
 
@@ -4256,21 +4256,21 @@ function analyzeVowelFocus(store, maskInfo){
   }
   const ratio = voiced ? focus/voiced : NaN;
   if (!Number.isFinite(ratio)) {
-    const insufficient = analysisText?.vowelFocus?.insufficient;
+    const insufficient = analysisText?.Focus?.insufficient;
     return {
       ratio: NaN,
-      label: insufficient?.label || t("analysis.vowelFocus.insufficient.label"),
-      hint: insufficient?.hint || t("analysis.vowelFocus.insufficient.hint"),
+      label: insufficient?.label || t("analysis.Focus.insufficient.label"),
+      hint: insufficient?.hint || t("analysis.Focus.insufficient.hint"),
     };
   }
   let key = "weak";
   if (ratio >= 0.5) key = "strong";
   else if (ratio >= 0.3) key = "medium";
-  const entry = analysisText?.vowelFocus?.[key];
+  const entry = analysisText?.Focus?.[key];
   return {
     ratio,
-    label: entry?.label || t(`analysis.vowelFocus.${key}.label`),
-    hint: entry?.hint || t(`analysis.vowelFocus.${key}.hint`),
+    label: entry?.label || t(`analysis.Focus.${key}.label`),
+    hint: entry?.hint || t(`analysis.Focus.${key}.hint`),
   };
 }
 
