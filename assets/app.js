@@ -495,8 +495,6 @@ function renderFocusBlock(focus) {
   }
   const listHtml = items.map((item) => {
     const ctaHtml = "";  // disabled globally by request
-      ? `<div class="focus-actions"><button type="button" class="btn sm primary focus-cta" data-practice="${escapeAttr()}">${item.ctaLabel}</button></div>`
-      : "";
     return `
       <li class="focus-item focus-item--${item.severity}">
         <div class="focus-chip">
@@ -507,6 +505,7 @@ function renderFocusBlock(focus) {
       </li>
     `;
   }).join("");
+
   return `
     <div class="focus-block">
       <h3 class="focus-heading">${heading}</h3>
@@ -515,6 +514,7 @@ function renderFocusBlock(focus) {
       </ul>
     </div>
   `;
+
 }
 
 // 播放器（動態建立；並在其下方插入統計卡容器）
