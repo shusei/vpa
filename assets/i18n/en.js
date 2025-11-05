@@ -511,6 +511,10 @@ export default {
         label: "Focused sweetness",
         hint: "F3 runs high with steady breath, creating a sweet shimmer. Maintain the relaxed larynx and current resonance mix.",
       },
+      sweetMasculine: {
+        label: "Focused brightness",
+        hint: "F3 runs high with steady breath, giving a bright edge. Keep the relaxed larynx and current resonance mix to stay clear without sounding sharp.",
+      },
       sharp: {
         label: "Sharp brightness",
         hint: "High-frequency energy is intense and can sound pointy. Soften the jaw, start with a rounded “oh”, and ease the breath to relax the edge.",
