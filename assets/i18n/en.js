@@ -515,6 +515,10 @@ export default {
         label: "Focused brightness",
         hint: "F3 runs high with steady breath, giving a bright edge. Keep the relaxed larynx and current resonance mix to stay clear without sounding sharp.",
       },
+      sparkleMasculine: {
+        label: "Active brightness",
+        hint: "High-frequency energy is lively yet controlled. Keep the same vowel shape and frontal resonance for a crisp, clear tone without harshness.",
+      },
       sharp: {
         label: "Sharp brightness",
         hint: "High-frequency energy is intense and can sound pointy. Soften the jaw, start with a rounded “oh”, and ease the breath to relax the edge.",
