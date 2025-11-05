@@ -264,7 +264,7 @@ export default {
       '<li><strong>统计卡：</strong>汇整 Pitch / Volume 百分位数、环境噪音、SNR 与个别练习提醒。</li>',
       '<li><strong>简评：</strong>整合模型结果与统计指标，指出指标分歧或收音环境问题。</li>',
       '</ul>',
-      '<h4>Formant 与共鸣卡</h4>',
+      '<h4>共振峰与共鸣卡</h4>',
       '<ul>',
       '<li><strong>F1 / F2 / F3：</strong>取录音期间的中位数，对照建议范围可判断母音开口、舌头位置与声音明亮度。</li>',
       '<li><strong>共鸣横条：</strong>胸腔 / 前置 / 头腔三段百分比填满同一条带，代表能量聚焦位置。前置 + 头腔越稳定，声线越明亮。</li>',
@@ -605,7 +605,7 @@ export default {
       curveHint: "语调资讯不足，建议录制更长语句。灰底区块代表无声或低信心，可在图例切换原始点与处理后曲线对照。",
     },
     advanced: {
-      insufficient: "语音时长不足，暂无 formant、共鸣与语速分析。请录制 5–10 秒连续语句。",
+      insufficient: "语音时长不足，暂无 共振峰、共鸣与语速分析。请录制 5–10 秒连续语句。",
     },
   },
   summary: {
@@ -695,7 +695,7 @@ export default {
     resonanceTiltTail: "（频谱倾斜：{{label}}）",
     summaryHint: "语调资讯不足，建议录制更长语句。",
     advanced: {
-      formantTitle: "Formant 与共鸣",
+      formantTitle: "共振峰与共鸣",
       intonationTitle: "语调与语速",
       vowelBreathTitle: "元音聚焦与气声",
       canvasAria: "Intonation curve（语调曲线）",
