@@ -559,6 +559,8 @@ html[data-faction="dark"] .adv-card .k{ color:color-mix(in oklab, var(--text) 88
 html[data-faction="dark"] .adv-card .v{ color:color-mix(in oklab, var(--text) 98%, var(--muted) 2%); }
 html[data-faction="dark"] .adv-card .hint{ color:color-mix(in oklab, var(--text) 92%, var(--muted) 8%); }
 html[data-faction="dark"] .resonance-panel .label{ color:color-mix(in oklab, var(--text) 94%, #fff 6%); }
+html[data-faction="dark"] .adv-card--resonance .res-part{ color:color-mix(in oklab, var(--text) 96%, var(--muted) 4%); }
+html[data-faction="dark"] .adv-card--resonance .resonance-bar{ background:color-mix(in oklab, var(--surface-strong) 70%, var(--panel) 30%); }
 
 .adv-title{
   margin:0;
@@ -584,6 +586,11 @@ html[data-faction="dark"] .resonance-panel .label{ color:color-mix(in oklab, var
 .adv-card .k{ font-size:12px; color:color-mix(in oklab, var(--ink) 82%, var(--muted) 18%); }
 .adv-card .v{ font-weight:800; font-size:16px; color:var(--ink); }
 .adv-card .hint{ font-size:12px; color:color-mix(in oklab, var(--ink) 76%, var(--muted) 24%); }
+.adv-card--resonance{ gap:6px; }
+.adv-card--resonance .resonance-bar{ margin-top:2px; height:28px; }
+.adv-card--resonance .resonance-value{ display:flex; align-items:center; gap:6px; }
+.adv-card--resonance .res-part{ font-size:11px; }
+.adv-card--resonance .res-part span{ white-space:nowrap; }
 .resonance-summary .resonance-bar{ height:28px; }
 .resonance-bar--summary .res-part{ font-size:12px; }
 .intonation-legend{
