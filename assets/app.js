@@ -3573,7 +3573,7 @@ function wireAdvancedIntonation(advRoot, advSummary){
   window.addEventListener("resize", window.__advIntonationOnResize, { passive: true });
 }
 
-// 兼容不同鍵名，必要時從 points 算出 rangeHz 與顯示字串
+// 兼容不同鍵名，必要時從 points 算出 range 與顯示字串
 function resolveIntonationData(summary){
   const S = summary?.intonation || {};
   const points = Array.isArray(S.points) ? S.points : [];
@@ -3595,34 +3595,44 @@ function resolveIntonationData(summary){
 
   const slopeLabel = S.slopeLabel || S.trendLabel || S.trend || null;
   const slopeHint  = S.slopeHint  || S.trendHint  || "";
-  const rangeCategory = S.rangeCategory || null;
-  let rangeLabel = S.rangeLabel || null;
-  if (!rangeLabel && typeof rangeCategory === "string" && rangeCategory) {
-    // e.g., analysis.intonation.range.rich.label
-    const key = `analysis.intonation.range.${rangeCategory}.label`;
-    const txt = t(key);
-    if (typeof txt === "string" && txt) rangeLabel = txt;
-  }
+
+  const rangeLabel = (typeof S.rangeLabel === "string" && S.rangeLabel) ? S.rangeLabel : null;
 
   const rangeDisplay =
     S.rangeDisplay ||
     (Number.isFinite(rangeHz) ? summaryString("rangeDisplayHz", { value: Math.round(rangeHz) }) : null) ||
     rangeLabel;
 
-  }
-
+  return { points, rangeHz, rangeDisplay, rangeLabel, slopeLabel, slopeHint };
+}
 
 function renderAdvancedSummary(summary){
   if (!summary){
-    return `<div class="advanced-section"><div class="note">${t("analysis.advanced.insufficient")}
-  // Defensive: compute intonation display object with fallbacks so UI never crashes
+    return `<div class="advanced-section"><div class="note">${t("analysis.advanced.insufficient")}</div></div>`;
+  }
+
+  // 先把語調顯示用的 I 做好，全部加上保底字串，避免模板取 undefined
   const __Iraw = (typeof resolveIntonationData === "function") ? resolveIntonationData(summary) : null;
   const I = {
-    rangeHz: __Iraw?.rangeHz,
+    rangeHz: __Iraw?.rangeHz ?? null,
     rangeLabel: __Iraw?.rangeLabel ?? summary.intonation?.rangeLabel ?? null,
-    rangeDisplay: __Iraw?.rangeDisplay ?? __Iraw?.rangeLabel ?? summary.intonation?.rangeDisplay ?? summary.intonation?.rangeLabel ?? "—",
-    slopeLabel: __Iraw?.slopeLabel ?? summary.intonation?.trendLabel ?? summary.intonation?.slopeLabel ?? summary.intonation?.trend ?? "—",
-    slopeHint: __Iraw?.slopeHint ?? summary.intonation?.slopeHint ?? summary.intonation?.trendHint ?? ""
+    rangeDisplay:
+      __Iraw?.rangeDisplay ??
+      __Iraw?.rangeLabel ??
+      summary.intonation?.rangeDisplay ??
+      summary.intonation?.rangeLabel ??
+      "—",
+    slopeLabel:
+      __Iraw?.slopeLabel ??
+      summary.intonation?.trendLabel ??
+      summary.intonation?.slopeLabel ??
+      summary.intonation?.trend ??
+      "—",
+    slopeHint:
+      __Iraw?.slopeHint ??
+      summary.intonation?.slopeHint ??
+      summary.intonation?.trendHint ??
+      ""
   };
 </div></div>`;
   }
