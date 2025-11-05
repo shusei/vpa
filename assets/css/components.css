@@ -1138,3 +1138,28 @@ html[data-faction="dark"] .practice-result b{
 
 /* Dark theme: readable hint text anywhere in advanced section */
 html[data-faction="dark"] .advanced-section .hint{ color:color-mix(in oklab, var(--text) 92%, var(--muted) 8%); }
+
+/* ===== Always show resonance tips & remove hover-only gating ===== */
+.resonance-card .hint,
+.resonance-card .help,
+.resonance-tip,
+[data-role="resonance-hint"]{
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* 若有小問號或 hover 切換器，直接隱藏 */
+.resonance-card .hint-toggle,
+.resonance-card [data-hint-toggle]{
+  display: none !important;
+}
+
+/* 保守處理：如果卡片沒有標題也不崩版 */
+.card-title{
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  margin-bottom: .25rem;
+}
+
