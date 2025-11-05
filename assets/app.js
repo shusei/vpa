@@ -3667,9 +3667,6 @@ function renderAdvancedSummary(summary){
   const titleIntonation = t("analysis.advanced.block.intonationSpeech")  || t("analysis.advanced.intonationTitle") || "Intonation & Speech";
   const titleVowel      = t("analysis.advanced.block.vowelBreathiness")  || t("analysis.advanced.vowelBreathTitle")|| "Vowel & Breathiness";
 
-  // 解析語調資料，兼容舊鍵名，必要時自算 range
-  const I = resolveIntonationData(summary);
-
   return `
     <div class="advanced-section" data-mode="${mode}">
       <div class="adv-controls">
