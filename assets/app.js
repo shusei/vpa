@@ -3573,39 +3573,44 @@ function wireAdvancedIntonation(advRoot, advSummary){
   window.addEventListener("resize", window.__advIntonationOnResize, { passive: true });
 }
 
-// 兼容不同鍵名，必要時從 points 算出 rangeHz 與顯示字串
-  function resolveIntonationData(summary){
-    const S = summary || {};
-    const points     = Number.isFinite(S.points) ? S.points : 0;
-    const rangeHz    = Number.isFinite(S.rangeHz) ? S.rangeHz : NaN;
-    const slopeLabel = S.slopeLabel || S.trendLabel || S.trend || null;
-    const slopeHint  = S.slopeHint  || S.trendHint  || "";
-    const rangeLabel = (typeof S.rangeLabel === "string" && S.rangeLabel) ? S.rangeLabel : null;
+// 兼容不同鍵名，必要時從 points/ rawPoints 算出 rangeHz 與顯示字串
+function resolveIntonationData(summary){
+  const S = summary || {};
 
-    const rangeDisplay =
-      S.rangeDisplay ||
-      (Number.isFinite(rangeHz) ? summaryString("rangeDisplayHz", { value: Math.round(rangeHz) }) : null) ||
-      rangeLabel;
-
-    return { points, rangeHz, rangeDisplay, rangeLabel, slopeLabel, slopeHint };
-  }
+  // 抽出 y 值，支援 number / [t, y] / {hz|f0|y}
+  const takeY = (p) => {
+    if (typeof p === "number") return p;
+    if (Array.isArray(p)) return Number(p[1]);
+    if (p && typeof p === "object") return Number(p.hz ?? p.f0 ?? p.y);
     return NaN;
-  }).filter(Number.isFinite);
+  };
 
-  const ys = numsFrom(points.length ? points : S.rawPoints);
+  const rawPts = Array.isArray(S.points) ? S.points
+                : Array.isArray(S.rawPoints) ? S.rawPoints
+                : [];
+  const ys = rawPts.map(takeY).filter(Number.isFinite);
 
   const rangeHz =
-    Number(S.rangeHz) ??
-    Number(S.range) ??
-    (ys.length >= 2 ? (Math.max(...ys) - Math.min(...ys)) : NaN);
+    Number.isFinite(S.rangeHz) ? Number(S.rangeHz)
+    : Number.isFinite(S.range)  ? Number(S.range)
+    : ys.length >= 2            ? Math.max(...ys) - Math.min(...ys)
+    : NaN;
 
   const slopeLabel = S.slopeLabel || S.trendLabel || S.trend || null;
   const slopeHint  = S.slopeHint  || S.trendHint  || "";
+  const rangeLabel = (typeof S.rangeLabel === "string" && S.rangeLabel) ? S.rangeLabel : null;
 
-  const rangeDisplay =
-    S.rangeDisplay ||
-    (Number.isFinite(rangeHz) ? summaryString("rangeDisplayHz", { value: Math.round(rangeHz) }) : null);
+  let rangeDisplay = S.rangeDisplay || null;
+  if (!rangeDisplay && Number.isFinite(rangeHz)) {
+    try {
+      rangeDisplay = summaryString("rangeDisplayHz", { value: Math.round(rangeHz) });
+    } catch {
+      rangeDisplay = `${Math.round(rangeHz)} Hz`;
+    }
+  }
+  if (!rangeDisplay && rangeLabel) rangeDisplay = rangeLabel;
 
+  const points = rawPts.length; // 傳回數量，不是原陣列
   return { points, rangeHz, rangeDisplay, slopeLabel, slopeHint };
 }
 
