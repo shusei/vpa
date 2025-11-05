@@ -4503,41 +4503,69 @@ function drawIntonationCurve(canvas, intonation){
 
 function setupIntonationLegend(intonation){
   try{
-    const legend = document.getElementById("intonationLegend");
+    // Support both the older checkbox markup and the newer button markup.
+    const legend = document.querySelector(".intonation-legend") || document.getElementById("intonationLegend");
     if (!legend) return;
+
     const hasRaw = Array.isArray(intonation?.rawPoints) && intonation.rawPoints.length > 0;
-    legend.setAttribute("data-show-raw", showIntonationRawPoints ? "true" : "false");
     legend.setAttribute("data-has-raw", hasRaw ? "true" : "false");
-    const toggle = document.getElementById("toggleRawDots");
-    if (toggle){
-      toggle.disabled = !hasRaw;
-      if (hasRaw){
-        toggle.removeAttribute("aria-disabled");
-      } else {
-        toggle.setAttribute("aria-disabled", "true");
-      }
-      const updateToggleState = ()=>{
-        const legendCopy = summaryText?.advanced?.intonationLegend || {};
-        const labelShow = legendCopy.show || t("summary.advanced.intonationLegend.show");
-        const labelHide = legendCopy.hide || t("summary.advanced.intonationLegend.hide");
-        toggle.setAttribute("aria-pressed", showIntonationRawPoints ? "true" : "false");
-        const stateEl = toggle.querySelector(".legend-toggle-state");
-        if (stateEl){
-          stateEl.textContent = showIntonationRawPoints ? labelHide : labelShow;
-        }
-        legend.setAttribute("data-show-raw", showIntonationRawPoints ? "true" : "false");
-      };
-      toggle.onclick = ()=>{
-        if (!hasRaw) return;
-        showIntonationRawPoints = toggle.checked;
+
+    // Prefer the checkbox used in current markup; fall back to the old button id if present.
+    const cb = document.getElementById("toggleRawDots");
+    const btn = document.getElementById("intonationRawToggle");
+
+    const canvas = document.getElementById("intonationCanvas");
+
+    // Keep the legend state attribute in sync for CSS.
+    const syncLegend = () => {
+      legend.setAttribute("data-show-raw", showIntonationRawPoints ? "true" : "false");
+    };
+
+    if (cb) {
+      // Checkbox version (current DOM): checked means "show raw dots".
+      cb.disabled = !hasRaw;
+      cb.checked = !!showIntonationRawPoints && hasRaw;
+      syncLegend();
+
+      cb.onchange = () => {
+        // Map directly: checked => show
+        showIntonationRawPoints = !!cb.checked;
         saveIntonationRawPreference(showIntonationRawPoints);
-        updateToggleState();
-        const canvas = document.getElementById("intonationCanvas");
+        syncLegend();
         if (canvas) drawIntonationCurve(canvas, intonation || {});
       };
-      updateToggleState();
+      return; // If checkbox exists, we're done.
     }
-  }catch(err){ console.error("[setupIntonationLegend]", err); }
+
+    if (btn) {
+      // Legacy button-toggle version for compatibility
+      const updateBtn = () => {
+        btn.setAttribute("aria-pressed", showIntonationRawPoints ? "true" : "false");
+        btn.setAttribute("aria-disabled", hasRaw ? "false" : "true");
+        btn.disabled = !hasRaw;
+        const off = btn.querySelector(".state-off");
+        const on = btn.querySelector(".state-on");
+        if (off) off.hidden = !!showIntonationRawPoints;
+        if (on) on.hidden = !showIntonationRawPoints;
+        syncLegend();
+      };
+
+      updateBtn();
+      btn.onclick = () => {
+        if (!hasRaw) return;
+        showIntonationRawPoints = !showIntonationRawPoints;
+        saveIntonationRawPreference(showIntonationRawPoints);
+        updateBtn();
+        if (canvas) drawIntonationCurve(canvas, intonation || {});
+      };
+      return;
+    }
+
+    // If neither control exists, just keep legend flags in sync.
+    syncLegend();
+  } catch(err) {
+    console.error("[setupIntonationLegend]", err);
+  }
 }
 
 function estimateSpectralFeatures(frame, sr){
