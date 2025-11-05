@@ -3482,7 +3482,8 @@ function computeAdvancedSummary(){
   const volStats = vols.length ? makeStats(vols) : null;
   const envDb = vols.length ? percentileSorted(vols.slice().sort((a,b)=>a-b), 10) : NaN;
   const snrEstimate = Number.isFinite(volStats?.med) && Number.isFinite(envDb) ? (volStats.med - envDb) : NaN;
-  const brightnessInfo = categorizeBrightness({ f3Stats, tilt: tiltAvg, breath: breathAvg });
+  const leaning = detectVoiceLeaning(lastPf, lastPm);
+  const brightnessInfo = categorizeBrightness({ f3Stats, tilt: tiltAvg, breath: breathAvg, leaning });
   const breathInfo = categorizeBreathiness(breathAvg, {
     snr: snrEstimate,
     brightnessKey: brightnessInfo.key,
@@ -3996,7 +3997,7 @@ function buildEligibleFrameMask(store, { minConfidence = FORMANT_CONFIDENCE_THRE
   return { mask, count, minConfidence, maxGapFrames };
 }
 
-function categorizeBrightness({ f3Stats, tilt, breath } = {}){
+function categorizeBrightness({ f3Stats, tilt, breath, leaning } = {}){
   const brightnessText = analysisText?.brightness;
   if (!Number.isFinite(f3Stats?.med)){
     const insufficient = brightnessText?.insufficient;
@@ -4021,10 +4022,25 @@ function categorizeBrightness({ f3Stats, tilt, breath } = {}){
   } else if (z >= BRIGHTNESS_SPARKLE_Z){
     key = "sparkle";
   }
-  const entry = brightnessText?.[key];
-  const label = entry?.label || t(`analysis.brightness.${key}.label`);
-  const hint = entry?.hint || t(`analysis.brightness.${key}.hint`);
+  let lookupKey = key;
+  if (key === "sweet" && leaning === "masculine") lookupKey = "sweetMasculine";
+  let entry = brightnessText?.[lookupKey];
+  if (!entry && lookupKey !== key) entry = brightnessText?.[key];
+  const label = entry?.label
+    || t(`analysis.brightness.${lookupKey}.label`)
+    || (lookupKey !== key ? t(`analysis.brightness.${key}.label`) : "");
+  const hint = entry?.hint
+    || t(`analysis.brightness.${lookupKey}.hint`)
+    || (lookupKey !== key ? t(`analysis.brightness.${key}.hint`) : "");
   return { label, hint, key, zScore: z };
+}
+
+function detectVoiceLeaning(pf, pm){
+  const pfVal = Number.isFinite(pf) ? pf : 0;
+  const pmVal = Number.isFinite(pm) ? pm : 0;
+  const diff = Math.abs(pfVal - pmVal);
+  if (diff < 0.08) return "neutral";
+  return pfVal > pmVal ? "feminine" : "masculine";
 }
 
 function normalizeResonanceBands(energy){
