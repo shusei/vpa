@@ -682,7 +682,7 @@ export default {
       pitchBand: "Pitch band（音高带）：{{band}}",
       noise: "环境底噪：約 {{noise}} dB",
       resonance: "共鸣：{{label}}",
-      speechRate: "语速：{{label}}",
+      speechRate: "Speech rate（语速）",
       breathiness: "气声：{{label}}",
       brightness: "亮度：{{label}}",
     },
@@ -707,10 +707,10 @@ export default {
         tilt: "Spectral Tilt（频谱倾斜度）",
       },
       intonationCards: {
-        trend: "语调趋势",
-        range: "音高动态（处理后曲线跨距）",
-        speechRate: "语速估计",
-        liaison: "连音比例",
+        trend: "Trend（语调趋势）",
+        range: "Range（音高动态）",
+        speechRate: "Speech rate（语速）",
+        liaison: "Liaison（连音比例）",
       },
       intonationCanvasHint: "洋红线＝处理后语调曲线；灰底代表被判无声或低信心，不计入统计。可透过图例切换原始侦测点，对照稳定后的曲线。",
       intonationLegend: {
