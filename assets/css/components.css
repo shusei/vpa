@@ -1128,3 +1128,9 @@ html[data-faction="dark"] .practice-result b{
   .focus-title{ font-size:13px; }
   .focus-severity{ font-size:11px; }
 }
+
+
+/* Dark theme override for legacy .h hints */
+html[data-faction="dark"] .adv-details .h{
+  color:color-mix(in oklab, var(--text) 92%, var(--muted) 8%);
+}
