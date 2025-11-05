@@ -211,11 +211,6 @@ function escapeHtml(input){
     .replace(/'/g, "&#39;");
 }
 
-// for attribute contexts (title/aria-label) — keeps you from XSS and missing helper errors
-function escapeAttr(input){
-  return escapeHtml(input);
-}
-
 // fmt0：整數顯示用（aria-valuenow、區間標示等）
 function fmt0(x){
   return Number.isFinite(x) ? Math.round(x) : 0;
@@ -499,8 +494,8 @@ function renderFocusBlock(focus) {
     `;
   }
   const listHtml = items.map((item) => {
-    const ctaHtml = item.practiceCategory && item.ctaLabel
-      ? `<div class="focus-actions"><button type="button" class="btn sm primary focus-cta" data-practice="${escapeAttr(item.practiceCategory)}">${item.ctaLabel}</button></div>`
+    const ctaHtml = "";  // disabled globally by request
+      ? `<div class="focus-actions"><button type="button" class="btn sm primary focus-cta" data-practice="${escapeAttr()}">${item.ctaLabel}</button></div>`
       : "";
     return `
       <li class="focus-item focus-item--${item.severity}">
@@ -2999,47 +2994,6 @@ function resizeIntonationCanvas(canvas) {
   canvas.height = Math.floor(cssHeight * pxRatio);
 }
 
-// ===== Vowel focus estimator (front-vowel concentration) =====
-// Heuristic: frames with valid (F1,F2) and (F2 - F1) >= 800 Hz, F2 >= 1600 Hz count as "front/bright" vowels (e/i-like).
-// Returns { ratio, key, label } where ratio ∈ [0,1] or NaN if insufficient data.
-function analyzeVowelFocus(store){
-  const s = store || offlineFeatureStore;
-  const frames = Array.isArray(s?.formants) ? s.formants : [];
-  if (!frames.length) {
-    return { ratio: NaN, key: "na", label: t?.("summary.vowel.na") || "—" };
-  }
-  let valid = 0, front = 0;
-  for (let i = 0; i < frames.length; i++){
-    const f = frames[i];
-    if (!f || f.length < 2) continue;
-    const f1 = Number(f[0]), f2 = Number(f[1]);
-    if (!Number.isFinite(f1) || !Number.isFinite(f2)) continue;
-    // basic sanity
-    if (f1 < 120 || f1 > 1200 || f2 < 500 || f2 > 3500) continue;
-    valid++;
-    if ((f2 - f1) >= 800 && f2 >= 1600) front++;
-  }
-  if (valid === 0){
-    return { ratio: NaN, key: "na", label: t?.("summary.vowel.na") || "—" };
-  }
-  const ratio = front / valid; // 0..1
-  let key, label;
-  if (ratio < 0.2){
-    key = "veryWeak";
-    label = t?.("summary.vowel.veryWeak") || "母音焦點很弱";
-  } else if (ratio < 0.32){
-    key = "weak";
-    label = t?.("summary.vowel.weak") || "母音焦點偏弱";
-  } else if (ratio < 0.5){
-    key = "balanced";
-    label = t?.("summary.vowel.balanced") || "母音重心適中";
-  } else {
-    key = "front";
-    label = t?.("summary.vowel.front") || "母音重心靠前";
-  }
-  return { ratio, key, label };
-}
-
 
 // ===== 統計卡（停止&分析完成後，含「簡評」與分歧提示） =====
 function finishStreamStats(){
@@ -3338,7 +3292,7 @@ window.addEventListener("resize", window.__advIntonationOnResize, { passive: tru
             title: item.title,
             severity: item.severity,
             severityLabel: item.severityLabel,
-            practiceCategory: item.practiceCategory,
+            practiceCategory: ,
             ctaLabel: item.ctaLabel,
           }))
         : [],
@@ -3620,15 +3574,21 @@ function wireAdvancedIntonation(advRoot, advSummary){
 }
 
 // 兼容不同鍵名，必要時從 points 算出 rangeHz 與顯示字串
-function resolveIntonationData(summary){
-  const S = summary?.intonation || {};
-  const points = Array.isArray(S.points) ? S.points : [];
+  function resolveIntonationData(summary){
+    const S = summary || {};
+    const points     = Number.isFinite(S.points) ? S.points : 0;
+    const rangeHz    = Number.isFinite(S.rangeHz) ? S.rangeHz : NaN;
+    const slopeLabel = S.slopeLabel || S.trendLabel || S.trend || null;
+    const slopeHint  = S.slopeHint  || S.trendHint  || "";
+    const rangeLabel = (typeof S.rangeLabel === "string" && S.rangeLabel) ? S.rangeLabel : null;
 
-  // 取 y 值（支援 {hz,f0} 或 [t, hz] 或單一數字）；若無 points 則退回 rawPoints
-  const numsFrom = (arr) => (arr || []).map(p => {
-    if (typeof p === "number") return p;
-    if (Array.isArray(p)) return Number(p[1]);
-    if (p && typeof p === "object") return Number(p.hz ?? p.f0);
+    const rangeDisplay =
+      S.rangeDisplay ||
+      (Number.isFinite(rangeHz) ? summaryString("rangeDisplayHz", { value: Math.round(rangeHz) }) : null) ||
+      rangeLabel;
+
+    return { points, rangeHz, rangeDisplay, rangeLabel, slopeLabel, slopeHint };
+  }
     return NaN;
   }).filter(Number.isFinite);
 
@@ -3746,9 +3706,9 @@ function renderAdvancedSummary(summary){
             <div class="h">${escapeHtml(f3Hint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(summary.tiltHint||"")}">
-            <div class="k">${t("analysis.advanced.formantCards.tilt")}</div>
+            <div class="k">${t("analysis.advanced.tilt")}</div>
             <div class="v">${summary.tiltLabel||"—"}</div>
-            ${renderGauge(tiltAvg, BASELINES.tilt, t("analysis.advanced.formantCards.tilt"))}
+            ${renderGauge(tiltAvg, BASELINES.tilt, t("analysis.advanced.tilt"))}
             <div class="h">${safeHint(summary.tiltHint)}</div>
           </div>
         </div>
@@ -3815,34 +3775,34 @@ function renderAdvancedSummary(summary){
         <summary>
           <span class="adv-title">${escapeHtml(titleVowel)}</span>
           <span class="adv-baselines">
-            <span class="baseline">${t("analysis.advanced.formantCards.brightness")}: ${escapeHtml(brightnessDisplay)}</span>
-            <span class="baseline">${t("analysis.advanced.vowelCards.breathiness")}: ${Number.isFinite(breath) ? Math.round(breath*100) + "%" : "—"} (8–18%)</span>
-            <span class="baseline">${t("analysis.advanced.intonationCards.liaison")}: ${escapeHtml(liaisonDisplay||"—")}</span>
+            <span class="baseline">${t("analysis.advanced.brightness")}: ${escapeHtml(brightnessDisplay)}</span>
+            <span class="baseline">${t("analysis.advanced.breathiness")}: ${Number.isFinite(breath) ? Math.round(breath*100) + "%" : "—"} (8–18%)</span>
+            <span class="baseline">${t("analysis.advanced.liaison")}: ${escapeHtml(liaisonDisplay||"—")}</span>
           </span>
         <div class="adv-note">${safeHint(brightnessHint)}</div>
         </summary>
         <div class="advanced-grid advanced-grid--three">
           <div class="adv-card">
-            <div class="k">${t("analysis.advanced.formantCards.brightness")}</div>
+            <div class="k">${t("analysis.advanced.brightness")}</div>
             <div class="v">${escapeHtml(brightnessDisplay)}</div>
             <div class="hint">${safeHint(brightnessHint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(summary.breathinessHint||"")}">
-            <div class="k">${t("analysis.advanced.vowelCards.breathiness")}</div>
+            <div class="k">${t("analysis.advanced.breathiness")}</div>
             <div class="v">${escapeHtml(summary.breathinessLabel||"—")}</div>
-            ${renderGauge(breath, BASELINES.breath, t("analysis.advanced.vowelCards.breathiness"))}
+            ${renderGauge(breath, BASELINES.breath, t("analysis.advanced.breathiness"))}
             <div class="h">${safeHint(summary.breathinessHint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(summary.liaisonHint||"")}">
-            <div class="k">${t("analysis.advanced.intonationCards.liaison")}</div>
+            <div class="k">${t("analysis.advanced.liaison")}</div>
             <div class="v">${escapeHtml(liaisonDisplay||"—")}</div>
-            ${renderGauge(liaison, BASELINES.liaison, t("analysis.advanced.intonationCards.liaison"))}
+            ${renderGauge(liaison, BASELINES.liaison, t("analysis.advanced.liaison"))}
             <div class="h">${safeHint(summary.liaisonHint)}</div>
           </div>
         </div>
 
         <div class="adv-card">
-          <div class="k">${t("analysis.advanced.vowelCards.focus")}</div>
+          <div class="k">${t("analysis.advanced.vowelFocus")}</div>
           <div class="v">${escapeHtml(vowelDisplay||"—")}</div>
           <div class="h">${safeHint(summary.vowelHint)}</div>
         </div>
@@ -4267,7 +4227,7 @@ function buildFormantTrendDisplay(trendKey, coverage, hasAggregate){
   return `${base}${suffix}`;
 }
 
-function analyzeFocus(store, maskInfo){
+function analyzeVowelFocus(store, maskInfo){
   const formants = Array.isArray(store.formants) ? store.formants : [];
   let mask = null;
   if (Array.isArray(maskInfo)) mask = maskInfo;
@@ -4281,11 +4241,11 @@ function analyzeFocus(store, maskInfo){
   }
 
   if (!mask || !mask.length){
-    const insufficient = analysisText?.Focus?.insufficient;
+    const insufficient = analysisText?.vowelFocus?.insufficient;
     return {
       ratio: NaN,
-      label: insufficient?.label || t("analysis.Focus.insufficient.label"),
-      hint: insufficient?.hint || t("analysis.Focus.insufficient.hint"),
+      label: insufficient?.label || t("analysis.vowelFocus.insufficient.label"),
+      hint: insufficient?.hint || t("analysis.vowelFocus.insufficient.hint"),
     };
   }
 
@@ -4302,21 +4262,21 @@ function analyzeFocus(store, maskInfo){
   }
   const ratio = voiced ? focus/voiced : NaN;
   if (!Number.isFinite(ratio)) {
-    const insufficient = analysisText?.Focus?.insufficient;
+    const insufficient = analysisText?.vowelFocus?.insufficient;
     return {
       ratio: NaN,
-      label: insufficient?.label || t("analysis.Focus.insufficient.label"),
-      hint: insufficient?.hint || t("analysis.Focus.insufficient.hint"),
+      label: insufficient?.label || t("analysis.vowelFocus.insufficient.label"),
+      hint: insufficient?.hint || t("analysis.vowelFocus.insufficient.hint"),
     };
   }
   let key = "weak";
   if (ratio >= 0.5) key = "strong";
   else if (ratio >= 0.3) key = "medium";
-  const entry = analysisText?.Focus?.[key];
+  const entry = analysisText?.vowelFocus?.[key];
   return {
     ratio,
-    label: entry?.label || t(`analysis.Focus.${key}.label`),
-    hint: entry?.hint || t(`analysis.Focus.${key}.hint`),
+    label: entry?.label || t(`analysis.vowelFocus.${key}.label`),
+    hint: entry?.hint || t(`analysis.vowelFocus.${key}.hint`),
   };
 }
 
@@ -4801,6 +4761,14 @@ function isDivergent(medHz, pf, pm){
   // 音高偏高但模型偏男性；或音高偏低但模型偏女性
   if ((medHz >= 180 && pm >= 0.60) || (medHz <= 165 && pf >= 0.60)) return true;
   return false;
+}
+function escapeAttr(value){
+  if (value == null) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 if (typeof window !== "undefined"){
   window.vpaDebugHooks = {
