@@ -3760,31 +3760,37 @@ function renderAdvancedSummary(summary){
       </span>
     </summary>
 
-    <div class="advanced-grid advanced-grid--four">
-      <div class="adv-card">
-        <div class="k">${escapeHtml(t("analysis.advanced.intonationCards.trend") || "Trend")}</div>
-        <div class="v">${escapeHtml(I.slopeLabel || "—")}</div>
-        <div class="hint">${escapeHtml(I.slopeHint || t("analysis.intonation.insufficient.slopeHint") || "")}</div>
-      </div>
+  <div class="adv-card">
+    <div class="k">${escapeHtml(
+      labelTrend
+    )}</div>
+    <div class="v">${escapeHtml(I.slopeLabel || "—")}</div>
+    <div class="hint">${escapeHtml(I.slopeHint || t("analysis.intonation.insufficient.slopeHint") || "")}</div>
+  </div>
 
-      <div class="adv-card">
-        <div class="k">${escapeHtml(t("analysis.advanced.intonationCards.range") || "Range")}</div>
-        <div class="v">${escapeHtml(I.rangeDisplay || "—")}</div>
-        <div class="hint">${escapeHtml(summary.intonation?.rangeHint || "")}</div>
-      </div>
+  <div class="adv-card">
+    <div class="k">${escapeHtml(
+      labelRange
+    )}</div>
+    <div class="v">${escapeHtml(I.rangeDisplay || "—")}</div>
+    <div class="hint">${escapeHtml(summary.intonation?.rangeHint || "")}</div>
+  </div>
 
-      <div class="adv-card">
-        <div class="k">${escapeHtml(t("analysis.advanced.intonationCards.speechRate") || "Speech rate")}</div>
-        <div class="v">${escapeHtml(speechRateDisplay)} <span class="suffix">${escapeHtml(speechWpmDisplay)}</span></div>
-        <div class="hint">${escapeHtml(summary.speechRateHint || "")}</div>
-      </div>
+  <div class="adv-card">
+    <div class="k">${escapeHtml(
+      labelSpeechRate
+    )}</div>
+    <div class="v">${escapeHtml(speechRateDisplay)} <span class="suffix">${escapeHtml(speechWpmDisplay)}</span></div>
+    <div class="hint">${escapeHtml(summary.speechRateHint || "")}</div>
+  </div>
 
-      <div class="adv-card">
-        <div class="k">${escapeHtml(t("analysis.advanced.intonationCards.liaison") || "Liaison")}</div>
-        <div class="v">${escapeHtml(liaisonDisplay || "—")}</div>
-        <div class="hint">${escapeHtml(summary.liaisonHint || "")}</div>
-      </div>
-    </div>
+  <div class="adv-card">
+    <div class="k">${escapeHtml(
+      labelLiaison
+    )}</div>
+    <div class="v">${escapeHtml(liaisonDisplay || "—")}</div>
+    <div class="hint">${escapeHtml(summary.liaisonHint || "")}</div>
+  </div>
 
     <div class="intonation-wrap">
       <canvas id="intonationCanvas" class="intonation-canvas" aria-label="${escapeAttr(t("analysis.advanced.canvasAria") || "Intonation curve")}"></canvas>
