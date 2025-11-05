@@ -555,6 +555,12 @@ html[data-faction="dark"] .subline{
   flex-direction:column;
   gap:12px;
 }
+html[data-faction="dark"] .adv-card .k{ color:color-mix(in oklab, var(--text) 88%, var(--muted) 12%); }
+html[data-faction="dark"] .adv-card .v{ color:color-mix(in oklab, var(--text) 98%, var(--muted) 2%); }
+html[data-faction="dark"] .adv-card .hint{ color:color-mix(in oklab, var(--text) 92%, var(--muted) 8%); }
+html[data-faction="dark"] .adv-card .h{ color:color-mix(in oklab, var(--text) 92%, var(--muted) 8%); }
+html[data-faction="dark"] .resonance-panel .label{ color:color-mix(in oklab, var(--text) 94%, #fff 6%); }
+
 .adv-title{
   margin:0;
   font-size:16px;
