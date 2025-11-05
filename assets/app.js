@@ -3614,7 +3614,17 @@ function resolveIntonationData(summary){
 
 function renderAdvancedSummary(summary){
   if (!summary){
-    return `<div class="advanced-section"><div class="note">${t("analysis.advanced.insufficient")}</div></div>`;
+    return `<div class="advanced-section"><div class="note">${t("analysis.advanced.insufficient")}
+  // Defensive: compute intonation display object with fallbacks so UI never crashes
+  const __Iraw = (typeof resolveIntonationData === "function") ? resolveIntonationData(summary) : null;
+  const I = {
+    rangeHz: __Iraw?.rangeHz,
+    rangeLabel: __Iraw?.rangeLabel ?? summary.intonation?.rangeLabel ?? null,
+    rangeDisplay: __Iraw?.rangeDisplay ?? __Iraw?.rangeLabel ?? summary.intonation?.rangeDisplay ?? summary.intonation?.rangeLabel ?? "—",
+    slopeLabel: __Iraw?.slopeLabel ?? summary.intonation?.trendLabel ?? summary.intonation?.slopeLabel ?? summary.intonation?.trend ?? "—",
+    slopeHint: __Iraw?.slopeHint ?? summary.intonation?.slopeHint ?? summary.intonation?.trendHint ?? ""
+  };
+</div></div>`;
   }
 
   // 共鳴比例
