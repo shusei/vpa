@@ -4802,14 +4802,6 @@ function isDivergent(medHz, pf, pm){
   if ((medHz >= 180 && pm >= 0.60) || (medHz <= 165 && pf >= 0.60)) return true;
   return false;
 }
-function escapeAttr(value){
-  if (value == null) return "";
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
 if (typeof window !== "undefined"){
   window.vpaDebugHooks = {
     drawIntonationCurve(data){
