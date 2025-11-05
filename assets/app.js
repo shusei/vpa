@@ -3654,6 +3654,10 @@ function renderAdvancedSummary(summary){
   const liaison    = Number(summary.liaisonRatio);
   const brightnessDisplay = summary.brightnessLabel || "—";
   const brightnessHint    = summary.brightnessHint  || "";
+  const labelBrightness   = t("analysis.advanced.brightness")   || "Brightness";
+  const labelBreathiness  = t("analysis.advanced.breathiness")  || "Breathiness";
+  const labelLiaison      = t("analysis.advanced.liaison")      || "Liaison";
+  const labelVowelFocus   = t("analysis.advanced.vowelFocus")   || "Vowel focus";
 
   // 格式化
   const speechRateDisplay = Number.isFinite(speechSyll)
@@ -3780,34 +3784,34 @@ function renderAdvancedSummary(summary){
         <summary>
           <span class="adv-title">${escapeHtml(titleVowel)}</span>
           <span class="adv-baselines">
-            <span class="baseline">${t("analysis.advanced.brightness")}: ${escapeHtml(brightnessDisplay)}</span>
-            <span class="baseline">${t("analysis.advanced.breathiness")}: ${Number.isFinite(breath) ? Math.round(breath*100) + "%" : "—"} (8–18%)</span>
-            <span class="baseline">${t("analysis.advanced.liaison")}: ${escapeHtml(liaisonDisplay||"—")}</span>
+            <span class="baseline">${escapeHtml(labelBrightness)}: ${escapeHtml(brightnessDisplay)}</span>
+            <span class="baseline">${escapeHtml(labelBreathiness)}: ${Number.isFinite(breath) ? Math.round(breath*100) + "%" : "—"} (8–18%)</span>
+            <span class="baseline">${escapeHtml(labelLiaison)}: ${escapeHtml(liaisonDisplay||"—")}</span>
           </span>
         <div class="adv-note">${safeHint(brightnessHint)}</div>
         </summary>
         <div class="advanced-grid advanced-grid--three">
           <div class="adv-card">
-            <div class="k">${t("analysis.advanced.brightness")}</div>
+            <div class="k">${escapeHtml(labelBrightness)}</div>
             <div class="v">${escapeHtml(brightnessDisplay)}</div>
             <div class="hint">${safeHint(brightnessHint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(summary.breathinessHint||"")}">
-            <div class="k">${t("analysis.advanced.breathiness")}</div>
+            <div class="k">${escapeHtml(labelBreathiness)}</div>
             <div class="v">${escapeHtml(summary.breathinessLabel||"—")}</div>
-            ${renderGauge(breath, BASELINES.breath, t("analysis.advanced.breathiness"))}
+            ${renderGauge(breath, BASELINES.breath, labelBreathiness)}
             <div class="hint">${safeHint(summary.breathinessHint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(summary.liaisonHint||"")}">
-            <div class="k">${t("analysis.advanced.liaison")}</div>
+            <div class="k">${escapeHtml(labelLiaison)}</div>
             <div class="v">${escapeHtml(liaisonDisplay||"—")}</div>
-            ${renderGauge(liaison, BASELINES.liaison, t("analysis.advanced.liaison"))}
+            ${renderGauge(liaison, BASELINES.liaison, labelLiaison)}
             <div class="hint">${safeHint(summary.liaisonHint)}</div>
           </div>
         </div>
 
         <div class="adv-card">
-          <div class="k">${t("analysis.advanced.vowelFocus")}</div>
+          <div class="k">${escapeHtml(labelVowelFocus)}</div>
           <div class="v">${escapeHtml(vowelDisplay||"—")}</div>
           <div class="hint">${safeHint(summary.vowelHint)}</div>
         </div>
