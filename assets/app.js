@@ -4022,8 +4022,12 @@ function categorizeBrightness({ f3Stats, tilt, breath, leaning } = {}){
   } else if (z >= BRIGHTNESS_SPARKLE_Z){
     key = "sparkle";
   }
+  // Masculine-leaning：避免「甜」「閃」等性別暗示字眼
   let lookupKey = key;
-  if (key === "sweet" && leaning === "masculine") lookupKey = "sweetMasculine";
+  if (leaning === "masculine"){
+    if (key === "sweet")      lookupKey = "sweetMasculine";
+    else if (key === "sparkle") lookupKey = "sparkleMasculine";
+  }
   let entry = brightnessText?.[lookupKey];
   if (!entry && lookupKey !== key) entry = brightnessText?.[key];
   const label = entry?.label
