@@ -558,7 +558,6 @@ html[data-faction="dark"] .subline{
 html[data-faction="dark"] .adv-card .k{ color:color-mix(in oklab, var(--text) 88%, var(--muted) 12%); }
 html[data-faction="dark"] .adv-card .v{ color:color-mix(in oklab, var(--text) 98%, var(--muted) 2%); }
 html[data-faction="dark"] .adv-card .hint{ color:color-mix(in oklab, var(--text) 92%, var(--muted) 8%); }
-html[data-faction="dark"] .adv-card .h{ color:color-mix(in oklab, var(--text) 92%, var(--muted) 8%); }
 html[data-faction="dark"] .resonance-panel .label{ color:color-mix(in oklab, var(--text) 94%, #fff 6%); }
 
 .adv-title{
@@ -1045,15 +1044,12 @@ html[data-faction="dark"] .practice-result b{
 .gauge.is-low .gauge__track{ box-shadow:inset 0 0 0 2px color-mix(in oklab, #ef4444 62%, var(--panel-border) 38%); }
 .gauge.is-high .gauge__track{ box-shadow:inset 0 0 0 2px color-mix(in oklab, #f97316 62%, var(--panel-border) 38%); }
 .gauge.is-na .gauge__track{ opacity:.5 }
-.advanced-section[data-mode="advanced"] .adv-card .hint{
-  display: block;
-  opacity: 1;
-  max-height: none;
-  visibility: visible;
-
-  display:block; opacity:1; max-height:none; visibility:visible;
+.advanced-section .adv-card .hint{
+  display:block;
+  opacity:1;
+  max-height:none;
+  visibility:visible;
 }
-.advanced-section .adv-card .hint{ display:none; }
 .adv-details > summary::before{
   content:"▸"; display:inline-block; margin-right:8px; transform:translateY(-1px); opacity:.85;
 }
@@ -1112,7 +1108,7 @@ html[data-faction="dark"] .practice-result b{
   .status[data-busy="true"]::before{ animation:none; }
 }
 
-.adv-details .h{
+.adv-details .hint{
   font-size:12px;
   color:color-mix(in oklab, var(--ink) 76%, var(--muted) 24%);
   margin-top:6px;
