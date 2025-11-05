@@ -3634,12 +3634,16 @@ function renderAdvancedSummary(summary){
   const chestPct = Math.round((summary.energyPct?.chest ?? 0.33) * 100);
   const maskPct  = Math.round((summary.energyPct?.mask  ?? 0.33) * 100);
   const headPct  = Math.round((summary.energyPct?.head  ?? 0.34) * 100);
-  const labelFormantF1   = t("analysis.advanced.formantCards.f1") || t("realtime.formants.f1Label") || "F1";
-  const labelFormantF2   = t("analysis.advanced.formantCards.f2") || t("realtime.formants.f2Label") || "F2";
-  const labelFormantF3   = t("analysis.advanced.formantCards.f3") || t("realtime.formants.f3Label") || "F3";
-  const labelFormantTilt = t("analysis.advanced.formantCards.tilt") || "Spectral Tilt";
-  const labelFormantBright = t("analysis.advanced.formantCards.brightness") || "Brightness";
-  const labelResonance = t("realtime.resonance.label") || "Resonance balance";
+  const advCopy = summaryText?.advanced || {};
+  const advFormantCards = advCopy.formantCards || {};
+  const advIntonationCards = advCopy.intonationCards || {};
+  const advVowelCards = advCopy.vowelCards || {};
+  const labelFormantF1   = advFormantCards.f1   || t("summary.advanced.formantCards.f1")   || t("realtime.formants.f1Label") || "F1";
+  const labelFormantF2   = advFormantCards.f2   || t("summary.advanced.formantCards.f2")   || t("realtime.formants.f2Label") || "F2";
+  const labelFormantF3   = advFormantCards.f3   || t("summary.advanced.formantCards.f3")   || t("realtime.formants.f3Label") || "F3";
+  const labelFormantTilt = advFormantCards.tilt || t("summary.advanced.formantCards.tilt") || "Spectral Tilt";
+  const labelFormantBright = advFormantCards.brightness || t("summary.advanced.formantCards.brightness") || "Brightness";
+  const labelResonance = advCopy.resonanceTitle || t("realtime.resonance.label") || "Resonance balance";
   const chestLabel = t("realtime.resonance.chest", { value: chestPct }) || `Chest ${chestPct}%`;
   const maskLabel  = t("realtime.resonance.mask",  { value: maskPct })  || `Mask ${maskPct}%`;
   const headLabel  = t("realtime.resonance.head",  { value: headPct })  || `Head ${headPct}%`;
@@ -3664,9 +3668,9 @@ function renderAdvancedSummary(summary){
   const brightnessDisplay = summary.brightnessLabel || "—";
   const brightnessHint    = summary.brightnessHint  || "";
   const labelBrightness   = labelFormantBright;
-  const labelBreathiness  = t("analysis.advanced.vowelCards.breathiness") || "Breathiness";
-  const labelLiaison      = t("analysis.advanced.intonationCards.liaison") || "Liaison";
-  const labelVowelFocus   = t("analysis.advanced.vowelCards.focus") || "Vowel focus";
+  const labelBreathiness  = advVowelCards.breathiness || t("summary.advanced.vowelCards.breathiness") || "Breathiness";
+  const labelLiaison      = advIntonationCards.liaison || t("summary.advanced.intonationCards.liaison") || "Liaison";
+  const labelVowelFocus   = advVowelCards.focus || t("summary.advanced.vowelCards.focus") || "Vowel focus";
 
   // 格式化
   const speechRateDisplay = Number.isFinite(speechSyll)
@@ -3687,9 +3691,9 @@ function renderAdvancedSummary(summary){
     : (t("ui.advancedMode.advanced") || "Switch to Advanced");
 
   // 標題（有就用，沒有就回退英文）
-  const titleFormant    = t("analysis.advanced.block.formantResonance")  || t("analysis.advanced.formantTitle")    || "Formant & Resonance";
-  const titleIntonation = t("analysis.advanced.block.intonationSpeech")  || t("analysis.advanced.intonationTitle") || "Intonation & Speech";
-  const titleVowel      = t("analysis.advanced.block.vowelBreathiness")  || t("analysis.advanced.vowelBreathTitle")|| "Vowel & Breathiness";
+  const titleFormant    = advCopy.formantTitle    || t("summary.advanced.formantTitle")    || "Formant & Resonance";
+  const titleIntonation = advCopy.intonationTitle || t("summary.advanced.intonationTitle") || "Intonation & Speech";
+  const titleVowel      = advCopy.vowelBreathTitle|| t("summary.advanced.vowelBreathTitle")|| "Vowel & Breathiness";
 
   return `
     <div class="advanced-section" data-mode="${mode}">
