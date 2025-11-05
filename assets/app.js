@@ -3292,7 +3292,7 @@ window.addEventListener("resize", window.__advIntonationOnResize, { passive: tru
             title: item.title,
             severity: item.severity,
             severityLabel: item.severityLabel,
-            practiceCategory: ,
+            practiceCategory: item.practiceCategory ?? null,
             ctaLabel: item.ctaLabel,
           }))
         : [],
