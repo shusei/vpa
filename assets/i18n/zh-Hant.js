@@ -607,7 +607,7 @@ export default {
       curveHint: "語調資訊不足，建議錄製更長語句。灰底區塊代表無聲或低信心，圖例可切換原始點與處理後曲線對照。",
     },
     advanced: {
-      insufficient: "語音時長不足，暫無 formant、共鳴與語速分析。請錄製 5–10 秒連續語句。",
+      insufficient: "語音時長不足，暫無共振峰、共鳴與語速分析。請錄製 5–10 秒連續語句。",
     },
   },
   summary: {
