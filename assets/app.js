@@ -3595,13 +3595,22 @@ function resolveIntonationData(summary){
 
   const slopeLabel = S.slopeLabel || S.trendLabel || S.trend || null;
   const slopeHint  = S.slopeHint  || S.trendHint  || "";
+  const rangeCategory = S.rangeCategory || null;
+  let rangeLabel = S.rangeLabel || null;
+  if (!rangeLabel && typeof rangeCategory === "string" && rangeCategory) {
+    // e.g., analysis.intonation.range.rich.label
+    const key = `analysis.intonation.range.${rangeCategory}.label`;
+    const txt = t(key);
+    if (typeof txt === "string" && txt) rangeLabel = txt;
+  }
 
   const rangeDisplay =
     S.rangeDisplay ||
-    (Number.isFinite(rangeHz) ? summaryString("rangeDisplayHz", { value: Math.round(rangeHz) }) : null);
+    (Number.isFinite(rangeHz) ? summaryString("rangeDisplayHz", { value: Math.round(rangeHz) }) : null) ||
+    rangeLabel;
 
-  return { points, rangeHz, rangeDisplay, slopeLabel, slopeHint };
-}
+  }
+
 
 function renderAdvancedSummary(summary){
   if (!summary){
@@ -3718,7 +3727,7 @@ function renderAdvancedSummary(summary){
       <span class="adv-title">${escapeHtml(titleIntonation)}</span>
       <span class="adv-baselines">
         <span class="baseline">${t("analysis.advanced.intonationCards.trend")}: ${escapeHtml(I.slopeLabel || "—")}</span>
-        <span class="baseline">${t("analysis.advanced.intonationCards.range")}: ${escapeHtml(I.rangeDisplay || "—")}</span>
+        <span class="baseline">${t("analysis.advanced.intonationCards.range")}: ${escapeHtml(I.rangeDisplay || I.rangeLabel || "—")}</span>
         <span class="baseline">${t("analysis.advanced.intonationCards.speechRate")}: ${escapeHtml(speechRateDisplay)}</span>
       </span>
     </summary>
@@ -3732,7 +3741,7 @@ function renderAdvancedSummary(summary){
 
       <div class="adv-card">
         <div class="k">${escapeHtml(t("analysis.advanced.intonationCards.range") || "Range")}</div>
-        <div class="v">${escapeHtml(I.rangeDisplay || "—")}</div>
+        <div class="v">${escapeHtml(I.rangeDisplay || I.rangeLabel || "—")}</div>
         <div class="hint">${escapeHtml(summary.intonation?.rangeHint || "")}</div>
       </div>
 
