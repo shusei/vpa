@@ -3596,11 +3596,13 @@ function resolveIntonationData(summary){
   const slopeLabel = S.slopeLabel || S.trendLabel || S.trend || null;
   const slopeHint  = S.slopeHint  || S.trendHint  || "";
 
+  const rangeLabel = (typeof S.rangeLabel === "string" && S.rangeLabel) ? S.rangeLabel : null;
+
   const rangeDisplay =
     S.rangeDisplay ||
-    (Number.isFinite(rangeHz) ? summaryString("rangeDisplayHz", { value: Math.round(rangeHz) }) : null);
+    (Number.isFinite(rangeHz) ? summaryString("rangeDisplayHz", { value: Math.round(rangeHz) }) : null) || rangeLabel;
 
-  return { points, rangeHz, rangeDisplay, slopeLabel, slopeHint };
+  return { points, rangeHz, rangeDisplay, rangeLabel, slopeLabel, slopeHint };
 }
 
 function renderAdvancedSummary(summary){
@@ -3679,27 +3681,27 @@ function renderAdvancedSummary(summary){
           <div class="adv-card" title="${escapeAttr(f1Hint)}">
             <div class="k">F1</div><div class="v">${f1Val}Hz</div>
             ${renderGauge(f1, BASELINES.f1, "F1")}
-            <div class="h">${escapeHtml(f1Hint)}</div>
+            <div class="hint">${escapeHtml(f1Hint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(f2Hint)}">
             <div class="k">F2</div><div class="v">${f2Val}Hz</div>
             ${renderGauge(f2, BASELINES.f2, "F2")}
-            <div class="h">${escapeHtml(f2Hint)}</div>
+            <div class="hint">${escapeHtml(f2Hint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(f3Hint)}">
             <div class="k">F3</div><div class="v">${f3Val}Hz</div>
             ${renderGauge(f3, BASELINES.f3, "F3")}
-            <div class="h">${escapeHtml(f3Hint)}</div>
+            <div class="hint">${escapeHtml(f3Hint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(summary.tiltHint||"")}">
             <div class="k">${t("analysis.advanced.tilt")}</div>
             <div class="v">${summary.tiltLabel||"—"}</div>
             ${renderGauge(tiltAvg, BASELINES.tilt, t("analysis.advanced.tilt"))}
-            <div class="h">${safeHint(summary.tiltHint)}</div>
+            <div class="hint">${safeHint(summary.tiltHint)}</div>
           </div>
         </div>
         <div class="resonance-panel" role="group" aria-label="${escapeAttr(t("analysis.advanced.resonance"))}">
-          <div class="bar" title="${escapeAttr(summary.resonanceHint||"")}">
+          <div class="bar">>
             <span class="label">${t("analysis.advanced.resonance")}</span>
             <span class="range">
               <span class="part part--chest" style="width:${chestPct}%"></span>
@@ -3707,6 +3709,7 @@ function renderAdvancedSummary(summary){
               <span class="part part--head"  style="width:${headPct}%"></span>
             </span>
             <span class="label">${summary.resonanceDisplay||summary.resonanceLabel||""}</span>
+      <div class="hint">${safeHint(summary.resonanceHint)}</div>
           </div>
         </div>
       </details>
@@ -3777,20 +3780,20 @@ function renderAdvancedSummary(summary){
             <div class="k">${t("analysis.advanced.breathiness")}</div>
             <div class="v">${escapeHtml(summary.breathinessLabel||"—")}</div>
             ${renderGauge(breath, BASELINES.breath, t("analysis.advanced.breathiness"))}
-            <div class="h">${safeHint(summary.breathinessHint)}</div>
+            <div class="hint">${safeHint(summary.breathinessHint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(summary.liaisonHint||"")}">
             <div class="k">${t("analysis.advanced.liaison")}</div>
             <div class="v">${escapeHtml(liaisonDisplay||"—")}</div>
             ${renderGauge(liaison, BASELINES.liaison, t("analysis.advanced.liaison"))}
-            <div class="h">${safeHint(summary.liaisonHint)}</div>
+            <div class="hint">${safeHint(summary.liaisonHint)}</div>
           </div>
         </div>
 
         <div class="adv-card">
           <div class="k">${t("analysis.advanced.vowelFocus")}</div>
           <div class="v">${escapeHtml(vowelDisplay||"—")}</div>
-          <div class="h">${safeHint(summary.vowelHint)}</div>
+          <div class="hint">${safeHint(summary.vowelHint)}</div>
         </div>
       </details>
     </div>
