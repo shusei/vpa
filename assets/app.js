@@ -3578,18 +3578,20 @@ function resolveIntonationData(summary){
   const S = summary?.intonation || {};
   const points = Array.isArray(S.points) ? S.points : [];
 
-  // 取 y 值（支援 {hz,f0} 或 [t, hz] 或單一數字）
-  const ys = points.map(p => {
+  // 取 y 值（支援 {hz,f0} 或 [t, hz] 或單一數字）；若無 points 則退回 rawPoints
+  const numsFrom = (arr) => (arr || []).map(p => {
     if (typeof p === "number") return p;
     if (Array.isArray(p)) return Number(p[1]);
     if (p && typeof p === "object") return Number(p.hz ?? p.f0);
     return NaN;
   }).filter(Number.isFinite);
 
+  const ys = numsFrom(points.length ? points : S.rawPoints);
+
   const rangeHz =
     Number(S.rangeHz) ??
     Number(S.range) ??
-    (ys.length ? (Math.max(...ys) - Math.min(...ys)) : NaN);
+    (ys.length >= 2 ? (Math.max(...ys) - Math.min(...ys)) : NaN);
 
   const slopeLabel = S.slopeLabel || S.trendLabel || S.trend || null;
   const slopeHint  = S.slopeHint  || S.trendHint  || "";
@@ -3763,6 +3765,7 @@ function renderAdvancedSummary(summary){
             <span class="baseline">${t("analysis.advanced.breathiness")}: ${Number.isFinite(breath) ? Math.round(breath*100) + "%" : "—"} (8–18%)</span>
             <span class="baseline">${t("analysis.advanced.liaison")}: ${escapeHtml(liaisonDisplay||"—")}</span>
           </span>
+        <div class="adv-note">${safeHint(brightnessHint)}</div>
         </summary>
         <div class="advanced-grid advanced-grid--three">
           <div class="adv-card">
