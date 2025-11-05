@@ -3573,7 +3573,7 @@ function wireAdvancedIntonation(advRoot, advSummary){
   window.addEventListener("resize", window.__advIntonationOnResize, { passive: true });
 }
 
-// 兼容不同鍵名，必要時從 points 算出 range 與顯示字串
+// 兼容不同鍵名，必要時從 points 算出 rangeHz 與顯示字串
 function resolveIntonationData(summary){
   const S = summary?.intonation || {};
   const points = Array.isArray(S.points) ? S.points : [];
@@ -3596,14 +3596,11 @@ function resolveIntonationData(summary){
   const slopeLabel = S.slopeLabel || S.trendLabel || S.trend || null;
   const slopeHint  = S.slopeHint  || S.trendHint  || "";
 
-  const rangeLabel = (typeof S.rangeLabel === "string" && S.rangeLabel) ? S.rangeLabel : null;
-
   const rangeDisplay =
     S.rangeDisplay ||
-    (Number.isFinite(rangeHz) ? summaryString("rangeDisplayHz", { value: Math.round(rangeHz) }) : null) ||
-    rangeLabel;
+    (Number.isFinite(rangeHz) ? summaryString("rangeDisplayHz", { value: Math.round(rangeHz) }) : null);
 
-  return { points, rangeHz, rangeDisplay, rangeLabel, slopeLabel, slopeHint };
+  return { points, rangeHz, rangeDisplay, slopeLabel, slopeHint };
 }
 
 function renderAdvancedSummary(summary){
@@ -3611,31 +3608,16 @@ function renderAdvancedSummary(summary){
     return `<div class="advanced-section"><div class="note">${t("analysis.advanced.insufficient")}</div></div>`;
   }
 
-  // 先把語調顯示用的 I 做好，全部加上保底字串，避免模板取 undefined
+  // Build safe intonation display object to avoid undefined access
   const __Iraw = (typeof resolveIntonationData === "function") ? resolveIntonationData(summary) : null;
   const I = {
     rangeHz: __Iraw?.rangeHz ?? null,
     rangeLabel: __Iraw?.rangeLabel ?? summary.intonation?.rangeLabel ?? null,
-    rangeDisplay:
-      __Iraw?.rangeDisplay ??
-      __Iraw?.rangeLabel ??
-      summary.intonation?.rangeDisplay ??
-      summary.intonation?.rangeLabel ??
-      "—",
-    slopeLabel:
-      __Iraw?.slopeLabel ??
-      summary.intonation?.trendLabel ??
-      summary.intonation?.slopeLabel ??
-      summary.intonation?.trend ??
-      "—",
-    slopeHint:
-      __Iraw?.slopeHint ??
-      summary.intonation?.slopeHint ??
-      summary.intonation?.trendHint ??
-      ""
+    rangeDisplay: __Iraw?.rangeDisplay ?? __Iraw?.rangeLabel ?? summary.intonation?.rangeDisplay ?? summary.intonation?.rangeLabel ?? "—",
+    slopeLabel: __Iraw?.slopeLabel ?? summary.intonation?.trendLabel ?? summary.intonation?.slopeLabel ?? summary.intonation?.trend ?? "—",
+    slopeHint: __Iraw?.slopeHint ?? summary.intonation?.slopeHint ?? summary.intonation?.trendHint ?? ""
   };
-</div></div>`;
-  }
+
 
   // 共鳴比例
   const chestPct = Math.round((summary.energyPct?.chest ?? 0.33) * 100);
@@ -3708,23 +3690,23 @@ function renderAdvancedSummary(summary){
           <div class="adv-card" title="${escapeAttr(f1Hint)}">
             <div class="k">F1</div><div class="v">${f1Val}Hz</div>
             ${renderGauge(f1, BASELINES.f1, "F1")}
-            <div class="hint">${escapeHtml(f1Hint)}</div>
+            <div class="h">${escapeHtml(f1Hint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(f2Hint)}">
             <div class="k">F2</div><div class="v">${f2Val}Hz</div>
             ${renderGauge(f2, BASELINES.f2, "F2")}
-            <div class="hint">${escapeHtml(f2Hint)}</div>
+            <div class="h">${escapeHtml(f2Hint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(f3Hint)}">
             <div class="k">F3</div><div class="v">${f3Val}Hz</div>
             ${renderGauge(f3, BASELINES.f3, "F3")}
-            <div class="hint">${escapeHtml(f3Hint)}</div>
+            <div class="h">${escapeHtml(f3Hint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(summary.tiltHint||"")}">
             <div class="k">${t("analysis.advanced.tilt")}</div>
             <div class="v">${summary.tiltLabel||"—"}</div>
             ${renderGauge(tiltAvg, BASELINES.tilt, t("analysis.advanced.tilt"))}
-            <div class="hint">${safeHint(summary.tiltHint)}</div>
+            <div class="h">${safeHint(summary.tiltHint)}</div>
           </div>
         </div>
         <div class="resonance-panel" role="group" aria-label="${escapeAttr(t("analysis.advanced.resonance"))}">
@@ -3736,7 +3718,6 @@ function renderAdvancedSummary(summary){
               <span class="part part--head"  style="width:${headPct}%"></span>
             </span>
             <span class="label">${summary.resonanceDisplay||summary.resonanceLabel||""}</span>
-                      <div class="hint">${safeHint(summary.resonanceHint)}</div>
           </div>
         </div>
       </details>
@@ -3747,7 +3728,7 @@ function renderAdvancedSummary(summary){
       <span class="adv-title">${escapeHtml(titleIntonation)}</span>
       <span class="adv-baselines">
         <span class="baseline">${t("analysis.advanced.intonationCards.trend")}: ${escapeHtml(I.slopeLabel || "—")}</span>
-        <span class="baseline">${t("analysis.advanced.intonationCards.range")}: ${escapeHtml(I.rangeDisplay || I.rangeLabel || "—")}</span>
+        <span class="baseline">${t("analysis.advanced.intonationCards.range")}: ${escapeHtml(I.rangeDisplay || "—")}</span>
         <span class="baseline">${t("analysis.advanced.intonationCards.speechRate")}: ${escapeHtml(speechRateDisplay)}</span>
       </span>
     </summary>
@@ -3761,7 +3742,7 @@ function renderAdvancedSummary(summary){
 
       <div class="adv-card">
         <div class="k">${escapeHtml(t("analysis.advanced.intonationCards.range") || "Range")}</div>
-        <div class="v">${escapeHtml(I.rangeDisplay || I.rangeLabel || "—")}</div>
+        <div class="v">${escapeHtml(I.rangeDisplay || "—")}</div>
         <div class="hint">${escapeHtml(summary.intonation?.rangeHint || "")}</div>
       </div>
 
@@ -3791,37 +3772,36 @@ function renderAdvancedSummary(summary){
         <summary>
           <span class="adv-title">${escapeHtml(titleVowel)}</span>
           <span class="adv-baselines">
-            <span class="baseline">${t("analysis.advanced.formantCards.brightness")}: ${escapeHtml(brightnessDisplay)}</span>
-            <span class="baseline">${t("analysis.advanced.vowelCards.breathiness")}: ${Number.isFinite(breath) ? Math.round(breath*100) + "%" : "—"} (8–18%)</span>
-            <span class="baseline">${t("analysis.advanced.intonationCards.liaison")}: ${escapeHtml(liaisonDisplay||"—")}</span>
+            <span class="baseline">${t("analysis.advanced.brightness")}: ${escapeHtml(brightnessDisplay)}</span>
+            <span class="baseline">${t("analysis.advanced.breathiness")}: ${Number.isFinite(breath) ? Math.round(breath*100) + "%" : "—"} (8–18%)</span>
+            <span class="baseline">${t("analysis.advanced.liaison")}: ${escapeHtml(liaisonDisplay||"—")}</span>
           </span>
         <div class="adv-note">${safeHint(brightnessHint)}</div>
         </summary>
         <div class="advanced-grid advanced-grid--three">
           <div class="adv-card">
-            <div class="k">${t("analysis.advanced.formantCards.brightness")}</div>
+            <div class="k">${t("analysis.advanced.brightness")}</div>
             <div class="v">${escapeHtml(brightnessDisplay)}</div>
             <div class="hint">${safeHint(brightnessHint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(summary.breathinessHint||"")}">
-            <div class="k">${t("analysis.advanced.vowelCards.breathiness")}</div>
+            <div class="k">${t("analysis.advanced.breathiness")}</div>
             <div class="v">${escapeHtml(summary.breathinessLabel||"—")}</div>
-            ${renderGauge(breath, BASELINES.breath, t("analysis.advanced.vowelCards.breathiness"))}
-            <div class="hint">${safeHint(summary.breathinessHint)}</div>
+            ${renderGauge(breath, BASELINES.breath, t("analysis.advanced.breathiness"))}
+            <div class="h">${safeHint(summary.breathinessHint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(summary.liaisonHint||"")}">
-            <div class="k">${t("analysis.advanced.intonationCards.liaison")}</div>
+            <div class="k">${t("analysis.advanced.liaison")}</div>
             <div class="v">${escapeHtml(liaisonDisplay||"—")}</div>
-            ${renderGauge(liaison, BASELINES.liaison, t("analysis.advanced.intonationCards.liaison"))}
-            <div class="hint">${safeHint(summary.liaisonHint)}</div>
+            ${renderGauge(liaison, BASELINES.liaison, t("analysis.advanced.liaison"))}
+            <div class="h">${safeHint(summary.liaisonHint)}</div>
           </div>
         </div>
 
         <div class="adv-card">
-          <div class="k">${t("analysis.advanced.vowelCards.focus")}</div>
+          <div class="k">${t("analysis.advanced.vowelFocus")}</div>
           <div class="v">${escapeHtml(vowelDisplay||"—")}</div>
-          <div class="hint">${safeHint(summary.vowelHint)}            <div class="hint">${safeHint(summary.resonanceHint)}</div>
-          </div>
+          <div class="h">${safeHint(summary.vowelHint)}</div>
         </div>
       </details>
     </div>
