@@ -170,23 +170,6 @@ function setupAdvancedSection(root){
     });
   }
 }
-// 全域語系切換時重新渲染進階區，避免殘留英文標籤
-if (typeof onLocaleChange === "function"){
-  onLocaleChange(() => {
-    const prev = document.querySelector(".advanced-section");
-    if (!prev || !window.__lastAdvSummary) return;
-    const html = renderAdvancedSummary(window.__lastAdvSummary);
-    // 用 outerHTML 替換整段，再重新掛事件與曲線
-    const container = prev.parentElement;
-    const tmp = document.createElement("div");
-    tmp.innerHTML = html.trim();
-    const next = tmp.firstElementChild;
-    container.replaceChild(next, prev);
-    setupAdvancedSection(next);
-    try { wireAdvancedIntonation(next, window.__lastAdvSummary); } catch {}
-  });
-}
-
 
 // Baseline ranges（保守預設，可按你的語料微調）
 const BASELINES = {
@@ -3193,7 +3176,6 @@ function finishStreamStats(){
       spread,
       intonationRange: advSummary?.intonation?.range ?? NaN,
     });
-    window.__lastAdvSummary = advSummary;
     const advancedHTML = renderAdvancedSummary(advSummary);
 
     statsEl.innerHTML = headerHTML + focusHTML + divergeNote + envNote + voicedNote + statsHTML + advancedHTML;
@@ -3614,13 +3596,11 @@ function resolveIntonationData(summary){
   const slopeLabel = S.slopeLabel || S.trendLabel || S.trend || null;
   const slopeHint  = S.slopeHint  || S.trendHint  || "";
 
-  const rangeLabel = (typeof S.rangeLabel === "string" && S.rangeLabel) ? S.rangeLabel : null;
-
   const rangeDisplay =
     S.rangeDisplay ||
-    (Number.isFinite(rangeHz) ? summaryString("rangeDisplayHz", { value: Math.round(rangeHz) }) : null) || rangeLabel;
+    (Number.isFinite(rangeHz) ? summaryString("rangeDisplayHz", { value: Math.round(rangeHz) }) : null);
 
-  return { points, rangeHz, rangeDisplay, rangeLabel, slopeLabel, slopeHint };
+  return { points, rangeHz, rangeDisplay, slopeLabel, slopeHint };
 }
 
 function renderAdvancedSummary(summary){
@@ -3678,18 +3658,6 @@ function renderAdvancedSummary(summary){
 
   // 解析語調資料，兼容舊鍵名，必要時自算 range
   const I = resolveIntonationData(summary);
-  // Fallbacks to keep labels visible even when upstream fields are missing
-  if (!I.rangeDisplay) {
-    if (I.rangeLabel and typeof I.rangeLabel === "string" and I.rangeLabel.trim()) {
-      I.rangeDisplay = I.rangeLabel;
-    } else if (Number.isFinite(I.rangeHz)) {
-      I.rangeDisplay = Math.round(I.rangeHz) + " Hz";
-    } else if (Number.isFinite(summary.pitchSpreadHz)) {
-      I.rangeDisplay = Math.round(summary.pitchSpreadHz) + " Hz";
-    } else {
-      I.rangeDisplay = "—";
-    }
-  }
 
   return `
     <div class="advanced-section" data-mode="${mode}">
@@ -3731,7 +3699,7 @@ function renderAdvancedSummary(summary){
           </div>
         </div>
         <div class="resonance-panel" role="group" aria-label="${escapeAttr(t("analysis.advanced.resonance"))}">
-          <div class="bar" title="${escapeAttr(summary.resonanceHint||\"\")}">
+          <div class="bar" title="${escapeAttr(summary.resonanceHint||"")}">
             <span class="label">${t("analysis.advanced.resonance")}</span>
             <span class="range">
               <span class="part part--chest" style="width:${chestPct}%"></span>
@@ -3739,7 +3707,7 @@ function renderAdvancedSummary(summary){
               <span class="part part--head"  style="width:${headPct}%"></span>
             </span>
             <span class="label">${summary.resonanceDisplay||summary.resonanceLabel||""}</span>
-      <div class="hint">${safeHint(summary.resonanceHint)}</div>
+                      <div class="hint">${safeHint(summary.resonanceHint)}</div>
           </div>
         </div>
       </details>
@@ -3794,36 +3762,37 @@ function renderAdvancedSummary(summary){
         <summary>
           <span class="adv-title">${escapeHtml(titleVowel)}</span>
           <span class="adv-baselines">
-            <span class="baseline">${t("analysis.advanced.brightness")}: ${escapeHtml(brightnessDisplay)}</span>
-            <span class="baseline">${t("analysis.advanced.breathiness")}: ${Number.isFinite(breath) ? Math.round(breath*100) + "%" : "—"} (8–18%)</span>
-            <span class="baseline">${t("analysis.advanced.liaison")}: ${escapeHtml(liaisonDisplay||"—")}</span>
+            <span class="baseline">${t("analysis.advanced.formantCards.brightness")}: ${escapeHtml(brightnessDisplay)}</span>
+            <span class="baseline">${t("analysis.advanced.vowelCards.breathiness")}: ${Number.isFinite(breath) ? Math.round(breath*100) + "%" : "—"} (8–18%)</span>
+            <span class="baseline">${t("analysis.advanced.intonationCards.liaison")}: ${escapeHtml(liaisonDisplay||"—")}</span>
           </span>
         <div class="adv-note">${safeHint(brightnessHint)}</div>
         </summary>
         <div class="advanced-grid advanced-grid--three">
           <div class="adv-card">
-            <div class="k">${t("analysis.advanced.brightness")}</div>
+            <div class="k">${t("analysis.advanced.formantCards.brightness")}</div>
             <div class="v">${escapeHtml(brightnessDisplay)}</div>
             <div class="hint">${safeHint(brightnessHint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(summary.breathinessHint||"")}">
-            <div class="k">${t("analysis.advanced.breathiness")}</div>
+            <div class="k">${t("analysis.advanced.vowelCards.breathiness")}</div>
             <div class="v">${escapeHtml(summary.breathinessLabel||"—")}</div>
-            ${renderGauge(breath, BASELINES.breath, t("analysis.advanced.breathiness"))}
+            ${renderGauge(breath, BASELINES.breath, t("analysis.advanced.vowelCards.breathiness"))}
             <div class="hint">${safeHint(summary.breathinessHint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(summary.liaisonHint||"")}">
-            <div class="k">${t("analysis.advanced.liaison")}</div>
+            <div class="k">${t("analysis.advanced.intonationCards.liaison")}</div>
             <div class="v">${escapeHtml(liaisonDisplay||"—")}</div>
-            ${renderGauge(liaison, BASELINES.liaison, t("analysis.advanced.liaison"))}
+            ${renderGauge(liaison, BASELINES.liaison, t("analysis.advanced.intonationCards.liaison"))}
             <div class="hint">${safeHint(summary.liaisonHint)}</div>
           </div>
         </div>
 
         <div class="adv-card">
-          <div class="k">${t("analysis.advanced.vowelFocus")}</div>
+          <div class="k">${t("analysis.advanced.vowelCards.focus")}</div>
           <div class="v">${escapeHtml(vowelDisplay||"—")}</div>
-          <div class="hint">${safeHint(summary.vowelHint)}</div>
+          <div class="hint">${safeHint(summary.vowelHint)}            <div class="hint">${safeHint(summary.resonanceHint)}</div>
+          </div>
         </div>
       </details>
     </div>
