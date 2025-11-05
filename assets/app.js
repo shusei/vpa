@@ -211,6 +211,11 @@ function escapeHtml(input){
     .replace(/'/g, "&#39;");
 }
 
+// for attribute contexts (title/aria-label) — keeps you from XSS and missing helper errors
+function escapeAttr(input){
+  return escapeHtml(input);
+}
+
 // fmt0：整數顯示用（aria-valuenow、區間標示等）
 function fmt0(x){
   return Number.isFinite(x) ? Math.round(x) : 0;
@@ -443,8 +448,8 @@ function buildFocusInsights(context = {}) {
     }
   }
 
-  const Ratio = advSummary?.vowelFocusRatio;
-  const vowelLabel = advSummary?.vowelLabel;
+  const vowelRatio = Number(advSummary?.vowelFocusRatio);
+  const vowelLabel = advSummary?.vowelLabel || null;
   if (Number.isFinite(vowelRatio) && vowelLabel && vowelRatio < 0.32) {
     const severity = vowelRatio < 0.2 ? "high" : "medium";
     const score = vowelRatio < 0.2 ? 80 : 69;
@@ -2992,6 +2997,47 @@ function resizeIntonationCanvas(canvas) {
   canvas.style.height = cssHeight + "px";
   canvas.width = Math.floor(cssWidth * pxRatio);
   canvas.height = Math.floor(cssHeight * pxRatio);
+}
+
+// ===== Vowel focus estimator (front-vowel concentration) =====
+// Heuristic: frames with valid (F1,F2) and (F2 - F1) >= 800 Hz, F2 >= 1600 Hz count as "front/bright" vowels (e/i-like).
+// Returns { ratio, key, label } where ratio ∈ [0,1] or NaN if insufficient data.
+function analyzeVowelFocus(store){
+  const s = store || offlineFeatureStore;
+  const frames = Array.isArray(s?.formants) ? s.formants : [];
+  if (!frames.length) {
+    return { ratio: NaN, key: "na", label: t?.("summary.vowel.na") || "—" };
+  }
+  let valid = 0, front = 0;
+  for (let i = 0; i < frames.length; i++){
+    const f = frames[i];
+    if (!f || f.length < 2) continue;
+    const f1 = Number(f[0]), f2 = Number(f[1]);
+    if (!Number.isFinite(f1) || !Number.isFinite(f2)) continue;
+    // basic sanity
+    if (f1 < 120 || f1 > 1200 || f2 < 500 || f2 > 3500) continue;
+    valid++;
+    if ((f2 - f1) >= 800 && f2 >= 1600) front++;
+  }
+  if (valid === 0){
+    return { ratio: NaN, key: "na", label: t?.("summary.vowel.na") || "—" };
+  }
+  const ratio = front / valid; // 0..1
+  let key, label;
+  if (ratio < 0.2){
+    key = "veryWeak";
+    label = t?.("summary.vowel.veryWeak") || "母音焦點很弱";
+  } else if (ratio < 0.32){
+    key = "weak";
+    label = t?.("summary.vowel.weak") || "母音焦點偏弱";
+  } else if (ratio < 0.5){
+    key = "balanced";
+    label = t?.("summary.vowel.balanced") || "母音重心適中";
+  } else {
+    key = "front";
+    label = t?.("summary.vowel.front") || "母音重心靠前";
+  }
+  return { ratio, key, label };
 }
 
 
