@@ -3678,6 +3678,18 @@ function renderAdvancedSummary(summary){
 
   // 解析語調資料，兼容舊鍵名，必要時自算 range
   const I = resolveIntonationData(summary);
+  // Fallbacks to keep labels visible even when upstream fields are missing
+  if (!I.rangeDisplay) {
+    if (I.rangeLabel and typeof I.rangeLabel === "string" and I.rangeLabel.trim()) {
+      I.rangeDisplay = I.rangeLabel;
+    } else if (Number.isFinite(I.rangeHz)) {
+      I.rangeDisplay = Math.round(I.rangeHz) + " Hz";
+    } else if (Number.isFinite(summary.pitchSpreadHz)) {
+      I.rangeDisplay = Math.round(summary.pitchSpreadHz) + " Hz";
+    } else {
+      I.rangeDisplay = "—";
+    }
+  }
 
   return `
     <div class="advanced-section" data-mode="${mode}">
@@ -3719,7 +3731,7 @@ function renderAdvancedSummary(summary){
           </div>
         </div>
         <div class="resonance-panel" role="group" aria-label="${escapeAttr(t("analysis.advanced.resonance"))}">
-          <div class="bar">>
+          <div class="bar" title="${escapeAttr(summary.resonanceHint||\"\")}">
             <span class="label">${t("analysis.advanced.resonance")}</span>
             <span class="range">
               <span class="part part--chest" style="width:${chestPct}%"></span>
