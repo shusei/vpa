@@ -170,6 +170,23 @@ function setupAdvancedSection(root){
     });
   }
 }
+// 全域語系切換時重新渲染進階區，避免殘留英文標籤
+if (typeof onLocaleChange === "function"){
+  onLocaleChange(() => {
+    const prev = document.querySelector(".advanced-section");
+    if (!prev || !window.__lastAdvSummary) return;
+    const html = renderAdvancedSummary(window.__lastAdvSummary);
+    // 用 outerHTML 替換整段，再重新掛事件與曲線
+    const container = prev.parentElement;
+    const tmp = document.createElement("div");
+    tmp.innerHTML = html.trim();
+    const next = tmp.firstElementChild;
+    container.replaceChild(next, prev);
+    setupAdvancedSection(next);
+    try { wireAdvancedIntonation(next, window.__lastAdvSummary); } catch {}
+  });
+}
+
 
 // Baseline ranges（保守預設，可按你的語料微調）
 const BASELINES = {
@@ -3176,6 +3193,7 @@ function finishStreamStats(){
       spread,
       intonationRange: advSummary?.intonation?.range ?? NaN,
     });
+    window.__lastAdvSummary = advSummary;
     const advancedHTML = renderAdvancedSummary(advSummary);
 
     statsEl.innerHTML = headerHTML + focusHTML + divergeNote + envNote + voicedNote + statsHTML + advancedHTML;
