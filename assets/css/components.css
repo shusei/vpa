@@ -1130,13 +1130,5 @@ html[data-faction="dark"] .practice-result b{
 }
 
 
-/* Dark theme override for legacy .h hints */
-html[data-faction="dark"] .adv-details .h{
-  color:color-mix(in oklab, var(--text) 92%, var(--muted) 8%);
-}
-
-
-/* Dark theme override for .hint text inside Advanced */
-html[data-faction="dark"] .adv-details .hint{
-  color:color-mix(in oklab, var(--text) 92%, var(--muted) 8%);
-}
+/* Dark theme: readable hint text anywhere in advanced section */
+html[data-faction="dark"] .advanced-section .hint{ color:color-mix(in oklab, var(--text) 92%, var(--muted) 8%); }
