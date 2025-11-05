@@ -264,7 +264,7 @@ export default {
       '<li><strong>統計卡：</strong>彙整 Pitch / Volume 百分位數、環境噪音、SNR 與個別練習提醒。</li>',
       '<li><strong>簡評：</strong>整合模型結果與統計指標，指出指標分歧或收音環境問題。</li>',
       '</ul>',
-      '<h4>Formant 與共鳴卡</h4>',
+      '<h4>共振峰與共鳴卡</h4>',
       '<ul>',
       '<li><strong>F1 / F2 / F3：</strong>取錄音期間的中位數，對照建議範圍可判斷母音開口、舌頭位置與聲音明亮度。</li>',
       '<li><strong>共鳴橫條：</strong>胸腔 / 前置 / 頭腔三段百分比填滿同一條帶，代表能量聚焦位置。前置＋頭腔越穩定，聲線越明亮。</li>',
@@ -697,7 +697,7 @@ export default {
     resonanceTiltTail: "（頻譜傾斜：{{label}}）",
     summaryHint: "語調資訊不足，建議錄製更長語句。",
     advanced: {
-      formantTitle: "Formant 與共鳴",
+      formantTitle: "共振峰與共鳴",
       intonationTitle: "語調與語速",
       vowelBreathTitle: "元音聚焦與氣聲",
       canvasAria: "Intonation curve（語調曲線）",
