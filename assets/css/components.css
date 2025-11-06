@@ -1188,3 +1188,15 @@ html[data-faction="dark"] .resonance-bar{
 html[data-faction="dark"] .resonance-bar .res-part span{
   color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.35);
 }
+
+
+/* 暗色主題：只把共鳴條裡的3個百分比字設為黑，其餘維持白色 */
+html[data-faction="dark"] .adv-card--resonance .resonance-bar .res-part span{
+  color:#111 !important;
+  text-shadow:none !important;
+}
+
+/* 保證容器本身不是黑色，避免影響其它說明文字的白色可讀性 */
+html[data-faction="dark"] .adv-card--resonance .resonance-bar .res-part{
+  color:color-mix(in oklab, var(--text) 96%, #fff 4%) !important; /* 仍是白系，用來當其它字的顏色 */
+}
