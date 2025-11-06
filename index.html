@@ -4,6 +4,92 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Voice Presentation Analyzer</title>
+
+  <script>
+(function(){
+  const LS_MODE  = "vpa::theme.mode";   // "auto" | "light" | "dark"
+  const LS_LIGHT = "vpa::theme.light";  // e.g. "day"
+  const LS_DARK  = "vpa::theme.dark";   // e.g. "indigo"
+
+  const LIGHT_THEMES = new Set(["day","sand","latte","blush","amber","aqua","sky","azure","fuchsia"]);
+  const DARK_THEMES  = new Set(["warm","lavender","peach","ink","night","contrast","slate","graphite","clay","rose","coral","gold","cocoa","olive","emerald","teal","cyan","cobalt","indigo","violet"]);
+
+  const html = document.documentElement;
+
+  function getMode(){
+    try { return localStorage.getItem(LS_MODE) || html.getAttribute("data-mode") || "auto"; }
+    catch { return "auto"; }
+  }
+  function sysFaction(){ return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; }
+
+  function resolveTheme(faction){
+    try{
+      const saved = localStorage.getItem(faction==="dark" ? LS_DARK : LS_LIGHT);
+      const set = faction==="dark" ? DARK_THEMES : LIGHT_THEMES;
+      if (saved && set.has(saved)) return saved;
+    }catch{}
+    const current = html.getAttribute("data-theme");
+    const set = faction==="dark" ? DARK_THEMES : LIGHT_THEMES;
+    if (set.has(current)) return current;
+    return faction==="dark" ? "warm" : "day"; // 最後退回預設
+  }
+
+  function apply(){
+    const mode = getMode();
+    const faction = mode==="light" ? "light" : mode==="dark" ? "dark" : sysFaction();
+    const theme = resolveTheme(faction);
+    html.setAttribute("data-mode", mode);
+    html.setAttribute("data-faction", faction);
+    html.setAttribute("data-theme", theme);
+  }
+
+  // 盡早套用，避免刷新時又看到 Warm 一閃
+  apply();
+
+  // Auto 模式下，跟著系統深淺動態切換
+  try {
+    matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+      if (getMode()==="auto") apply();
+    });
+  } catch {}
+
+  // 等 DOM 好了再綁主題選單，分別記到對的 key
+  document.addEventListener("DOMContentLoaded", () => {
+    const root = document.getElementById("themeMenu") || document;
+
+    root.addEventListener("click", (ev) => {
+      const btn = ev.target.closest(".theme-item");
+      if (!btn) return;
+      const name = btn.getAttribute("data-theme");
+      if (!name) return;
+
+      const isLight = LIGHT_THEMES.has(name);
+      const isDark  = DARK_THEMES.has(name);
+      if (!isLight && !isDark) return;
+
+      try { localStorage.setItem(isDark ? LS_DARK : LS_LIGHT, name); } catch {}
+
+      // 立刻反映到目前顯示的派系
+      const mode = getMode();
+      const activeFaction = mode==="light" ? "light" : mode==="dark" ? "dark" : sysFaction();
+      if ((isDark && activeFaction==="dark") || (isLight && activeFaction==="light")) {
+        html.setAttribute("data-theme", name);
+      }
+    }, { passive:true });
+
+    // 模式分頁：Auto/Light/Dark -> 記憶 + 套用
+    const tabAuto  = document.getElementById("tabAuto");
+    const tabLight = document.getElementById("tabLight");
+    const tabDark  = document.getElementById("tabDark");
+    function setMode(mode){ try{ localStorage.setItem(LS_MODE, mode); }catch{} apply(); }
+    tabAuto?.addEventListener("click", () => setMode("auto"));
+    tabLight?.addEventListener("click", () => setMode("light"));
+    tabDark?.addEventListener("click", () => setMode("dark"));
+  });
+})();
+</script>
+
+  
   <meta name="description" content="在瀏覽器本地推論，快速查看聲音被模型感知為女性化／男性化的傾向，並提供即時音高 Stream、統計與簡評。">
   <link rel="icon" href="./favicon.ico" />
   <link rel="stylesheet" href="assets/css/base.css" />
