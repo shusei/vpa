@@ -405,9 +405,11 @@ body.recording .status{
   border-radius:999px;
   overflow:hidden;
   border:1px solid var(--panel-border);
-  background:color-mix(in oklab, var(--panel) 80%, #fff 20%);
+  background:color-mix(in oklab, var(--panel) 70%, var(--surface) 30%);
+  border:1px solid var(--panel-border);
 }
 .res-part{
+  position:relative;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -415,12 +417,26 @@ body.recording .status{
   font-size:12px;
   font-weight:700;
   flex:1 1 0;
-  transition:width .25s ease;
+  min-width:0;
+  transition:flex-basis .25s ease, width .25s ease;
 }
-.res-part span{ pointer-events:none; }
-.res-part.chest{ background: color-mix(in oklab, var(--panel) 60%, #fcd5ce 40%); }
-.res-part.mask{ background: color-mix(in oklab, var(--panel) 60%, #fde2e4 40%); }
-.res-part.head{ background: color-mix(in oklab, var(--panel) 60%, #e2e8f0 40%); }
+.resonance-bar .res-part + .res-part{
+  box-shadow: inset 2px 0 0 color-mix(in oklab, var(--ink) 24%, transparent);
+}
+resonance-bar .res-part span{
+  position:absolute;
+  left:50%; top:50%;
+  transform:translate(-50%,-50%);
+  font-size:12px; line-height:1; font-weight:800;
+  font-variant-numeric:tabular-nums;
+  color: color-mix(in oklab, var(--ink) 96%, var(--muted) 4%);
+  text-shadow:0 1px 2px rgba(0,0,0,.18);
+  white-space:nowrap;
+  pointer-events:none;
+}
+.res-part.chest{ background: color-mix(in oklab, #fcd5ce 70%, var(--panel) 30%); }
+.res-part.mask{  background: color-mix(in oklab, #fde2e4 70%, var(--panel) 30%); }
+.res-part.head{  background: color-mix(in oklab, #e2e8f0 72%, var(--panel) 28%); }
 #streamStats{ margin:16px 0 0; }
 .insight{
   border:1px solid var(--panel-border); border-radius:16px; background:var(--panel);
@@ -1166,3 +1182,10 @@ html[data-faction="dark"] .advanced-section .hint{ color:color-mix(in oklab, var
   margin-bottom: .25rem;
 }
 
+/* 暗色主題微調 */
+html[data-faction="dark"] .resonance-bar{
+  background:color-mix(in oklab, var(--surface-strong) 70%, var(--panel) 30%);
+}
+html[data-faction="dark"] .resonance-bar .res-part span{
+  color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.35);
+}
