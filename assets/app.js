@@ -194,8 +194,9 @@ function renderGauge(value, baseline, label){
   const title = `${label}: ${fmt1(value)}${unit || ""} · target ${fmt0(min)}–${fmt0(max)}${unit || ""}`;
   return `
     <span class="gauge ${cls}" title="${escapeAttr(title)}" role="meter" aria-valuemin="${min}" aria-valuemax="${max}" aria-valuenow="${fmt0(value)}" aria-label="${escapeAttr(label)}">
-      <span class="gauge__track"></span>
-      <span class="gauge__range" style="left:${pct}%;"></span>
+      <span class="gauge__track">
+        <span class="gauge__range" style="left:${pct}%;"></span>
+      </span>
       <span class="gauge__val">${fmt1(value)}${unit || ""}</span>
     </span>`;
 }
