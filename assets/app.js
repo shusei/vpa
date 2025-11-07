@@ -658,6 +658,7 @@ function startAnalysisRun(){
   analysisSeq += 1;
   activeAnalysisToken = analysisSeq;
   busy = true;
+  resetAnalysisOutputs();
   updateUploadAvailability();
   updatePlaybackAvailability();
   updateRecordAvailability();
@@ -1561,6 +1562,22 @@ let latestAnalysisExport = null;
 
 // 追蹤最新模型傾向（供簡評用）
 let lastPf = 0, lastPm = 0;
+
+function resetAnalysisOutputs(){
+  resetMeter();
+  resetRealtimePanels();
+  lastPf = 0;
+  lastPm = 0;
+  clearStreamStatsPanel();
+  setLatestAnalysisExport(null);
+}
+
+function clearStreamStatsPanel(){
+  try{
+    const statsEl = document.getElementById("streamStats");
+    if (statsEl) statsEl.innerHTML = "";
+  }catch{}
+}
 
 // ===== 版本資訊（build 與日期） =====
 (async function fillBuildMeta(){
