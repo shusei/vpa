@@ -13,6 +13,7 @@ import {
   meter,
   femaleVal,
   maleVal,
+  warmupCard,
   pitchWrap,
   pitchCanvas,
   pitchNowEl,
@@ -91,6 +92,7 @@ import { setupPracticeUI, openPracticeCategory } from "./js/practice.js";
 // ===== Advanced UI state & gauges =====
 const ADVANCED_MODE_KEY = "ui:advancedMode";           // "beginner" | "advanced"
 const ADV_DETAILS_KEY_PREFIX = "ui:advOpen:";          // per-section open memory
+const WARMUP_CARD_OPEN_KEY = "vpa::warmup.open";
 
 function getAdvancedMode(){
   try { return localStorage.getItem(ADVANCED_MODE_KEY) || "beginner"; } catch { return "beginner"; }
@@ -650,6 +652,7 @@ try{
 }catch(err){
   console.error("[practice] init failed", err);
 }
+initWarmupCard();
 
 let analysisSeq = 0;
 let activeAnalysisToken = 0;
@@ -717,6 +720,24 @@ function updateRecordAvailability(){
     recordBtn.removeAttribute("disabled");
     recordBtn.removeAttribute("aria-disabled");
   }
+}
+
+function initWarmupCard(){
+  if (!warmupCard) return;
+  let defaultOpen = true;
+  try{
+    const raw = localStorage.getItem(WARMUP_CARD_OPEN_KEY);
+    if (raw === "1") defaultOpen = true;
+    else if (raw === "0") defaultOpen = false;
+  }catch{}
+  warmupCard.open = defaultOpen;
+  warmupCard.setAttribute("aria-expanded", warmupCard.open ? "true" : "false");
+  warmupCard.addEventListener("toggle", () => {
+    warmupCard.setAttribute("aria-expanded", warmupCard.open ? "true" : "false");
+    try{
+      localStorage.setItem(WARMUP_CARD_OPEN_KEY, warmupCard.open ? "1" : "0");
+    }catch{}
+  });
 }
 
 updateUploadAvailability();
