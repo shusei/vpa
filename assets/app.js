@@ -3208,7 +3208,7 @@ function finishStreamStats(){
       spread,
       intonationRange: advSummary?.intonation?.range ?? NaN,
     });
-    const advancedHTML = renderAdvancedSummary(advSummary);
+    const advancedHTML = renderAdvancedSummary(advSummary, { band });
 
     statsEl.innerHTML = headerHTML + focusHTML + divergeNote + envNote + voicedNote + statsHTML + advancedHTML;
 
@@ -3647,7 +3647,76 @@ function resolveIntonationData(summary){
   return { points, rangeHz, rangeDisplay, slopeLabel, slopeHint };
 }
 
-function renderAdvancedSummary(summary){
+function beginnerText(key, fallback, params){
+  const path = `summary.beginnerHighlights.${key}`;
+  try{
+    const raw = t(path, params);
+    if (raw && raw !== path) return raw;
+  }catch{}
+  return fallback;
+}
+
+function renderBeginnerHighlights(summary, context = {}){
+  const heading = beginnerText("heading", "Highlights");
+  const empty = beginnerText("empty", "Record a longer clip to unlock coaching tips.");
+  const cards = [];
+  const bandLabel = context.band || context.bandLabel || null;
+  if (bandLabel && bandLabel !== "—"){
+    cards.push({
+      key: "pitch",
+      title: beginnerText("items.pitch.title", "Pitch focus"),
+      value: bandLabel,
+      tip: beginnerText("items.pitch.tip", "Stay near this pitch range and finish each sentence with a gentle lift.", { value: bandLabel }),
+    });
+  }
+  const resonanceLabel = summary?.resonanceDisplay || summary?.resonanceLabel || null;
+  if (resonanceLabel && resonanceLabel !== "—"){
+    cards.push({
+      key: "resonance",
+      title: beginnerText("items.resonance.title", "Resonance focus"),
+      value: resonanceLabel,
+      tip: beginnerText("items.resonance.tip", "Recall this resonance placement with a soft hum, then speak while keeping that feel.", { value: resonanceLabel }),
+    });
+  }
+  const speech = summary?.speechRate || null;
+  if (speech && speech.label && speech.key !== "insufficient"){
+    cards.push({
+      key: "speech",
+      title: beginnerText("items.speech.title", "Pacing focus"),
+      value: speech.label,
+      tip: beginnerText("items.speech.tip", "Keep this pacing and tap a steady beat so every phrase lands on the same pulse.", { value: speech.label }),
+    });
+  }
+
+  if (!cards.length){
+    if (!heading && !empty) return "";
+    return `
+      <div class="beginner-summary">
+        <h3 class="beginner-summary__title">${escapeHtml(heading)}</h3>
+        <p class="beginner-summary__empty">${escapeHtml(empty)}</p>
+      </div>
+    `;
+  }
+
+  const cardsHtml = cards.map((card) => `
+    <div class="adv-card beginner-summary__card" data-highlight="${escapeAttr(card.key)}">
+      <div class="k">${escapeHtml(card.title)}</div>
+      <div class="v">${escapeHtml(card.value)}</div>
+      <div class="hint">${escapeHtml(card.tip)}</div>
+    </div>
+  `).join("");
+
+  return `
+    <div class="beginner-summary">
+      <h3 class="beginner-summary__title">${escapeHtml(heading)}</h3>
+      <div class="beginner-summary__grid">
+        ${cardsHtml}
+      </div>
+    </div>
+  `;
+}
+
+function renderAdvancedSummary(summary, context = {}){
   if (!summary){
     return `<div class="advanced-section"><div class="note">${t("analysis.advanced.insufficient")}</div></div>`;
   }
@@ -3725,6 +3794,7 @@ function renderAdvancedSummary(summary){
   const safeHint = (s) => s ? escapeHtml(s) : "&nbsp;";
 
   const mode = getAdvancedMode();
+  const beginnerHighlights = mode === "beginner" ? renderBeginnerHighlights(summary, context) : "";
   const advToggleLabel = mode === "advanced"
     ? (t("ui.advancedMode.beginner") || "Switch to Beginner")
     : (t("ui.advancedMode.advanced") || "Switch to Advanced");
@@ -3739,6 +3809,7 @@ function renderAdvancedSummary(summary){
       <div class="adv-controls">
         <button type="button" class="btn sm ghost" data-adv-toggle aria-pressed="${mode==="advanced"}" aria-label="Toggle Beginner/Advanced">${escapeHtml(advToggleLabel)}</button>
       </div>
+      ${beginnerHighlights}
 
       <!-- Formant & Resonance -->
       <details class="adv-details" data-adv="formant" ${getDetailsOpen("formant", mode==="advanced") ? "open": ""}>
