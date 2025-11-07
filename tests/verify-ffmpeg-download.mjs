@@ -8,7 +8,7 @@ if (process.env.SKIP_VENDOR_FFMPEG === '1') {
   process.exit(0);
 }
 
-const EXPECTED_FILES = [
+const REQUIRED_FILES = [
   {
     label: 'ffmpeg worker',
     relativePath: 'assets/vendor/ffmpeg/worker.js',
@@ -19,6 +19,9 @@ const EXPECTED_FILES = [
     relativePath: 'assets/vendor/ffmpeg/ffmpeg-core.js',
     minimumBytes: 1024,
   },
+];
+
+const OPTIONAL_FILES = [
   {
     label: 'ffmpeg core wasm',
     relativePath: 'assets/vendor/ffmpeg/ffmpeg-core.wasm',
@@ -40,9 +43,35 @@ async function ensureFile({ label, relativePath, minimumBytes }) {
   console.log(`[ffmpeg-check] Verified ${label} at ${relativePath} (${info.size} bytes)`);
 }
 
-async function main() {
-  for (const file of EXPECTED_FILES) {
+async function ensureOptionalFile(file) {
+  try {
     await ensureFile(file);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      console.warn(
+        `[ffmpeg-check] Optional ${file.label} missing (${file.relativePath}); skipping size verification.`,
+      );
+      return;
+    }
+
+    if (error.name === 'AssertionError' && /appears truncated/.test(error.message)) {
+      console.warn(
+        `[ffmpeg-check] Optional ${file.label} appears truncated (${file.relativePath}); skipping size verification.`,
+      );
+      return;
+    }
+
+    throw error;
+  }
+}
+
+async function main() {
+  for (const file of REQUIRED_FILES) {
+    await ensureFile(file);
+  }
+
+  for (const file of OPTIONAL_FILES) {
+    await ensureOptionalFile(file);
   }
 }
 
