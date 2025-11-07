@@ -3853,8 +3853,8 @@ function renderAdvancedSummary(summary){
             <span class="baseline">${escapeHtml(labelBreathiness)}: ${escapeHtml(breathDisplay)} (${escapeHtml(formatBaselineRange(BASELINES.breath))})</span>
             <span class="baseline">${escapeHtml(labelLiaison)}: ${escapeHtml(liaisonDisplay||"—")} (${escapeHtml(formatBaselineRange(BASELINES.liaison))})</span>
           </span>
-        <div class="adv-note">${safeHint(brightnessHint)}</div>
         </summary>
+        <div class="adv-note">${safeHint(brightnessHint)}</div>
         <div class="advanced-grid advanced-grid--three">
           <div class="adv-card">
             <div class="k">${escapeHtml(labelBrightness)}</div>
