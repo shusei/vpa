@@ -1,3 +1,30 @@
+const practiceWarmup = {
+  title: "暖身三步骤",
+  summary: "录音前 1 分钟快速开声。",
+  intro: "主界面录音键下方也能展开这张卡片，按顺序练一次再开始录音。",
+  shortcutHtml: '主界面录音键下方有 <a href="#warmupCard">「暖身三步骤」卡片</a>，从指南点按可直接跳回主界面暖身。',
+  steps: {
+    hum: {
+      name: "嗯",
+      desc: "：轻哼把震动带到鼻梁，对应共鸣卡的「胸腔偏重」提示。",
+    },
+    yi: {
+      name: "依——",
+      desc: "：拉长前元音让舌头前放，提升元音聚焦指标。",
+    },
+    hu: {
+      name: "呼",
+      desc: "：慢慢吐气放松喉头，稳定气声比例与频谱倾斜度。",
+    },
+  },
+};
+
+const warmupStepsHtml = [
+  `<li><strong>${practiceWarmup.steps.hum.name}</strong>${practiceWarmup.steps.hum.desc}</li>`,
+  `<li><strong>${practiceWarmup.steps.yi.name}</strong>${practiceWarmup.steps.yi.desc}</li>`,
+  `<li><strong>${practiceWarmup.steps.hu.name}</strong>${practiceWarmup.steps.hu.desc}</li>`,
+].join("");
+
 export default {
   locale: "zh-Hans",
   ui: {
@@ -80,6 +107,7 @@ export default {
     filterLabel: "按分类浏览句子",
     allCategories: "全部",
     hint: "按下录音会立即开始；完成后可用右侧播放键重听上一段。每句建议 3–7 秒，卡片会显示女性倾向／男性倾向的最新百分比。",
+    warmup: practiceWarmup,
     recordStart: "开始录音",
     recordStop: "停止录音",
     feminineLabel: "女性倾向",
@@ -295,12 +323,11 @@ export default {
       '<li><strong>历程：</strong>每句在本机保存最近 20 笔成绩，徽章显示上次结果，清除浏览数据即可重置。</li>',
       '<li><strong>快捷键：</strong>抽屉展开时可用 <kbd>Space</kbd> 开始录音、<kbd>J</kbd> / <kbd>K</kbd> 切换下一句 / 上一句。</li>',
       '</ul>',
-      '<h4>暖身三步骤</h4>',
-      '<ul>',
-      '<li><strong>1. 嗯：</strong>轻哼把震动带到鼻梁，对应共鸣卡的“胸腔偏重”提示。</li>',
-      '<li><strong>2. 依——：</strong>拉长前母音让舌头前放，提升元音聚焦指标。</li>',
-      '<li><strong>3. 呼：</strong>慢慢吐气放松喉头，稳定气声比例与频谱倾斜度。</li>',
-      '</ul>',
+      `<h4>${practiceWarmup.title}</h4>`,
+      `<p>${practiceWarmup.shortcutHtml}</p>`,
+      '<ol>',
+      warmupStepsHtml,
+      '</ol>',
       '<h4>常见提示对应的练习</h4>',
       '<ul>',
       '<li><strong>声音偏厚：</strong>哼“嗯”→ 嘴角微笑→ 接句子，想像声音从牙齿前方推出。</li>',

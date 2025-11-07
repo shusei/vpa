@@ -8,6 +8,7 @@ export const statusTimer = document.getElementById("statusTimer");
 export const meter     = document.getElementById("meter");
 export const femaleVal = document.getElementById("femaleVal");
 export const maleVal   = document.getElementById("maleVal");
+export const warmupCard = document.getElementById("warmupCard");
 
 export const pitchWrap   = document.getElementById("pitchWrap");
 export const pitchCanvas = document.getElementById("pitchCanvas");

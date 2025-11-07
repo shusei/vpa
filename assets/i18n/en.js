@@ -1,3 +1,30 @@
+const practiceWarmup = {
+  title: "Three-step Warmup",
+  summary: "A one-minute reset before recording.",
+  intro: "Open this card beneath the record button and walk through the steps before you press record.",
+  shortcutHtml: 'Find the <a href="#warmupCard">Three-step Warmup</a> card right under the record button—use this shortcut to jump back for a quick reset anytime.',
+  steps: {
+    hum: {
+      name: "Hum",
+      desc: ': Gently hum and aim the buzz toward the bridge of your nose—it mirrors the “Chest-heavy resonance” hint.',
+    },
+    yi: {
+      name: "Ee sustain",
+      desc: ': Stretch an “ee” vowel to bring the tongue forward and boost the vowel focus metric.',
+    },
+    hu: {
+      name: "Breath out",
+      desc: ': Exhale a soft “hoo” to relax the larynx and steady breathiness / spectral tilt.',
+    },
+  },
+};
+
+const warmupStepsHtml = [
+  `<li><strong>${practiceWarmup.steps.hum.name}</strong>${practiceWarmup.steps.hum.desc}</li>`,
+  `<li><strong>${practiceWarmup.steps.yi.name}</strong>${practiceWarmup.steps.yi.desc}</li>`,
+  `<li><strong>${practiceWarmup.steps.hu.name}</strong>${practiceWarmup.steps.hu.desc}</li>`,
+].join("");
+
 export default {
   locale: "en",
   ui: {
@@ -80,6 +107,7 @@ export default {
     filterLabel: "Browse by category",
     allCategories: "All",
     hint: "Recording starts immediately; use the play button to review the previous take. Aim for 3–7 seconds and watch the feminine / masculine percentages.",
+    warmup: practiceWarmup,
     recordStart: "Start recording",
     recordStop: "Stop recording",
     feminineLabel: "Feminine",
@@ -295,12 +323,11 @@ export default {
       '<li><strong>History:</strong> stores the latest 20 runs per phrase locally; the badge shows your previous score and clears when browser data is removed.</li>',
       '<li><strong>Shortcuts:</strong> with the drawer open, press <kbd>Space</kbd> to record and <kbd>J</kbd> / <kbd>K</kbd> to jump to the next or previous phrase.</li>',
       '</ul>',
-      '<h4>Warm-up trio</h4>',
-      '<ul>',
-      '<li><strong>1. Mm:</strong> hum gently to bring vibration to the nose bridge—helps when the resonance card says “Chest-heavy”.</li>',
-      '<li><strong>2. Ee—:</strong> hold a forward vowel to lift the tongue and boost vowel focus.</li>',
-      '<li><strong>3. Hoo:</strong> sigh out slowly to release the larynx and stabilise breathiness/tilt.</li>',
-      '</ul>',
+      `<h4>${practiceWarmup.title}</h4>`,
+      `<p>${practiceWarmup.shortcutHtml}</p>`,
+      '<ol>',
+      warmupStepsHtml,
+      '</ol>',
       '<h4>When the cards suggest…</h4>',
       '<ul>',
       '<li><strong>Voice feels heavy:</strong> hum “mm”, keep a light smile, then speak as if the sound leaves from in front of your teeth.</li>',

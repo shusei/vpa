@@ -111,6 +111,95 @@ html[data-faction="dark"] #practiceToggle[aria-expanded="true"]{
   background:color-mix(in oklab, var(--accent-1) 58%, var(--surface) 42%);
   color:color-mix(in oklab, var(--text) 97%, #fff 3%);
 }
+.warmup-card{
+  flex:1 1 100%;
+  margin-top:4px;
+  border-radius:20px;
+  border:1px solid color-mix(in oklab, var(--panel-border) 68%, var(--accent-2) 32%);
+  background:linear-gradient(135deg, color-mix(in oklab, var(--panel) 82%, var(--accent-2) 18%), color-mix(in oklab, var(--surface) 76%, var(--accent-1) 24%));
+  color:var(--ink);
+  box-shadow:0 16px 40px rgba(0,0,0,.16);
+  transition:background .2s ease, border-color .2s ease, box-shadow .2s ease;
+  overflow:hidden;
+}
+.warmup-card[open]{
+  box-shadow:0 20px 48px rgba(0,0,0,.2);
+}
+.warmup-card__summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:16px 20px;
+  cursor:pointer;
+  font-weight:800;
+  font-size:16px;
+  letter-spacing:.2px;
+  list-style:none;
+}
+.warmup-card__summary:focus-visible{
+  outline:2px solid var(--ring);
+  outline-offset:4px;
+}
+.warmup-card__summary::-webkit-details-marker{ display:none; }
+.warmup-card__title{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+}
+.warmup-card__title::before{
+  content:"🧭";
+  font-size:1.15em;
+  line-height:1;
+}
+.warmup-card__hint{
+  flex:1 1 auto;
+  text-align:right;
+  font-size:14px;
+  font-weight:600;
+  color:color-mix(in oklab, var(--ink) 70%, var(--muted) 30%);
+}
+.warmup-card__body{
+  padding:0 20px 18px;
+  border-top:1px solid color-mix(in oklab, var(--panel-border) 76%, var(--accent-2) 24%);
+}
+.warmup-card__body p{
+  margin:16px 0 12px;
+  line-height:1.65;
+  font-size:14px;
+  color:color-mix(in oklab, var(--ink) 86%, var(--muted) 14%);
+}
+.warmup-card__list{
+  margin:0;
+  padding:0 0 0 22px;
+  line-height:1.65;
+  font-size:14px;
+  color:color-mix(in oklab, var(--ink) 90%, var(--muted) 10%);
+}
+.warmup-card__list li{ margin:0 0 8px; }
+.warmup-step-label{
+  font-weight:700;
+  letter-spacing:.15px;
+  margin-right:4px;
+}
+html[data-faction="dark"] .warmup-card{
+  border-color:color-mix(in oklab, var(--panel-border) 52%, var(--accent-1) 48%);
+  background:linear-gradient(135deg, color-mix(in oklab, var(--surface) 60%, var(--accent-2) 40%), color-mix(in oklab, var(--panel) 72%, var(--accent-1) 28%));
+  color:color-mix(in oklab, var(--text) 92%, #fff 8%);
+  box-shadow:0 20px 48px rgba(0,0,0,.32);
+}
+html[data-faction="dark"] .warmup-card__hint{
+  color:color-mix(in oklab, var(--text) 78%, var(--muted) 22%);
+}
+html[data-faction="dark"] .warmup-card__body{
+  border-top-color:color-mix(in oklab, var(--panel-border) 54%, var(--accent-1) 46%);
+}
+html[data-faction="dark"] .warmup-card__body p{
+  color:color-mix(in oklab, var(--text) 84%, var(--muted) 16%);
+}
+html[data-faction="dark"] .warmup-card__list{
+  color:color-mix(in oklab, var(--text) 88%, var(--muted) 12%);
+}
 html[data-faction="dark"] .record-btn{
   --btn-h1: color-mix(in oklab, var(--accent-1) 88%, #fff 12%);
   --btn-h2: color-mix(in oklab, var(--accent-2) 88%, #fff 12%);
