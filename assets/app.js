@@ -173,14 +173,14 @@ function setupAdvancedSection(root){
 
 // Baseline ranges（保守預設，可按你的語料微調）
 const BASELINES = {
-  f1:  { min: 180,  max: 350,  unit: "Hz" },
-  f2:  { min: 1600, max: 2500, unit: "Hz" },
-  f3:  { min: 2500, max: 3200, unit: "Hz" },
-  tilt:{ min: -6,   max:  2,   unit: "dB" },
-  breath:{ min: 0.08, max: 0.18, unit: "" },      // 8–18%
-  syll:{ min: 3.2,  max: 5.2, unit: "syll/s" },
+  f1:  { min: 170,  max: 420,  unit: "Hz" },
+  f2:  { min: 1450, max: 2750, unit: "Hz" },
+  f3:  { min: 2400, max: 3400, unit: "Hz" },
+  tilt:{ min: -1,   max: 8,    unit: "dB", visualMin: -8,  visualMax: 10 },
+  breath:{ min: 8,   max: 18,   unit: "%", visualMin: 0,   visualMax: 60 },
+  syll:{ min: 3.2,  max: 5.2,  unit: "syll/s" },
   wpm: { min: 120,  max: 180, unit: "wpm" },
-  liaison:{ min: 0.20, max: 0.45, unit: "" }      // 20–45%
+  liaison:{ min: 40,  max: 75,  unit: "%", visualMin: 0,   visualMax: 100 }
 };
 
 function renderGauge(value, baseline, label){
@@ -189,15 +189,21 @@ function renderGauge(value, baseline, label){
     return `<span class="gauge is-na" role="meter" aria-valuemin="${min}" aria-valuemax="${max}" aria-valuenow="0" aria-label="${escapeAttr(label)}">—</span>`;
   }
   const clamp = (v,a,b)=> Math.min(b, Math.max(a, v));
-  const pct = clamp((value - min) / Math.max(1e-6,(max - min)) * 100, 0, 100);
+  const hasVisualRange = Number.isFinite(baseline.visualMin)
+    && Number.isFinite(baseline.visualMax)
+    && baseline.visualMax > baseline.visualMin;
+  const visualMin = hasVisualRange ? baseline.visualMin : min;
+  const visualMax = hasVisualRange ? baseline.visualMax : max;
+  const pct = clamp((value - visualMin) / Math.max(1e-6, (visualMax - visualMin)) * 100, 0, 100);
   const cls = (value >= min && value <= max) ? "is-ok" : (value < min ? "is-low" : "is-high");
-  const title = `${label}: ${fmt1(value)}${unit || ""} · target ${fmt0(min)}–${fmt0(max)}${unit || ""}`;
+  const valueDisplay = (unit === "%") ? fmt0(value) : fmt1(value);
+  const title = `${label}: ${valueDisplay}${unit || ""} · target ${fmt0(min)}–${fmt0(max)}${unit || ""}`;
   return `
     <span class="gauge ${cls}" title="${escapeAttr(title)}" role="meter" aria-valuemin="${min}" aria-valuemax="${max}" aria-valuenow="${fmt0(value)}" aria-label="${escapeAttr(label)}">
       <span class="gauge__track">
         <span class="gauge__range" style="left:${pct}%;"></span>
       </span>
-      <span class="gauge__val">${fmt1(value)}${unit || ""}</span>
+      <span class="gauge__val">${valueDisplay}${unit || ""}</span>
     </span>`;
 }
 
@@ -215,6 +221,14 @@ function escapeHtml(input){
 // fmt0：整數顯示用（aria-valuenow、區間標示等）
 function fmt0(x){
   return Number.isFinite(x) ? Math.round(x) : 0;
+}
+
+function formatBaselineRange(baseline){
+  if (!baseline) return "—";
+  const { min, max, unit = "" } = baseline;
+  const safeMin = Number.isFinite(min) ? fmt0(min) : "—";
+  const safeMax = Number.isFinite(max) ? fmt0(max) : "—";
+  return `${safeMin}–${safeMax}${unit}`;
 }
 
 /** 只用遠端（Hugging Face Hub），停用本機 /models 尋址 */
@@ -3663,10 +3677,12 @@ function renderAdvancedSummary(summary){
 
   // 其它指標
   const tiltAvg = Number(summary.tiltAvg);
-  const breath  = Number(summary.breathinessAvg);
+  const breathRatio = Number(summary.breathinessAvg);
+  const breathPct = Number.isFinite(breathRatio) ? breathRatio * 100 : NaN;
   const speechSyll = Number(summary.speechRate?.syllPerSec);
   const speechWpm  = Number(summary.speechRate?.wordsPerMin);
-  const liaison    = Number(summary.liaisonRatio);
+  const liaisonRatio    = Number(summary.liaisonRatio);
+  const liaisonPct = Number.isFinite(liaisonRatio) ? liaisonRatio * 100 : NaN;
   const brightnessDisplay = summary.brightnessLabel || "—";
   const brightnessHint    = summary.brightnessHint  || "";
   const labelBrightness   = labelFormantBright;
@@ -3681,8 +3697,9 @@ function renderAdvancedSummary(summary){
   const speechWpmDisplay = Number.isFinite(speechWpm)
     ? summaryString("speechRateWpm", { value: Math.round(speechWpm) })
     : "";
-  const percentSuffix = (value) => summaryString("percentSuffix", { value });
-  const liaisonDisplay = Number.isFinite(liaison) ? percentSuffix(Math.round(liaison * 100)) : "";
+  const percentSuffix = (value) => summaryString("percentSuffix", { value }) || `${value}%`;
+  const breathDisplay = Number.isFinite(breathPct) ? percentSuffix(Math.round(breathPct)) : "—";
+  const liaisonDisplay = Number.isFinite(liaisonPct) ? percentSuffix(Math.round(liaisonPct)) : "";
   const vowelDisplay = (summary.vowelLabel || "—") + (Number.isFinite(summary.vowelFocusRatio)
     ? " · " + percentSuffix(Math.round(summary.vowelFocusRatio * 100)) : "");
   const safeHint = (s) => s ? escapeHtml(s) : "&nbsp;";
@@ -3708,9 +3725,9 @@ function renderAdvancedSummary(summary){
         <summary>
           <span class="adv-title">${escapeHtml(titleFormant)}</span>
           <span class="adv-baselines">
-            <span class="baseline">F1 ${f1Val}Hz (180–350Hz)</span>
-            <span class="baseline">F2 ${f2Val}Hz (1600–2500Hz)</span>
-            <span class="baseline">F3 ${f3Val}Hz (2500–3200Hz)</span>
+            <span class="baseline">F1 ${f1Val}Hz (${escapeHtml(formatBaselineRange(BASELINES.f1))})</span>
+            <span class="baseline">F2 ${f2Val}Hz (${escapeHtml(formatBaselineRange(BASELINES.f2))})</span>
+            <span class="baseline">F3 ${f3Val}Hz (${escapeHtml(formatBaselineRange(BASELINES.f3))})</span>
           </span>
         </summary>
         <div class="advanced-grid advanced-grid--four">
@@ -3816,8 +3833,8 @@ function renderAdvancedSummary(summary){
           <span class="adv-title">${escapeHtml(titleVowel)}</span>
           <span class="adv-baselines">
             <span class="baseline">${escapeHtml(labelBrightness)}: ${escapeHtml(brightnessDisplay)}</span>
-            <span class="baseline">${escapeHtml(labelBreathiness)}: ${Number.isFinite(breath) ? Math.round(breath*100) + "%" : "—"} (8–18%)</span>
-            <span class="baseline">${escapeHtml(labelLiaison)}: ${escapeHtml(liaisonDisplay||"—")}</span>
+            <span class="baseline">${escapeHtml(labelBreathiness)}: ${escapeHtml(breathDisplay)} (${escapeHtml(formatBaselineRange(BASELINES.breath))})</span>
+            <span class="baseline">${escapeHtml(labelLiaison)}: ${escapeHtml(liaisonDisplay||"—")} (${escapeHtml(formatBaselineRange(BASELINES.liaison))})</span>
           </span>
         <div class="adv-note">${safeHint(brightnessHint)}</div>
         </summary>
@@ -3830,13 +3847,13 @@ function renderAdvancedSummary(summary){
           <div class="adv-card" title="${escapeAttr(summary.breathinessHint||"")}">
             <div class="k">${escapeHtml(labelBreathiness)}</div>
             <div class="v">${escapeHtml(summary.breathinessLabel||"—")}</div>
-            ${renderGauge(breath, BASELINES.breath, labelBreathiness)}
+            ${renderGauge(breathPct, BASELINES.breath, labelBreathiness)}
             <div class="hint">${safeHint(summary.breathinessHint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(summary.liaisonHint||"")}">
             <div class="k">${escapeHtml(labelLiaison)}</div>
             <div class="v">${escapeHtml(liaisonDisplay||"—")}</div>
-            ${renderGauge(liaison, BASELINES.liaison, labelLiaison)}
+            ${renderGauge(liaisonPct, BASELINES.liaison, labelLiaison)}
             <div class="hint">${safeHint(summary.liaisonHint)}</div>
           </div>
         </div>
