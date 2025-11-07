@@ -704,6 +704,24 @@ export default {
     rangeDisplayHz: "{{value}} Hz",
     resonanceTiltTail: "（頻譜傾斜：{{label}}）",
     summaryHint: "語調資訊不足，建議錄製更長語句。",
+    beginnerHighlights: {
+      heading: "重點摘要",
+      empty: "錄製 5–10 秒連續語句即可看到建議。",
+      items: {
+        pitch: {
+          title: "音高定位",
+          tip: "維持在 {{value}} 的高度，句尾加一點上揚來鞏固旋律。",
+        },
+        resonance: {
+          title: "共鳴感受",
+          tip: "用輕哼記住 {{value}} 的共鳴位置，再把短句接在後面練習。",
+        },
+        speech: {
+          title: "語速節奏",
+          tip: "保持 {{value}} 的語速，搭配節拍器讓每句收在相同拍點。",
+        },
+      },
+    },
     advanced: {
       formantTitle: "共振峰與共鳴",
       intonationTitle: "語調與語速",

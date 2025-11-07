@@ -704,6 +704,24 @@ export default {
     rangeDisplayHz: "{{value}} Hz",
     resonanceTiltTail: "(spectral tilt: {{label}})",
     summaryHint: "Need a longer clip to analyze intonation.",
+    beginnerHighlights: {
+      heading: "Key highlights",
+      empty: "Record a connected 5–10 second sentence to unlock these coaching notes.",
+      items: {
+        pitch: {
+          title: "Pitch focus",
+          tip: "Stay near {{value}} and finish each sentence with a gentle lift.",
+        },
+        resonance: {
+          title: "Resonance focus",
+          tip: "Lock in {{value}} by humming once, then speak the line while keeping that placement.",
+        },
+        speech: {
+          title: "Pacing focus",
+          tip: "Keep the {{value}} pace and tap a steady beat so every phrase lands on the same pulse.",
+        },
+      },
+    },
     advanced: {
       formantTitle: "Formant & resonance",
       intonationTitle: "Intonation & speech rate",
