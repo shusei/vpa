@@ -571,6 +571,38 @@ html[data-faction="dark"] .subline{
   flex-direction:column;
   gap:12px;
 }
+.beginner-summary{
+  border:1px solid var(--panel-border);
+  border-radius:12px;
+  padding:12px;
+  background:color-mix(in oklab, var(--panel) 92%, var(--surface) 8%);
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.beginner-summary__title{
+  margin:0;
+  font-size:15px;
+  font-weight:800;
+  color:var(--ink);
+}
+.beginner-summary__grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(160px,1fr));
+  gap:10px;
+}
+.beginner-summary__empty{
+  margin:2px 0 0;
+  font-size:13px;
+  color:color-mix(in oklab, var(--ink) 78%, var(--muted) 22%);
+}
+.advanced-section[data-mode="advanced"] .beginner-summary{ display:none; }
+html[data-faction="dark"] .beginner-summary{
+  background:color-mix(in oklab, var(--panel) 74%, var(--surface-strong) 26%);
+  border-color:color-mix(in oklab, var(--panel-border) 68%, var(--surface-strong) 32%);
+}
+html[data-faction="dark"] .beginner-summary__title{ color:color-mix(in oklab, var(--text) 96%, var(--muted) 4%); }
+html[data-faction="dark"] .beginner-summary__empty{ color:color-mix(in oklab, var(--text) 90%, var(--muted) 10%); }
 html[data-faction="dark"] .adv-card .k{ color:color-mix(in oklab, var(--text) 88%, var(--muted) 12%); }
 html[data-faction="dark"] .adv-card .v{ color:color-mix(in oklab, var(--text) 98%, var(--muted) 2%); }
 html[data-faction="dark"] .adv-card .hint{ color:color-mix(in oklab, var(--text) 92%, var(--muted) 8%); }
