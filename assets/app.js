@@ -3677,6 +3677,9 @@ function renderAdvancedSummary(summary){
   const labelFormantTilt = advFormantCards.tilt || t("summary.advanced.formantCards.tilt") || "Spectral Tilt";
   const labelFormantBright = advFormantCards.brightness || t("summary.advanced.formantCards.brightness") || "Brightness";
   const labelResonance = advCopy.resonanceTitle || t("realtime.resonance.label") || "Resonance balance";
+  const labelIntonationTrend = advIntonationCards.trend || t("summary.advanced.intonationCards.trend") || t("analysis.advanced.intonationCards.trend") || "Trend";
+  const labelIntonationRange = advIntonationCards.range || t("summary.advanced.intonationCards.range") || t("analysis.advanced.intonationCards.range") || "Range";
+  const labelSpeechRate = advIntonationCards.speechRate || t("summary.advanced.intonationCards.speechRate") || t("analysis.advanced.intonationCards.speechRate") || "Speech rate";
   const chestLabel = t("realtime.resonance.chest", { value: chestPct }) || `Chest ${chestPct}%`;
   const maskLabel  = t("realtime.resonance.mask",  { value: maskPct })  || `Mask ${maskPct}%`;
   const headLabel  = t("realtime.resonance.head",  { value: headPct })  || `Head ${headPct}%`;
@@ -3745,6 +3748,7 @@ function renderAdvancedSummary(summary){
             <span class="baseline">F1 ${f1Val}Hz (${escapeHtml(formatBaselineRange(BASELINES.f1))})</span>
             <span class="baseline">F2 ${f2Val}Hz (${escapeHtml(formatBaselineRange(BASELINES.f2))})</span>
             <span class="baseline">F3 ${f3Val}Hz (${escapeHtml(formatBaselineRange(BASELINES.f3))})</span>
+            <span class="baseline">${escapeHtml(labelResonance)}: ${escapeHtml(summary.resonanceDisplay || summary.resonanceLabel || "—")}</span>
           </span>
         </summary>
         <div class="advanced-grid advanced-grid--four">
@@ -3790,50 +3794,28 @@ function renderAdvancedSummary(summary){
     <summary>
       <span class="adv-title">${escapeHtml(titleIntonation)}</span>
       <span class="adv-baselines">
-        <span class="baseline">${t("analysis.advanced.intonationCards.trend")}: ${escapeHtml(I.slopeLabel || "—")}</span>
-        <span class="baseline">${t("analysis.advanced.intonationCards.range")}: ${escapeHtml(I.rangeDisplay || "—")}</span>
-        <span class="baseline">${t("analysis.advanced.intonationCards.speechRate")}: ${escapeHtml(speechRateDisplay)}</span>
+        <span class="baseline">${escapeHtml(labelIntonationTrend)}: ${escapeHtml(I.slopeLabel || "—")}</span>
+        <span class="baseline">${escapeHtml(labelIntonationRange)}: ${escapeHtml(I.rangeDisplay || "—")}</span>
+        <span class="baseline">${escapeHtml(labelSpeechRate)}: ${escapeHtml(speechRateDisplay)}</span>
       </span>
     </summary>
 
 <div class="adv-card">
-  <div class="k">${escapeHtml(
-    t("summary.advanced.intonationCards.trend")
-    || t("analysis.advanced.intonationCards.trend")
-    || "Trend（語調趨勢）"
-  )}</div>
+  <div class="k">${escapeHtml(labelIntonationTrend)}</div>
   <div class="v">${escapeHtml(I.slopeLabel || "—")}</div>
   <div class="hint">${escapeHtml(I.slopeHint || t("analysis.intonation.insufficient.slopeHint") || "")}</div>
 </div>
 
 <div class="adv-card">
-  <div class="k">${escapeHtml(
-    t("summary.advanced.intonationCards.range")
-    || t("analysis.advanced.intonationCards.range")
-    || "Range（音高動態）"
-  )}</div>
+  <div class="k">${escapeHtml(labelIntonationRange)}</div>
   <div class="v">${escapeHtml(I.rangeDisplay || "—")}</div>
   <div class="hint">${escapeHtml(summary.intonation?.rangeHint || "")}</div>
 </div>
 
 <div class="adv-card">
-  <div class="k">${escapeHtml(
-    t("summary.advanced.intonationCards.speechRate")
-    || t("analysis.advanced.intonationCards.speechRate")
-    || "Speech rate（語速）"
-  )}</div>
+  <div class="k">${escapeHtml(labelSpeechRate)}</div>
   <div class="v">${escapeHtml(speechRateDisplay)} <span class="suffix">${escapeHtml(speechWpmDisplay)}</span></div>
   <div class="hint">${escapeHtml(summary.speechRateHint || "")}</div>
-</div>
-
-<div class="adv-card">
-  <div class="k">${escapeHtml(
-    t("summary.advanced.intonationCards.liaison")
-    || t("analysis.advanced.intonationCards.liaison")
-    || "Liaison（連音比例）"
-  )}</div>
-  <div class="v">${escapeHtml(liaisonDisplay || "—")}</div>
-  <div class="hint">${escapeHtml(summary.liaisonHint || "")}</div>
 </div>
 
     <div class="intonation-wrap">
@@ -3851,6 +3833,7 @@ function renderAdvancedSummary(summary){
           <span class="adv-baselines">
             <span class="baseline">${escapeHtml(labelBrightness)}: ${escapeHtml(brightnessDisplay)}</span>
             <span class="baseline">${escapeHtml(labelBreathiness)}: ${escapeHtml(breathDisplay)} (${escapeHtml(formatBaselineRange(BASELINES.breath))})</span>
+            <span class="baseline">${escapeHtml(labelVowelFocus)}: ${escapeHtml(vowelDisplay||"—")}</span>
             <span class="baseline">${escapeHtml(labelLiaison)}: ${escapeHtml(liaisonDisplay||"—")} (${escapeHtml(formatBaselineRange(BASELINES.liaison))})</span>
           </span>
         </summary>
