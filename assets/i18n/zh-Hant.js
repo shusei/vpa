@@ -1,3 +1,30 @@
+const practiceWarmup = {
+  title: "暖身三步驟",
+  summary: "錄音前 1 分鐘快速開聲。",
+  intro: "主畫面錄音鍵下方也能展開這張卡片，照順序練一次再開始錄音。",
+  shortcutHtml: '主畫面錄音鍵下方有 <a href="#warmupCard">「暖身三步驟」卡片</a>，從指南點按可直接跳回主畫面暖身。',
+  steps: {
+    hum: {
+      name: "嗯",
+      desc: "：輕哼把震動帶到鼻梁，對應共鳴卡的「胸腔偏重」提示。",
+    },
+    yi: {
+      name: "依——",
+      desc: "：拉長前母音讓舌頭前放，提升元音聚焦指標。",
+    },
+    hu: {
+      name: "呼",
+      desc: "：慢慢吐氣放鬆喉頭，穩定氣聲比例與頻譜傾斜度。",
+    },
+  },
+};
+
+const warmupStepsHtml = [
+  `<li><strong>${practiceWarmup.steps.hum.name}</strong>${practiceWarmup.steps.hum.desc}</li>`,
+  `<li><strong>${practiceWarmup.steps.yi.name}</strong>${practiceWarmup.steps.yi.desc}</li>`,
+  `<li><strong>${practiceWarmup.steps.hu.name}</strong>${practiceWarmup.steps.hu.desc}</li>`,
+].join("");
+
 export default {
   locale: "zh-Hant",
   ui: {
@@ -80,6 +107,7 @@ export default {
     filterLabel: "依分類瀏覽句子",
     allCategories: "全部",
     hint: "按下錄音會立即開始；完成後可用右側播放鍵重聽上一段。每句建議 3–7 秒，卡片會顯示女性傾向／男性傾向的最新百分比。",
+    warmup: practiceWarmup,
     recordStart: "開始錄音",
     recordStop: "停止錄音",
     feminineLabel: "女性傾向",
@@ -295,12 +323,11 @@ export default {
       '<li><strong>歷程：</strong>每句保存最近 20 筆結果在本機，徽章顯示上次成績，清除瀏覽資料即可重置。</li>',
       '<li><strong>快捷鍵：</strong>抽屜展開時可用 <kbd>Space</kbd> 開始錄音、<kbd>J</kbd> / <kbd>K</kbd> 切換下一句 / 上一句。</li>',
       '</ul>',
-      '<h4>暖身三步驟</h4>',
-      '<ul>',
-      '<li><strong>1. 嗯：</strong>輕哼把震動帶到鼻梁，對應共鳴卡的「胸腔偏重」提示。</li>',
-      '<li><strong>2. 依——：</strong>拉長前母音讓舌頭前放，提升元音聚焦指標。</li>',
-      '<li><strong>3. 呼：</strong>慢慢吐氣放鬆喉頭，穩定氣聲比例與頻譜傾斜度。</li>',
-      '</ul>',
+      `<h4>${practiceWarmup.title}</h4>`,
+      `<p>${practiceWarmup.shortcutHtml}</p>`,
+      '<ol>',
+      warmupStepsHtml,
+      '</ol>',
       '<h4>常見提示對應的練習</h4>',
       '<ul>',
       '<li><strong>聲音偏厚：</strong>哼「嗯」→ 嘴角微笑→ 接句子，想像聲音從牙齒前方推出。</li>',
