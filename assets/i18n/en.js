@@ -457,7 +457,8 @@ export default {
       hint: "0–40%: the model rarely perceives this direction; practice resonance and intonation to lift it. 40–60%: overlap zone—extend the take or adjust your articulation to get a steadier trend. 60%+: the model clearly identifies this direction; note the current support and setup so you can reproduce it.",
       scale: {
         zero: "0%",
-        mid: "50%",
+        forty: "40%",
+        sixty: "60%",
         full: "100%",
       },
     },
