@@ -453,6 +453,11 @@ export default {
   analysis: {
     meter: {
       hint: "0–40%：模型较少感知为该方向，可再练习共鸣与语调。40–60%：落在重叠带，建议延长录音或调整口型以取得稳定趋势。60% 以上：模型明显辨识为该方向，请记录当下的支撑与感觉以便复制。",
+      scale: {
+        zero: "0%",
+        mid: "50%",
+        full: "100%",
+      },
     },
     resonanceBalance: {
       insufficient: { label: "资料不足", hint: "需要更多稳定语音才能估算共鸣分布。" },
