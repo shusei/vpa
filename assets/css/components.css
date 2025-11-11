@@ -416,6 +416,12 @@ body.recording .status{
 .bar::before{ content:""; position:absolute; top:10px; bottom:10px; left:40%; width:20%; border-radius:8px; background:color-mix(in oklab, var(--panel) 70%, var(--muted) 30%); opacity:.24; pointer-events:none; }
 .bar::after{ content:""; position:absolute; left:0; bottom:0; height:6px; width:calc(var(--p) * 100%); border-radius:0 0 0 12px;
   background:linear-gradient(90deg, var(--female), var(--male)); z-index:1; }
+.bar-scale{ position:absolute; left:12px; right:12px; bottom:10px; display:flex; justify-content:space-between; gap:4px;
+  font-size:11px; font-variant-numeric:tabular-nums; color:color-mix(in oklab, var(--ink) 80%, var(--muted) 20%); pointer-events:none; }
+.bar-scale__label{ flex:0 0 auto; }
+.bar-scale__label--start{ text-align:left; }
+.bar-scale__label--mid{ flex:1; text-align:center; }
+.bar-scale__label--end{ text-align:right; }
 .bar .label{ display:block; font-size:12px; color:color-mix(in oklab, var(--ink) 92%, var(--muted) 8%); margin-bottom:4px; }
 .bar .value{ font-weight:800; }
 .meter-hint{ grid-column:1/-1; margin:2px 0 0; font-size:12px; line-height:1.6; color:color-mix(in oklab, var(--ink) 82%, var(--muted) 18%); }
