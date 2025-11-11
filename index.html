@@ -333,10 +333,20 @@
       <div class="bar female" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Female" aria-describedby="meterHint">
         <span class="label" data-i18n="realtime.meter.feminine">Feminine（女性化）</span>
         <span class="value" id="femaleVal">0.0%</span>
+        <div class="bar-scale" aria-hidden="true">
+          <span class="bar-scale__label bar-scale__label--start" data-i18n="analysis.meter.scale.zero">0%</span>
+          <span class="bar-scale__label bar-scale__label--mid" data-i18n="analysis.meter.scale.mid">50%</span>
+          <span class="bar-scale__label bar-scale__label--end" data-i18n="analysis.meter.scale.full">100%</span>
+        </div>
       </div>
       <div class="bar male" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Male" aria-describedby="meterHint">
         <span class="label" data-i18n="realtime.meter.masculine">Masculine（男性化）</span>
         <span class="value" id="maleVal">0.0%</span>
+        <div class="bar-scale" aria-hidden="true">
+          <span class="bar-scale__label bar-scale__label--start" data-i18n="analysis.meter.scale.zero">0%</span>
+          <span class="bar-scale__label bar-scale__label--mid" data-i18n="analysis.meter.scale.mid">50%</span>
+          <span class="bar-scale__label bar-scale__label--end" data-i18n="analysis.meter.scale.full">100%</span>
+        </div>
       </div>
       <p id="meterHint" class="meter-hint" data-i18n="analysis.meter.hint">0–40%：模型較少感知為該方向，可再練習共鳴與語調。40–60%：落在重疊帶，建議延長錄音或調整口型以取得穩定趨勢。60% 以上：模型明顯辨識為該方向，請記錄當下的支撐與感覺以便複製。</p>
     </section>
