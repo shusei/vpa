@@ -455,6 +455,12 @@ export default {
   analysis: {
     meter: {
       hint: "0–40%：模型較少感知為該方向，可再練習共鳴與語調。40–60%：落在重疊帶，建議延長錄音或調整口型以取得穩定趨勢。60% 以上：模型明顯辨識為該方向，請記錄當下的支撐與感覺以便複製。",
+      scale: {
+        zero: "0%",
+        forty: "40%",
+        sixty: "60%",
+        full: "100%",
+      },
     },
     resonanceBalance: {
       insufficient: { label: "資料不足", hint: "需要更多穩定語音才能估算共鳴分布。" },
