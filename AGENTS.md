@@ -11,7 +11,7 @@
 ## 目錄速查
 - `index.html`：唯一的頁面，含 UI 標記、ARIA 屬性與 `data-i18n` 標記。
 - `assets/app.js`：核心流程（載入模型、錄音／上傳處理、推論管線、統計與 UI 更新）。
-- `assets/js/`：以功能拆分的輔助模組（音訊工具、pitch 計算、主題 / DOM 操作、句庫練習 UI 等）。
+- `assets/js/`：以功能拆分的輔助模組（音訊工具、pitch 計算、主題 / DOM 操作、句庫練習 UI、進階面板折疊控制等）。
 - `assets/css/`：基礎樣式、佈局、元件與覆蓋層；維持既有的壓縮式格式（`property:value;`）。
 - `assets/data/`、`fixtures/`：示範資料與測試樣本。
 - `scripts/`、`tests/`：Node.js 驗證腳本與回歸檢查。
@@ -29,7 +29,7 @@
   - 針對使用者可恢復的情境，呼叫 `setStatus()` 或其他 UI 告知函式。
   - 無法復原的錯誤仍需記錄在主控台（`console.error(...)`）。
 - 操作 DOM 時統一透過 `assets/js/dom.js` 暴露的快取節點或輔助函式；新增節點時，先在該模組定義並保持命名一致。
-- UI 更新應透過既有的 `setStatus`／`setRealtimePanelsActive`／`reset*` 等工具函式，避免直接操作樣式屬性造成狀態失衡。
+- UI 更新應透過既有的 `setStatus`／`setRealtimePanelsActive`／`reset*` 等工具函式，避免直接操作樣式屬性造成狀態失衡。新增進階統計卡或 Beginner / Advanced 切換時，請沿用 `data-adv` 設定與 `setupAdvancedSection()` 所期望的屬性。
 - 調整或新增文字時務必使用 `t('key.path')`；若無對應條目，請在字典中新增多語翻譯並與現有結構一致。
 - 保持記錄與快取策略：
   - 若引入新的快取項目，沿用 `localStorage` 鍵名命名慣例（`vpa::` 前綴）。
