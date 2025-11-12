@@ -416,16 +416,19 @@ body.recording .status{
 .bar-header{ display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap; }
 .bar .label{ font-size:12px; color:color-mix(in oklab, var(--ink) 92%, var(--muted) 8%); flex:1 1 auto; min-width:120px; }
 .bar .value{ font-weight:800; font-size:20px; line-height:1; color:var(--ink); flex:0 0 auto; text-align:right; }
+html[data-faction="dark"] .bar .value{ color:#fff; }
 .bar-track{ position:relative; height:var(--meter-track-h); border-radius:999px; background:color-mix(in oklab, var(--panel) 82%, var(--muted) 18%); overflow:hidden; }
 .bar-track::before{ content:""; position:absolute; inset:0; background:linear-gradient(90deg, transparent 0 40%, color-mix(in oklab, var(--ink) 16%, transparent 84%) 40% 60%, transparent 60% 100%); opacity:.45; pointer-events:none; }
 .bar-track::after{ content:""; position:absolute; inset:0; width:calc(var(--p) * 100%); border-radius:inherit; background:linear-gradient(90deg, var(--female), var(--male)); box-shadow:0 0 0 1px color-mix(in oklab, var(--ink) 18%, transparent 82%); }
 .bar-scale{ position:relative; height:16px; font-size:11px; font-variant-numeric:tabular-nums; color:color-mix(in oklab, var(--ink) 80%, var(--muted) 20%); pointer-events:none; }
+html[data-faction="dark"] .bar-scale{ color:#fff; }
 .bar-scale__label{ position:absolute; top:0; transform:translateX(-50%); }
 .bar-scale__label--zero{ left:0; transform:none; text-align:left; }
 .bar-scale__label--forty{ left:40%; text-align:center; }
 .bar-scale__label--sixty{ left:60%; text-align:center; }
 .bar-scale__label--full{ left:100%; transform:translateX(-100%); text-align:right; }
 .meter-hint{ grid-column:1/-1; margin:2px 0 0; font-size:12px; line-height:1.6; color:color-mix(in oklab, var(--ink) 82%, var(--muted) 18%); }
+html[data-faction="dark"] .meter-hint{ color:#fff; }
 .pitch-wrap{ margin-top:14px; padding:12px; border-radius:16px; border:1px solid var(--panel-border);
   background:var(--panel); box-shadow:0 10px 24px rgba(0,0,0,.12); }
 .pitch-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; color:var(--ink); }
