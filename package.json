@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "npm run test:syntax && npm run test:markup && npm run test:ffmpeg && npm run test:decode && npm run test:phrases",
+    "start": "http-server -p 8080 -c-1",
+    "test": "npm run test:unit && npm run test:syntax && npm run test:markup && npm run test:ffmpeg && npm run test:decode && npm run test:phrases",
+    "test:unit": "node tests/unit-pitch-shared.js",
     "test:syntax": "node --check assets/app.js",
     "test:markup": "node scripts/check-static.js",
     "test:ffmpeg": "node tests/verify-ffmpeg-download.mjs",
@@ -12,5 +14,8 @@
     "test:phrases": "node tests/verify-phrases-core36.js",
     "regression": "node scripts/run-regression.js",
     "fetch:ffmpeg": "node scripts/download-ffmpeg-assets.mjs"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
   }
 }
