@@ -3,6 +3,7 @@
 > 100% 瀏覽器端推論的聲音呈現分析工具，從錄音或上傳的語音片段中推估模型感知到的 feminine / masculine 傾向，並提供即時監控與統計摘要。
 
 - Demo（GitHub Pages）：https://shusei.github.io/vpa
+- 演算法驗證報告：[ALGORITHM_VERIFICATION.md](./ALGORITHM_VERIFICATION.md)
 - 支援子路徑部署與離線使用（首次需連網下載模型，後續快取於 IndexedDB）
 - 前端語系：繁體中文／简体中文／English，可記住上一個偏好
 
