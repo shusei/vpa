@@ -385,7 +385,7 @@ export default {
     replayHintAction: "立即重播",
     replayHintSuffix: "。",
     replayHintAria: "重新播放剛才的聲音",
-    ariaPlay: "播放剛的聲音",
+    ariaPlay: "播放剛才的聲音",
     ariaPause: "暫停播放",
   },
   errors: {
