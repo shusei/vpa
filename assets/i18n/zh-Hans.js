@@ -62,6 +62,8 @@ export default {
     },
     lightGroup: "浅色模式",
     darkGroup: "深色模式",
+    themeLuxeGold: '<span class="swatch" style="background:#ffd700; box-shadow:0 0 5px #ffd700;"></span> 🏆 尊爵鎏金 (Luxe Gold)',
+    themePony2026: '<span class="swatch" style="background:linear-gradient(to right, #ff69b4, #87cefa);"></span> 🦄 2026 萌马 (Year of Pony)',
   },
   settings: {
     voiceProfile: {
@@ -354,6 +356,14 @@ export default {
       '<li><strong>安全：</strong>维持舒适音量与自然呼吸，若喉咙疼痛、沙哑或疲劳请休息并寻求专业协助。</li>',
       '</ul>',
       '</section>',
+      '<div class="help-author">',
+      '<img src="assets/avatar-shusei.jpg" alt="公子姐" class="help-author-img" loading="lazy" />',
+      '<div class="help-author-text">',
+      '<h4>关于作者：公子姐</h4>',
+      '<p>不管是写代码还是练伪音，都是一条充满探索的路。<br>如果您对 VPA 有任何建议，或想交流声音训练的心得，欢迎来我的 Instagram 找我！</p>',
+      '<a href="https://www.instagram.com/_gongzijie/" target="_blank" rel="noopener" class="help-social-link"><span class="icon-ig"></span> Follow on Instagram</a>',
+      '</div>',
+      '</div>',
       '<div class="help-support">',
       '<p class="help-support-note">觉得 VPA 有帮助吗？欢迎请作者喝杯咖啡，让项目能够持续维护与改进。</p>',
       '<a class="help-support-link" href="https://buymeacoffee.com/shusei" target="_blank" rel="noopener">',

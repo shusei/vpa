@@ -88,29 +88,30 @@ import {
   logPostProcessingDiagnostics,
 } from "./js/pitch-shared.js";
 import { setupPracticeUI, openPracticeCategory } from "./js/practice.js";
+import { initManualUI } from "./js/manual-ui.js";
 
 // ===== Advanced UI state & gauges =====
 const ADVANCED_MODE_KEY = "ui:advancedMode";           // "beginner" | "advanced"
 const ADV_DETAILS_KEY_PREFIX = "ui:advOpen:";          // per-section open memory
 const WARMUP_CARD_OPEN_KEY = "vpa::warmup.open";
 
-function getAdvancedMode(){
+function getAdvancedMode() {
   try { return localStorage.getItem(ADVANCED_MODE_KEY) || "beginner"; } catch { return "beginner"; }
 }
-function setAdvancedMode(mode){
-  try { localStorage.setItem(ADVANCED_MODE_KEY, mode); } catch {}
+function setAdvancedMode(mode) {
+  try { localStorage.setItem(ADVANCED_MODE_KEY, mode); } catch { }
 }
-function getDetailsOpen(id, fallbackOpen){
-  try{
+function getDetailsOpen(id, fallbackOpen) {
+  try {
     const raw = localStorage.getItem(ADV_DETAILS_KEY_PREFIX + id);
     return raw == null ? fallbackOpen : raw === "1";
-  }catch{ return fallbackOpen; }
+  } catch { return fallbackOpen; }
 }
-function setDetailsOpen(id, open){
-  try{ localStorage.setItem(ADV_DETAILS_KEY_PREFIX + id, open ? "1" : "0"); }catch{}
+function setDetailsOpen(id, open) {
+  try { localStorage.setItem(ADV_DETAILS_KEY_PREFIX + id, open ? "1" : "0"); } catch { }
 }
 
-function setupAdvancedSection(root){
+function setupAdvancedSection(root) {
   if (!root) return;
 
   const toggleBtn = root.querySelector("[data-adv-toggle]");
@@ -122,10 +123,10 @@ function setupAdvancedSection(root){
 
   // force: null=用記憶, "expand"=全部展開, "collapse"=全部收起
   // persist: 是否把這次結果寫回每塊的記憶
-  function applyMode(force, persist){
+  function applyMode(force, persist) {
     const mode = getAdvancedMode(); // "beginner" | "advanced"
     root.setAttribute("data-mode", mode);
-    if (toggleBtn){
+    if (toggleBtn) {
       toggleBtn.setAttribute("aria-pressed", mode === "advanced" ? "true" : "false");
       toggleBtn.textContent = labelFor(mode);
     }
@@ -148,7 +149,7 @@ function setupAdvancedSection(root){
   applyMode(null, false);
 
   // 一鍵切換：預設不覆蓋使用者記憶；按住 Shift/Alt 可「順便寫入記憶」
-  if (toggleBtn){
+  if (toggleBtn) {
     toggleBtn.addEventListener("click", (ev) => {
       const next = getAdvancedMode() === "advanced" ? "beginner" : "advanced";
       setAdvancedMode(next);
@@ -160,13 +161,13 @@ function setupAdvancedSection(root){
   }
 
   // 使用者手動展開/收起某一塊時，更新該塊的記憶
-  root.querySelectorAll("details[data-adv], details.adv-details, details.adv").forEach(d=>{
+  root.querySelectorAll("details[data-adv], details.adv-details, details.adv").forEach(d => {
     const key = d.getAttribute("data-adv") || "";
-    d.addEventListener("toggle", ()=> setDetailsOpen(key, d.open));
+    d.addEventListener("toggle", () => setDetailsOpen(key, d.open));
   });
 
   // 語系切換時同步更新按鈕文案
-  if (typeof onLocaleChange === "function"){
+  if (typeof onLocaleChange === "function") {
     onLocaleChange(() => {
       if (toggleBtn) toggleBtn.textContent = labelFor(getAdvancedMode());
     });
@@ -175,22 +176,22 @@ function setupAdvancedSection(root){
 
 // Baseline ranges（保守預設，可按你的語料微調）
 const BASELINES = {
-  f1:  { min: 170,  max: 420,  unit: "Hz" },
-  f2:  { min: 1450, max: 2750, unit: "Hz" },
-  f3:  { min: 2400, max: 3400, unit: "Hz" },
-  tilt:{ min: -1,   max: 8,    unit: "dB", visualMin: -8,  visualMax: 10 },
-  breath:{ min: 8,   max: 18,   unit: "%", visualMin: 0,   visualMax: 60 },
-  syll:{ min: 3.2,  max: 5.2,  unit: "syll/s" },
-  wpm: { min: 120,  max: 180, unit: "wpm" },
-  liaison:{ min: 40,  max: 75,  unit: "%", visualMin: 0,   visualMax: 100 }
+  f1: { min: 170, max: 420, unit: "Hz" },
+  f2: { min: 1450, max: 2750, unit: "Hz" },
+  f3: { min: 2400, max: 3400, unit: "Hz" },
+  tilt: { min: -1, max: 8, unit: "dB", visualMin: -8, visualMax: 10 },
+  breath: { min: 8, max: 18, unit: "%", visualMin: 0, visualMax: 60 },
+  syll: { min: 3.2, max: 5.2, unit: "syll/s" },
+  wpm: { min: 120, max: 180, unit: "wpm" },
+  liaison: { min: 40, max: 75, unit: "%", visualMin: 0, visualMax: 100 }
 };
 
-function renderGauge(value, baseline, label){
+function renderGauge(value, baseline, label) {
   const { min, max, unit } = baseline;
   if (!Number.isFinite(value)) {
     return `<span class="gauge is-na" role="meter" aria-valuemin="${min}" aria-valuemax="${max}" aria-valuenow="0" aria-label="${escapeAttr(label)}">—</span>`;
   }
-  const clamp = (v,a,b)=> Math.min(b, Math.max(a, v));
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   const hasVisualRange = Number.isFinite(baseline.visualMin)
     && Number.isFinite(baseline.visualMax)
     && baseline.visualMax > baseline.visualMin;
@@ -210,7 +211,7 @@ function renderGauge(value, baseline, label){
 }
 
 // --- minimal helpers for advanced summary ---
-function escapeHtml(input){
+function escapeHtml(input) {
   if (input == null) return "";
   return String(input)
     .replace(/&/g, "&amp;")
@@ -221,11 +222,11 @@ function escapeHtml(input){
 }
 
 // fmt0：整數顯示用（aria-valuenow、區間標示等）
-function fmt0(x){
+function fmt0(x) {
   return Number.isFinite(x) ? Math.round(x) : 0;
 }
 
-function formatBaselineRange(baseline){
+function formatBaselineRange(baseline) {
   if (!baseline) return "—";
   const { min, max, unit = "" } = baseline;
   const safeMin = Number.isFinite(min) ? fmt0(min) : "—";
@@ -544,32 +545,32 @@ let playBtn = null,
   replayHintSuffixEl = null,
   replayHintSpacerNode = null;
 
-function updatePlayerCopy(forcePlaying){
+function updatePlayerCopy(forcePlaying) {
   const isPlaying = forcePlaying ?? (audioEl ? !audioEl.paused : false);
-  if (playBtn){
+  if (playBtn) {
     playBtn.textContent = t(isPlaying ? "player.pause" : "player.play");
     playBtn.setAttribute(
       "aria-label",
       t(isPlaying ? "player.ariaPause" : "player.ariaPlay")
     );
   }
-  if (playerHintEl){
-    if (replayHintPrefixEl){
+  if (playerHintEl) {
+    if (replayHintPrefixEl) {
       replayHintPrefixEl.textContent = t("player.replayHintPrefix");
     }
-    if (replayHintSpacerNode){
+    if (replayHintSpacerNode) {
       replayHintSpacerNode.textContent = t("player.replayHintSpacer");
     }
-    if (replayBtn){
+    if (replayBtn) {
       replayBtn.textContent = t("player.replayHintAction");
       replayBtn.setAttribute("aria-label", t("player.replayHintAria"));
     }
-    if (replayHintSuffixEl){
+    if (replayHintSuffixEl) {
       replayHintSuffixEl.textContent = t("player.replayHintSuffix");
     }
   }
 }
-function applyDbCalibration(rawDb){
+function applyDbCalibration(rawDb) {
   return { value: rawDb, mode: VOLUME_DISPLAY_MODE };
 }
 
@@ -581,13 +582,13 @@ let isRecording = false;
 
 const inferenceListeners = new Set();
 
-export function onInferenceDone(cb){
-  if (typeof cb !== "function") return () => {};
+export function onInferenceDone(cb) {
+  if (typeof cb !== "function") return () => { };
   inferenceListeners.add(cb);
   return () => inferenceListeners.delete(cb);
 }
 
-function notifyInferenceListeners(pf, pm){
+function notifyInferenceListeners(pf, pm) {
   if (!inferenceListeners.size) return;
   const payload = {
     pf: Number.isFinite(pf) ? pf : 0,
@@ -603,9 +604,9 @@ function notifyInferenceListeners(pf, pm){
 }
 
 export const recorderCtl = {
-  get isRecording(){ return isRecording; },
-  get busy(){ return busy; },
-  get hasLastRecording(){ return !!lastAudioUrl; },
+  get isRecording() { return isRecording; },
+  get busy() { return busy; },
+  get hasLastRecording() { return !!lastAudioUrl; },
   getLastRecordingUrl: () => lastAudioUrl,
   start: () => startRecording(),
   stop: () => stopRecording(),
@@ -617,28 +618,28 @@ const RECORDING_TIMER_INTERVAL_MS = 250;
 let recordingTimerStartMs = 0;
 let recordingTimerInterval = null;
 
-function formatRecordingTimer(ms){
+function formatRecordingTimer(ms) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-function startRecordingTimer(){
-  if (recordingTimerInterval !== null){
+function startRecordingTimer() {
+  if (recordingTimerInterval !== null) {
     clearInterval(recordingTimerInterval);
   }
   toggleStatusTimer(true);
   setStatusTimer(STATUS_TIMER_RESET);
   recordingTimerStartMs = nowMs();
-  recordingTimerInterval = setInterval(()=>{
+  recordingTimerInterval = setInterval(() => {
     const elapsedMs = nowMs() - recordingTimerStartMs;
     setStatusTimer(formatRecordingTimer(elapsedMs));
   }, RECORDING_TIMER_INTERVAL_MS);
 }
 
-function stopRecordingTimer(){
-  if (recordingTimerInterval !== null){
+function stopRecordingTimer() {
+  if (recordingTimerInterval !== null) {
     clearInterval(recordingTimerInterval);
     recordingTimerInterval = null;
   }
@@ -647,17 +648,18 @@ function stopRecordingTimer(){
 
 ensurePlayerUI();
 setupExportButton();
-try{
+try {
   await setupPracticeUI({ subscribeInference: onInferenceDone, recorder: recorderCtl });
-}catch(err){
+} catch (err) {
   console.error("[practice] init failed", err);
 }
 initWarmupCard();
+initManualUI();
 
 let analysisSeq = 0;
 let activeAnalysisToken = 0;
 
-function startAnalysisRun(){
+function startAnalysisRun() {
   analysisSeq += 1;
   activeAnalysisToken = analysisSeq;
   busy = true;
@@ -668,11 +670,11 @@ function startAnalysisRun(){
   return activeAnalysisToken;
 }
 
-function isAnalysisActive(token){
+function isAnalysisActive(token) {
   return token === activeAnalysisToken;
 }
 
-function finishAnalysisRun(token){
+function finishAnalysisRun(token) {
   if (!isAnalysisActive(token)) return false;
   busy = false;
   updateUploadAvailability();
@@ -681,13 +683,13 @@ function finishAnalysisRun(token){
   return true;
 }
 
-function updateUploadAvailability(){
+function updateUploadAvailability() {
   const disable = isRecording;
-  if (fileInput){
+  if (fileInput) {
     fileInput.disabled = disable;
   }
-  if (uploadFab){
-    if (disable){
+  if (uploadFab) {
+    if (disable) {
       uploadFab.setAttribute("disabled", "true");
       uploadFab.setAttribute("aria-disabled", "true");
     } else {
@@ -697,11 +699,11 @@ function updateUploadAvailability(){
   }
 }
 
-function updatePlaybackAvailability(){
+function updatePlaybackAvailability() {
   if (!playBtn) return;
   const hasSource = !!(audioEl && audioEl.src);
   const disable = !hasSource || isRecording || busy;
-  if (disable){
+  if (disable) {
     playBtn.setAttribute("disabled", "true");
     playBtn.setAttribute("aria-disabled", "true");
   } else {
@@ -710,10 +712,10 @@ function updatePlaybackAvailability(){
   }
 }
 
-function updateRecordAvailability(){
+function updateRecordAvailability() {
   if (!recordBtn) return;
   const disable = busy && !isRecording;
-  if (disable){
+  if (disable) {
     recordBtn.setAttribute("disabled", "true");
     recordBtn.setAttribute("aria-disabled", "true");
   } else {
@@ -722,21 +724,21 @@ function updateRecordAvailability(){
   }
 }
 
-function initWarmupCard(){
+function initWarmupCard() {
   if (!warmupCard) return;
   let defaultOpen = true;
-  try{
+  try {
     const raw = localStorage.getItem(WARMUP_CARD_OPEN_KEY);
     if (raw === "1") defaultOpen = true;
     else if (raw === "0") defaultOpen = false;
-  }catch{}
+  } catch { }
   warmupCard.open = defaultOpen;
   warmupCard.setAttribute("aria-expanded", warmupCard.open ? "true" : "false");
   warmupCard.addEventListener("toggle", () => {
     warmupCard.setAttribute("aria-expanded", warmupCard.open ? "true" : "false");
-    try{
+    try {
       localStorage.setItem(WARMUP_CARD_OPEN_KEY, warmupCard.open ? "1" : "0");
-    }catch{}
+    } catch { }
   });
 }
 
@@ -745,9 +747,9 @@ updatePlaybackAvailability();
 updateRecordAvailability();
 
 // Pitch Stream 狀態
-let psCtx=null, psSrc=null, psProc=null;
-let psRAF=null, psRunning=false;
-let psHz=[], psHzSmooth=[], psDb=[], psVoiced=[], psConfidence=[]; // 50ms/點
+let psCtx = null, psSrc = null, psProc = null;
+let psRAF = null, psRunning = false;
+let psHz = [], psHzSmooth = [], psDb = [], psVoiced = [], psConfidence = []; // 50ms/點
 const psRealtimeNoiseTracker = makeNoiseTracker();
 const psOfflineNoiseTracker = makeNoiseTracker();
 const PITCH_RANGE_KEY = "vpa:pitchRangeHz";
@@ -810,115 +812,115 @@ const pitchStrategies = {
   yin: { key: "yin", label: "YIN-lite", detect: detectPitchYinLite },
 };
 
-function loadIntonationRawPreference(){
+function loadIntonationRawPreference() {
   if (typeof window === "undefined" || !window.localStorage) return true;
-  try{
+  try {
     const raw = window.localStorage.getItem(INTONATION_RAW_KEY);
     if (raw == null) return true;
     return raw === "true" || raw === "1";
-  }catch{
+  } catch {
     return true;
   }
 }
 
-function saveIntonationRawPreference(flag){
+function saveIntonationRawPreference(flag) {
   showIntonationRawPoints = Boolean(flag);
   if (typeof window === "undefined" || !window.localStorage) return;
-  try{
+  try {
     window.localStorage.setItem(INTONATION_RAW_KEY, showIntonationRawPoints ? "true" : "false");
-  }catch{}
+  } catch { }
 }
 
 showIntonationRawPoints = loadIntonationRawPreference();
 
-function loadPitchProfileSetting(){
-  try{
+function loadPitchProfileSetting() {
+  try {
     const raw = localStorage.getItem(PITCH_PROFILE_KEY);
     if (!raw) return PITCH_PROFILE_DEFAULT;
     if (raw === "custom") return "custom";
     if (raw in VOICE_PRESETS) return raw;
     return PITCH_PROFILE_DEFAULT;
-  }catch{
+  } catch {
     return PITCH_PROFILE_DEFAULT;
   }
 }
 
-function savePitchProfileSetting(profile){
+function savePitchProfileSetting(profile) {
   pitchProfileSetting = profile;
   if (typeof window === "undefined" || !window.localStorage) return;
-  try{ window.localStorage.setItem(PITCH_PROFILE_KEY, profile); }catch{}
+  try { window.localStorage.setItem(PITCH_PROFILE_KEY, profile); } catch { }
 }
 
-function loadPitchRangeSetting(){
-  try{
+function loadPitchRangeSetting() {
+  try {
     const raw = localStorage.getItem(PITCH_RANGE_KEY);
     if (!raw) return { ...DEFAULT_PITCH_RANGE };
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return { ...DEFAULT_PITCH_RANGE };
     return clampPitchRange(parsed);
-  }catch{
+  } catch {
     return { ...DEFAULT_PITCH_RANGE };
   }
 }
 
-function savePitchRangeSetting(range){
+function savePitchRangeSetting(range) {
   pitchRangeSetting = clampPitchRange(range || DEFAULT_PITCH_RANGE);
-  if (pitchProfileSetting !== "auto"){
-    try{ localStorage.setItem(PITCH_RANGE_KEY, JSON.stringify(pitchRangeSetting)); }catch{}
+  if (pitchProfileSetting !== "auto") {
+    try { localStorage.setItem(PITCH_RANGE_KEY, JSON.stringify(pitchRangeSetting)); } catch { }
   }
   updatePitchRangeInputs();
   return pitchRangeSetting;
 }
 
-function getPitchProfileDisplayRange(){
-  if (pitchProfileSetting === "auto"){
+function getPitchProfileDisplayRange() {
+  if (pitchProfileSetting === "auto") {
     return clampPitchRange(autoRangeState.currentRange || VOICE_PRESETS.neutral);
   }
-  if (pitchProfileSetting && pitchProfileSetting in VOICE_PRESETS){
+  if (pitchProfileSetting && pitchProfileSetting in VOICE_PRESETS) {
     const preset = VOICE_PRESETS[pitchProfileSetting];
     if (preset) return clampPitchRange(preset);
   }
   return clampPitchRange(pitchRangeSetting || DEFAULT_PITCH_RANGE);
 }
 
-function getPitchDetectorRange(){
-  if (pitchProfileSetting === "auto"){
-    if (autoRangeState.stage === "bootstrap"){
+function getPitchDetectorRange() {
+  if (pitchProfileSetting === "auto") {
+    if (autoRangeState.stage === "bootstrap") {
       return clampPitchRange(AUTO_WIDE_RANGE);
     }
     return clampPitchRange(autoRangeState.currentRange || VOICE_PRESETS.neutral);
   }
-  if (pitchProfileSetting && pitchProfileSetting in VOICE_PRESETS){
+  if (pitchProfileSetting && pitchProfileSetting in VOICE_PRESETS) {
     const preset = VOICE_PRESETS[pitchProfileSetting];
     if (preset) return clampPitchRange(preset);
   }
   return clampPitchRange(pitchRangeSetting || DEFAULT_PITCH_RANGE);
 }
 
-function updatePitchProfileControls(){
+function updatePitchProfileControls() {
   const isAuto = pitchProfileSetting === "auto";
   const activePreset = !isAuto && pitchProfileSetting !== "custom" ? pitchProfileSetting : null;
-  voiceProfileButtons.forEach((btn)=>{
+  voiceProfileButtons.forEach((btn) => {
     if (!btn) return;
     const profile = btn.dataset?.profile;
     const pressed = profile === "auto" ? isAuto : (profile === activePreset);
     btn.setAttribute("aria-pressed", pressed ? "true" : "false");
   });
-  if (voiceSettingsContainer){
+  if (voiceSettingsContainer) {
     voiceSettingsContainer.classList.toggle("is-auto", isAuto);
   }
-  if (pitchMinInput){
+  if (pitchMinInput) {
     pitchMinInput.disabled = isAuto;
     if (isAuto) pitchMinInput.setAttribute("aria-disabled", "true");
     else pitchMinInput.removeAttribute("aria-disabled");
   }
-  if (pitchMaxInput){
+  if (pitchMaxInput) {
     pitchMaxInput.disabled = isAuto;
     if (isAuto) pitchMaxInput.setAttribute("aria-disabled", "true");
     else pitchMaxInput.removeAttribute("aria-disabled");
   }
-  if (pitchRangeResetBtn){
-    if (isAuto){
+  if (pitchRangeResetBtn) {
+    if (isAuto) {
       pitchRangeResetBtn.setAttribute("disabled", "true");
       pitchRangeResetBtn.setAttribute("aria-disabled", "true");
     } else {
@@ -928,26 +930,26 @@ function updatePitchProfileControls(){
   }
 }
 
-function updatePitchRangeInputs(){
+function updatePitchRangeInputs() {
   const range = getPitchProfileDisplayRange();
-  if (pitchMinInput){ pitchMinInput.value = Math.round(range.min); }
-  if (pitchMaxInput){ pitchMaxInput.value = Math.round(range.max); }
+  if (pitchMinInput) { pitchMinInput.value = Math.round(range.min); }
+  if (pitchMaxInput) { pitchMaxInput.value = Math.round(range.max); }
 }
 
-function refreshVoiceProfileUI(){
+function refreshVoiceProfileUI() {
   updatePitchProfileControls();
   updatePitchRangeInputs();
 }
 
-function applyVoiceProfile(profile){
+function applyVoiceProfile(profile) {
   if (!profile) return;
-  if (profile === "auto"){
+  if (profile === "auto") {
     savePitchProfileSetting("auto");
     startAutoRangeSession({ preserveRange: false });
     refreshVoiceProfileUI();
     return;
   }
-  if (profile in VOICE_PRESETS && profile !== "auto"){
+  if (profile in VOICE_PRESETS && profile !== "auto") {
     const preset = VOICE_PRESETS[profile];
     savePitchProfileSetting(profile);
     autoRangeState.stage = "idle";
@@ -956,22 +958,22 @@ function applyVoiceProfile(profile){
     refreshVoiceProfileUI();
     return;
   }
-  if (profile === "custom"){
+  if (profile === "custom") {
     savePitchProfileSetting("custom");
     autoRangeState.stage = "idle";
     refreshVoiceProfileUI();
   }
 }
 
-function initPitchRangeControls(){
+function initPitchRangeControls() {
   pitchMinInput = document.getElementById("pitchMinInput");
   pitchMaxInput = document.getElementById("pitchMaxInput");
   pitchRangeResetBtn = document.getElementById("pitchRangeReset");
   voiceSettingsContainer = document.querySelector(".voice-settings");
   voiceProfileButtons = Array.from(document.querySelectorAll("[data-profile]"));
 
-  voiceProfileButtons.forEach((btn)=>{
-    btn?.addEventListener("click", ()=>{
+  voiceProfileButtons.forEach((btn) => {
+    btn?.addEventListener("click", () => {
       const profile = btn.dataset?.profile;
       if (!profile) return;
       if (profile === pitchProfileSetting && profile !== "auto") return;
@@ -979,7 +981,7 @@ function initPitchRangeControls(){
     });
   });
 
-  const applyChange = ()=>{
+  const applyChange = () => {
     const minVal = Number(pitchMinInput?.value);
     const maxVal = Number(pitchMaxInput?.value);
     const next = clampPitchRange({
@@ -994,17 +996,17 @@ function initPitchRangeControls(){
 
   pitchMinInput?.addEventListener("change", applyChange);
   pitchMaxInput?.addEventListener("change", applyChange);
-  pitchRangeResetBtn?.addEventListener("click", ()=>{
+  pitchRangeResetBtn?.addEventListener("click", () => {
     applyVoiceProfile("neutral");
   });
 
-  if (pitchProfileSetting === "auto"){
+  if (pitchProfileSetting === "auto") {
     startAutoRangeSession({ preserveRange: true });
   }
   refreshVoiceProfileUI();
 }
 
-function resetAutoWatchdogs(){
+function resetAutoWatchdogs() {
   autoRangeState.windowFrames.length = 0;
   autoRangeState.windowMs = 0;
   autoRangeState.windowInvalidMs = 0;
@@ -1012,8 +1014,8 @@ function resetAutoWatchdogs(){
   autoRangeState.prevOctaveCount = Number(pitchPostState.counters?.octaveCorrected || 0);
 }
 
-function startAutoRangeSession({ preserveRange = false } = {}){
-  if (pitchProfileSetting !== "auto"){
+function startAutoRangeSession({ preserveRange = false } = {}) {
+  if (pitchProfileSetting !== "auto") {
     autoRangeState.stage = "idle";
     autoRangeState.sampleValues.length = 0;
     autoRangeState.sampleDurationMs = 0;
@@ -1026,7 +1028,7 @@ function startAutoRangeSession({ preserveRange = false } = {}){
   autoRangeState.sampleDurationMs = 0;
   autoRangeState.timelineMs = 0;
   autoRangeState.lastUpdateMs = 0;
-  if (!preserveRange){
+  if (!preserveRange) {
     autoRangeState.currentRange = clampPitchRange(VOICE_PRESETS.neutral);
     autoRangeState.lastMedian = null;
   }
@@ -1034,7 +1036,7 @@ function startAutoRangeSession({ preserveRange = false } = {}){
   updatePitchRangeInputs();
 }
 
-function deriveAutoRange(median){
+function deriveAutoRange(median) {
   const rawMin = Math.round(median * 0.6);
   const rawMax = Math.round(median * 1.6);
   const min = Math.max(PITCH_RANGE_HARD.min, Math.min(PITCH_RANGE_HARD.max - 20, rawMin));
@@ -1042,14 +1044,14 @@ function deriveAutoRange(median){
   return { min, max };
 }
 
-function finalizeAutoBootstrap(){
+function finalizeAutoBootstrap() {
   const values = autoRangeState.sampleValues.slice();
   autoRangeState.sampleValues.length = 0;
   autoRangeState.sampleDurationMs = 0;
 
   let median = NaN;
-  if (values.length >= AUTO_MIN_VALID_FRAMES){
-    values.sort((a,b)=>a-b);
+  if (values.length >= AUTO_MIN_VALID_FRAMES) {
+    values.sort((a, b) => a - b);
     median = values[Math.floor(values.length / 2)];
   }
 
@@ -1060,15 +1062,15 @@ function finalizeAutoBootstrap(){
 
   const hadMedian = Number.isFinite(autoRangeState.lastMedian);
   let shouldApply = !hadMedian || !Number.isFinite(median);
-  if (!shouldApply && hadMedian){
+  if (!shouldApply && hadMedian) {
     const lower = autoRangeState.lastMedian * AUTO_HYSTERESIS_DOWN;
     const upper = autoRangeState.lastMedian * AUTO_HYSTERESIS_UP;
-    if (nextMedian < lower || nextMedian > upper){
+    if (nextMedian < lower || nextMedian > upper) {
       shouldApply = true;
     }
   }
 
-  if (shouldApply){
+  if (shouldApply) {
     autoRangeState.currentRange = clampPitchRange(nextRange);
     autoRangeState.lastMedian = nextMedian;
     autoRangeState.lastUpdateMs = autoRangeState.timelineMs;
@@ -1079,7 +1081,7 @@ function finalizeAutoBootstrap(){
   updatePitchRangeInputs();
 }
 
-function triggerAutoRangeRefresh(){
+function triggerAutoRangeRefresh() {
   if (pitchProfileSetting !== "auto") return;
   if (autoRangeState.stage === "bootstrap") return;
   autoRangeState.stage = "bootstrap";
@@ -1088,7 +1090,7 @@ function triggerAutoRangeRefresh(){
   resetAutoWatchdogs();
 }
 
-function handleAutoRangeFrame(result, { dtMs = PS_INTERVAL_MS } = {}){
+function handleAutoRangeFrame(result, { dtMs = PS_INTERVAL_MS } = {}) {
   if (pitchProfileSetting !== "auto") return;
   if (autoRangeState.stage === "idle") return;
 
@@ -1099,12 +1101,12 @@ function handleAutoRangeFrame(result, { dtMs = PS_INTERVAL_MS } = {}){
   const confidence = Number.isFinite(result?.confidence) ? result.confidence : 0;
   const isValid = Number.isFinite(processed) && confidence >= CONFIDENCE_INCLUDE_THRESHOLD;
 
-  if (autoRangeState.stage === "bootstrap"){
+  if (autoRangeState.stage === "bootstrap") {
     autoRangeState.sampleDurationMs += dt;
-    if (isValid){
+    if (isValid) {
       autoRangeState.sampleValues.push(processed);
     }
-    if (autoRangeState.sampleDurationMs >= AUTO_SAMPLE_MS){
+    if (autoRangeState.sampleDurationMs >= AUTO_SAMPLE_MS) {
       finalizeAutoBootstrap();
     }
     return;
@@ -1114,7 +1116,7 @@ function handleAutoRangeFrame(result, { dtMs = PS_INTERVAL_MS } = {}){
   autoRangeState.windowMs += dt;
   if (!isValid) autoRangeState.windowInvalidMs += dt;
 
-  while (autoRangeState.windowFrames.length && autoRangeState.windowMs > AUTO_REEVAL_WINDOW_MS){
+  while (autoRangeState.windowFrames.length && autoRangeState.windowMs > AUTO_REEVAL_WINDOW_MS) {
     const head = autoRangeState.windowFrames.shift();
     autoRangeState.windowMs -= head.dt;
     if (head.invalid) autoRangeState.windowInvalidMs -= head.dt;
@@ -1122,30 +1124,30 @@ function handleAutoRangeFrame(result, { dtMs = PS_INTERVAL_MS } = {}){
     autoRangeState.windowInvalidMs = Math.max(0, autoRangeState.windowInvalidMs);
   }
 
-  if (autoRangeState.windowMs >= AUTO_REEVAL_WINDOW_MS * 0.9){
+  if (autoRangeState.windowMs >= AUTO_REEVAL_WINDOW_MS * 0.9) {
     const ratio = autoRangeState.windowInvalidMs / Math.max(autoRangeState.windowMs, 1);
-    if (ratio > AUTO_INVALID_RATIO_LIMIT){
+    if (ratio > AUTO_INVALID_RATIO_LIMIT) {
       triggerAutoRangeRefresh();
       return;
     }
   }
 
   const currentOctave = Number(pitchPostState.counters?.octaveCorrected || 0);
-  if (currentOctave < autoRangeState.prevOctaveCount){
+  if (currentOctave < autoRangeState.prevOctaveCount) {
     autoRangeState.prevOctaveCount = currentOctave;
     autoRangeState.octaveEvents.length = 0;
-  } else if (currentOctave > autoRangeState.prevOctaveCount){
+  } else if (currentOctave > autoRangeState.prevOctaveCount) {
     const diff = currentOctave - autoRangeState.prevOctaveCount;
     autoRangeState.octaveEvents.push({ time: autoRangeState.timelineMs, count: diff });
     autoRangeState.prevOctaveCount = currentOctave;
   }
 
-  while (autoRangeState.octaveEvents.length && (autoRangeState.timelineMs - autoRangeState.octaveEvents[0].time) > AUTO_REEVAL_WINDOW_MS){
+  while (autoRangeState.octaveEvents.length && (autoRangeState.timelineMs - autoRangeState.octaveEvents[0].time) > AUTO_REEVAL_WINDOW_MS) {
     autoRangeState.octaveEvents.shift();
   }
 
-  const octaveSum = autoRangeState.octaveEvents.reduce((acc, evt)=> acc + (evt?.count || 0), 0);
-  if (octaveSum > AUTO_OCTAVE_SPIKE_LIMIT){
+  const octaveSum = autoRangeState.octaveEvents.reduce((acc, evt) => acc + (evt?.count || 0), 0);
+  if (octaveSum > AUTO_OCTAVE_SPIKE_LIMIT) {
     triggerAutoRangeRefresh();
     return;
   }
@@ -1193,27 +1195,27 @@ let trimPitchBuffersTimer = null;
 let pitchAutoRetryTimer = null;
 const pitchRetryTimers = new Set();
 
-function registerPitchRetryTimer(id){
+function registerPitchRetryTimer(id) {
   if (id == null) return null;
   pitchRetryTimers.add(id);
   pitchAutoRetryTimer = id;
   return id;
 }
 
-function releasePitchRetryTimer(id){
+function releasePitchRetryTimer(id) {
   if (id == null) return;
-  if (pitchRetryTimers.has(id)){
+  if (pitchRetryTimers.has(id)) {
     pitchRetryTimers.delete(id);
   }
-  if (pitchAutoRetryTimer === id){
+  if (pitchAutoRetryTimer === id) {
     pitchAutoRetryTimer = null;
   }
 }
 
-function cancelPitchAutoRetryTimers(){
+function cancelPitchAutoRetryTimers() {
   if (!pitchRetryTimers.size) return;
   const clearFn = typeof clearTimeout === "function" ? clearTimeout : null;
-  for (const handle of pitchRetryTimers){
+  for (const handle of pitchRetryTimers) {
     if (clearFn) clearFn(handle);
   }
   pitchRetryTimers.clear();
@@ -1222,26 +1224,26 @@ function cancelPitchAutoRetryTimers(){
 
 initializePitchStrategy();
 
-function nowMs(){
+function nowMs() {
   try {
     if (typeof performance !== "undefined" && performance?.now) {
       return performance.now();
     }
-  } catch {}
+  } catch { }
   return Date.now();
 }
 
-function initializePitchStrategy(){
+function initializePitchStrategy() {
   try {
     const preferred = selectPreferredPitchStrategy("initial");
     switchPitchStrategy(preferred, "initial");
-  } catch (err){
+  } catch (err) {
     console.warn("[pitch] initialize failed", err);
     switchPitchStrategy(pitchStrategies.acf, "initial-fallback");
   }
 }
 
-function switchPitchStrategy(strategy, reason){
+function switchPitchStrategy(strategy, reason) {
   const next = strategy || pitchStrategies.acf;
   if (pitchStrategyState.activeKey === next.key) return;
   pitchStrategyState.activeKey = next.key;
@@ -1249,7 +1251,7 @@ function switchPitchStrategy(strategy, reason){
   pitchStrategyState.lastSwitch = nowMs();
   pitchStrategyState.lastOverBudget = 0;
   pitchStrategyState.runtimeEwma = 0;
-  if (next.key === "yin"){
+  if (next.key === "yin") {
     cancelPitchBufferTrimTimer();
     cancelPitchAutoRetryTimers();
   }
@@ -1260,17 +1262,17 @@ function switchPitchStrategy(strategy, reason){
   }
 }
 
-function getActivePitchStrategy(){
+function getActivePitchStrategy() {
   return pitchStrategies[pitchStrategyState.activeKey] || pitchStrategies.acf;
 }
 
-function maybeEnableAdvancedPitch(context, { allowRetry = false, force = false } = {}){
+function maybeEnableAdvancedPitch(context, { allowRetry = false, force = false } = {}) {
   const active = getActivePitchStrategy();
   if (!force && active.key !== "acf") return;
 
   const now = nowMs();
-  if (!force){
-    if (pitchStrategyState.lockUntil && now < pitchStrategyState.lockUntil){
+  if (!force) {
+    if (pitchStrategyState.lockUntil && now < pitchStrategyState.lockUntil) {
       if (!allowRetry) return;
       const reason = pitchStrategyState.lockReason;
       const lockDuration = pitchStrategyState.lockDuration || PITCH_RETRY_COOLDOWN_MS;
@@ -1288,7 +1290,7 @@ function maybeEnableAdvancedPitch(context, { allowRetry = false, force = false }
   const preferred = selectPreferredPitchStrategy(context);
   if (preferred.key === active.key && !force) return;
   switchPitchStrategy(preferred, context ? `${context}-enable` : "enable");
-  if (preferred.key === "yin"){
+  if (preferred.key === "yin") {
     pitchStrategyState.lockUntil = 0;
     pitchStrategyState.lockReason = null;
     pitchStrategyState.lockReasonDetail = null;
@@ -1300,7 +1302,7 @@ function maybeEnableAdvancedPitch(context, { allowRetry = false, force = false }
   }
 }
 
-function degradePitchStrategy(reason, { cooldownMs, detail, context } = {}){
+function degradePitchStrategy(reason, { cooldownMs, detail, context } = {}) {
   if (pitchStrategyState.activeKey === "acf") return;
   const now = nowMs();
   const requestedCooldown = Number.isFinite(cooldownMs)
@@ -1310,7 +1312,7 @@ function degradePitchStrategy(reason, { cooldownMs, detail, context } = {}){
   clearPitchAutoRetry();
 
   let timeout;
-  if (reason === "error"){
+  if (reason === "error") {
     const guard = Math.max(3500, Math.min(PITCH_RETRY_ERROR_GUARD_MS, requestedCooldown));
     timeout = guard;
     pitchStrategyState.autoRetryUntil = now + Math.max(requestedCooldown, guard + 4000);
@@ -1327,42 +1329,42 @@ function degradePitchStrategy(reason, { cooldownMs, detail, context } = {}){
   pitchStrategyState.lockContext = context || null;
   schedulePitchBufferTrim();
   const logReason = detail ? `${reason || "degraded"}:${detail}` : (reason || "degraded");
-  if (reason === "error"){
+  if (reason === "error") {
     schedulePitchAutoRetry("error");
   }
   switchPitchStrategy(pitchStrategies.acf, logReason);
 }
 
-function clearPitchAutoRetry({ resetWindow = true } = {}){
+function clearPitchAutoRetry({ resetWindow = true } = {}) {
   cancelPitchAutoRetryTimers();
-  if (resetWindow){
+  if (resetWindow) {
     pitchStrategyState.autoRetryUntil = 0;
   }
 }
 
-function schedulePitchAutoRetry(reason){
+function schedulePitchAutoRetry(reason) {
   if (typeof setTimeout !== "function") return;
   if (!pitchStrategyState.autoRetryUntil) return;
 
   let pendingTimer = null;
 
-  function scheduleNext(delay){
+  function scheduleNext(delay) {
     if (typeof setTimeout !== "function") return null;
     pendingTimer = registerPitchRetryTimer(setTimeout(attempt, delay));
     return pendingTimer;
   }
 
-  function attempt(){
-    if (pendingTimer != null){
+  function attempt() {
+    if (pendingTimer != null) {
       releasePitchRetryTimer(pendingTimer);
       pendingTimer = null;
     }
     const now = nowMs();
-    if (pitchStrategyState.lockReason !== reason){
+    if (pitchStrategyState.lockReason !== reason) {
       clearPitchAutoRetry();
       return;
     }
-    if (pitchStrategyState.lockUntil && now + 50 < pitchStrategyState.lockUntil){
+    if (pitchStrategyState.lockUntil && now + 50 < pitchStrategyState.lockUntil) {
       const retryDelay = Math.max(
         800,
         Math.min(
@@ -1377,7 +1379,7 @@ function schedulePitchAutoRetry(reason){
     const contexts = pitchStrategyState.lockContext
       ? [pitchStrategyState.lockContext]
       : ["realtime", "offline"];
-    for (const ctx of contexts){
+    for (const ctx of contexts) {
       maybeEnableAdvancedPitch(ctx, { allowRetry: true });
     }
 
@@ -1386,7 +1388,7 @@ function schedulePitchAutoRetry(reason){
       pitchStrategyState.lockReason === reason &&
       pitchStrategyState.autoRetryUntil &&
       now < pitchStrategyState.autoRetryUntil
-    ){
+    ) {
       const nextDelay = Math.max(
         1500,
         Math.min(
@@ -1411,7 +1413,7 @@ function schedulePitchAutoRetry(reason){
   scheduleNext(initialDelay);
 }
 
-function selectPreferredPitchStrategy(context){
+function selectPreferredPitchStrategy(context) {
   const override = getPitchModeOverride();
   if (override === "force-baseline") return pitchStrategies.acf;
   if (override === "force-advanced") return pitchStrategies.yin;
@@ -1427,18 +1429,18 @@ function selectPreferredPitchStrategy(context){
   const ratio = lockDuration > 0 ? elapsed / lockDuration : 1;
   const runtimePenalty =
     stillCooling &&
-    pitchStrategyState.lockReason === "runtime" &&
-    ratio < (context === "offline" ? 0.35 : 0.5)
+      pitchStrategyState.lockReason === "runtime" &&
+      ratio < (context === "offline" ? 0.35 : 0.5)
       ? 1
       : 0;
   const allowMobileAdvanced = info.isMobile && info.score >= 7 && !info.lowPowerMode;
   const allowDesktopAdvanced = !info.isMobile && info.score >= 5;
 
-  if ((allowMobileAdvanced || allowDesktopAdvanced) && runtimePenalty === 0){
+  if ((allowMobileAdvanced || allowDesktopAdvanced) && runtimePenalty === 0) {
     return pitchStrategies.yin;
   }
 
-  if ((allowMobileAdvanced || allowDesktopAdvanced) && runtimePenalty && contextHint){
+  if ((allowMobileAdvanced || allowDesktopAdvanced) && runtimePenalty && contextHint) {
     return pitchStrategies.yin;
   }
 
@@ -1446,16 +1448,16 @@ function selectPreferredPitchStrategy(context){
   return pitchStrategies.acf;
 }
 
-function getPitchModeOverride(){
+function getPitchModeOverride() {
   try {
     if (typeof localStorage === "undefined") return null;
     const val = localStorage.getItem("vpa:pitchMode");
     if (val === "force-baseline" || val === "force-advanced") return val;
-  } catch {}
+  } catch { }
   return null;
 }
 
-function estimateDeviceTier(){
+function estimateDeviceTier() {
   const nav = typeof navigator !== "undefined" ? navigator : {};
   const uaData = nav.userAgentData || null;
   const rawUa = nav.userAgent || "";
@@ -1466,8 +1468,8 @@ function estimateDeviceTier(){
   const saveData = !!nav?.connection?.saveData;
   const lowPowerMode = !!nav?.connection?.effectiveType && /2g|slow-2g/.test(nav.connection.effectiveType);
   let score = concurrency;
-  if (deviceMemory){ score += deviceMemory; }
-  if (!isMobile || isTablet){ score += 2; }
+  if (deviceMemory) { score += deviceMemory; }
+  if (!isMobile || isTablet) { score += 2; }
   if (typeof nav.gpu !== "undefined") score += 1.5;
   if (saveData) score -= 2;
   if (lowPowerMode) score -= 1;
@@ -1480,7 +1482,7 @@ function estimateDeviceTier(){
   return { isMobile: isMobile && !isTablet, isTablet, score, saveData, lowPowerMode };
 }
 
-function schedulePitchBufferTrim(){
+function schedulePitchBufferTrim() {
   if (typeof setTimeout !== "function") return;
   cancelPitchBufferTrimTimer();
   const now = nowMs();
@@ -1488,27 +1490,27 @@ function schedulePitchBufferTrim(){
     ? Math.max(0, pitchStrategyState.lockUntil - now)
     : 8000;
   const delay = Math.max(4000, Math.min(baseDelay, 15000));
-  trimPitchBuffersTimer = setTimeout(()=>{
+  trimPitchBuffersTimer = setTimeout(() => {
     if (getActivePitchStrategy().key !== "acf") return;
     if (pitchStrategyState.lockUntil && nowMs() < pitchStrategyState.lockUntil - 5000) return;
     trimYinBuffers();
   }, delay);
 }
 
-function cancelPitchBufferTrimTimer(){
-  if (trimPitchBuffersTimer){
+function cancelPitchBufferTrimTimer() {
+  if (trimPitchBuffersTimer) {
     clearTimeout(trimPitchBuffersTimer);
     trimPitchBuffersTimer = null;
   }
 }
 
-function trimYinBuffers(){
+function trimYinBuffers() {
   yinBuffers.x = new Float32Array(0);
   yinBuffers.diff = new Float32Array(0);
   yinBuffers.cmndf = new Float32Array(0);
 }
 
-function trackPitchRuntime(elapsedMs, strategy, context, frameSamples){
+function trackPitchRuntime(elapsedMs, strategy, context, frameSamples) {
   if (!strategy || strategy.key === "acf") return;
   const now = nowMs();
   const frameScale = frameSamples ? Math.min(3, Math.max(0.7, frameSamples / 2048)) : 1;
@@ -1525,9 +1527,9 @@ function trackPitchRuntime(elapsedMs, strategy, context, frameSamples){
     )
   );
 
-  if (elapsedMs <= adaptiveBudget){
-    if (pitchStrategyState.overBudgetStreak && pitchStrategyState.lastOverBudget){
-      if (now - pitchStrategyState.lastOverBudget > PITCH_RUNTIME_RECOVERY_MS){
+  if (elapsedMs <= adaptiveBudget) {
+    if (pitchStrategyState.overBudgetStreak && pitchStrategyState.lastOverBudget) {
+      if (now - pitchStrategyState.lastOverBudget > PITCH_RUNTIME_RECOVERY_MS) {
         pitchStrategyState.overBudgetStreak = Math.max(0, pitchStrategyState.overBudgetStreak - 1);
         if (!pitchStrategyState.overBudgetStreak) pitchStrategyState.lastOverBudget = 0;
       }
@@ -1537,7 +1539,7 @@ function trackPitchRuntime(elapsedMs, strategy, context, frameSamples){
 
   pitchStrategyState.overBudgetStreak += 1;
   pitchStrategyState.lastOverBudget = now;
-  if (pitchStrategyState.overBudgetStreak >= PITCH_RUNTIME_OVER_BUDGET_LIMIT){
+  if (pitchStrategyState.overBudgetStreak >= PITCH_RUNTIME_OVER_BUDGET_LIMIT) {
     const cooldown = context === "offline"
       ? Math.max(8000, PITCH_RETRY_COOLDOWN_MS / 2)
       : PITCH_RETRY_COOLDOWN_MS;
@@ -1545,7 +1547,7 @@ function trackPitchRuntime(elapsedMs, strategy, context, frameSamples){
   }
 }
 
-function runPitchDetection(input, sr, { context = "realtime" } = {}){
+function runPitchDetection(input, sr, { context = "realtime" } = {}) {
   const strategy = getActivePitchStrategy();
   const start = nowMs();
   try {
@@ -1553,13 +1555,13 @@ function runPitchDetection(input, sr, { context = "realtime" } = {}){
     const elapsed = nowMs() - start;
     trackPitchRuntime(elapsed, strategy, context, input?.length || 0);
     return hz;
-  } catch (err){
+  } catch (err) {
     console.error(`[pitch] ${strategy.key} failed`, err);
     degradePitchStrategy("error", { cooldownMs: PITCH_RETRY_ERROR_COOLDOWN_MS, context });
-    if (strategy.key !== "acf"){
+    if (strategy.key !== "acf") {
       try {
         return pitchStrategies.acf.detect(input, sr);
-      } catch (fallbackErr){
+      } catch (fallbackErr) {
         console.error("[pitch] fallback failed", fallbackErr);
       }
     }
@@ -1567,15 +1569,15 @@ function runPitchDetection(input, sr, { context = "realtime" } = {}){
   }
 }
 
-function ensureYinCapacity(n){
-  if (yinBuffers.x.length < n){
+function ensureYinCapacity(n) {
+  if (yinBuffers.x.length < n) {
     yinBuffers.x = new Float32Array(n);
   }
-  if (yinBuffers.diff.length < n+1){
-    yinBuffers.diff = new Float32Array(n+1);
+  if (yinBuffers.diff.length < n + 1) {
+    yinBuffers.diff = new Float32Array(n + 1);
   }
-  if (yinBuffers.cmndf.length < n+1){
-    yinBuffers.cmndf = new Float32Array(n+1);
+  if (yinBuffers.cmndf.length < n + 1) {
+    yinBuffers.cmndf = new Float32Array(n + 1);
   }
 }
 
@@ -1584,7 +1586,7 @@ let latestAnalysisExport = null;
 // 追蹤最新模型傾向（供簡評用）
 let lastPf = 0, lastPm = 0;
 
-function resetAnalysisOutputs(){
+function resetAnalysisOutputs() {
   resetMeter();
   resetRealtimePanels();
   lastPf = 0;
@@ -1593,75 +1595,75 @@ function resetAnalysisOutputs(){
   setLatestAnalysisExport(null);
 }
 
-function clearStreamStatsPanel(){
-  try{
+function clearStreamStatsPanel() {
+  try {
     const statsEl = document.getElementById("streamStats");
     if (statsEl) statsEl.innerHTML = "";
-  }catch{}
+  } catch { }
 }
 
 // ===== 版本資訊（build 與日期） =====
-(async function fillBuildMeta(){
-  try{
+(async function fillBuildMeta() {
+  try {
     const verEl = document.getElementById('ver'); const updEl = document.getElementById('updatedAt');
     if (!verEl && !updEl) return;
     const selfUrl = (import.meta && import.meta.url) ? import.meta.url : 'assets/app.js';
 
     let buildVersion = null;
-    try{
+    try {
       const resolved = new URL(selfUrl, window.location.href);
       buildVersion = resolved.searchParams.get('v');
-    }catch{}
+    } catch { }
     const hasMeaningfulVersion = typeof buildVersion === 'string' && buildVersion.length > 0 && !/^__.*__$/.test(buildVersion);
 
-    if (verEl && hasMeaningfulVersion){
+    if (verEl && hasMeaningfulVersion) {
       verEl.textContent = buildVersion;
     }
 
-    const res = await fetch(selfUrl, { method:'HEAD', cache:'no-store' });
-    let d=null; if(res.ok){ const lm=res.headers.get('last-modified'); if(lm) d=new Date(lm); }
-    if(!d || isNaN(d.getTime())) d=new Date();
-    const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
-    const hh=String(d.getHours()).padStart(2,'0'), mm=String(d.getMinutes()).padStart(2,'0');
+    const res = await fetch(selfUrl, { method: 'HEAD', cache: 'no-store' });
+    let d = null; if (res.ok) { const lm = res.headers.get('last-modified'); if (lm) d = new Date(lm); }
+    if (!d || isNaN(d.getTime())) d = new Date();
+    const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0'), mm = String(d.getMinutes()).padStart(2, '0');
     if (updEl) updEl.textContent = `${y}-${m}-${day}`;
     if (verEl && !hasMeaningfulVersion) verEl.textContent = `build-${y}${m}${day}-${hh}${mm}`;
-  }catch{}
+  } catch { }
 })();
 
 // ===== 事件 =====
-recordBtn?.addEventListener("click", async ()=>{
+recordBtn?.addEventListener("click", async () => {
   if (busy && !isRecording) return;
-  try{
-    if (!mediaRecorder || mediaRecorder.state==="inactive"){
+  try {
+    if (!mediaRecorder || mediaRecorder.state === "inactive") {
       resetMeter();
       await startRecording();
     } else {
       await stopRecording();
     }
-  }catch(err){ console.error("[recordBtn]", err); setStatus(t("status.recordFailed")); }
+  } catch (err) { console.error("[recordBtn]", err); setStatus(t("status.recordFailed")); }
 });
-fileInput?.addEventListener("change", async (e)=>{
-  if (isRecording){
+fileInput?.addEventListener("change", async (e) => {
+  if (isRecording) {
     setStatus(t("status.uploadWhileRecording"));
     if (e.target) e.target.value = "";
     return;
   }
-  try{
-    const f = e.target.files?.[0]; if(!f) return;
+  try {
+    const f = e.target.files?.[0]; if (!f) return;
     dismissOnboardTip(true);
     resetMeter();
     stopPlayback();
     await handleFileOrBlob(f, "upload");
     e.target.value = "";
-  }catch(err){ console.error("[fileInput]", err); setStatus(t("status.uploadFailed")); }
+  } catch (err) { console.error("[fileInput]", err); setStatus(t("status.uploadFailed")); }
 });
 
-uploadFab?.addEventListener("click", ()=>{
+uploadFab?.addEventListener("click", () => {
   if (isRecording) return;
-  if (typeof window !== "undefined" && typeof window.scrollTo === "function"){
-    try{
+  if (typeof window !== "undefined" && typeof window.scrollTo === "function") {
+    try {
       window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
-    }catch{
+    } catch {
       window.scrollTo(0, 0);
     }
   }
@@ -1671,62 +1673,62 @@ uploadFab?.addEventListener("click", ()=>{
 
 const dropZoneActiveClass = "dropzone-active";
 
-if (dropZone){
+if (dropZone) {
   let dropZoneDragDepth = 0;
 
-  const hasFilePayload = (event)=>{
+  const hasFilePayload = (event) => {
     if (!event?.dataTransfer) return false;
     const types = event.dataTransfer.types;
     if (!types) return false;
     return Array.from(types).includes("Files");
   };
 
-  const clearDropZoneHighlight = ()=>{
+  const clearDropZoneHighlight = () => {
     dropZoneDragDepth = 0;
     dropZone.classList.remove(dropZoneActiveClass);
   };
 
-  dropZone.addEventListener("dragenter", (event)=>{
+  dropZone.addEventListener("dragenter", (event) => {
     if (!hasFilePayload(event)) return;
     event.preventDefault();
     dropZoneDragDepth += 1;
     dropZone.classList.add(dropZoneActiveClass);
   });
 
-  dropZone.addEventListener("dragover", (event)=>{
+  dropZone.addEventListener("dragover", (event) => {
     if (!hasFilePayload(event)) return;
     event.preventDefault();
-    if (event.dataTransfer){
+    if (event.dataTransfer) {
       event.dataTransfer.dropEffect = isRecording ? "none" : "copy";
     }
     dropZone.classList.add(dropZoneActiveClass);
   });
 
-  dropZone.addEventListener("dragleave", (event)=>{
+  dropZone.addEventListener("dragleave", (event) => {
     if (!hasFilePayload(event)) return;
     event.preventDefault();
     dropZoneDragDepth = Math.max(0, dropZoneDragDepth - 1);
-    if (dropZoneDragDepth === 0){
+    if (dropZoneDragDepth === 0) {
       dropZone.classList.remove(dropZoneActiveClass);
     }
   });
 
-  dropZone.addEventListener("drop", async (event)=>{
+  dropZone.addEventListener("drop", async (event) => {
     if (!hasFilePayload(event)) return;
     event.preventDefault();
     clearDropZoneHighlight();
     const file = event.dataTransfer?.files?.[0];
     if (!file) return;
-    if (isRecording){
+    if (isRecording) {
       setStatus(t("status.uploadWhileRecording"));
       return;
     }
-    try{
+    try {
       dismissOnboardTip(true);
       resetMeter();
       stopPlayback();
       await handleFileOrBlob(file, "upload");
-    }catch(err){
+    } catch (err) {
       console.error("[dropZone]", err);
       setStatus(t("status.uploadFailed"));
     }
@@ -1737,32 +1739,32 @@ if (dropZone){
 }
 
 // ===== 錄音 =====
-function pickSupportedMime(){
-  const cands = ["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/ogg"];
-  try{ if(typeof MediaRecorder!=="undefined" && MediaRecorder.isTypeSupported){ for(const t of cands) if(MediaRecorder.isTypeSupported(t)) return t; } }catch{}
+function pickSupportedMime() {
+  const cands = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"];
+  try { if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported) { for (const t of cands) if (MediaRecorder.isTypeSupported(t)) return t; } } catch { }
   return "";
 }
-async function requestMicStream(){
-  const base = { audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false } };
-  const fallback = { audio:true };
+async function requestMicStream() {
+  const base = { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } };
+  const fallback = { audio: true };
   const getUserMedia = navigator?.mediaDevices?.getUserMedia?.bind(navigator.mediaDevices);
-  if (!getUserMedia){ throw new Error("record-unsupported"); }
-  const disableTrackProcessing = async (stream)=>{
-    try{
+  if (!getUserMedia) { throw new Error("record-unsupported"); }
+  const disableTrackProcessing = async (stream) => {
+    try {
       const tracks = stream?.getAudioTracks?.() || [];
-      await Promise.all(tracks.map(async (track)=>{
+      await Promise.all(tracks.map(async (track) => {
         if (!track?.applyConstraints) return;
-        try{
-          await track.applyConstraints({ echoCancellation:false, noiseSuppression:false, autoGainControl:false });
-        }catch(err){ console.warn("[audio track] disable processing failed", err); }
+        try {
+          await track.applyConstraints({ echoCancellation: false, noiseSuppression: false, autoGainControl: false });
+        } catch (err) { console.warn("[audio track] disable processing failed", err); }
       }));
-    }catch(err){ console.warn("[audio track] constraints traversal failed", err); }
+    } catch (err) { console.warn("[audio track] constraints traversal failed", err); }
   };
-  try{
+  try {
     const stream = await getUserMedia(base);
     await disableTrackProcessing(stream);
     return stream;
-  }catch(err){
+  } catch (err) {
     console.warn("[getUserMedia] preferred constraints failed", err);
   }
   const fallbackStream = await getUserMedia(fallback);
@@ -1770,15 +1772,15 @@ async function requestMicStream(){
   return fallbackStream;
 }
 
-async function startRecording(){
-  if (typeof MediaRecorder === "undefined"){ setStatus(t("status.recordUnsupported"), false); return; }
+async function startRecording() {
+  if (typeof MediaRecorder === "undefined") { setStatus(t("status.recordUnsupported"), false); return; }
   stopPlayback();
   let stream;
-  try{
+  try {
     stream = await requestMicStream();
-  }catch(err){
+  } catch (err) {
     console.error("[startRecording] getUserMedia failed", err);
-    if (err?.message === "record-unsupported"){
+    if (err?.message === "record-unsupported") {
       setStatus(t("status.recordUnsupported"), false);
     } else {
       setStatus(t("status.recordFailed"));
@@ -1795,43 +1797,43 @@ async function startRecording(){
   let rejectFinalData = null;
   let finalDataTimer = null;
 
-  const clearFinalDataTimer = ()=>{
-    if(finalDataTimer !== null){
+  const clearFinalDataTimer = () => {
+    if (finalDataTimer !== null) {
       clearTimeout(finalDataTimer);
       finalDataTimer = null;
     }
   };
 
-  const resolveFinalDataPromise = ()=>{
+  const resolveFinalDataPromise = () => {
     const resolver = resolveFinalData;
     clearFinalDataTimer();
     finalDataPromise = null;
     resolveFinalData = null;
     rejectFinalData = null;
-    if(typeof resolver === "function") resolver();
+    if (typeof resolver === "function") resolver();
   };
 
-  const rejectFinalDataPromise = (error)=>{
+  const rejectFinalDataPromise = (error) => {
     const rejecter = rejectFinalData;
     clearFinalDataTimer();
     finalDataPromise = null;
     resolveFinalData = null;
     rejectFinalData = null;
-    if(typeof rejecter === "function") rejecter(error);
+    if (typeof rejecter === "function") rejecter(error);
   };
 
-  const waitForFinalData = ()=>{
-    if(finalDataReady){
+  const waitForFinalData = () => {
+    if (finalDataReady) {
       return Promise.resolve();
     }
-    if(finalDataPromise){
+    if (finalDataPromise) {
       return finalDataPromise;
     }
-    finalDataPromise = new Promise((resolve, reject)=>{
+    finalDataPromise = new Promise((resolve, reject) => {
       resolveFinalData = resolve;
       rejectFinalData = reject;
     });
-    finalDataTimer = setTimeout(()=>{
+    finalDataTimer = setTimeout(() => {
       const timeoutError = new Error("Timed out while waiting for recording data.");
       timeoutError.name = "MediaRecorderTimeoutError";
       rejectFinalDataPromise(timeoutError);
@@ -1839,51 +1841,51 @@ async function startRecording(){
     return finalDataPromise;
   };
 
-  const markFinalDataReady = ()=>{
-    if(finalDataReady) return;
+  const markFinalDataReady = () => {
+    if (finalDataReady) return;
     finalDataReady = true;
     resolveFinalDataPromise();
   };
 
-  mediaRecorder.ondataavailable = (ev)=>{
-    if(ev.data?.size) chunks.push(ev.data);
-    if(mediaRecorder?.state === "inactive"){
+  mediaRecorder.ondataavailable = (ev) => {
+    if (ev.data?.size) chunks.push(ev.data);
+    if (mediaRecorder?.state === "inactive") {
       markFinalDataReady();
     }
   };
-  mediaRecorder.onstop = async ()=>{
+  mediaRecorder.onstop = async () => {
     stopRecordingTimer();
-    const resetBusyState = ()=>{
+    const resetBusyState = () => {
       busy = false;
       updateUploadAvailability();
       updatePlaybackAvailability();
       updateRecordAvailability();
     };
 
-    try{
+    try {
       await waitForFinalData();
-    }catch(waitErr){
+    } catch (waitErr) {
       console.error("[onstop] waiting for data failed", waitErr);
       stopPitchStream();
       chunks.length = 0;
       resetBusyState();
       setStatus(t(waitErr?.name === "MediaRecorderTimeoutError" ? "status.recordProcessingTimeout" : "status.recordProcessingFailed"));
-      stream.getTracks().forEach(t=>t.stop());
+      stream.getTracks().forEach(t => t.stop());
       return;
     }
 
     stopPitchStream();                 // 停止即時圖，但保留資料做統計
-    try{
+    try {
       const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
       await handleFileOrBlob(blob, "recording");      // 分析完成後會呼叫 finishStreamStats()
       chunks.length = 0;
-    }catch(e){
+    } catch (e) {
       console.error("[onstop]", e);
       setStatus(t("status.recordProcessingFailed"));
       chunks.length = 0;
       resetBusyState();
-    }finally{
-      stream.getTracks().forEach(t=>t.stop());
+    } finally {
+      stream.getTracks().forEach(t => t.stop());
     }
   };
 
@@ -1904,7 +1906,7 @@ async function startRecording(){
     updateRecordAvailability();
     document.body.classList.remove("recording");
     document.querySelector(".container")?.classList.remove("recording");
-    stream.getTracks().forEach(t=>t.stop());
+    stream.getTracks().forEach(t => t.stop());
     stopRecordingTimer();
     throw err;
   }
@@ -1912,9 +1914,9 @@ async function startRecording(){
   // 啟動 Pitch Stream
   startPitchStream(stream);
 }
-async function stopRecording(){
+async function stopRecording() {
   stopRecordingTimer();
-  if (mediaRecorder && mediaRecorder.state!=="inactive"){
+  if (mediaRecorder && mediaRecorder.state !== "inactive") {
     busy = true;
     isRecording = false;
     updateUploadAvailability();
@@ -1936,10 +1938,10 @@ async function stopRecording(){
 }
 
 // ===== 主流程 =====
-async function handleFileOrBlob(fileOrBlob, source = "upload"){
+async function handleFileOrBlob(fileOrBlob, source = "upload") {
   const token = startAnalysisRun(source);
   let decoded = null;
-  try{
+  try {
     setPlaybackSource(fileOrBlob);
     updatePlaybackAvailability();
 
@@ -1951,7 +1953,7 @@ async function handleFileOrBlob(fileOrBlob, source = "upload"){
     // 離線抽樣（供 Statistics / 簡評）。先對原始音檔做一次。
     offlineExtractStreamMetrics(float32, sr, /*append*/false);
 
-    if (durationSec > WARN_LONG_SEC){
+    if (durationSec > WARN_LONG_SEC) {
       setStatus(t("status.warnLong", { duration: fmtSec(durationSec) }), true);
       await microYield();
       if (!isAnalysisActive(token)) return;
@@ -1959,10 +1961,10 @@ async function handleFileOrBlob(fileOrBlob, source = "upload"){
 
     // VAD（只選段）
     const vad = maybeApplyAdaptiveVAD(float32, sr);
-    if (vad && vad.used){
+    if (vad && vad.used) {
       const reducedRatio = 1 - (vad.keptSec / durationSec);
       float32 = vad.arr; durationSec = vad.keptSec;
-      setStatus(t("status.vadApplied", { ratio: Math.round(reducedRatio*100), duration: fmtSec(durationSec) }), true);
+      setStatus(t("status.vadApplied", { ratio: Math.round(reducedRatio * 100), duration: fmtSec(durationSec) }), true);
       // 針對「有效語音」再抽樣一次，提升代表性
       offlineExtractStreamMetrics(float32, sr, /*append*/true);
       await microYield();
@@ -1971,7 +1973,7 @@ async function handleFileOrBlob(fileOrBlob, source = "upload"){
 
     if (!isAnalysisActive(token)) return;
 
-    if (durationSec <= MAX_WHOLE_SEC){
+    if (durationSec <= MAX_WHOLE_SEC) {
       await analyzeWhole(float32, sr, durationSec, token);
     } else {
       await analyzeStreamed(
@@ -1986,13 +1988,13 @@ async function handleFileOrBlob(fileOrBlob, source = "upload"){
     // 顯示統計（錄音/上傳皆會有）
     if (!isAnalysisActive(token)) return;
     finishStreamStats();
-  }catch(e){
+  } catch (e) {
     console.error("[handleFileOrBlob]", e);
-    if (isAnalysisActive(token)){
+    if (isAnalysisActive(token)) {
       setStatus(t("status.errorPrefix", { message: e?.message || t("status.decodeFailure") }));
     }
     notifyInferenceListeners(0, 0);
-  }finally{
+  } finally {
     if (decoded) decoded.float32 = null;
     decoded = null;
     finishAnalysisRun(token);
@@ -2000,7 +2002,7 @@ async function handleFileOrBlob(fileOrBlob, source = "upload"){
 }
 
 // ===== 解碼策略（WebAudio 為主） =====
-function isSafariLikeBrowser(){
+function isSafariLikeBrowser() {
   if (typeof navigator === "undefined") return false;
   const ua = String(navigator.userAgent || "").toLowerCase();
   if (!ua.includes("safari")) return false;
@@ -2020,18 +2022,18 @@ function isSafariLikeBrowser(){
   return !blockers.some((token) => ua.includes(token)) && !vendor.includes("google");
 }
 
-function isLikelyM4A(blobOrFile){
+function isLikelyM4A(blobOrFile) {
   if (!blobOrFile) return false;
   const type = typeof blobOrFile.type === "string" ? blobOrFile.type.toLowerCase() : "";
   if (type.includes("mp4") || type.includes("m4a")) return true;
-  if (typeof blobOrFile.name === "string"){
+  if (typeof blobOrFile.name === "string") {
     const lower = blobOrFile.name.toLowerCase();
     return lower.endsWith(".m4a") || lower.endsWith(".mp4") || lower.endsWith(".mp3");
   }
   return false;
 }
 
-async function decodeSmartToFloat32(blobOrFile, targetSR){
+async function decodeSmartToFloat32(blobOrFile, targetSR) {
   setStatus(t("status.webaudioDecode"), true);
   try {
     return await decodeViaWebAudio(blobOrFile, targetSR);
@@ -2065,12 +2067,12 @@ async function decodeSmartToFloat32(blobOrFile, targetSR){
     }
   }
 }
-async function decodeViaWebAudio(blobOrFile, targetSR=16000){
+async function decodeViaWebAudio(blobOrFile, targetSR = 16000) {
   const arrayBuf = await blobOrFile.arrayBuffer();
   const Ctx = window.AudioContext || window.webkitAudioContext;
   const ctx = new Ctx();
   let offline = null;
-  try{
+  try {
     let audioBuf;
     try {
       audioBuf = await ctx.decodeAudioData(arrayBuf);
@@ -2086,17 +2088,17 @@ async function decodeViaWebAudio(blobOrFile, targetSR=16000){
     const mono = ctx.createBuffer(1, audioBuf.length, audioBuf.sampleRate);
     const outCh = mono.getChannelData(0);
     const channels = [];
-    for (let i = 0; i < audioBuf.numberOfChannels; i++){
+    for (let i = 0; i < audioBuf.numberOfChannels; i++) {
       const chData = audioBuf.getChannelData(i);
       if (chData) channels.push(chData);
     }
     const mixed = mixChannelDataToMono(channels, outCh);
-    if (mixed === 0 && channels[0]){
+    if (mixed === 0 && channels[0]) {
       outCh.set(channels[0]);
     }
 
     let out;
-    if (audioBuf.sampleRate === targetSR){
+    if (audioBuf.sampleRate === targetSR) {
       out = outCh.slice(0);
     } else {
       offline = new OfflineAudioContext(1, Math.ceil(audioBuf.duration * targetSR), targetSR);
@@ -2107,25 +2109,25 @@ async function decodeViaWebAudio(blobOrFile, targetSR=16000){
     }
     return { float32: out, sr: targetSR, durationSec: out.length / targetSR };
   } finally {
-    try{ await ctx.close(); }catch{}
+    try { await ctx.close(); } catch { }
     offline = null;
   }
 }
 
 // ===== 模型 =====
-async function ensurePipeline(){
+async function ensurePipeline() {
   if (clf) return clf;
   setStatus(t("status.modelLoading"), true);
-  const progress_callback = (p)=>{
+  const progress_callback = (p) => {
     if (!p) return;
-    let pct=null;
-    if (typeof p.loadedBytes==='number' && typeof p.totalBytes==='number' && p.totalBytes>0) pct=p.loadedBytes/p.totalBytes;
-    else if (typeof p.progress==='number' && isFinite(p.progress)) pct=p.progress;
+    let pct = null;
+    if (typeof p.loadedBytes === 'number' && typeof p.totalBytes === 'number' && p.totalBytes > 0) pct = p.loadedBytes / p.totalBytes;
+    else if (typeof p.progress === 'number' && isFinite(p.progress)) pct = p.progress;
     const label = p.status || t("status.modelDownloading");
-    if (pct==null) setStatus(`${label}…`, true);
-    else setStatus(`${label} ${Math.min(99, Math.max(0, Math.floor(pct*100)))}% …`, true);
+    if (pct == null) setStatus(`${label}…`, true);
+    else setStatus(`${label} ${Math.min(99, Math.max(0, Math.floor(pct * 100)))}% …`, true);
   };
-  const device = (typeof navigator!=='undefined' && navigator.gpu) ? 'webgpu' : 'wasm';
+  const device = (typeof navigator !== 'undefined' && navigator.gpu) ? 'webgpu' : 'wasm';
   clf = await pipeline("audio-classification", MODEL_ID, { progress_callback, device });
   currentDevice = device;
   setStatus(t("status.modelReady", { device }));
@@ -2133,43 +2135,43 @@ async function ensurePipeline(){
 }
 
 // ===== 分析（整段） =====
-async function analyzeWhole(float32, sr, durationSec, token){
+async function analyzeWhole(float32, sr, durationSec, token) {
   if (!isAnalysisActive(token)) return;
   const model = await ensurePipeline();
   if (!isAnalysisActive(token)) return;
   meter?.classList.remove("hidden");
 
   const started = performance.now();
-  startHeartbeat(()=>{
+  startHeartbeat(() => {
     if (!isAnalysisActive(token)) return;
-    const elapsed=(performance.now()-started)/1000;
+    const elapsed = (performance.now() - started) / 1000;
     setStatus(t("status.analyzeWhole", { duration: fmtSec(durationSec), elapsed: fmtSec(elapsed) }), true);
   });
 
-  try{
+  try {
     const res = await model(float32, { sampling_rate: sr, topk: 2 });
     if (!isAnalysisActive(token)) { stopHeartbeat(); return; }
     const map = toMap(res);
-    render(map.female||0, map.male||0);
+    render(map.female || 0, map.male || 0);
     setStatus(t("status.analyzeWholeDone"));
-  }catch(err){
-    if (isOOMError(err)){
+  } catch (err) {
+    if (isOOMError(err)) {
       console.warn("[analyzeWhole] OOM → switch to streamed mode…");
       stopHeartbeat();
-      if (isAnalysisActive(token)){
+      if (isAnalysisActive(token)) {
         await analyzeStreamed(float32, sr, durationSec, t("status.analyzeWholeOOM"), token);
       }
       return;
     }
     console.error("[analyzeWhole]", err);
-    if (isAnalysisActive(token)){
+    if (isAnalysisActive(token)) {
       setStatus(t("status.analyzeWholeFailed"));
     }
-  }finally{ stopHeartbeat(); }
+  } finally { stopHeartbeat(); }
 }
 
 // ===== 分析（串流分段） =====
-async function analyzeStreamed(float32, sr, durationSec, reason = t("status.streamingDefaultReason"), token){
+async function analyzeStreamed(float32, sr, durationSec, reason = t("status.streamingDefaultReason"), token) {
   if (!isAnalysisActive(token)) return;
   const model = await ensurePipeline();
   if (!isAnalysisActive(token)) return;
@@ -2179,52 +2181,52 @@ async function analyzeStreamed(float32, sr, durationSec, reason = t("status.stre
   const reasonBits = [reason, strategy.label].filter(Boolean);
   const reasonLabel = reasonBits.join("｜");
 
-  let lastErr=null;
-  for (const winSec of strategy.wins){
-    try{
+  let lastErr = null;
+  for (const winSec of strategy.wins) {
+    try {
       await runStreamedWithWindow(model, float32, sr, durationSec, winSec, strategy.hop, reasonLabel || reason, token);
       if (!isAnalysisActive(token)) return;
       return;
-    }catch(e){
-      lastErr=e;
-      if (isOOMError(e)){ console.warn(`[streamed] OOM at win=${winSec}s → downshift`); continue; }
+    } catch (e) {
+      lastErr = e;
+      if (isOOMError(e)) { console.warn(`[streamed] OOM at win=${winSec}s → downshift`); continue; }
       else { console.error(`[streamed] error at win=${winSec}s`, e); break; }
     }
   }
   console.error("[analyzeStreamed] failed", lastErr);
-  if (isAnalysisActive(token)){
+  if (isAnalysisActive(token)) {
     setStatus(t("status.analyzeStreamFailed"));
   }
 }
-async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP_S, reason, token){
+async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP_S, reason, token) {
   if (!isAnalysisActive(token)) return;
   const win = Math.max(1, Math.floor(WIN_S * sr));
   const hop = Math.max(1, Math.floor(HOP_S * sr));
 
   const chunks = [];
-  for (let s=0; s<float32.length; s+=hop){
-    const e = Math.min(s+win, float32.length);
-    if (e - s < Math.floor(0.5*sr)) break;
-    chunks.push([s,e]);
+  for (let s = 0; s < float32.length; s += hop) {
+    const e = Math.min(s + win, float32.length);
+    if (e - s < Math.floor(0.5 * sr)) break;
+    chunks.push([s, e]);
     if (e === float32.length) break;
   }
   if (!chunks.length) chunks.push([0, Math.min(win, float32.length)]);
 
-  let avgMs=0, processedSec=0;
-  let logitSum=0, wSum=0;
+  let avgMs = 0, processedSec = 0;
+  let logitSum = 0, wSum = 0;
 
   const started = performance.now();
-  startHeartbeat(()=>{
+  startHeartbeat(() => {
     if (!isAnalysisActive(token)) return;
-    const elapsed=(performance.now()-started)/1000;
-    const pct = processedSec>0 ? Math.min(99, Math.round((processedSec/durationSec)*100)) : 0;
+    const elapsed = (performance.now() - started) / 1000;
+    const pct = processedSec > 0 ? Math.min(99, Math.round((processedSec / durationSec) * 100)) : 0;
     setStatus(t("status.analyzeStream", { win: WIN_S, step: HOP_S, reason, progress: pct, elapsed: fmtSec(elapsed) }), true);
   });
 
-  try{
-    for (let i=0;i<chunks.length;i++){
+  try {
+    for (let i = 0; i < chunks.length; i++) {
       if (!isAnalysisActive(token)) { stopHeartbeat(); return; }
-      const [s0,s1] = chunks[i];
+      const [s0, s1] = chunks[i];
       const seg = float32.subarray(s0, s1);
       const dur = (s1 - s0) / sr;
 
@@ -2232,11 +2234,11 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
       const out = await model(seg, { sampling_rate: sr, topk: 2 });
       if (!isAnalysisActive(token)) { stopHeartbeat(); return; }
       const dt = performance.now() - t0;
-      avgMs = avgMs===0 ? dt : (avgMs*0.65 + dt*0.35);
+      avgMs = avgMs === 0 ? dt : (avgMs * 0.65 + dt * 0.35);
 
       const map = toMap(out);
       const pf = clamp01(map.female || EPS);
-      const pm = clamp01(map.male   || EPS);
+      const pm = clamp01(map.male || EPS);
       const logit = Math.log(pf) - Math.log(pm);
 
       logitSum += logit * dur; wSum += dur;
@@ -2248,9 +2250,9 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
 
       processedSec = Math.min(durationSec, (s1 / sr));
       const remain = chunks.length - i - 1;
-      const etaSec = (remain * (avgMs/1000));
-      const pct = Math.round(((i+1)/chunks.length)*100);
-      setStatus(t("status.analyzeStreamChunk", { win: WIN_S, current: i+1, total: chunks.length, progress: pct, done: fmtSec(processedSec), totalDuration: fmtSec(durationSec), eta: fmtSec(etaSec) }), true);
+      const etaSec = (remain * (avgMs / 1000));
+      const pct = Math.round(((i + 1) / chunks.length) * 100);
+      setStatus(t("status.analyzeStreamChunk", { win: WIN_S, current: i + 1, total: chunks.length, progress: pct, done: fmtSec(processedSec), totalDuration: fmtSec(durationSec), eta: fmtSec(etaSec) }), true);
       await microYield();
       if (!isAnalysisActive(token)) { stopHeartbeat(); return; }
     }
@@ -2258,7 +2260,7 @@ async function runStreamedWithWindow(model, float32, sr, durationSec, WIN_S, HOP
     const pf = 1 / (1 + Math.exp(-logitAvg));
     const pm = 1 - pf;
     render(pf, pm);
-    if (isAnalysisActive(token)){
+    if (isAnalysisActive(token)) {
       setStatus(t("status.analyzeStreamDone"));
     }
   } finally { stopHeartbeat(); }
@@ -2270,15 +2272,15 @@ const STREAM_STRATEGY_DEFAULT = Object.freeze({
   label: ""
 });
 
-function pickStreamStrategy(durationSec){
-  if (!Number.isFinite(durationSec) || durationSec <= MAX_WHOLE_SEC){
+function pickStreamStrategy(durationSec) {
+  if (!Number.isFinite(durationSec) || durationSec <= MAX_WHOLE_SEC) {
     return STREAM_STRATEGY_DEFAULT;
   }
 
-  const dedupeWins = (wins)=>{
+  const dedupeWins = (wins) => {
     const seen = new Set();
     const out = [];
-    for (const w of wins){
+    for (const w of wins) {
       const key = w.toFixed(2);
       if (seen.has(key)) continue;
       seen.add(key);
@@ -2291,18 +2293,18 @@ function pickStreamStrategy(durationSec){
   const gpuWinsLong = dedupeWins([24, 18, 12, ...STREAM_WIN_CAND, 4]);
   const wasmWins = dedupeWins([12, ...STREAM_WIN_CAND, 4]);
 
-  if (currentDevice === "webgpu"){
-    if (durationSec >= 600){
-    return { hop: 6, wins: gpuWinsLong, label: t("status.strategyGpu6") };
+  if (currentDevice === "webgpu") {
+    if (durationSec >= 600) {
+      return { hop: 6, wins: gpuWinsLong, label: t("status.strategyGpu6") };
     }
     return { hop: 4, wins: gpuWins, label: t("status.strategyGpu4") };
   }
 
-  if (durationSec >= 420){
+  if (durationSec >= 420) {
     return { hop: 4, wins: wasmWins, label: t("status.strategyCpu4") };
   }
 
-  if (durationSec >= 240){
+  if (durationSec >= 240) {
     return { hop: 3.5, wins: wasmWins, label: t("status.strategyCpu35") };
   }
 
@@ -2310,7 +2312,7 @@ function pickStreamStrategy(durationSec){
 }
 
 // ===== 播放器與統計卡容器 =====
-function ensurePlayerUI(){
+function ensurePlayerUI() {
   const container = document.querySelector("main.container");
   if (!container) return;
   if (document.getElementById("playBtn")) return;
@@ -2319,10 +2321,10 @@ function ensurePlayerUI(){
   wrap.className = "player";
 
   const btn = document.createElement("button");
-  btn.id="playBtn"; btn.type="button"; btn.disabled=true;
+  btn.id = "playBtn"; btn.type = "button"; btn.disabled = true;
 
   const hint = document.createElement("div");
-  hint.className="hint";
+  hint.className = "hint";
 
   const hintPrefix = document.createElement("span");
   hintPrefix.className = "hint-prefix";
@@ -2333,7 +2335,7 @@ function ensurePlayerUI(){
   const hintSuffix = document.createElement("span");
   hintSuffix.className = "hint-suffix";
 
-  replayButton.addEventListener("click", (e)=>{
+  replayButton.addEventListener("click", (e) => {
     e.preventDefault();
     btn.click();
   });
@@ -2344,7 +2346,7 @@ function ensurePlayerUI(){
   hint.appendChild(hintSuffix);
 
   const audio = document.createElement("audio");
-  audio.id="playback"; audio.preload="metadata"; audio.style.display="none";
+  audio.id = "playback"; audio.preload = "metadata"; audio.style.display = "none";
 
   wrap.appendChild(btn); wrap.appendChild(hint); wrap.appendChild(audio);
 
@@ -2361,19 +2363,19 @@ function ensurePlayerUI(){
   updatePlayerCopy(false);
   updatePlaybackAvailability();
 
-  playBtn.onclick = async ()=>{
+  playBtn.onclick = async () => {
     if (!audioEl.src) return;
-    try{
-      if (audioEl.paused){ await audioEl.play(); updatePlayerCopy(true); }
+    try {
+      if (audioEl.paused) { await audioEl.play(); updatePlayerCopy(true); }
       else { audioEl.pause(); updatePlayerCopy(false); }
-    }catch(e){ console.error("[audio play]", e); }
+    } catch (e) { console.error("[audio play]", e); }
   };
-  audioEl.onended = ()=>{ updatePlayerCopy(false); };
-  audioEl.onpause = ()=>{ updatePlayerCopy(false); };
-  audioEl.onplay = ()=>{ updatePlayerCopy(true); };
+  audioEl.onended = () => { updatePlayerCopy(false); };
+  audioEl.onpause = () => { updatePlayerCopy(false); };
+  audioEl.onplay = () => { updatePlayerCopy(true); };
 
   // 統計卡容器（插在播放器區塊後）
-  if (!document.getElementById("streamStats")){
+  if (!document.getElementById("streamStats")) {
     const stats = document.createElement("div");
     stats.id = "streamStats";
     stats.className = "insight";
@@ -2381,18 +2383,18 @@ function ensurePlayerUI(){
     wrap.insertAdjacentElement("afterend", stats);
   }
 }
-function setupExportButton(){
+function setupExportButton() {
   if (!exportBtn) return;
-  exportBtn.addEventListener("click", ()=>{
-    try{
+  exportBtn.addEventListener("click", () => {
+    try {
       const menu = document.getElementById("themeMenu");
       const gear = document.getElementById("settingsBtn");
-      if (menu && !menu.hasAttribute("hidden")){
+      if (menu && !menu.hasAttribute("hidden")) {
         menu.setAttribute("hidden", "");
         gear?.setAttribute("aria-expanded", "false");
       }
       exportBtn.blur?.();
-      if (!latestAnalysisExport){
+      if (!latestAnalysisExport) {
         setStatus(t("status.exportUnavailable"));
         return;
       }
@@ -2407,24 +2409,24 @@ function setupExportButton(){
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      setTimeout(()=> URL.revokeObjectURL(url), 5000);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
       setStatus(t("status.exportReady"));
-    }catch(err){
+    } catch (err) {
       console.error("[export]", err);
       setStatus(t("status.errorPrefix", { message: err?.message || "export failed" }));
     }
   });
 }
-function stopPlayback(){
-  try{
-    if (audioEl && !audioEl.paused){
+function stopPlayback() {
+  try {
+    if (audioEl && !audioEl.paused) {
       audioEl.pause();
       audioEl.currentTime = 0;
     }
-  }catch(e){ console.error("[stopPlayback]", e); }
+  } catch (e) { console.error("[stopPlayback]", e); }
   updatePlayerCopy(false);
 }
-async function playLastRecording(){
+async function playLastRecording() {
   if (!audioEl || !audioEl.src) return false;
   try {
     const playPromise = audioEl.play();
@@ -2438,56 +2440,56 @@ async function playLastRecording(){
     return false;
   }
 }
-function setPlaybackSource(blob){
-  try{
-    if(!audioEl || !playBtn) return;
-    if(lastAudioUrl){ try{ URL.revokeObjectURL(lastAudioUrl);}catch{} }
+function setPlaybackSource(blob) {
+  try {
+    if (!audioEl || !playBtn) return;
+    if (lastAudioUrl) { try { URL.revokeObjectURL(lastAudioUrl); } catch { } }
     lastAudioUrl = URL.createObjectURL(blob);
     audioEl.src = lastAudioUrl; audioEl.load();
     updatePlaybackAvailability();
     updatePlayerCopy(false);
-  }catch(e){ console.error("[setPlaybackSource]", e); }
+  } catch (e) { console.error("[setPlaybackSource]", e); }
 }
 
 // ===== Render / Utils =====
-function toMap(arr){
-  const m={female:0, male:0};
-  if (Array.isArray(arr)){
-    for (const r of arr){
-      if (r && typeof r.label==="string") m[r.label] = (typeof r.score==="number" ? r.score : 0);
+function toMap(arr) {
+  const m = { female: 0, male: 0 };
+  if (Array.isArray(arr)) {
+    for (const r of arr) {
+      if (r && typeof r.label === "string") m[r.label] = (typeof r.score === "number" ? r.score : 0);
     }
   }
   return m;
 }
-function render(pf, pm){
+function render(pf, pm) {
   // 儀表
   const barF = document.querySelector(".bar.female");
   const barM = document.querySelector(".bar.male");
-  if (barF){ barF.style.setProperty("--p", pf??0); barF.setAttribute("aria-valuenow", Math.round(((pf??0)*100))); }
-  if (barM){ barM.style.setProperty("--p", pm??0); barM.setAttribute("aria-valuenow", Math.round(((pm??0)*100))); }
-  if (femaleVal) femaleVal.textContent = `${((pf??0)*100).toFixed(1)}%`;
-  if (maleVal)   maleVal.textContent   = `${((pm??0)*100).toFixed(1)}%`;
+  if (barF) { barF.style.setProperty("--p", pf ?? 0); barF.setAttribute("aria-valuenow", Math.round(((pf ?? 0) * 100))); }
+  if (barM) { barM.style.setProperty("--p", pm ?? 0); barM.setAttribute("aria-valuenow", Math.round(((pm ?? 0) * 100))); }
+  if (femaleVal) femaleVal.textContent = `${((pf ?? 0) * 100).toFixed(1)}%`;
+  if (maleVal) maleVal.textContent = `${((pm ?? 0) * 100).toFixed(1)}%`;
 
   // 記錄供簡評使用
   lastPf = pf ?? 0; lastPm = pm ?? 0;
 }
-function startHeartbeat(fn){ stopHeartbeat(); heartbeatTimer=setInterval(()=>{ try{ fn(); }catch{} }, 1000); }
-function stopHeartbeat(){ if (heartbeatTimer){ clearInterval(heartbeatTimer); heartbeatTimer=null; } }
-function microYield(){ return new Promise(r=>setTimeout(r,0)); }
+function startHeartbeat(fn) { stopHeartbeat(); heartbeatTimer = setInterval(() => { try { fn(); } catch { } }, 1000); }
+function stopHeartbeat() { if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; } }
+function microYield() { return new Promise(r => setTimeout(r, 0)); }
 
 // ===== VAD（只「選段」） =====
-function maybeApplyAdaptiveVAD(float32, sr){
+function maybeApplyAdaptiveVAD(float32, sr) {
   const dur = float32.length / sr;
   if (dur < VAD_MIN_APPLY_SEC) return null;
 
-  const frame = Math.max(1, Math.floor(sr * (VAD_FRAME_MS/1000)));
-  const hop   = Math.max(1, Math.floor(sr * (VAD_HOP_MS/1000)));
-  const pad   = Math.max(0, Math.floor(sr * (VAD_PAD_MS/1000)));
-  const minSeg= Math.max(1, Math.floor(sr * (VAD_MIN_SEG_MS/1000)));
+  const frame = Math.max(1, Math.floor(sr * (VAD_FRAME_MS / 1000)));
+  const hop = Math.max(1, Math.floor(sr * (VAD_HOP_MS / 1000)));
+  const pad = Math.max(0, Math.floor(sr * (VAD_PAD_MS / 1000)));
+  const minSeg = Math.max(1, Math.floor(sr * (VAD_MIN_SEG_MS / 1000)));
 
   const energies = [];
-  for (let s=0; s+frame <= float32.length; s+=hop){
-    let acc=0; for (let i=0;i<frame;i++){ const v=float32[s+i]; acc += v*v; }
+  for (let s = 0; s + frame <= float32.length; s += hop) {
+    let acc = 0; for (let i = 0; i < frame; i++) { const v = float32[s + i]; acc += v * v; }
     energies.push(acc / frame);
   }
   if (energies.length < 5) return null;
@@ -2498,49 +2500,49 @@ function maybeApplyAdaptiveVAD(float32, sr){
 
   const segs = [];
   let i = 0;
-  while (i < voicedMask.length){
+  while (i < voicedMask.length) {
     while (i < voicedMask.length && !voicedMask[i]) i++;
     if (i >= voicedMask.length) break;
     let j = i; while (j < voicedMask.length && voicedMask[j]) j++;
-    const s0 = Math.max(0, i*hop - pad);
-    const s1 = Math.min(float32.length, j*hop + frame + pad);
+    const s0 = Math.max(0, i * hop - pad);
+    const s1 = Math.min(float32.length, j * hop + frame + pad);
     if ((s1 - s0) >= minSeg) segs.push([s0, s1]);
     i = j;
   }
   if (!segs.length) return null;
 
-  const kept = segs.reduce((a,[s0,s1]) => a + (s1 - s0), 0);
+  const kept = segs.reduce((a, [s0, s1]) => a + (s1 - s0), 0);
   const keptSec = kept / sr;
   const silenceRatio = 1 - (keptSec / dur);
   if (silenceRatio < VAD_SILENCE_RATIO_TO_APPLY || keptSec < VAD_MIN_VOICED_SEC) return null;
 
   const out = new Float32Array(kept);
   let offset = 0;
-  for (const [s0,s1] of segs){ out.set(float32.subarray(s0, s1), offset); offset += (s1 - s0); }
-  return { used:true, arr:out, keptSec, segs };
+  for (const [s0, s1] of segs) { out.set(float32.subarray(s0, s1), offset); offset += (s1 - s0); }
+  return { used: true, arr: out, keptSec, segs };
 }
-function percentile(arr, p){
-  const a = arr.slice().sort((x,y)=>x-y);
-  const idx = Math.min(a.length-1, Math.max(0, Math.round((p/100)*(a.length-1))));
+function percentile(arr, p) {
+  const a = arr.slice().sort((x, y) => x - y);
+  const idx = Math.min(a.length - 1, Math.max(0, Math.round((p / 100) * (a.length - 1))));
   return a[idx];
 }
-function smoothMask(mask, k=3){
+function smoothMask(mask, k = 3) {
   // 把短 0 洞補成 1
-  let count=0;
-  for (let i=0;i<=mask.length;i++){
-    if (i<mask.length && !mask[i]) count++;
-    else { if (count>0 && count<k){ for (let j=i-count; j<i; j++) mask[j]=true; } count=0; }
+  let count = 0;
+  for (let i = 0; i <= mask.length; i++) {
+    if (i < mask.length && !mask[i]) count++;
+    else { if (count > 0 && count < k) { for (let j = i - count; j < i; j++) mask[j] = true; } count = 0; }
   }
   // 把短 1 島補成 0
-  count=0;
-  for (let i=0;i<=mask.length;i++){
-    if (i<mask.length && mask[i]) count++;
-    else { if (count>0 && count<k){ for (let j=i-count; j<i; j++) mask[j]=false; } count=0; }
+  count = 0;
+  for (let i = 0; i <= mask.length; i++) {
+    if (i < mask.length && mask[i]) count++;
+    else { if (count > 0 && count < k) { for (let j = i - count; j < i; j++) mask[j] = false; } count = 0; }
   }
 }
 
 // ===== Pitch Stream（ACF 音高 + 畫布） =====
-function appendPitchSample(rawHz, meta = {}, opts = {}){
+function appendPitchSample(rawHz, meta = {}, opts = {}) {
   const frameMs = Number.isFinite(opts?.dtMs) ? opts.dtMs : PS_INTERVAL_MS;
   const result = sharedAppendPitchSample(rawHz, meta, {
     state: pitchPostState,
@@ -2557,10 +2559,10 @@ function appendPitchSample(rawHz, meta = {}, opts = {}){
   return result;
 }
 
-function startPitchStream(userMediaStream){
-  try{
+function startPitchStream(userMediaStream) {
+  try {
     if (!pitchWrap || !pitchCanvas) return;
-    psHz.length=0; psHzSmooth.length=0; psDb.length=0; psVoiced.length=0; psConfidence.length=0;
+    psHz.length = 0; psHzSmooth.length = 0; psDb.length = 0; psVoiced.length = 0; psConfidence.length = 0;
     resetPitchPostState(pitchPostState);
     psRealtimeNoiseTracker.reset();
     startAutoRangeSession({ preserveRange: false });
@@ -2576,18 +2578,18 @@ function startPitchStream(userMediaStream){
     setRealtimePanelsActive(true);
 
     let lastTick = 0;
-    psProc.onaudioprocess = (ev)=>{
+    psProc.onaudioprocess = (ev) => {
       const input = ev.inputBuffer.getChannelData(0);
-      const rms = Math.sqrt(input.reduce((a,v)=>a+v*v,0) / Math.max(1,input.length));
-      const rawDb  = 20*Math.log10(Math.max(rms, 1e-6)) + 100; // 相對 dB
+      const rms = Math.sqrt(input.reduce((a, v) => a + v * v, 0) / Math.max(1, input.length));
+      const rawDb = 20 * Math.log10(Math.max(rms, 1e-6)) + 100; // 相對 dB
       const { value: db } = applyDbCalibration(rawDb);
-      const wasVoiced = psVoiced.length ? psVoiced[psVoiced.length-1] : false;
+      const wasVoiced = psVoiced.length ? psVoiced[psVoiced.length - 1] : false;
       let hz = null;
       let spectral = null;
       const gate = psRealtimeNoiseTracker.shouldDetect(db, wasVoiced);
-      if (gate.detect){
+      if (gate.detect) {
         const candHz = runPitchDetection(input, sampleRate, { context: "realtime" });
-        if (candHz != null){
+        if (candHz != null) {
           hz = candHz;
           spectral = estimateSpectralFeatures(input, sampleRate);
         } else {
@@ -2597,7 +2599,7 @@ function startPitchStream(userMediaStream){
         psRealtimeNoiseTracker.capture(db);
       }
       const now = performance.now();
-      if (now - lastTick >= PS_INTERVAL_MS){
+      if (now - lastTick >= PS_INTERVAL_MS) {
         psDb.push(db);
         const { processed } = appendPitchSample(
           hz ?? null,
@@ -2608,16 +2610,16 @@ function startPitchStream(userMediaStream){
           ? processed
           : (Number.isFinite(hz) ? hz : null);
         const maxN = Math.round(15000 / PS_INTERVAL_MS); // 保留約 15 秒
-        if (psDb.length>maxN){
+        if (psDb.length > maxN) {
           psDb.shift(); psHz.shift(); psHzSmooth.shift(); psVoiced.shift(); psConfidence.shift();
         }
         lastTick = now;
 
-        if (pitchNowEl){
+        if (pitchNowEl) {
           pitchNowEl.textContent = Number.isFinite(displayHz) ? `${displayHz.toFixed(1)}Hz` : "— Hz";
         }
-        if (volNowEl)   volNowEl.textContent   = `${db.toFixed(1)} dB`;
-        if (bandNowEl)  bandNowEl.textContent  = bandLabel(displayHz);
+        if (volNowEl) volNowEl.textContent = `${db.toFixed(1)} dB`;
+        if (bandNowEl) bandNowEl.textContent = bandLabel(displayHz);
         updateRealtimeMonitor(spectral);
       }
     };
@@ -2625,13 +2627,13 @@ function startPitchStream(userMediaStream){
     psSrc.connect(psProc); psProc.connect(psCtx.destination);
     psRunning = true;
     startDrawLoop();
-  }catch(e){ console.error("[startPitchStream]", e); }
+  } catch (e) { console.error("[startPitchStream]", e); }
 }
 
-function updateRealtimeMonitor(features){
-  try{
+function updateRealtimeMonitor(features) {
+  try {
     if (!formantWrap) return;
-    if (!features){
+    if (!features) {
       resetRealtimePanels();
       return;
     }
@@ -2640,7 +2642,7 @@ function updateRealtimeMonitor(features){
     if (f2NowEl) f2NowEl.textContent = Number.isFinite(f2) ? `${Math.round(f2)} Hz` : "— Hz";
     if (f3NowEl) f3NowEl.textContent = Number.isFinite(f3) ? `${Math.round(f3)} Hz` : "— Hz";
     if (breathNowEl) breathNowEl.textContent = Number.isFinite(breathiness)
-      ? `${Math.round(breathiness*100)}%`
+      ? `${Math.round(breathiness * 100)}%`
       : "—";
 
     const desc = describeResonanceFromEnergy(energy);
@@ -2651,40 +2653,40 @@ function updateRealtimeMonitor(features){
 
     const pct = desc.pct || normalizeResonanceBands(energy);
     const chestPct = Math.max(0, Math.min(1, pct?.chest ?? 0));
-    const maskPct  = Math.max(0, Math.min(1, pct?.mask ?? 0));
-    const headPct  = Math.max(0, Math.min(1, pct?.head ?? 0));
+    const maskPct = Math.max(0, Math.min(1, pct?.mask ?? 0));
+    const headPct = Math.max(0, Math.min(1, pct?.head ?? 0));
 
-    if (resBarChest){ resBarChest.style.flexGrow = Math.max(chestPct, 0.001); resBarChest.style.flexBasis = `${(chestPct*100).toFixed(1)}%`; }
-    if (resBarMask){ resBarMask.style.flexGrow = Math.max(maskPct, 0.001); resBarMask.style.flexBasis = `${(maskPct*100).toFixed(1)}%`; }
-    if (resBarHead){ resBarHead.style.flexGrow = Math.max(headPct, 0.001); resBarHead.style.flexBasis = `${(headPct*100).toFixed(1)}%`; }
-    if (resValChest) resValChest.textContent = t("realtime.resonance.chest", { value: Math.round(chestPct*100) });
-    if (resValMask)  resValMask.textContent  = t("realtime.resonance.mask", { value: Math.round(maskPct*100) });
-    if (resValHead)  resValHead.textContent  = t("realtime.resonance.head", { value: Math.round(headPct*100) });
-  }catch(e){ console.error("[updateRealtimeMonitor]", e); }
+    if (resBarChest) { resBarChest.style.flexGrow = Math.max(chestPct, 0.001); resBarChest.style.flexBasis = `${(chestPct * 100).toFixed(1)}%`; }
+    if (resBarMask) { resBarMask.style.flexGrow = Math.max(maskPct, 0.001); resBarMask.style.flexBasis = `${(maskPct * 100).toFixed(1)}%`; }
+    if (resBarHead) { resBarHead.style.flexGrow = Math.max(headPct, 0.001); resBarHead.style.flexBasis = `${(headPct * 100).toFixed(1)}%`; }
+    if (resValChest) resValChest.textContent = t("realtime.resonance.chest", { value: Math.round(chestPct * 100) });
+    if (resValMask) resValMask.textContent = t("realtime.resonance.mask", { value: Math.round(maskPct * 100) });
+    if (resValHead) resValHead.textContent = t("realtime.resonance.head", { value: Math.round(headPct * 100) });
+  } catch (e) { console.error("[updateRealtimeMonitor]", e); }
 }
-function stopPitchStream(){
-  try{
+function stopPitchStream() {
+  try {
     psRunning = false;
-    if (psRAF){ cancelAnimationFrame(psRAF); psRAF=null; }
+    if (psRAF) { cancelAnimationFrame(psRAF); psRAF = null; }
     psProc?.disconnect(); psSrc?.disconnect();
     psCtx?.close();
-  }catch{} finally{
-    psProc=null; psSrc=null; psCtx=null;
+  } catch { } finally {
+    psProc = null; psSrc = null; psCtx = null;
     setRealtimePanelsActive(false);
   }
 }
-function detectPitchACF(input, sr){
+function detectPitchACF(input, sr) {
   // 簡化自相關（ACF）+ 降採樣到 ~16k；限制 50–600 Hz
   const ds = Math.max(1, Math.floor(sr / 16000));
-  const N  = Math.floor(input.length / ds);
+  const N = Math.floor(input.length / ds);
   if (N < 128) return null;
-  if (acfBuffers.x.length < N){
+  if (acfBuffers.x.length < N) {
     acfBuffers.x = new Float32Array(N);
   }
   const x = acfBuffers.x;
-  let mean=0; for (let i=0;i<N;i++){ mean += input[i*ds]; }
+  let mean = 0; for (let i = 0; i < N; i++) { mean += input[i * ds]; }
   mean /= N;
-  let energy=0; for (let i=0;i<N;i++){ const v=input[i*ds]-mean; x[i]=v; energy += v*v; }
+  let energy = 0; for (let i = 0; i < N; i++) { const v = input[i * ds] - mean; x[i] = v; energy += v * v; }
   if (energy <= 1e-8) return null;
 
   const srDS = sr / ds;
@@ -2692,22 +2694,22 @@ function detectPitchACF(input, sr){
   const lagMin = Math.floor(srDS / range.max);
   const lagMax = Math.floor(srDS / range.min);
 
-  let bestLag=-1, bestR=0;
-  for (let lag=lagMin; lag<=lagMax; lag++){
-    let num=0, den0=0, den1=0;
-    for (let i=0;i<N-lag;i++){
-      const a=x[i], b=x[i+lag];
-      num += a*b; den0 += a*a; den1 += b*b;
+  let bestLag = -1, bestR = 0;
+  for (let lag = lagMin; lag <= lagMax; lag++) {
+    let num = 0, den0 = 0, den1 = 0;
+    for (let i = 0; i < N - lag; i++) {
+      const a = x[i], b = x[i + lag];
+      num += a * b; den0 += a * a; den1 += b * b;
     }
-    const r = num / Math.sqrt((den0*den1)+1e-10);
-    if (r > bestR){ bestR=r; bestLag=lag; }
+    const r = num / Math.sqrt((den0 * den1) + 1e-10);
+    if (r > bestR) { bestR = r; bestLag = lag; }
   }
-  if (bestLag<0 || bestR<0.6) return null;
+  if (bestLag < 0 || bestR < 0.6) return null;
   const freq = srDS / bestLag;
   if (freq < range.min || freq > range.max) return null;
   return freq;
 }
-function detectPitchYinLite(input, sr){
+function detectPitchYinLite(input, sr) {
   const ds = Math.max(1, Math.floor(sr / 16000));
   const N = Math.floor(input.length / ds);
   if (N < 128) return null;
@@ -2716,16 +2718,16 @@ function detectPitchYinLite(input, sr){
   const x = yinBuffers.x;
 
   let mean = 0;
-  for (let i=0;i<N;i++){ mean += input[i*ds]; }
+  for (let i = 0; i < N; i++) { mean += input[i * ds]; }
   mean /= N;
 
   let energy = 0;
   let peak = 0;
   let absSum = 0;
-  for (let i=0;i<N;i++){
-    const v = input[i*ds] - mean;
+  for (let i = 0; i < N; i++) {
+    const v = input[i * ds] - mean;
     x[i] = v;
-    energy += v*v;
+    energy += v * v;
     const abs = Math.abs(v);
     absSum += abs;
     if (abs > peak) peak = abs;
@@ -2763,11 +2765,11 @@ function detectPitchYinLite(input, sr){
   let pendingExtraTau = -1;
   let foundBelowThreshold = false;
 
-  for (let tau = 1; tau <= tauMax; tau++){
+  for (let tau = 1; tau <= tauMax; tau++) {
     const limit = N - tau;
     let sum = 0;
-    for (let i=0;i<limit;i++){
-      const delta = x[i] - x[i+tau];
+    for (let i = 0; i < limit; i++) {
+      const delta = x[i] - x[i + tau];
       sum += delta * delta;
     }
     diff[tau] = sum;
@@ -2777,32 +2779,32 @@ function detectPitchYinLite(input, sr){
     lastComputedTau = tau;
 
     if (tau < tauMin) continue;
-    if (val < bestVal){
+    if (val < bestVal) {
       bestVal = val;
       bestTau = tau;
     }
-    if (!foundBelowThreshold && val < threshold){
+    if (!foundBelowThreshold && val < threshold) {
       foundBelowThreshold = true;
       pendingExtraTau = tau + 1 <= tauMax ? tau + 1 : -1;
-      if (pendingExtraTau === -1){
+      if (pendingExtraTau === -1) {
         break;
       }
-    } else if (foundBelowThreshold){
-      if (pendingExtraTau === tau){
+    } else if (foundBelowThreshold) {
+      if (pendingExtraTau === tau) {
         pendingExtraTau = -1;
         break;
       }
-      if (pendingExtraTau === -1){
+      if (pendingExtraTau === -1) {
         break;
       }
     }
   }
 
-  if (pendingExtraTau > lastComputedTau && pendingExtraTau <= tauMax){
+  if (pendingExtraTau > lastComputedTau && pendingExtraTau <= tauMax) {
     const limit = N - pendingExtraTau;
     let sum = 0;
-    for (let i=0;i<limit;i++){
-      const delta = x[i] - x[i+pendingExtraTau];
+    for (let i = 0; i < limit; i++) {
+      const delta = x[i] - x[i + pendingExtraTau];
       sum += delta * delta;
     }
     diff[pendingExtraTau] = sum;
@@ -2810,16 +2812,16 @@ function detectPitchYinLite(input, sr){
     const val = running ? (sum * pendingExtraTau) / running : 1;
     cmndf[pendingExtraTau] = val;
     lastComputedTau = pendingExtraTau;
-    if (val < bestVal){
+    if (val < bestVal) {
       bestVal = val;
       bestTau = pendingExtraTau;
     }
   }
 
-  if (bestTau <= 0){
-    for (let tau = tauMin; tau <= lastComputedTau; tau++){
+  if (bestTau <= 0) {
+    for (let tau = tauMin; tau <= lastComputedTau; tau++) {
       const val = cmndf[tau];
-      if (val < bestVal){
+      if (val < bestVal) {
         bestVal = val;
         bestTau = tau;
       }
@@ -2827,17 +2829,17 @@ function detectPitchYinLite(input, sr){
   }
   if (bestTau <= 0) return null;
 
-  while (bestTau + 1 <= lastComputedTau && cmndf[bestTau + 1] <= cmndf[bestTau]){
+  while (bestTau + 1 <= lastComputedTau && cmndf[bestTau + 1] <= cmndf[bestTau]) {
     bestTau += 1;
   }
 
   let refinedTau = bestTau;
-  if (bestTau > 1 && bestTau < lastComputedTau){
-    const prev = cmndf[bestTau-1];
+  if (bestTau > 1 && bestTau < lastComputedTau) {
+    const prev = cmndf[bestTau - 1];
     const curr = cmndf[bestTau];
-    const next = cmndf[bestTau+1];
-    const denom = (next + prev - 2*curr);
-    if (Number.isFinite(denom) && Math.abs(denom) > 1e-6){
+    const next = cmndf[bestTau + 1];
+    const denom = (next + prev - 2 * curr);
+    if (Number.isFinite(denom) && Math.abs(denom) > 1e-6) {
       const offset = 0.5 * (prev - next) / denom;
       if (Number.isFinite(offset)) refinedTau = bestTau + Math.max(-1, Math.min(1, offset));
     }
@@ -2847,7 +2849,7 @@ function detectPitchYinLite(input, sr){
   if (freq < range.min || freq > range.max) return null;
   return freq;
 }
-function bandLabel(hz){
+function bandLabel(hz) {
   if (!hz) return "—";
   if (hz < 85) return t("pitchBands.bandLow");
   if (hz < 165) return t("pitchBands.bandBlue");
@@ -2857,63 +2859,63 @@ function bandLabel(hz){
   if (hz <= PS_MAX_HZ) return t("pitchBands.bandFalsetto");
   return t("pitchBands.bandUnknown");
 }
-function startDrawLoop(){
+function startDrawLoop() {
   const ctx = pitchCanvas.getContext("2d");
-  const DPR = Math.max(1, window.devicePixelRatio||1);
-  function resize(){
+  const DPR = Math.max(1, window.devicePixelRatio || 1);
+  function resize() {
     const r = pitchCanvas.getBoundingClientRect();
-    pitchCanvas.width  = Math.max(600, Math.round(r.width*DPR));
-    pitchCanvas.height = Math.round(r.height*DPR);
+    pitchCanvas.width = Math.max(600, Math.round(r.width * DPR));
+    pitchCanvas.height = Math.round(r.height * DPR);
   }
   resize(); addEventListener("resize", resize);
 
-  function yOf(hz){
+  function yOf(hz) {
     const h = pitchCanvas.height;
     const clamped = Math.max(PS_MIN_HZ, Math.min(PS_MAX_HZ, hz));
     return h - ((clamped - PS_MIN_HZ) / (PS_MAX_HZ - PS_MIN_HZ)) * h;
   }
-  function drawBands(){
+  function drawBands() {
     const styles = getComputedStyle(document.documentElement);
     const cGray = styles.getPropertyValue("--band-gray") || "#ddd";
     const cBlue = styles.getPropertyValue("--band-blue") || "#bfe7ff";
     const cPink = styles.getPropertyValue("--band-pink") || "#ffd1dc";
     const cLilac = styles.getPropertyValue("--band-lilac") || "#e2d5ff";
-    const w=pitchCanvas.width, h=pitchCanvas.height;
+    const w = pitchCanvas.width, h = pitchCanvas.height;
 
     // 區帶：灰(50–85) / 藍(85–165) / 灰(165–180) / 粉(180–310) / 灰(310–450) / 淡紫(450–600)
-    ctx.fillStyle = cGray; ctx.fillRect(0, yOf(85),  w, h - yOf(85));
-    ctx.fillStyle = cBlue; ctx.fillRect(0, yOf(165), w, yOf(85)-yOf(165));
-    ctx.fillStyle = cGray; ctx.fillRect(0, yOf(180), w, yOf(165)-yOf(180));
-    ctx.fillStyle = cPink; ctx.fillRect(0, yOf(310), w, yOf(180)-yOf(310));
-    ctx.fillStyle = cGray; ctx.fillRect(0, yOf(450), w, yOf(310)-yOf(450));
-    ctx.fillStyle = cLilac; ctx.fillRect(0, 0,        w, yOf(450));
+    ctx.fillStyle = cGray; ctx.fillRect(0, yOf(85), w, h - yOf(85));
+    ctx.fillStyle = cBlue; ctx.fillRect(0, yOf(165), w, yOf(85) - yOf(165));
+    ctx.fillStyle = cGray; ctx.fillRect(0, yOf(180), w, yOf(165) - yOf(180));
+    ctx.fillStyle = cPink; ctx.fillRect(0, yOf(310), w, yOf(180) - yOf(310));
+    ctx.fillStyle = cGray; ctx.fillRect(0, yOf(450), w, yOf(310) - yOf(450));
+    ctx.fillStyle = cLilac; ctx.fillRect(0, 0, w, yOf(450));
 
     // 網格線
-    ctx.strokeStyle = "rgba(0,0,0,.08)"; ctx.lineWidth = 1*DPR;
-    [50,85,165,180,310,450,PS_MAX_HZ].forEach(f=>{ const y=yOf(f); ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); });
+    ctx.strokeStyle = "rgba(0,0,0,.08)"; ctx.lineWidth = 1 * DPR;
+    [50, 85, 165, 180, 310, 450, PS_MAX_HZ].forEach(f => { const y = yOf(f); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); });
   }
 
-  function draw(){
-    if (!psRunning && psHzSmooth.length===0){ psRAF = requestAnimationFrame(draw); return; }
-    const w=pitchCanvas.width, h=pitchCanvas.height;
-    ctx.clearRect(0,0,w,h);
+  function draw() {
+    if (!psRunning && psHzSmooth.length === 0) { psRAF = requestAnimationFrame(draw); return; }
+    const w = pitchCanvas.width, h = pitchCanvas.height;
+    ctx.clearRect(0, 0, w, h);
     drawBands();
 
     const styles = getComputedStyle(document.documentElement);
-    ctx.lineWidth = 2*DPR;
+    ctx.lineWidth = 2 * DPR;
     ctx.strokeStyle = styles.getPropertyValue("--stream-ink") || "#222";
 
     // 往右跑：最右是最新
-    const stepX = 3*DPR;
-    const maxN  = Math.floor(w/stepX)-2;
+    const stepX = 3 * DPR;
+    const maxN = Math.floor(w / stepX) - 2;
     const n = Math.min(psHzSmooth.length, maxN);
     ctx.beginPath();
-    for (let i=0;i<n;i++){
-      const hz = psHzSmooth[psHzSmooth.length-n+i] ?? psHz[psHz.length-n+i];
-      const x = w - (n-i)*stepX;
-      if (hz==null) continue;
+    for (let i = 0; i < n; i++) {
+      const hz = psHzSmooth[psHzSmooth.length - n + i] ?? psHz[psHz.length - n + i];
+      const x = w - (n - i) * stepX;
+      if (hz == null) continue;
       const y = yOf(hz);
-      if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
     ctx.stroke();
 
@@ -2933,7 +2935,7 @@ function startDrawLoop(){
     ctx.font = `${axisFontSize}px ${axisFont}`;
     ctx.textBaseline = "middle";
 
-    axisTicks.forEach((hz)=>{
+    axisTicks.forEach((hz) => {
       const y = yOf(hz);
       const textY = Math.min(Math.max(y, labelHalf), h - labelHalf);
 
@@ -2961,30 +2963,30 @@ function startDrawLoop(){
 }
 
 // ===== 離線抽樣（上傳檔用；錄音也會補） =====
-function offlineExtractStreamMetrics(float32, sr, append=false){
-  try{
-    if(!append){
-      psHz.length=0; psHzSmooth.length=0; psDb.length=0; psVoiced.length=0; psConfidence.length=0;
+function offlineExtractStreamMetrics(float32, sr, append = false) {
+  try {
+    if (!append) {
+      psHz.length = 0; psHzSmooth.length = 0; psDb.length = 0; psVoiced.length = 0; psConfidence.length = 0;
       resetOfflineFeatureStore();
       resetPitchPostState(pitchPostState);
       psOfflineNoiseTracker.reset();
       startAutoRangeSession({ preserveRange: false });
     }
     if (!append) maybeEnableAdvancedPitch("offline", { allowRetry: true });
-    const step = Math.max(1, Math.floor((PS_INTERVAL_MS/1000)*sr));
-    const frame = Math.min(Math.floor(0.08*sr), 8192); // ~80ms ACF 視窗
+    const step = Math.max(1, Math.floor((PS_INTERVAL_MS / 1000) * sr));
+    const frame = Math.min(Math.floor(0.08 * sr), 8192); // ~80ms ACF 視窗
     offlineFeatureStore.frameSec = step / sr;
-    for(let i=0;i+frame<=float32.length; i+=step){
-      const seg = float32.subarray(i, i+frame);
-      const rawDb = 20*Math.log10(Math.max(rms(seg,0,seg.length), 1e-6)) + 100;
+    for (let i = 0; i + frame <= float32.length; i += step) {
+      const seg = float32.subarray(i, i + frame);
+      const rawDb = 20 * Math.log10(Math.max(rms(seg, 0, seg.length), 1e-6)) + 100;
       const { value: db } = applyDbCalibration(rawDb);
-      const wasVoiced = psVoiced.length ? psVoiced[psVoiced.length-1] : false;
+      const wasVoiced = psVoiced.length ? psVoiced[psVoiced.length - 1] : false;
       let hz = null;
       let spectral = null;
       const gate = psOfflineNoiseTracker.shouldDetect(db, wasVoiced);
-      if (gate.detect){
+      if (gate.detect) {
         const candHz = runPitchDetection(seg, sr, { context: "offline" });
-        if (candHz != null){
+        if (candHz != null) {
           hz = candHz;
           spectral = estimateSpectralFeatures(seg, sr);
         } else {
@@ -2997,30 +2999,30 @@ function offlineExtractStreamMetrics(float32, sr, append=false){
       const { processed, voiced, confidence } = appendPitchSample(
         hz ?? null,
         { db, ambientDb: gate.ambient, spectral },
-        { dtMs: Math.max(1, Math.round((offlineFeatureStore.frameSec || (PS_INTERVAL_MS/1000)) * 1000)) }
+        { dtMs: Math.max(1, Math.round((offlineFeatureStore.frameSec || (PS_INTERVAL_MS / 1000)) * 1000)) }
       );
       offlineFeatureStore.pitchRaw.push(Number.isFinite(hz) ? hz : NaN);
       offlineFeatureStore.pitchProcessed.push(Number.isFinite(processed) ? processed : NaN);
       offlineFeatureStore.pitchConfidence.push(confidence);
       offlineFeatureStore.voiced.push(Boolean(voiced));
       offlineFeatureStore.db.push(db);
-      if (spectral){
+      if (spectral) {
         offlineFeatureStore.formants.push([spectral.f1 ?? NaN, spectral.f2 ?? NaN, spectral.f3 ?? NaN]);
         offlineFeatureStore.tilt.push(spectral.tilt ?? NaN);
         offlineFeatureStore.breathiness.push(spectral.breathiness ?? NaN);
         offlineFeatureStore.energy.push([spectral.energy?.low ?? NaN, spectral.energy?.mid ?? NaN, spectral.energy?.high ?? NaN]);
         offlineFeatureStore.zcr.push(spectral.zcr ?? NaN);
       } else {
-        offlineFeatureStore.formants.push([NaN,NaN,NaN]);
+        offlineFeatureStore.formants.push([NaN, NaN, NaN]);
         offlineFeatureStore.tilt.push(NaN);
         offlineFeatureStore.breathiness.push(NaN);
-        offlineFeatureStore.energy.push([NaN,NaN,NaN]);
+        offlineFeatureStore.energy.push([NaN, NaN, NaN]);
         offlineFeatureStore.zcr.push(NaN);
       }
     }
-  }catch(e){ console.error("[offlineExtractStreamMetrics]", e); }
+  } catch (e) { console.error("[offlineExtractStreamMetrics]", e); }
 }
-function resetOfflineFeatureStore(){
+function resetOfflineFeatureStore() {
   offlineFeatureStore.frameSec = 0;
   offlineFeatureStore.pitchRaw.length = 0;
   offlineFeatureStore.pitchProcessed.length = 0;
@@ -3033,7 +3035,7 @@ function resetOfflineFeatureStore(){
   offlineFeatureStore.energy.length = 0;
   offlineFeatureStore.zcr.length = 0;
 }
-function rms(arr, a, b){ let s=0; for(let i=a;i<b;i++){ const v=arr[i]; s += v*v; } return Math.sqrt(s/Math.max(1,b-a)); }
+function rms(arr, a, b) { let s = 0; for (let i = a; i < b; i++) { const v = arr[i]; s += v * v; } return Math.sqrt(s / Math.max(1, b - a)); }
 
 // 讓曲線圖吃到容器實際寬度，避免在 details 關著時變 0
 function resizeIntonationCanvas(canvas) {
@@ -3049,8 +3051,8 @@ function resizeIntonationCanvas(canvas) {
 
 
 // ===== 統計卡（停止&分析完成後，含「簡評」與分歧提示） =====
-function finishStreamStats(){
-  try{
+function finishStreamStats() {
+  try {
     const statsEl = document.getElementById("streamStats");
     const pfVal = Number.isFinite(lastPf) ? lastPf : 0;
     const pmVal = Number.isFinite(lastPm) ? lastPm : 0;
@@ -3066,14 +3068,14 @@ function finishStreamStats(){
 
     // 僅對有聲點統計；若沒有資料就清空
     const voicedHzRaw = [];
-    for (let i=0;i<psHzSmooth.length;i++){
+    for (let i = 0; i < psHzSmooth.length; i++) {
       const val = psHzSmooth[i];
       const conf = psConfidence[i] ?? 0;
       if (Number.isFinite(val) && conf >= CONFIDENCE_INCLUDE_THRESHOLD) voicedHzRaw.push(val);
     }
-    const vols     = psDb.slice();
-    if (!voicedHzRaw.length && !vols.length){
-      statsEl.innerHTML="";
+    const vols = psDb.slice();
+    if (!voicedHzRaw.length && !vols.length) {
+      statsEl.innerHTML = "";
       setLatestAnalysisExport(null);
       return;
     }
@@ -3081,10 +3083,10 @@ function finishStreamStats(){
     const stableVoicedHz = filterPitchForStats(voicedHzRaw);
     const voicedHz = stableVoicedHz.length ? stableVoicedHz : voicedHzRaw;
     const pitchStats = makeStats(voicedHz);
-    const volStats   = makeStats(vols);
-    const volsSorted = vols.slice().sort((a,b)=>a-b);
-    const envDb      = percentileSorted(volsSorted, 10); // 10th 近似環境底噪
-    const snr        = Number.isFinite(volStats.med) && Number.isFinite(envDb) ? (volStats.med - envDb) : NaN;
+    const volStats = makeStats(vols);
+    const volsSorted = vols.slice().sort((a, b) => a - b);
+    const envDb = percentileSorted(volsSorted, 10); // 10th 近似環境底噪
+    const snr = Number.isFinite(volStats.med) && Number.isFinite(envDb) ? (volStats.med - envDb) : NaN;
 
     // ====== 簡評（可一眼看懂）======
     const band = bandOf(pitchStats.med);                 // 常見音高區（依 Median）
@@ -3096,22 +3098,22 @@ function finishStreamStats(){
     });
     let eligibleMask = Array.isArray(maskInfo?.mask) && maskInfo.mask.length ? maskInfo.mask : null;
     let eligibleCount = 0;
-    if ((!eligibleMask || !maskInfo?.count) && Array.isArray(store.voiced) && store.voiced.length){
+    if ((!eligibleMask || !maskInfo?.count) && Array.isArray(store.voiced) && store.voiced.length) {
       eligibleMask = store.voiced.map(Boolean);
     }
-    if (eligibleMask){
+    if (eligibleMask) {
       const limit = Math.min(eligibleMask.length, psVoiced.length);
-      for (let i=0;i<limit;i++){
+      for (let i = 0; i < limit; i++) {
         if (eligibleMask[i]) eligibleCount++;
       }
     }
     const voicedCount = eligibleCount;
     const frameSec = Number.isFinite(offlineFeatureStore.frameSec) && offlineFeatureStore.frameSec > 0
       ? offlineFeatureStore.frameSec
-      : (PS_INTERVAL_MS/1000);
+      : (PS_INTERVAL_MS / 1000);
     const totalVoicedSec = voicedCount * frameSec;
     let stabilityKey = "steady";
-    if (isFinite(spread)){
+    if (isFinite(spread)) {
       const wideThreshold = Math.max(90, 60 * Math.sqrt(Math.max(totalVoicedSec, EPS) / 5));
       if (spread > wideThreshold) stabilityKey = "wide";
       else if (spread >= 40) stabilityKey = "moderate";
@@ -3121,7 +3123,7 @@ function finishStreamStats(){
       : "—";
 
     let snrKey = null;
-    if (isFinite(snr)){
+    if (isFinite(snr)) {
       snrKey = snr >= 20 ? "quiet" : snr >= 12 ? "ok" : "noisy";
     }
     const snrLabel = snrKey
@@ -3129,7 +3131,7 @@ function finishStreamStats(){
       : "—";
 
     let volSigmaKey = null;
-    if (isFinite(volStats.sd)){
+    if (isFinite(volStats.sd)) {
       volSigmaKey = volStats.sd < 6 ? "steady" : volStats.sd <= 12 ? "moderate" : "wide";
     }
     const volSigmaLabel = volSigmaKey
@@ -3233,45 +3235,45 @@ function finishStreamStats(){
 
     statsEl.innerHTML = headerHTML + focusHTML + divergeNote + envNote + voicedNote + statsHTML + advancedHTML;
 
-const advRoot = statsEl.querySelector(".advanced-section");
-if (advRoot) setupAdvancedSection(advRoot);
-wireAdvancedIntonation(advRoot, advSummary);
+    const advRoot = statsEl.querySelector(".advanced-section");
+    if (advRoot) setupAdvancedSection(advRoot);
+    wireAdvancedIntonation(advRoot, advSummary);
 
-// ----- Intonation 曲線：展開才畫，resize 會重畫（清理舊監聽） -----
-if (typeof window.__advIntonationOnResize === "function") {
-  window.removeEventListener("resize", window.__advIntonationOnResize);
-  window.__advIntonationOnResize = null;
-}
+    // ----- Intonation 曲線：展開才畫，resize 會重畫（清理舊監聽） -----
+    if (typeof window.__advIntonationOnResize === "function") {
+      window.removeEventListener("resize", window.__advIntonationOnResize);
+      window.__advIntonationOnResize = null;
+    }
 
-const det = advRoot?.querySelector('details[data-adv="intonation"]');
-function drawIntonationNow() {
-  const canvas = advRoot?.querySelector("#intonationCanvas");
-  if (!canvas || !advSummary) return;
-  resizeIntonationCanvas(canvas); // 這個你已經加過
-  if (Array.isArray(advSummary.intonation?.points) && advSummary.intonation.points.length) {
-    try { drawIntonationCurve(canvas, advSummary.intonation); } catch {}
-  } else {
-    const ctx = canvas.getContext("2d");
-    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-  }
-  try { setupIntonationLegend(advSummary.intonation); } catch {}
-}
+    const det = advRoot?.querySelector('details[data-adv="intonation"]');
+    function drawIntonationNow() {
+      const canvas = advRoot?.querySelector("#intonationCanvas");
+      if (!canvas || !advSummary) return;
+      resizeIntonationCanvas(canvas); // 這個你已經加過
+      if (Array.isArray(advSummary.intonation?.points) && advSummary.intonation.points.length) {
+        try { drawIntonationCurve(canvas, advSummary.intonation); } catch { }
+      } else {
+        const ctx = canvas.getContext("2d");
+        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      try { setupIntonationLegend(advSummary.intonation); } catch { }
+    }
 
-// details 打開時再畫一次，確保不是 0 寬
-if (det) {
-  det.addEventListener("toggle", () => { if (det.open) drawIntonationNow(); });
-  // 如果預設就是開的，立刻畫一次
-  if (det.open) drawIntonationNow();
-}
+    // details 打開時再畫一次，確保不是 0 寬
+    if (det) {
+      det.addEventListener("toggle", () => { if (det.open) drawIntonationNow(); });
+      // 如果預設就是開的，立刻畫一次
+      if (det.open) drawIntonationNow();
+    }
 
-// 窗口尺寸改變時重畫：先清舊的，再綁新的，避免越綁越多
-window.__advIntonationOnResize = () => {
-  if (det?.open) drawIntonationNow();
-};
-window.addEventListener("resize", window.__advIntonationOnResize, { passive: true });
+    // 窗口尺寸改變時重畫：先清舊的，再綁新的，避免越綁越多
+    window.__advIntonationOnResize = () => {
+      if (det?.open) drawIntonationNow();
+    };
+    window.addEventListener("resize", window.__advIntonationOnResize, { passive: true });
 
 
-    
+
     const focusButtons = statsEl.querySelectorAll(".focus-cta");
     for (const button of focusButtons) {
       button.addEventListener("click", (event) => {
@@ -3294,7 +3296,7 @@ window.addEventListener("resize", window.__advIntonationOnResize, { passive: tru
     let speechRateTagLabel = null;
     let breathinessTagLabel = null;
     let brightnessTagLabel = null;
-    if (advSummary){
+    if (advSummary) {
       const resonanceTag = advSummary.resonanceDisplay || advSummary.resonanceLabel;
       if (resonanceTag) resonanceTagLabel = summaryString("tags.resonance", { label: resonanceTag });
       if (advSummary.speechRateLabel) speechRateTagLabel = summaryString("tags.speechRate", { label: advSummary.speechRateLabel });
@@ -3311,7 +3313,7 @@ window.addEventListener("resize", window.__advIntonationOnResize, { passive: tru
       brightness: brightnessTagLabel,
     };
 
-    if (tags){
+    if (tags) {
       let tagHTML = `
         <span class="tag">${pitchTagLabel}</span>
         <span class="tag">${noiseTagLabel}</span>
@@ -3323,14 +3325,14 @@ window.addEventListener("resize", window.__advIntonationOnResize, { passive: tru
       tags.innerHTML = tagHTML;
     }
 
-    if (advSummary?.intonation){
+    if (advSummary?.intonation) {
       const canvas = document.getElementById("intonationCanvas");
-      if (canvas){
-        if (Array.isArray(advSummary.intonation.points) && advSummary.intonation.points.length){
+      if (canvas) {
+        if (Array.isArray(advSummary.intonation.points) && advSummary.intonation.points.length) {
           drawIntonationCurve(canvas, advSummary.intonation);
         } else {
           const ctx = canvas.getContext("2d");
-          if (ctx){ ctx.clearRect(0, 0, canvas.width, canvas.height); }
+          if (ctx) { ctx.clearRect(0, 0, canvas.width, canvas.height); }
         }
       }
       setupIntonationLegend(advSummary.intonation);
@@ -3341,13 +3343,13 @@ window.addEventListener("resize", window.__advIntonationOnResize, { passive: tru
       empty: focusInsights.empty,
       items: Array.isArray(focusInsights.items)
         ? focusInsights.items.map((item) => ({
-            key: item.key,
-            title: item.title,
-            severity: item.severity,
-            severityLabel: item.severityLabel,
-            practiceCategory: item.practiceCategory ?? null,
-            ctaLabel: item.ctaLabel,
-          }))
+          key: item.key,
+          title: item.title,
+          severity: item.severity,
+          severityLabel: item.severityLabel,
+          practiceCategory: item.practiceCategory ?? null,
+          ctaLabel: item.ctaLabel,
+        }))
         : [],
     };
     const payload = {
@@ -3368,7 +3370,7 @@ window.addEventListener("resize", window.__advIntonationOnResize, { passive: tru
           confidenceThreshold: CONFIDENCE_INCLUDE_THRESHOLD,
         },
         postProcess: {
-          counters: PITCH_COUNTER_KEYS.reduce((acc, key)=>{
+          counters: PITCH_COUNTER_KEYS.reduce((acc, key) => {
             acc[key] = Number(pitchPostState.counters?.[key] ?? 0);
             return acc;
           }, {}),
@@ -3415,11 +3417,11 @@ window.addEventListener("resize", window.__advIntonationOnResize, { passive: tru
       },
     };
     setLatestAnalysisExport(payload);
-  }catch(e){ console.error("[finishStreamStats]", e); }
+  } catch (e) { console.error("[finishStreamStats]", e); }
 }
-function setLatestAnalysisExport(payload){
-  try{
-    if (payload == null){
+function setLatestAnalysisExport(payload) {
+  try {
+    if (payload == null) {
       latestAnalysisExport = null;
       if (typeof window !== "undefined") window.vpaLatestAnalysis = null;
       return;
@@ -3427,22 +3429,22 @@ function setLatestAnalysisExport(payload){
     const sanitized = sanitizeForJson(payload);
     latestAnalysisExport = sanitized;
     if (typeof window !== "undefined") window.vpaLatestAnalysis = sanitized;
-  }catch(err){
+  } catch (err) {
     console.error("[export] capture failed", err);
     latestAnalysisExport = null;
   }
 }
-function cloneOfflineFeatureStore(){
+function cloneOfflineFeatureStore() {
   const frameSec = offlineFeatureStore.frameSec;
   const pitchRaw = Array.from(offlineFeatureStore.pitchRaw);
   const pitchProcessed = Array.from(offlineFeatureStore.pitchProcessed);
   const pitchConfidence = Array.from(offlineFeatureStore.pitchConfidence);
   const db = Array.from(offlineFeatureStore.db);
   const voiced = Array.from(offlineFeatureStore.voiced);
-  const formants = offlineFeatureStore.formants.map((triple)=> Array.isArray(triple) ? triple.slice() : [NaN, NaN, NaN]);
+  const formants = offlineFeatureStore.formants.map((triple) => Array.isArray(triple) ? triple.slice() : [NaN, NaN, NaN]);
   const tilt = Array.from(offlineFeatureStore.tilt);
   const breathiness = Array.from(offlineFeatureStore.breathiness);
-  const energy = offlineFeatureStore.energy.map((triple)=> Array.isArray(triple) ? triple.slice() : [NaN, NaN, NaN]);
+  const energy = offlineFeatureStore.energy.map((triple) => Array.isArray(triple) ? triple.slice() : [NaN, NaN, NaN]);
   const zcr = Array.from(offlineFeatureStore.zcr);
   const duration = Number.isFinite(frameSec) ? frameSec * pitchProcessed.length : NaN;
   return {
@@ -3460,30 +3462,30 @@ function cloneOfflineFeatureStore(){
     duration,
   };
 }
-function sanitizeForJson(value){
-  if (Array.isArray(value)){
-    return value.map((item)=> sanitizeForJson(item));
+function sanitizeForJson(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeForJson(item));
   }
-  if (value && typeof value === "object"){
+  if (value && typeof value === "object") {
     const out = {};
-    for (const [key, val] of Object.entries(value)){
+    for (const [key, val] of Object.entries(value)) {
       out[key] = sanitizeForJson(val);
     }
     return out;
   }
-  if (typeof value === "number"){
+  if (typeof value === "number") {
     return Number.isFinite(value) ? value : null;
   }
   if (value === undefined) return null;
   return value;
 }
-function computeAdvancedSummary(){
+function computeAdvancedSummary() {
   const store = offlineFeatureStore;
   const processedPitch = Array.isArray(store.pitchProcessed) ? store.pitchProcessed : (store.pitch || []);
   const rawPitch = Array.isArray(store.pitchRaw) ? store.pitchRaw : processedPitch;
   const pitchConfidence = Array.isArray(store.pitchConfidence) ? store.pitchConfidence : [];
   const n = processedPitch.length;
-  const hopSec = store.frameSec || (PS_INTERVAL_MS/1000);
+  const hopSec = store.frameSec || (PS_INTERVAL_MS / 1000);
   const duration = hopSec * n;
   if (!n || duration < 0.5) return null;
 
@@ -3493,19 +3495,19 @@ function computeAdvancedSummary(){
   });
   let mask = Array.isArray(maskInfo?.mask) && maskInfo.mask.length ? maskInfo.mask : null;
   let eligibleCount = Number.isFinite(maskInfo?.count) ? maskInfo.count : 0;
-  if ((!mask || !eligibleCount) && Array.isArray(store.voiced) && store.voiced.length){
+  if ((!mask || !eligibleCount) && Array.isArray(store.voiced) && store.voiced.length) {
     mask = store.voiced.map(Boolean);
-    eligibleCount = mask.reduce((acc, flag)=> acc + (flag ? 1 : 0), 0);
+    eligibleCount = mask.reduce((acc, flag) => acc + (flag ? 1 : 0), 0);
   }
 
   const formantArr = Array.isArray(store.formants) ? store.formants : [];
   const limit = mask ? Math.min(formantArr.length, mask.length) : formantArr.length;
-  const f1Vals=[], f2Vals=[], f3Vals=[];
-  for (let i=0;i<limit;i++){
+  const f1Vals = [], f2Vals = [], f3Vals = [];
+  for (let i = 0; i < limit; i++) {
     if (mask && !mask[i]) continue;
     const form = formantArr[i];
     if (!form) continue;
-    const [f1,f2,f3] = form;
+    const [f1, f2, f3] = form;
     if (Number.isFinite(f1)) f1Vals.push(f1);
     if (Number.isFinite(f2)) f2Vals.push(f2);
     if (Number.isFinite(f3)) f3Vals.push(f3);
@@ -3533,7 +3535,7 @@ function computeAdvancedSummary(){
   const breathAvg = breathSummary.avg;
   const vols = Array.isArray(store.db) ? store.db.filter(Number.isFinite) : [];
   const volStats = vols.length ? makeStats(vols) : null;
-  const envDb = vols.length ? percentileSorted(vols.slice().sort((a,b)=>a-b), 10) : NaN;
+  const envDb = vols.length ? percentileSorted(vols.slice().sort((a, b) => a - b), 10) : NaN;
   const snrEstimate = Number.isFinite(volStats?.med) && Number.isFinite(envDb) ? (volStats.med - envDb) : NaN;
   const leaning = detectVoiceLeaning(lastPf, lastPm);
   const brightnessInfo = categorizeBrightness({ f3Stats, tilt: tiltAvg, breath: breathAvg, leaning });
@@ -3582,7 +3584,7 @@ function computeAdvancedSummary(){
   };
 }
 
-function wireAdvancedIntonation(advRoot, advSummary){
+function wireAdvancedIntonation(advRoot, advSummary) {
   if (!advRoot || !advSummary) return;
   const det = advRoot.querySelector('details[data-adv="intonation"]');
   if (!det) return;
@@ -3598,7 +3600,7 @@ function wireAdvancedIntonation(advRoot, advSummary){
     canvas.height = Math.floor(cssHeight * pxRatio);
   }
 
-  function drawNow(){
+  function drawNow() {
     const canvas = advRoot.querySelector("#intonationCanvas");
     if (!canvas) return;
     resizeIntonationCanvas(canvas);
@@ -3610,7 +3612,7 @@ function wireAdvancedIntonation(advRoot, advSummary){
         if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
       setupIntonationLegend(advSummary.intonation);
-    } catch {}
+    } catch { }
   }
 
   // 切換時再畫，避免 0 寬
@@ -3628,7 +3630,7 @@ function wireAdvancedIntonation(advRoot, advSummary){
 }
 
 // 兼容不同鍵名，必要時從 points/ rawPoints 算出 rangeHz 與顯示字串
-function resolveIntonationData(summary){
+function resolveIntonationData(summary) {
   const S = summary || {};
 
   // 抽出 y 值，支援 number / [t, y] / {hz|f0|y}
@@ -3640,18 +3642,18 @@ function resolveIntonationData(summary){
   };
 
   const rawPts = Array.isArray(S.points) ? S.points
-                : Array.isArray(S.rawPoints) ? S.rawPoints
-                : [];
+    : Array.isArray(S.rawPoints) ? S.rawPoints
+      : [];
   const ys = rawPts.map(takeY).filter(Number.isFinite);
 
   const rangeHz =
     Number.isFinite(S.rangeHz) ? Number(S.rangeHz)
-    : Number.isFinite(S.range)  ? Number(S.range)
-    : ys.length >= 2            ? Math.max(...ys) - Math.min(...ys)
-    : NaN;
+      : Number.isFinite(S.range) ? Number(S.range)
+        : ys.length >= 2 ? Math.max(...ys) - Math.min(...ys)
+          : NaN;
 
   const slopeLabel = S.slopeLabel || S.trendLabel || S.trend || null;
-  const slopeHint  = S.slopeHint  || S.trendHint  || "";
+  const slopeHint = S.slopeHint || S.trendHint || "";
   const rangeLabel = (typeof S.rangeLabel === "string" && S.rangeLabel) ? S.rangeLabel : null;
 
   let rangeDisplay = S.rangeDisplay || null;
@@ -3668,21 +3670,21 @@ function resolveIntonationData(summary){
   return { points, rangeHz, rangeDisplay, slopeLabel, slopeHint };
 }
 
-function beginnerText(key, fallback, params){
+function beginnerText(key, fallback, params) {
   const path = `summary.beginnerHighlights.${key}`;
-  try{
+  try {
     const raw = t(path, params);
     if (raw && raw !== path) return raw;
-  }catch{}
+  } catch { }
   return fallback;
 }
 
-function renderBeginnerHighlights(summary, context = {}){
+function renderBeginnerHighlights(summary, context = {}) {
   const heading = beginnerText("heading", "Highlights");
   const empty = beginnerText("empty", "Record a longer clip to unlock coaching tips.");
   const cards = [];
   const bandLabel = context.band || context.bandLabel || null;
-  if (bandLabel && bandLabel !== "—"){
+  if (bandLabel && bandLabel !== "—") {
     cards.push({
       key: "pitch",
       title: beginnerText("items.pitch.title", "Pitch focus"),
@@ -3691,7 +3693,7 @@ function renderBeginnerHighlights(summary, context = {}){
     });
   }
   const resonanceLabel = summary?.resonanceDisplay || summary?.resonanceLabel || null;
-  if (resonanceLabel && resonanceLabel !== "—"){
+  if (resonanceLabel && resonanceLabel !== "—") {
     cards.push({
       key: "resonance",
       title: beginnerText("items.resonance.title", "Resonance focus"),
@@ -3700,7 +3702,7 @@ function renderBeginnerHighlights(summary, context = {}){
     });
   }
   const speech = summary?.speechRate || null;
-  if (speech && speech.label && speech.key !== "insufficient"){
+  if (speech && speech.label && speech.key !== "insufficient") {
     cards.push({
       key: "speech",
       title: beginnerText("items.speech.title", "Pacing focus"),
@@ -3709,7 +3711,7 @@ function renderBeginnerHighlights(summary, context = {}){
     });
   }
 
-  if (!cards.length){
+  if (!cards.length) {
     if (!heading && !empty) return "";
     return `
       <div class="beginner-summary">
@@ -3737,8 +3739,8 @@ function renderBeginnerHighlights(summary, context = {}){
   `;
 }
 
-function renderAdvancedSummary(summary, context = {}){
-  if (!summary){
+function renderAdvancedSummary(summary, context = {}) {
+  if (!summary) {
     return `<div class="advanced-section"><div class="note">${t("analysis.advanced.insufficient")}</div></div>`;
   }
 
@@ -3755,15 +3757,15 @@ function renderAdvancedSummary(summary, context = {}){
 
   // 共鳴比例
   const chestPct = Math.round((summary.energyPct?.chest ?? 0.33) * 100);
-  const maskPct  = Math.round((summary.energyPct?.mask  ?? 0.33) * 100);
-  const headPct  = Math.round((summary.energyPct?.head  ?? 0.34) * 100);
+  const maskPct = Math.round((summary.energyPct?.mask ?? 0.33) * 100);
+  const headPct = Math.round((summary.energyPct?.head ?? 0.34) * 100);
   const advCopy = summaryText?.advanced || {};
   const advFormantCards = advCopy.formantCards || {};
   const advIntonationCards = advCopy.intonationCards || {};
   const advVowelCards = advCopy.vowelCards || {};
-  const labelFormantF1   = advFormantCards.f1   || t("summary.advanced.formantCards.f1")   || t("realtime.formants.f1Label") || "F1";
-  const labelFormantF2   = advFormantCards.f2   || t("summary.advanced.formantCards.f2")   || t("realtime.formants.f2Label") || "F2";
-  const labelFormantF3   = advFormantCards.f3   || t("summary.advanced.formantCards.f3")   || t("realtime.formants.f3Label") || "F3";
+  const labelFormantF1 = advFormantCards.f1 || t("summary.advanced.formantCards.f1") || t("realtime.formants.f1Label") || "F1";
+  const labelFormantF2 = advFormantCards.f2 || t("summary.advanced.formantCards.f2") || t("realtime.formants.f2Label") || "F2";
+  const labelFormantF3 = advFormantCards.f3 || t("summary.advanced.formantCards.f3") || t("realtime.formants.f3Label") || "F3";
   const labelFormantTilt = advFormantCards.tilt || t("summary.advanced.formantCards.tilt") || "Spectral Tilt";
   const labelFormantBright = advFormantCards.brightness || t("summary.advanced.formantCards.brightness") || "Brightness";
   const labelResonance = advCopy.resonanceTitle || t("realtime.resonance.label") || "Resonance balance";
@@ -3771,8 +3773,8 @@ function renderAdvancedSummary(summary, context = {}){
   const labelIntonationRange = advIntonationCards.range || t("summary.advanced.intonationCards.range") || t("analysis.advanced.intonationCards.range") || "Range";
   const labelSpeechRate = advIntonationCards.speechRate || t("summary.advanced.intonationCards.speechRate") || t("analysis.advanced.intonationCards.speechRate") || "Speech rate";
   const chestLabel = t("realtime.resonance.chest", { value: chestPct }) || `Chest ${chestPct}%`;
-  const maskLabel  = t("realtime.resonance.mask",  { value: maskPct })  || `Mask ${maskPct}%`;
-  const headLabel  = t("realtime.resonance.head",  { value: headPct })  || `Head ${headPct}%`;
+  const maskLabel = t("realtime.resonance.mask", { value: maskPct }) || `Mask ${maskPct}%`;
+  const headLabel = t("realtime.resonance.head", { value: headPct }) || `Head ${headPct}%`;
 
   // Formants
   const f1 = Number(summary.formants?.f1?.median);
@@ -3790,15 +3792,15 @@ function renderAdvancedSummary(summary, context = {}){
   const breathRatio = Number(summary.breathinessAvg);
   const breathPct = Number.isFinite(breathRatio) ? breathRatio * 100 : NaN;
   const speechSyll = Number(summary.speechRate?.syllPerSec);
-  const speechWpm  = Number(summary.speechRate?.wordsPerMin);
-  const liaisonRatio    = Number(summary.liaisonRatio);
+  const speechWpm = Number(summary.speechRate?.wordsPerMin);
+  const liaisonRatio = Number(summary.liaisonRatio);
   const liaisonPct = Number.isFinite(liaisonRatio) ? liaisonRatio * 100 : NaN;
   const brightnessDisplay = summary.brightnessLabel || "—";
-  const brightnessHint    = summary.brightnessHint  || "";
-  const labelBrightness   = labelFormantBright;
-  const labelBreathiness  = advVowelCards.breathiness || t("summary.advanced.vowelCards.breathiness") || "Breathiness";
-  const labelLiaison      = advIntonationCards.liaison || t("summary.advanced.intonationCards.liaison") || "Liaison";
-  const labelVowelFocus   = advVowelCards.focus || t("summary.advanced.vowelCards.focus") || "Vowel focus";
+  const brightnessHint = summary.brightnessHint || "";
+  const labelBrightness = labelFormantBright;
+  const labelBreathiness = advVowelCards.breathiness || t("summary.advanced.vowelCards.breathiness") || "Breathiness";
+  const labelLiaison = advIntonationCards.liaison || t("summary.advanced.intonationCards.liaison") || "Liaison";
+  const labelVowelFocus = advVowelCards.focus || t("summary.advanced.vowelCards.focus") || "Vowel focus";
 
   // 格式化
   const speechRateDisplay = Number.isFinite(speechSyll)
@@ -3821,19 +3823,19 @@ function renderAdvancedSummary(summary, context = {}){
     : (t("ui.advancedMode.advanced") || "Switch to Advanced");
 
   // 標題（有就用，沒有就回退英文）
-  const titleFormant    = advCopy.formantTitle    || t("summary.advanced.formantTitle")    || "Formant & Resonance";
+  const titleFormant = advCopy.formantTitle || t("summary.advanced.formantTitle") || "Formant & Resonance";
   const titleIntonation = advCopy.intonationTitle || t("summary.advanced.intonationTitle") || "Intonation & Speech";
-  const titleVowel      = advCopy.vowelBreathTitle|| t("summary.advanced.vowelBreathTitle")|| "Vowel & Breathiness";
+  const titleVowel = advCopy.vowelBreathTitle || t("summary.advanced.vowelBreathTitle") || "Vowel & Breathiness";
 
   return `
     <div class="advanced-section" data-mode="${mode}">
       <div class="adv-controls">
-        <button type="button" class="btn sm ghost" data-adv-toggle aria-pressed="${mode==="advanced"}" aria-label="Toggle Beginner/Advanced">${escapeHtml(advToggleLabel)}</button>
+        <button type="button" class="btn sm ghost" data-adv-toggle aria-pressed="${mode === "advanced"}" aria-label="Toggle Beginner/Advanced">${escapeHtml(advToggleLabel)}</button>
       </div>
       ${beginnerHighlights}
 
       <!-- Formant & Resonance -->
-      <details class="adv-details" data-adv="formant" ${getDetailsOpen("formant", mode==="advanced") ? "open": ""}>
+      <details class="adv-details" data-adv="formant" ${getDetailsOpen("formant", mode === "advanced") ? "open" : ""}>
         <summary>
           <span class="adv-title">${escapeHtml(titleFormant)}</span>
           <span class="adv-baselines">
@@ -3862,16 +3864,16 @@ function renderAdvancedSummary(summary, context = {}){
             ${renderGauge(f3, BASELINES.f3, labelFormantF3)}
             <div class="hint">${safeHint(f3Hint)}</div>
           </div>
-          <div class="adv-card" title="${escapeAttr(summary.tiltHint||"")}">
+          <div class="adv-card" title="${escapeAttr(summary.tiltHint || "")}">
             <div class="k">${escapeHtml(labelFormantTilt)}</div>
-            <div class="v">${summary.tiltLabel||"—"}</div>
+            <div class="v">${summary.tiltLabel || "—"}</div>
             ${renderGauge(tiltAvg, BASELINES.tilt, labelFormantTilt)}
             <div class="hint">${safeHint(summary.tiltHint)}</div>
           </div>
         </div>
-        <div class="adv-card adv-card--resonance" role="group" aria-label="${escapeAttr(labelResonance)}" title="${escapeAttr(summary.resonanceHint||"")}">
+        <div class="adv-card adv-card--resonance" role="group" aria-label="${escapeAttr(labelResonance)}" title="${escapeAttr(summary.resonanceHint || "")}">
           <div class="k">${escapeHtml(labelResonance)}</div>
-          <div class="v resonance-value">${escapeHtml(summary.resonanceDisplay||summary.resonanceLabel||"—")}</div>
+          <div class="v resonance-value">${escapeHtml(summary.resonanceDisplay || summary.resonanceLabel || "—")}</div>
           <div class="resonance-bar resonance-bar--card">
             <span class="res-part chest" style="width:${chestPct}%"><span>${escapeHtml(chestLabel)}</span></span>
             <span class="res-part mask" style="width:${maskPct}%"><span>${escapeHtml(maskLabel)}</span></span>
@@ -3882,7 +3884,7 @@ function renderAdvancedSummary(summary, context = {}){
       </details>
 
       <!-- Intonation & Speech -->
-  <details class="adv-details" data-adv="intonation" ${getDetailsOpen("intonation", mode==="advanced") ? "open": ""}>
+  <details class="adv-details" data-adv="intonation" ${getDetailsOpen("intonation", mode === "advanced") ? "open" : ""}>
     <summary>
       <span class="adv-title">${escapeHtml(titleIntonation)}</span>
       <span class="adv-baselines">
@@ -3919,14 +3921,14 @@ function renderAdvancedSummary(summary, context = {}){
   </details>
 
       <!-- Vowel & Breathiness -->
-      <details class="adv-details" data-adv="vowel" ${getDetailsOpen("vowel", mode==="advanced") ? "open": ""}>
+      <details class="adv-details" data-adv="vowel" ${getDetailsOpen("vowel", mode === "advanced") ? "open" : ""}>
         <summary>
           <span class="adv-title">${escapeHtml(titleVowel)}</span>
           <span class="adv-baselines">
             <span class="baseline">${escapeHtml(labelBrightness)}: ${escapeHtml(brightnessDisplay)}</span>
             <span class="baseline">${escapeHtml(labelBreathiness)}: ${escapeHtml(breathDisplay)} (${escapeHtml(formatBaselineRange(BASELINES.breath))})</span>
-            <span class="baseline">${escapeHtml(labelVowelFocus)}: ${escapeHtml(vowelDisplay||"—")}</span>
-            <span class="baseline">${escapeHtml(labelLiaison)}: ${escapeHtml(liaisonDisplay||"—")} (${escapeHtml(formatBaselineRange(BASELINES.liaison))})</span>
+            <span class="baseline">${escapeHtml(labelVowelFocus)}: ${escapeHtml(vowelDisplay || "—")}</span>
+            <span class="baseline">${escapeHtml(labelLiaison)}: ${escapeHtml(liaisonDisplay || "—")} (${escapeHtml(formatBaselineRange(BASELINES.liaison))})</span>
           </span>
         </summary>
         <div class="adv-note">${safeHint(brightnessHint)}</div>
@@ -3936,15 +3938,15 @@ function renderAdvancedSummary(summary, context = {}){
             <div class="v">${escapeHtml(brightnessDisplay)}</div>
             <div class="hint">${safeHint(brightnessHint)}</div>
           </div>
-          <div class="adv-card" title="${escapeAttr(summary.breathinessHint||"")}">
+          <div class="adv-card" title="${escapeAttr(summary.breathinessHint || "")}">
             <div class="k">${escapeHtml(labelBreathiness)}</div>
-            <div class="v">${escapeHtml(summary.breathinessLabel||"—")}</div>
+            <div class="v">${escapeHtml(summary.breathinessLabel || "—")}</div>
             ${renderGauge(breathPct, BASELINES.breath, labelBreathiness)}
             <div class="hint">${safeHint(summary.breathinessHint)}</div>
           </div>
-          <div class="adv-card" title="${escapeAttr(summary.liaisonHint||"")}">
+          <div class="adv-card" title="${escapeAttr(summary.liaisonHint || "")}">
             <div class="k">${escapeHtml(labelLiaison)}</div>
-            <div class="v">${escapeHtml(liaisonDisplay||"—")}</div>
+            <div class="v">${escapeHtml(liaisonDisplay || "—")}</div>
             ${renderGauge(liaisonPct, BASELINES.liaison, labelLiaison)}
             <div class="hint">${safeHint(summary.liaisonHint)}</div>
           </div>
@@ -3952,7 +3954,7 @@ function renderAdvancedSummary(summary, context = {}){
 
         <div class="adv-card">
           <div class="k">${escapeHtml(labelVowelFocus)}</div>
-          <div class="v">${escapeHtml(vowelDisplay||"—")}</div>
+          <div class="v">${escapeHtml(vowelDisplay || "—")}</div>
           <div class="hint">${safeHint(summary.vowelHint)}</div>
         </div>
       </details>
@@ -3960,16 +3962,16 @@ function renderAdvancedSummary(summary, context = {}){
   `;
 }
 
-function averageFinite(arr, mask){
+function averageFinite(arr, mask) {
   const values = Array.isArray(arr) ? arr : [];
   const maskArray = Array.isArray(mask?.mask) ? mask.mask : (Array.isArray(mask) ? mask : null);
   const limit = maskArray ? Math.min(values.length, maskArray.length) : values.length;
   let sum = 0;
   let count = 0;
-  for (let i=0;i<limit;i++){
+  for (let i = 0; i < limit; i++) {
     if (maskArray && !maskArray[i]) continue;
     const val = values[i];
-    if (Number.isFinite(val)){
+    if (Number.isFinite(val)) {
       sum += val;
       count++;
     }
@@ -3978,27 +3980,27 @@ function averageFinite(arr, mask){
   return sum / count;
 }
 
-function averageEnergy(arr, info = {}){
-  if (!Array.isArray(arr) || !arr.length) return { low:0, mid:0, high:0, total:0, coverage:0, validCount:0 };
+function averageEnergy(arr, info = {}) {
+  if (!Array.isArray(arr) || !arr.length) return { low: 0, mid: 0, high: 0, total: 0, coverage: 0, validCount: 0 };
   const mask = Array.isArray(info.mask) ? info.mask : (Array.isArray(info.mask?.mask) ? info.mask.mask : null);
-  const eligible = Number.isFinite(info.eligibleCount) ? info.eligibleCount : (mask ? mask.reduce((acc, flag)=> acc + (flag ? 1 : 0), 0) : arr.length);
+  const eligible = Number.isFinite(info.eligibleCount) ? info.eligibleCount : (mask ? mask.reduce((acc, flag) => acc + (flag ? 1 : 0), 0) : arr.length);
   const limit = mask ? Math.min(arr.length, mask.length) : arr.length;
-  let low=0, mid=0, high=0, valid=0, considered=0;
-  for (let i=0;i<limit;i++){
+  let low = 0, mid = 0, high = 0, valid = 0, considered = 0;
+  for (let i = 0; i < limit; i++) {
     if (mask && !mask[i]) continue;
     considered++;
     const v = arr[i];
     if (!Array.isArray(v)) continue;
-    const [l,m,h] = v;
+    const [l, m, h] = v;
     if (!Number.isFinite(l) && !Number.isFinite(m) && !Number.isFinite(h)) continue;
     low += Number.isFinite(l) ? l : 0;
     mid += Number.isFinite(m) ? m : 0;
     high += Number.isFinite(h) ? h : 0;
     valid++;
   }
-  if (!valid){
+  if (!valid) {
     const baseCoverage = eligible > 0 ? (considered / eligible) : 0;
-    return { low:0, mid:0, high:0, total:0, coverage: Math.max(0, Math.min(1, baseCoverage)), validCount:0 };
+    return { low: 0, mid: 0, high: 0, total: 0, coverage: Math.max(0, Math.min(1, baseCoverage)), validCount: 0 };
   }
   const avgLow = low / valid;
   const avgMid = mid / valid;
@@ -4040,17 +4042,17 @@ const BRIGHTNESS_SWEET_Z = 1.0;
 const BRIGHTNESS_TILT_SHARP = -1.5;
 const BRIGHTNESS_BREATH_THRESHOLD = 0.45;
 
-function summarizeBreathiness(arr, info = {}, hopSec){
+function summarizeBreathiness(arr, info = {}, hopSec) {
   if (!Array.isArray(arr) || !arr.length) return { avg: NaN, count: 0 };
   const mask = Array.isArray(info.mask) ? info.mask : (Array.isArray(info.mask?.mask) ? info.mask.mask : null);
   const limit = mask ? Math.min(arr.length, mask.length) : arr.length;
-  const step = Number.isFinite(hopSec) && hopSec > 0 ? hopSec : (PS_INTERVAL_MS/1000);
+  const step = Number.isFinite(hopSec) && hopSec > 0 ? hopSec : (PS_INTERVAL_MS / 1000);
   const tau = Math.max(0.08, BREATHINESS_EMA_TAU_SEC);
   const alpha = 1 - Math.exp(-step / tau);
   let ema = null;
   let sum = 0;
   let count = 0;
-  for (let i=0;i<limit;i++){
+  for (let i = 0; i < limit; i++) {
     if (mask && !mask[i]) continue;
     let val = arr[i];
     if (!Number.isFinite(val)) continue;
@@ -4065,51 +4067,51 @@ function summarizeBreathiness(arr, info = {}, hopSec){
   return { avg, count };
 }
 
-function buildEligibleFrameMask(store, { minConfidence = FORMANT_CONFIDENCE_THRESHOLD, maxGapFrames = FORMANT_MAX_GAP_FRAMES } = {}){
+function buildEligibleFrameMask(store, { minConfidence = FORMANT_CONFIDENCE_THRESHOLD, maxGapFrames = FORMANT_MAX_GAP_FRAMES } = {}) {
   const voiced = Array.isArray(store.voiced) ? store.voiced : [];
   const confidence = Array.isArray(store.pitchConfidence) ? store.pitchConfidence : [];
   const n = Math.min(voiced.length, confidence.length);
   let mask = new Array(n).fill(false);
-  for (let i=0;i<n;i++){
+  for (let i = 0; i < n; i++) {
     const conf = confidence[i] ?? 0;
     mask[i] = Boolean(voiced[i]) && conf >= minConfidence;
   }
-  if (maxGapFrames > 0 && mask.length){
+  if (maxGapFrames > 0 && mask.length) {
     let gapStart = -1;
-    for (let i=0;i<=n;i++){
+    for (let i = 0; i <= n; i++) {
       const flag = i < n ? mask[i] : true;
-      if (!flag){
+      if (!flag) {
         if (gapStart < 0) gapStart = i;
-      } else if (gapStart >= 0){
+      } else if (gapStart >= 0) {
         const gapLen = i - gapStart;
-        const prev = gapStart > 0 ? mask[gapStart-1] : false;
+        const prev = gapStart > 0 ? mask[gapStart - 1] : false;
         const next = i < n ? mask[i] : false;
-        if (prev && next && gapLen <= maxGapFrames){
-          for (let j=gapStart;j<i;j++) mask[j] = true;
+        if (prev && next && gapLen <= maxGapFrames) {
+          for (let j = gapStart; j < i; j++) mask[j] = true;
         }
         gapStart = -1;
       }
     }
     const dilation = Math.max(1, Math.floor(maxGapFrames / 2));
-    if (dilation > 0){
+    if (dilation > 0) {
       const expanded = mask.slice();
-      for (let i=0;i<n;i++){
+      for (let i = 0; i < n; i++) {
         if (!mask[i]) continue;
-        for (let d=1; d<=dilation; d++){
-          if (i-d >= 0) expanded[i-d] = true;
-          if (i+d < n) expanded[i+d] = true;
+        for (let d = 1; d <= dilation; d++) {
+          if (i - d >= 0) expanded[i - d] = true;
+          if (i + d < n) expanded[i + d] = true;
         }
       }
       mask = expanded;
     }
   }
-  const count = mask.reduce((acc, flag)=> acc + (flag ? 1 : 0), 0);
+  const count = mask.reduce((acc, flag) => acc + (flag ? 1 : 0), 0);
   return { mask, count, minConfidence, maxGapFrames };
 }
 
-function categorizeBrightness({ f3Stats, tilt, breath, leaning } = {}){
+function categorizeBrightness({ f3Stats, tilt, breath, leaning } = {}) {
   const brightnessText = analysisText?.brightness;
-  if (!Number.isFinite(f3Stats?.med)){
+  if (!Number.isFinite(f3Stats?.med)) {
     const insufficient = brightnessText?.insufficient;
     return {
       label: insufficient?.label || t("analysis.brightness.insufficient.label"),
@@ -4125,17 +4127,17 @@ function categorizeBrightness({ f3Stats, tilt, breath, leaning } = {}){
   const breathVal = Number.isFinite(breath) ? breath : NaN;
   let key = "balanced";
   if (z <= BRIGHTNESS_WARM_Z) key = "warm";
-  else if (z >= BRIGHTNESS_SWEET_Z){
+  else if (z >= BRIGHTNESS_SWEET_Z) {
     const needsRelax = (Number.isFinite(breathVal) && breathVal > BRIGHTNESS_BREATH_THRESHOLD)
       || (Number.isFinite(tiltVal) && tiltVal < BRIGHTNESS_TILT_SHARP);
     key = needsRelax ? "sharp" : "sweet";
-  } else if (z >= BRIGHTNESS_SPARKLE_Z){
+  } else if (z >= BRIGHTNESS_SPARKLE_Z) {
     key = "sparkle";
   }
   // Masculine-leaning：避免「甜」「閃」等性別暗示字眼
   let lookupKey = key;
-  if (leaning === "masculine"){
-    if (key === "sweet")      lookupKey = "sweetMasculine";
+  if (leaning === "masculine") {
+    if (key === "sweet") lookupKey = "sweetMasculine";
     else if (key === "sparkle") lookupKey = "sparkleMasculine";
   }
   let entry = brightnessText?.[lookupKey];
@@ -4149,7 +4151,7 @@ function categorizeBrightness({ f3Stats, tilt, breath, leaning } = {}){
   return { label, hint, key, zScore: z };
 }
 
-function detectVoiceLeaning(pf, pm){
+function detectVoiceLeaning(pf, pm) {
   const pfVal = Number.isFinite(pf) ? pf : 0;
   const pmVal = Number.isFinite(pm) ? pm : 0;
   const diff = Math.abs(pfVal - pmVal);
@@ -4157,13 +4159,13 @@ function detectVoiceLeaning(pf, pm){
   return pfVal > pmVal ? "feminine" : "masculine";
 }
 
-function normalizeResonanceBands(energy){
+function normalizeResonanceBands(energy) {
   if (!energy) return { chest: NaN, mask: NaN, head: NaN, total: 0, coverage: 0 };
   const low = Math.max(0, Number.isFinite(energy.low) ? energy.low : 0);
   const mid = Math.max(0, Number.isFinite(energy.mid) ? energy.mid : 0);
   const high = Math.max(0, Number.isFinite(energy.high) ? energy.high : 0);
   const total = low + mid + high;
-  if (!Number.isFinite(total) || total <= EPS){
+  if (!Number.isFinite(total) || total <= EPS) {
     return { chest: NaN, mask: NaN, head: NaN, total: 0, coverage: Number.isFinite(energy.coverage) ? energy.coverage : 0 };
   }
   const prior = Math.max(RESONANCE_PRIOR_MIN, total * RESONANCE_PRIOR_WEIGHT);
@@ -4171,14 +4173,14 @@ function normalizeResonanceBands(energy){
   const denom = total + prior;
   return {
     chest: ((low + perBand) / denom),
-    mask:  ((mid + perBand) / denom),
-    head:  ((high + perBand) / denom),
+    mask: ((mid + perBand) / denom),
+    head: ((high + perBand) / denom),
     total,
     coverage: Number.isFinite(energy.coverage) ? energy.coverage : 0,
   };
 }
 
-function describeResonanceFromEnergy(energy){
+function describeResonanceFromEnergy(energy) {
   const pctFallback = { chest: 1 / 3, mask: 1 / 3, head: 1 / 3 };
   const normalized = normalizeResonanceBands(energy);
   const { chest, mask, head, total } = normalized;
@@ -4198,12 +4200,12 @@ function describeResonanceFromEnergy(energy){
     };
   };
 
-  if (hasAggregate){
-    if (!Number.isFinite(coverage) || coverage < RESONANCE_MIN_COVERAGE || validCount < RESONANCE_MIN_SAMPLES){
+  if (hasAggregate) {
+    if (!Number.isFinite(coverage) || coverage < RESONANCE_MIN_COVERAGE || validCount < RESONANCE_MIN_SAMPLES) {
       const base = insufficientEntry();
       const coverageNote = t("analysis.resonanceBalance.coverageLowHint", { value: Math.round((coverage || 0) * 100) });
       if (coverageNote) base.hint = `${base.hint} ${coverageNote}`.trim();
-      if (Number.isFinite(coverage)){
+      if (Number.isFinite(coverage)) {
         const suffix = t("analysis.resonanceBalance.coverageLowSuffix", { value: Math.round(coverage * 100) });
         base.display = suffix ? `${base.label}${suffix}` : base.label;
       }
@@ -4211,7 +4213,7 @@ function describeResonanceFromEnergy(energy){
     }
   }
 
-  if (!Number.isFinite(chest) || !Number.isFinite(mask) || !Number.isFinite(head)){
+  if (!Number.isFinite(chest) || !Number.isFinite(mask) || !Number.isFinite(head)) {
     return insufficientEntry();
   }
 
@@ -4219,11 +4221,11 @@ function describeResonanceFromEnergy(energy){
   const maskLead = mask - Math.max(chest, head);
   const headLead = head - Math.max(chest, mask);
   let key = "balanced";
-  if (chestLead >= RESONANCE_DOMINANCE_DELTA && chest >= RESONANCE_CHEST_MIN){
+  if (chestLead >= RESONANCE_DOMINANCE_DELTA && chest >= RESONANCE_CHEST_MIN) {
     key = "chestHeavy";
-  } else if (maskLead >= RESONANCE_DOMINANCE_DELTA && mask >= RESONANCE_MASK_MIN){
+  } else if (maskLead >= RESONANCE_DOMINANCE_DELTA && mask >= RESONANCE_MASK_MIN) {
     key = "maskLead";
-  } else if (headLead >= RESONANCE_DOMINANCE_DELTA && head >= RESONANCE_HEAD_MIN){
+  } else if (headLead >= RESONANCE_DOMINANCE_DELTA && head >= RESONANCE_HEAD_MIN) {
     key = "headBright";
   }
 
@@ -4231,14 +4233,14 @@ function describeResonanceFromEnergy(energy){
   const label = entry?.label || t(`analysis.resonanceBalance.${key}.label`);
   let hint = entry?.hint || t(`analysis.resonanceBalance.${key}.hint`);
   let display = label;
-  if (hasAggregate && Number.isFinite(coverage)){
+  if (hasAggregate && Number.isFinite(coverage)) {
     const coverageKey = coverage < RESONANCE_COVERAGE_GOOD ? "coverageLowHint" : "coverageHint";
     const hintNote = t(`analysis.resonanceBalance.${coverageKey}`, { value: Math.round(coverage * 100) });
     if (hintNote) hint = `${hint} ${hintNote}`.trim();
     let suffix = coverage < RESONANCE_COVERAGE_GOOD
       ? t("analysis.resonanceBalance.referenceSuffix", { value: Math.round(coverage * 100) })
       : t("analysis.resonanceBalance.coverageSuffix", { value: Math.round(coverage * 100) });
-    if (!suffix && coverage < RESONANCE_COVERAGE_GOOD){
+    if (!suffix && coverage < RESONANCE_COVERAGE_GOOD) {
       suffix = t("analysis.resonanceBalance.referenceOnly");
     }
     if (suffix) display = `${label}${suffix}`;
@@ -4247,13 +4249,13 @@ function describeResonanceFromEnergy(energy){
     label,
     display,
     hint,
-    pct:{ chest, mask, head },
+    pct: { chest, mask, head },
     total,
     coverage: hasAggregate ? coverage : NaN,
   };
 }
 
-function categorizeTilt(tilt){
+function categorizeTilt(tilt) {
   if (!Number.isFinite(tilt)) {
     const insufficient = analysisText?.tilt?.insufficient;
     return {
@@ -4272,7 +4274,7 @@ function categorizeTilt(tilt){
   };
 }
 
-function categorizeBreathiness(val, ctx = {}){
+function categorizeBreathiness(val, ctx = {}) {
   if (!Number.isFinite(val)) {
     const insufficient = analysisText?.breathiness?.insufficient;
     return {
@@ -4304,7 +4306,7 @@ function categorizeBreathiness(val, ctx = {}){
   };
 }
 
-function makeFormantHint(label, value, low, high){
+function makeFormantHint(label, value, low, high) {
   const rangeLabels = analysisText?.formant?.rangeLabels || {};
   const labelName = rangeLabels[label] || t(`analysis.formant.rangeLabels.${label}`);
   const labelWithName = `${label}（${labelName || label}）`;
@@ -4324,14 +4326,14 @@ function makeFormantHint(label, value, low, high){
   return t("analysis.formant.inRange", { label: labelWithName });
 }
 
-function summarizeFormantTrends(store, statsBundle, options = {}){
+function summarizeFormantTrends(store, statsBundle, options = {}) {
   let eligibleCount = Number.isFinite(options?.eligibleCount) ? options.eligibleCount : null;
-  if ((eligibleCount == null || eligibleCount <= 0) && Array.isArray(store.voiced)){
-    eligibleCount = store.voiced.reduce((acc, flag)=> acc + (flag ? 1 : 0), 0);
+  if ((eligibleCount == null || eligibleCount <= 0) && Array.isArray(store.voiced)) {
+    eligibleCount = store.voiced.reduce((acc, flag) => acc + (flag ? 1 : 0), 0);
   }
   const hasAggregate = Number.isFinite(eligibleCount) && eligibleCount > 0;
 
-  const makeEntry = (label, stats, values, low, high)=>{
+  const makeEntry = (label, stats, values, low, high) => {
     const sampleCount = values.length;
     const coverageRaw = hasAggregate ? (sampleCount / eligibleCount) : 0;
     const coverage = hasAggregate ? Math.max(0, Math.min(1, coverageRaw)) : NaN;
@@ -4352,11 +4354,11 @@ function summarizeFormantTrends(store, statsBundle, options = {}){
       : makeFormantHint(label, NaN, low, high);
 
     const extraHints = [];
-    if (hasAggregate && sampleCount < FORMANT_MIN_SAMPLES){
+    if (hasAggregate && sampleCount < FORMANT_MIN_SAMPLES) {
       const msg = t("analysis.formant.moreSamplesHint");
       if (msg) extraHints.push(msg);
     }
-    if (hasAggregate && coverageRaw < FORMANT_MIN_COVERAGE){
+    if (hasAggregate && coverageRaw < FORMANT_MIN_COVERAGE) {
       const msg = t("analysis.formant.coverageLowHint", { value: Math.round(Math.max(0, Math.min(1, coverageRaw)) * 100) });
       if (msg) extraHints.push(msg);
     }
@@ -4381,11 +4383,11 @@ function summarizeFormantTrends(store, statsBundle, options = {}){
   };
 }
 
-function buildFormantTrendDisplay(trendKey, coverage, hasAggregate){
+function buildFormantTrendDisplay(trendKey, coverage, hasAggregate) {
   const trendLabels = analysisText?.formant?.trendLabels;
   const baseRaw = (trendLabels && trendLabels[trendKey]) || t(`analysis.formant.trendLabels.${trendKey}`);
   const base = baseRaw || "—";
-  if (!hasAggregate || !Number.isFinite(coverage) || coverage <= 0){
+  if (!hasAggregate || !Number.isFinite(coverage) || coverage <= 0) {
     return base;
   }
   const clamped = Math.max(0, Math.min(1, coverage));
@@ -4395,12 +4397,12 @@ function buildFormantTrendDisplay(trendKey, coverage, hasAggregate){
   return `${base}${suffix}`;
 }
 
-function analyzeVowelFocus(store, maskInfo){
+function analyzeVowelFocus(store, maskInfo) {
   const formants = Array.isArray(store.formants) ? store.formants : [];
   let mask = null;
   if (Array.isArray(maskInfo)) mask = maskInfo;
   else if (maskInfo && Array.isArray(maskInfo.mask)) mask = maskInfo.mask;
-  if (!mask || !mask.length){
+  if (!mask || !mask.length) {
     const built = buildEligibleFrameMask(store, {
       minConfidence: FORMANT_CONFIDENCE_THRESHOLD,
       maxGapFrames: FORMANT_MAX_GAP_FRAMES,
@@ -4408,7 +4410,7 @@ function analyzeVowelFocus(store, maskInfo){
     if (Array.isArray(built?.mask) && built.mask.length) mask = built.mask;
   }
 
-  if (!mask || !mask.length){
+  if (!mask || !mask.length) {
     const insufficient = analysisText?.vowelFocus?.insufficient;
     return {
       ratio: NaN,
@@ -4417,18 +4419,18 @@ function analyzeVowelFocus(store, maskInfo){
     };
   }
 
-  let voiced=0, focus=0;
+  let voiced = 0, focus = 0;
   const limit = Math.min(formants.length, mask.length);
-  for (let i=0;i<limit;i++){
+  for (let i = 0; i < limit; i++) {
     if (!mask[i]) continue;
     const form = formants[i];
     if (!form) continue;
-    const f1=form[0], f2=form[1];
+    const f1 = form[0], f2 = form[1];
     if (!Number.isFinite(f1) || !Number.isFinite(f2)) continue;
     voiced++;
     if (f1 >= 170 && f1 <= 480 && f2 >= 1400 && f2 <= 3000) focus++;
   }
-  const ratio = voiced ? focus/voiced : NaN;
+  const ratio = voiced ? focus / voiced : NaN;
   if (!Number.isFinite(ratio)) {
     const insufficient = analysisText?.vowelFocus?.insufficient;
     return {
@@ -4448,8 +4450,8 @@ function analyzeVowelFocus(store, maskInfo){
   };
 }
 
-function analyzeSpeechRate(store){
-  const hopSec = store.frameSec || (PS_INTERVAL_MS/1000);
+function analyzeSpeechRate(store) {
+  const hopSec = store.frameSec || (PS_INTERVAL_MS / 1000);
   const n = store.db.length;
   if (!n) {
     const insufficient = analysisText?.speechRate?.insufficient;
@@ -4464,19 +4466,19 @@ function analyzeSpeechRate(store){
   const duration = hopSec * n;
   let peaks = 0;
   let lastPeak = -Infinity;
-  for (let i=1;i<n-1;i++){
+  for (let i = 1; i < n - 1; i++) {
     if (!store.voiced[i]) continue;
-    const prev = store.db[i-1] ?? store.db[i];
+    const prev = store.db[i - 1] ?? store.db[i];
     const curr = store.db[i];
-    const next = store.db[i+1] ?? store.db[i];
-    if ((curr - prev) > 1.2 && curr >= next - 0.5){
+    const next = store.db[i + 1] ?? store.db[i];
+    if ((curr - prev) > 1.2 && curr >= next - 0.5) {
       const t = i * hopSec;
-      if (t - lastPeak >= 0.18){ peaks++; lastPeak = t; }
+      if (t - lastPeak >= 0.18) { peaks++; lastPeak = t; }
     }
   }
-  if (!peaks){
+  if (!peaks) {
     const voicedFrames = store.voiced.filter(Boolean).length;
-    if (voicedFrames){ peaks = Math.max(1, Math.round((voicedFrames * hopSec) / 0.22)); }
+    if (voicedFrames) { peaks = Math.max(1, Math.round((voicedFrames * hopSec) / 0.22)); }
   }
   const syllPerSec = peaks / Math.max(duration, EPS);
   const wordsPerMin = syllPerSec > 0 ? (syllPerSec / 1.5) * 60 : NaN;
@@ -4503,7 +4505,7 @@ function analyzeSpeechRate(store){
   };
 }
 
-function analyzeConnectedSpeech(voicedArr, hopSec){
+function analyzeConnectedSpeech(voicedArr, hopSec) {
   if (!Array.isArray(voicedArr) || !voicedArr.length) {
     const insufficient = analysisText?.liaison?.insufficient;
     return {
@@ -4512,31 +4514,31 @@ function analyzeConnectedSpeech(voicedArr, hopSec){
       hint: insufficient?.hint || t("analysis.liaison.insufficient.hint"),
     };
   }
-  let segments=0;
-  let inVoiced=false;
-  let gapDur=0;
-  const gaps=[];
-  for (let i=0;i<voicedArr.length;i++){
-    if (voicedArr[i]){
-      if (!inVoiced){
+  let segments = 0;
+  let inVoiced = false;
+  let gapDur = 0;
+  const gaps = [];
+  for (let i = 0; i < voicedArr.length; i++) {
+    if (voicedArr[i]) {
+      if (!inVoiced) {
         segments++;
-        if (gapDur>0){ gaps.push(gapDur); gapDur=0; }
+        if (gapDur > 0) { gaps.push(gapDur); gapDur = 0; }
       }
-      inVoiced=true;
+      inVoiced = true;
     } else {
-      if (inVoiced){
-        inVoiced=false;
+      if (inVoiced) {
+        inVoiced = false;
         gapDur = hopSec;
-      } else if (gapDur>0){
+      } else if (gapDur > 0) {
         gapDur += hopSec;
       } else {
         gapDur = hopSec;
       }
     }
   }
-  const totalBreaks = Math.max(0, segments-1);
-  const shortGaps = gaps.filter(g=>g <= 0.16).length;
-  const ratio = totalBreaks ? shortGaps / totalBreaks : (segments>0 ? 1 : NaN);
+  const totalBreaks = Math.max(0, segments - 1);
+  const shortGaps = gaps.filter(g => g <= 0.16).length;
+  const ratio = totalBreaks ? shortGaps / totalBreaks : (segments > 0 ? 1 : NaN);
   if (!Number.isFinite(ratio)) {
     const insufficient = analysisText?.liaison?.insufficient;
     return {
@@ -4556,7 +4558,7 @@ function analyzeConnectedSpeech(voicedArr, hopSec){
   };
 }
 
-function analyzeIntonation(data, hopSec){
+function analyzeIntonation(data, hopSec) {
   const metrics = computeIntonationMetrics(data, hopSec, {
     confidenceThreshold: CONFIDENCE_INCLUDE_THRESHOLD,
     voicedThreshold: CONFIDENCE_VOICED_THRESHOLD,
@@ -4567,7 +4569,7 @@ function analyzeIntonation(data, hopSec){
   const shadedRanges = Array.isArray(metrics.shadedRanges) ? metrics.shadedRanges : [];
   const slopeCount = Number(metrics.slopeSampleCount) || 0;
 
-  if (slopeCount < 3){
+  if (slopeCount < 3) {
     const insufficient = analysisText?.intonation?.insufficient;
     return {
       points: [],
@@ -4615,8 +4617,8 @@ function analyzeIntonation(data, hopSec){
   };
 }
 
-function drawIntonationCurve(canvas, intonation){
-  try{
+function drawIntonationCurve(canvas, intonation) {
+  try {
     const pts = intonation?.points || [];
     const rawPts = intonation?.rawPoints || [];
     const shaded = intonation?.shadedRanges || [];
@@ -4626,33 +4628,33 @@ function drawIntonationCurve(canvas, intonation){
 
     const width = canvas.clientWidth || canvas.offsetWidth || canvas.width || 520;
     const height = canvas.clientHeight || canvas.offsetHeight || canvas.height || 140;
-    const DPR = Math.max(1, window.devicePixelRatio||1);
+    const DPR = Math.max(1, window.devicePixelRatio || 1);
 
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
     canvas.width = Math.max(1, Math.round(width * DPR));
     canvas.height = Math.max(1, Math.round(height * DPR));
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    ctx.clearRect(0,0,width,height);
+    ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = "#f8f8f8";
-    ctx.fillRect(0,0,width,height);
+    ctx.fillRect(0, 0, width, height);
     ctx.strokeStyle = "rgba(0,0,0,.08)";
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(0,height-18);
-    ctx.lineTo(width,height-18);
+    ctx.moveTo(0, height - 18);
+    ctx.lineTo(width, height - 18);
     ctx.stroke();
     if (!pts.length) return;
     const minT = pts[0].t;
-    const maxT = pts[pts.length-1].t;
+    const maxT = pts[pts.length - 1].t;
     const tRange = Math.max(maxT - minT, EPS);
-    const minHz = Number.isFinite(intonation.minHz) ? intonation.minHz : Math.min(...pts.map(p=>p.hz));
-    const maxHz = Number.isFinite(intonation.maxHz) ? intonation.maxHz : Math.max(...pts.map(p=>p.hz));
+    const minHz = Number.isFinite(intonation.minHz) ? intonation.minHz : Math.min(...pts.map(p => p.hz));
+    const maxHz = Number.isFinite(intonation.maxHz) ? intonation.maxHz : Math.max(...pts.map(p => p.hz));
     const hzRange = Math.max(maxHz - minHz, 1);
-    const projectX = (t)=> 10 + ((t - minT) / tRange) * (width - 20);
-    const projectY = (hz)=> height - 20 - ((hz - minHz) / hzRange) * (height - 40);
+    const projectX = (t) => 10 + ((t - minT) / tRange) * (width - 20);
+    const projectY = (hz) => height - 20 - ((hz - minHz) / hzRange) * (height - 40);
 
-    shaded.forEach(({ type, start, end })=>{
+    shaded.forEach(({ type, start, end }) => {
       const x0 = projectX(Math.max(minT, start));
       const x1 = projectX(Math.min(maxT, end));
       if (x1 <= x0) return;
@@ -4660,13 +4662,13 @@ function drawIntonationCurve(canvas, intonation){
       ctx.fillRect(x0, 10, x1 - x0, height - 30);
     });
 
-    if (showIntonationRawPoints && rawPts.length){
+    if (showIntonationRawPoints && rawPts.length) {
       ctx.fillStyle = "rgba(60,60,60,0.22)";
-      rawPts.forEach(({ t, hz })=>{
+      rawPts.forEach(({ t, hz }) => {
         const x = projectX(t);
         const y = projectY(Math.max(PS_MIN_HZ, Math.min(PS_MAX_HZ, hz)));
         ctx.beginPath();
-        ctx.arc(x, y, 2.2, 0, Math.PI*2);
+        ctx.arc(x, y, 2.2, 0, Math.PI * 2);
         ctx.fill();
       });
     }
@@ -4674,20 +4676,20 @@ function drawIntonationCurve(canvas, intonation){
     ctx.strokeStyle = "rgba(239,93,168,0.85)";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    let drawing=false;
-    pts.forEach((p)=>{
-      if (!Number.isFinite(p.hz)) { drawing=false; return; }
+    let drawing = false;
+    pts.forEach((p) => {
+      if (!Number.isFinite(p.hz)) { drawing = false; return; }
       const x = projectX(p.t);
       const y = projectY(Math.max(PS_MIN_HZ, Math.min(PS_MAX_HZ, p.hz)));
-      if (!drawing){ ctx.moveTo(x,y); drawing=true; }
-      else ctx.lineTo(x,y);
+      if (!drawing) { ctx.moveTo(x, y); drawing = true; }
+      else ctx.lineTo(x, y);
     });
     ctx.stroke();
-  }catch(e){ console.error("[drawIntonationCurve]", e); }
+  } catch (e) { console.error("[drawIntonationCurve]", e); }
 }
 
-function setupIntonationLegend(intonation){
-  try{
+function setupIntonationLegend(intonation) {
+  try {
     // Support both the older checkbox markup and the newer button markup.
     const legend = document.querySelector(".intonation-legend") || document.getElementById("intonationLegend");
     if (!legend) return;
@@ -4748,61 +4750,61 @@ function setupIntonationLegend(intonation){
 
     // If neither control exists, just keep legend flags in sync.
     syncLegend();
-  } catch(err) {
+  } catch (err) {
     console.error("[setupIntonationLegend]", err);
   }
 }
 
-function estimateSpectralFeatures(frame, sr){
+function estimateSpectralFeatures(frame, sr) {
   if (!frame || !frame.length) return null;
-  let energy=0;
-  for (let i=0;i<frame.length;i++){ const v=frame[i]; energy += v*v; }
+  let energy = 0;
+  for (let i = 0; i < frame.length; i++) { const v = frame[i]; energy += v * v; }
   if (energy <= 1e-8) return null;
 
   const n = frame.length;
   const windowed = new Float32Array(n);
-  for (let i=0;i<n;i++){
-    const pre = frame[i] - 0.97*(i>0 ? frame[i-1] : 0);
-    const win = 0.54 - 0.46*Math.cos((2*Math.PI*i)/Math.max(1,n-1));
+  for (let i = 0; i < n; i++) {
+    const pre = frame[i] - 0.97 * (i > 0 ? frame[i - 1] : 0);
+    const win = 0.54 - 0.46 * Math.cos((2 * Math.PI * i) / Math.max(1, n - 1));
     windowed[i] = pre * win;
   }
-  const sizePow = Math.max(9, Math.ceil(Math.log2(n*2)));
+  const sizePow = Math.max(9, Math.ceil(Math.log2(n * 2)));
   const N = 1 << sizePow;
   const re = new Float32Array(N);
   const im = new Float32Array(N);
   re.set(windowed);
   fftRadix2(re, im);
 
-  const half = Math.floor(N/2);
+  const half = Math.floor(N / 2);
   const mags = new Float32Array(half);
-  for (let k=0;k<half;k++) mags[k] = Math.hypot(re[k], im[k]);
+  for (let k = 0; k < half; k++) mags[k] = Math.hypot(re[k], im[k]);
 
   const smooth = new Float32Array(half);
   const smoothWin = 4;
-  for (let k=0;k<half;k++){
-    let sum=0,count=0;
-    for (let j=-smoothWin;j<=smoothWin;j++){
-      const idx = k+j;
-      if (idx>=0 && idx<half){ sum += mags[idx]; count++; }
+  for (let k = 0; k < half; k++) {
+    let sum = 0, count = 0;
+    for (let j = -smoothWin; j <= smoothWin; j++) {
+      const idx = k + j;
+      if (idx >= 0 && idx < half) { sum += mags[idx]; count++; }
     }
-    smooth[k] = count ? (sum/count) : mags[k];
+    smooth[k] = count ? (sum / count) : mags[k];
   }
 
   const freqStep = sr / N;
-  const peaks=[];
-  for (let k=3;k<half-3;k++){
+  const peaks = [];
+  for (let k = 3; k < half - 3; k++) {
     const freq = k * freqStep;
     if (freq < 90 || freq > 5000) continue;
     const val = smooth[k];
-    if (val > smooth[k-1] && val >= smooth[k+1]) peaks.push({ freq, amp: val });
+    if (val > smooth[k - 1] && val >= smooth[k + 1]) peaks.push({ freq, amp: val });
   }
-  peaks.sort((a,b)=>a.freq-b.freq);
-  const compact=[];
-  for (const p of peaks){
-    if (!compact.length){ compact.push(p); continue; }
-    const last = compact[compact.length-1];
-    if (Math.abs(last.freq - p.freq) < 80){
-      if (p.amp > last.amp) compact[compact.length-1] = p;
+  peaks.sort((a, b) => a.freq - b.freq);
+  const compact = [];
+  for (const p of peaks) {
+    if (!compact.length) { compact.push(p); continue; }
+    const last = compact[compact.length - 1];
+    if (Math.abs(last.freq - p.freq) < 80) {
+      if (p.amp > last.amp) compact[compact.length - 1] = p;
     } else {
       compact.push(p);
     }
@@ -4810,23 +4812,23 @@ function estimateSpectralFeatures(frame, sr){
 
   const f0 = detectPitchACF(frame, sr);
   const harmonicTolerance = f0 ? Math.max(40, f0 * 0.18) : 0;
-  const isLikelyHarmonic = (freq)=>{
+  const isLikelyHarmonic = (freq) => {
     if (!f0 || !Number.isFinite(f0) || f0 < 50) return false;
     const harmonic = Math.round(freq / f0) * f0;
     if (harmonic <= 0) return false;
     return Math.abs(freq - harmonic) <= harmonicTolerance;
   };
 
-  function selectPeak(low, high, { allowHarmonic = false, minGap = 0, previousFreq = null } = {}){
+  function selectPeak(low, high, { allowHarmonic = false, minGap = 0, previousFreq = null } = {}) {
     let best = null;
-    for (const peak of compact){
+    for (const peak of compact) {
       if (peak.freq < low || peak.freq > high) continue;
       if (!allowHarmonic && isLikelyHarmonic(peak.freq)) continue;
       if (previousFreq && peak.freq - previousFreq < minGap) continue;
       if (!best || peak.amp > best.amp) best = peak;
     }
-    if (!best && !allowHarmonic){
-      for (const peak of compact){
+    if (!best && !allowHarmonic) {
+      for (const peak of compact) {
         if (peak.freq < low || peak.freq > high) continue;
         if (previousFreq && peak.freq - previousFreq < minGap) continue;
         if (!best || peak.amp > best.amp) best = peak;
@@ -4842,11 +4844,11 @@ function estimateSpectralFeatures(frame, sr){
   const f3Peak = selectPeak(1500, 4500, { previousFreq: f2 || f1, minGap: 150 });
   const f3 = f3Peak?.freq ?? NaN;
 
-  let low=0, mid=0, high=0;
-  for (let k=0;k<half;k++){
-    const freq = k*freqStep;
+  let low = 0, mid = 0, high = 0;
+  for (let k = 0; k < half; k++) {
+    const freq = k * freqStep;
     if (freq < 90 || freq > 5000) continue;
-    const power = mags[k]*mags[k];
+    const power = mags[k] * mags[k];
     if (freq < 1000) low += power;
     else if (freq < 3000) mid += power;
     else high += power;
@@ -4867,52 +4869,52 @@ function estimateSpectralFeatures(frame, sr){
   };
 }
 
-function fftRadix2(re, im){
+function fftRadix2(re, im) {
   const n = re.length;
   if (n <= 1) return;
   let j = 0;
-  for (let i=1;i<n;i++){
+  for (let i = 1; i < n; i++) {
     let bit = n >> 1;
     for (; j & bit; bit >>= 1) j ^= bit;
     j ^= bit;
-    if (i < j){
+    if (i < j) {
       const tmpRe = re[i]; re[i] = re[j]; re[j] = tmpRe;
       const tmpIm = im[i]; im[i] = im[j]; im[j] = tmpIm;
     }
   }
-  for (let len=2; len<=n; len<<=1){
+  for (let len = 2; len <= n; len <<= 1) {
     const ang = -2 * Math.PI / len;
     const wLenRe = Math.cos(ang);
     const wLenIm = Math.sin(ang);
-    for (let i=0;i<n;i+=len){
+    for (let i = 0; i < n; i += len) {
       let wRe = 1, wIm = 0;
-      for (let j=0;j<len/2;j++){
-        const uRe = re[i+j], uIm = im[i+j];
-        const vRe = re[i+j+len/2]*wRe - im[i+j+len/2]*wIm;
-        const vIm = re[i+j+len/2]*wIm + im[i+j+len/2]*wRe;
-        re[i+j] = uRe + vRe;
-        im[i+j] = uIm + vIm;
-        re[i+j+len/2] = uRe - vRe;
-        im[i+j+len/2] = uIm - vIm;
-        const nextRe = wRe*wLenRe - wIm*wLenIm;
-        const nextIm = wRe*wLenIm + wIm*wLenRe;
+      for (let j = 0; j < len / 2; j++) {
+        const uRe = re[i + j], uIm = im[i + j];
+        const vRe = re[i + j + len / 2] * wRe - im[i + j + len / 2] * wIm;
+        const vIm = re[i + j + len / 2] * wIm + im[i + j + len / 2] * wRe;
+        re[i + j] = uRe + vRe;
+        im[i + j] = uIm + vIm;
+        re[i + j + len / 2] = uRe - vRe;
+        im[i + j + len / 2] = uIm - vIm;
+        const nextRe = wRe * wLenRe - wIm * wLenIm;
+        const nextIm = wRe * wLenIm + wIm * wLenRe;
         wRe = nextRe; wIm = nextIm;
       }
     }
   }
 }
 
-function zeroCrossingRate(arr){
-  let count=0;
-  for (let i=1;i<arr.length;i++){
-    const prev = arr[i-1];
+function zeroCrossingRate(arr) {
+  let count = 0;
+  for (let i = 1; i < arr.length; i++) {
+    const prev = arr[i - 1];
     const curr = arr[i];
     if ((prev >= 0 && curr < 0) || (prev < 0 && curr >= 0)) count++;
   }
-  return count / Math.max(1, arr.length-1);
+  return count / Math.max(1, arr.length - 1);
 }
 
-function bandOf(medHz){
+function bandOf(medHz) {
   if (!isFinite(medHz)) return "—";
   if (medHz < 85) return t("pitchBands.low");
   if (medHz < 165) return t("pitchBands.male");
@@ -4922,7 +4924,7 @@ function bandOf(medHz){
   if (medHz <= PS_MAX_HZ) return t("pitchBands.falsetto");
   return t("pitchBands.outOfRange");
 }
-function isDivergent(medHz, pf, pm){
+function isDivergent(medHz, pf, pm) {
   if (!isFinite(medHz)) return false;
   // 165–180 的重疊帶不算分歧
   if (medHz >= 165 && medHz < 180) return false;
@@ -4930,7 +4932,7 @@ function isDivergent(medHz, pf, pm){
   if ((medHz >= 180 && pm >= 0.60) || (medHz <= 165 && pf >= 0.60)) return true;
   return false;
 }
-function escapeAttr(value){
+function escapeAttr(value) {
   if (value == null) return "";
   return String(value)
     .replace(/&/g, "&amp;")
@@ -4938,13 +4940,13 @@ function escapeAttr(value){
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 }
-if (typeof window !== "undefined"){
+if (typeof window !== "undefined") {
   window.vpaDebugHooks = {
-    drawIntonationCurve(data){
+    drawIntonationCurve(data) {
       const canvas = document.getElementById("intonationCanvas");
       if (canvas) drawIntonationCurve(canvas, data || {});
     },
-    renderAdvancedSummary(summary){
+    renderAdvancedSummary(summary) {
       return renderAdvancedSummary(summary);
     },
   };

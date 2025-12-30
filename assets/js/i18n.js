@@ -109,7 +109,7 @@ function detectPreferredLocale() {
     }
   }
 
-  return "zh-Hant";
+  return "en";
 }
 
 async function loadDictionary(locale) {
@@ -172,7 +172,7 @@ export function getLocaleValue(key) {
 }
 
 export function onLocaleChange(fn) {
-  if (typeof fn !== "function") return () => {};
+  if (typeof fn !== "function") return () => { };
   listeners.add(fn);
   return () => listeners.delete(fn);
 }

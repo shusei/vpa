@@ -62,6 +62,8 @@ export default {
     },
     lightGroup: "Light collection",
     darkGroup: "Dark collection",
+    themeLuxeGold: '<span class="swatch" style="background:#ffd700; box-shadow:0 0 5px #ffd700;"></span> 🏆 Luxe Gold',
+    themePony2026: '<span class="swatch" style="background:linear-gradient(to right, #ff69b4, #87cefa);"></span> 🦄 Year of Pony 2026',
   },
   settings: {
     voiceProfile: {
@@ -365,6 +367,14 @@ export default {
       '<li><strong>Safety:</strong> stay within comfortable volume and natural breathing; stop if you feel pain, hoarseness, or fatigue and seek professional guidance.</li>',
       '</ul>',
       '</section>',
+      '<div class="help-author">',
+      '<img src="assets/avatar-shusei.jpg" alt="Gongzi Jie" class="help-author-img" loading="lazy" />',
+      '<div class="help-author-text">',
+      '<h4>About the Author: Gongzi Jie</h4>',
+      '<p>Whether coding or voice training, it’s all about the journey of exploration.<br>If you have feedback on VPA or want to chat about voice training, feel free to connect with me on Instagram!</p>',
+      '<a href="https://www.instagram.com/_gongzijie/" target="_blank" rel="noopener" class="help-social-link"><span class="icon-ig"></span> Follow on Instagram</a>',
+      '</div>',
+      '</div>',
       '<div class="help-support">',
       '<p class="help-support-note">Enjoying VPA? Treat the maintainer to a coffee to keep the project going.</p>',
       '<a class="help-support-link" href="https://buymeacoffee.com/shusei" target="_blank" rel="noopener">',
