@@ -706,11 +706,11 @@ html[data-theme="pony2026"] {
 
 /* Pony Theme Background Override */
 html[data-theme="pony2026"] .bg {
-  background-image: var(--bg-image);
+  background-image: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.4)), var(--bg-image);
   background-size: 300px;
   background-repeat: repeat;
   background-attachment: fixed;
-  background-blend-mode: overlay;
+  background-blend-mode: normal;
   background-color: var(--bg-start);
 }
 
