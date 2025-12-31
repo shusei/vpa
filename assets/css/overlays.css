@@ -81,11 +81,9 @@ body.help-open {
 
 .help-hero {
   padding: 24px 26px 26px;
-  background:
-    linear-gradient(135deg, color-mix(in oklab, var(--accent-2) 48%, transparent 52%), color-mix(in oklab, var(--accent-3) 42%, transparent 58%)),
-    var(--panel);
+  background: var(--panel);
   border-radius: 20px;
-  border: 1px solid color-mix(in oklab, var(--panel-border) 65%, transparent 35%);
+  border: 1px solid var(--panel-border);
   box-shadow: 0 18px 42px rgba(15, 23, 42, .22);
   margin-bottom: 24px;
 }

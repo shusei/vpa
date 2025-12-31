@@ -680,7 +680,7 @@ html[data-theme="pony2026"] {
   /* 面板：半透明白，確保文字可讀性 */
   --surface: rgba(255, 255, 255, 0.60);
   --surface-strong: rgba(255, 255, 255, 0.80);
-  --panel: rgba(255, 252, 240, 0.65);
+  --panel: rgba(255, 252, 240, 0.70);
   /* 奶油白 */
   --panel-border: #ffb7b2;
   /* 柔粉紅邊框 */
