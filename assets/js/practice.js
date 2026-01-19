@@ -140,45 +140,6 @@ function setCardBusy(card, busy) {
       setCardPlayable(card, canPlay);
     }
   }
-
-  const resultArea = card.querySelector(".practice-result");
-  if (resultArea) {
-    if (busy) {
-      if (!resultArea.querySelector(".practice-loader")) {
-        const loader = createEl("div", { class: "practice-loader" });
-        loader.style.position = "absolute";
-        loader.style.inset = "0";
-        loader.style.background = "inherit";
-        loader.style.display = "flex";
-        loader.style.alignItems = "center";
-        loader.style.paddingLeft = "4px";
-        loader.style.zIndex = "5";
-
-        const spinner = createEl("span", { class: "spinner" });
-        spinner.style.width = "14px";
-        spinner.style.height = "14px";
-        spinner.style.borderWidth = "2px";
-        spinner.style.borderColor = "var(--accent-1)";
-        spinner.style.borderTopColor = "transparent";
-
-        const text = createEl("span", {}, document.createTextNode(t("status.analyzing") || "分析中..."));
-        text.style.fontSize = "0.9rem";
-        text.style.fontWeight = "700";
-        text.style.color = "var(--accent-1)";
-        text.style.marginLeft = "8px";
-
-        loader.append(spinner, text);
-
-        resultArea.style.position = "relative";
-        resultArea.style.minHeight = "24px";
-        resultArea.appendChild(loader);
-      }
-    } else {
-      const loader = resultArea.querySelector(".practice-loader");
-      if (loader) loader.remove();
-      resultArea.style.position = "";
-    }
-  }
 }
 
 function setCardPlayable(card, playable) {
@@ -188,7 +149,6 @@ function setCardPlayable(card, playable) {
   playBtn.disabled = !playable;
   playBtn.setAttribute("aria-disabled", playable ? "false" : "true");
 }
-
 function setCardPlaying(card, playing) {
   if (!card) return;
   const playBtn = card.querySelector('[data-act="play"]');
