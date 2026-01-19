@@ -140,6 +140,45 @@ function setCardBusy(card, busy) {
       setCardPlayable(card, canPlay);
     }
   }
+
+  const resultArea = card.querySelector(".practice-result");
+  if (resultArea) {
+    if (busy) {
+      if (!resultArea.querySelector(".practice-loader")) {
+        const loader = createEl("div", { class: "practice-loader" });
+        loader.style.position = "absolute";
+        loader.style.inset = "0";
+        loader.style.background = "inherit";
+        loader.style.display = "flex";
+        loader.style.alignItems = "center";
+        loader.style.paddingLeft = "4px";
+        loader.style.zIndex = "5";
+
+        const spinner = createEl("span", { class: "spinner" });
+        spinner.style.width = "14px";
+        spinner.style.height = "14px";
+        spinner.style.borderWidth = "2px";
+        spinner.style.borderColor = "var(--accent-1)";
+        spinner.style.borderTopColor = "transparent";
+
+        const text = createEl("span", {}, document.createTextNode(t("status.analyzing") || "分析中..."));
+        text.style.fontSize = "0.9rem";
+        text.style.fontWeight = "700";
+        text.style.color = "var(--accent-1)";
+        text.style.marginLeft = "8px";
+
+        loader.append(spinner, text);
+
+        resultArea.style.position = "relative";
+        resultArea.style.minHeight = "24px";
+        resultArea.appendChild(loader);
+      }
+    } else {
+      const loader = resultArea.querySelector(".practice-loader");
+      if (loader) loader.remove();
+      resultArea.style.position = "";
+    }
+  }
 }
 
 function setCardPlayable(card, playable) {
@@ -271,7 +310,7 @@ function subscribeInference(cb) {
   if (typeof bridge.subscribeInference === "function") {
     return bridge.subscribeInference(cb);
   }
-  return () => {};
+  return () => { };
 }
 
 function getRecorder() {
@@ -522,7 +561,7 @@ export function openPracticeCategory(catId) {
   return true;
 }
 
-function createCard(phrase) {
+export function createCard(phrase) {
   const card = createEl("article", { class: "practice-card", dataset: { id: phrase.id } });
   const text = createEl("div", { class: "practice-text" }, document.createTextNode(phrase.text || ""));
   const tip = createEl("div", { class: "practice-tip" }, document.createTextNode(phrase.tip || ""));
@@ -583,6 +622,26 @@ async function refreshData(locale) {
   selectPracticeCategory(state.selectedCategory, { focusNav: false });
   if (state.pendingCategory != null) {
     selectPracticeCategory(state.pendingCategory, { focusNav: false });
+  }
+}
+
+export function mountManualWidgets(root) {
+  if (!root) return;
+  const placeholders = root.querySelectorAll(".manual-practice-widget");
+  for (const ph of placeholders) {
+    const phraseJson = ph.dataset.phrase;
+    if (!phraseJson) continue;
+    try {
+      const phrase = JSON.parse(phraseJson);
+      // Ensure ID uniqueness for manual widgets if needed, or just use phrase.id
+      // If the phrase object is ad-hoc, make sure it has an id.
+      if (!phrase.id) phrase.id = "manual_" + Math.random().toString(36).slice(2);
+
+      const card = createCard(phrase);
+      ph.replaceWith(card);
+    } catch (e) {
+      console.warn("Failed to mount manual widget", e);
+    }
   }
 }
 

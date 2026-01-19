@@ -1,5 +1,6 @@
 import { MANUAL_DATA } from './manual-data.js';
 import { getCurrentLocale, onLocaleChange } from './i18n.js';
+import { mountManualWidgets } from './practice.js';
 
 /**
  * Initializes the Guide (Manual) Overlay with I18n support.
@@ -34,6 +35,7 @@ export function initManualUI() {
                 guideBody.innerHTML = data.html;
                 // Re-scroll to top when content changes? Optional, but good UX.
                 guideBody.parentElement.scrollTop = 0;
+                mountManualWidgets(guideBody);
             }
         }
     }

@@ -64,6 +64,7 @@ export const MANUAL_DATA = {
   <div class="manual-script">
     <p>「嗨～早安。今天我想把事情慢慢做好，不用急。<br>
     我等等要出門一下，回來再跟你說。辛苦了，謝謝你喔。」</p>
+    <div class="manual-practice-widget" data-phrase='{"id":"manual_test_script_tw"}'></div>
   </div>
 
   <h3>3.3 每週一次對比（超有效）</h3>
@@ -126,7 +127,9 @@ export const MANUAL_DATA = {
 
   <h3>模組 B：前置共鳴（2–4 分鐘）</h3>
   <ol>
-    <li><strong>閉嘴哼「嗯—」</strong>：找「上唇、鼻翼、門牙後方」的震動感</li>
+    <li><strong>閉嘴哼「嗯—」</strong>：找「上唇、鼻翼、門牙後方」的震動感
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_hum_tw","text":"嗯——","tip":"閉嘴哼，找鼻樑震動"}'></div>
+    </li>
     <li><strong>ㄋ 起音短句</strong>：每句前輕帶「ㄋ…」
       <ul>
         <li>例：ㄋ…你好、ㄋ…我知道、ㄋ…謝謝你</li>
@@ -144,6 +147,7 @@ export const MANUAL_DATA = {
     <li>做滑音（像警報器）：「嗯～～」從低慢慢滑到高（不必滑到破音）</li>
     <li>到高點時 <strong>切掉聲音</strong>，但保留那個「小箱子、靠前」的感覺 1–2 秒</li>
     <li>在那個感覺裡說一句超短句（1–3 秒）
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_stair_hello_tw","text":"「你好」「真的嗎」「辛苦了」","tip":"保留高點位置，輕輕說"}'></div>
       <ul>
         <li>例：「你好」「真的嗎」「辛苦了」</li>
       </ul>
@@ -161,8 +165,12 @@ export const MANUAL_DATA = {
   <ul>
     <li>用 4/10 音量說：
       <ul>
-        <li>「我知道了。」×10</li>
-        <li>「沒關係。」×10</li>
+        <li>「我知道了。」×10
+          <div class="manual-practice-widget" data-phrase='{"id":"manual_weight_iknow_tw","text":"我知道了","tip":"4/10 音量，輕但有芯"}'></div>
+        </li>
+        <li>「沒關係。」×10
+          <div class="manual-practice-widget" data-phrase='{"id":"manual_weight_okay_tw","text":"沒關係","tip":"4/10 音量，輕但有芯"}'></div>
+        </li>
       </ul>
     </li>
     <li>如果變得很虛：音量加一格（仍小聲），讓聲音站起來</li>
@@ -171,23 +179,37 @@ export const MANUAL_DATA = {
   <h3>模組 E：清楚亮度（2–3 分鐘）</h3>
   <p>目的：增加子音清楚與前置亮度，不是捏尖嗓子。</p>
   <ul>
-    <li>「西、希、細、喜」每字 10 次（小聲、清楚、不用力）</li>
-    <li>「七、氣、洗、喜」每字 10 次</li>
+    <li>「西、希、細、喜」每字 10 次（小聲、清楚、不用力）
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_clarity_xi_tw","text":"西、希、細、喜","tip":"小聲、清楚、不用力"}'></div>
+    </li>
+    <li>「七、氣、洗、喜」每字 10 次
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_clarity_qi_tw","text":"七、氣、洗、喜","tip":"增加子音清楚與前置亮度"}'></div>
+    </li>
   </ul>
 
   <h3>模組 F：句尾不直墜（3–5 分鐘）</h3>
   <p>先練「收住」，再練「微上揚」。</p>
   <p><strong>1) 收住版（最自然、最不做作）</strong></p>
   <ul>
-    <li>「我知道。」</li>
-    <li>「可以。」</li>
-    <li>「沒關係。」</li>
+    <li>「我知道。」
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_prosody_iknow_tw","text":"我知道。","tip":"句尾收住"}'></div>
+    </li>
+    <li>「可以。」
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_prosody_can_tw","text":"可以。","tip":"句尾收住"}'></div>
+    </li>
+    <li>「沒關係。」
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_prosody_okay_tw","text":"沒關係。","tip":"句尾收住"}'></div>
+    </li>
   </ul>
   <p>每句 10 次，句尾最後 <strong>0.2 秒</strong>像「點頭收尾」，不要摔下去。</p>
   <p><strong>2) 微上揚版（很小很小）</strong></p>
   <ul>
-    <li>「真的嗎～」</li>
-    <li>「好呀～」</li>
+    <li>「真的嗎～」
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_prosody_really_tw","text":"真的嗎～","tip":"微上揚"}'></div>
+    </li>
+    <li>「好呀～」
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_prosody_good_tw","text":"好呀～","tip":"微上揚"}'></div>
+    </li>
   </ul>
   <p>上揚要小到「不像唱歌」。</p>
 </section>
@@ -245,10 +267,18 @@ export const MANUAL_DATA = {
     <li>微笑 30% + 嗯—（1’）</li>
     <li>甜美短句（4’）：每句 8 次
       <ul>
-        <li>「謝謝你喔～」</li>
-        <li>「辛苦了耶。」</li>
-        <li>「可以麻煩你嗎～」</li>
-        <li>「真的嗎？好開心～」</li>
+        <li>「謝謝你喔～」
+          <div class="manual-practice-widget" data-phrase='{"id":"manual_sweet_thanks_tw","text":"謝謝你喔～","tip":"更乾淨、更亮"}'></div>
+        </li>
+        <li>「辛苦了耶。」
+          <div class="manual-practice-widget" data-phrase='{"id":"manual_sweet_hardwork_tw","text":"辛苦了耶。","tip":"更乾淨、更亮"}'></div>
+        </li>
+        <li>「可以麻煩你嗎～」
+          <div class="manual-practice-widget" data-phrase='{"id":"manual_sweet_trouble_tw","text":"可以麻煩你嗎～","tip":"更乾淨、更亮"}'></div>
+        </li>
+        <li>「真的嗎？好開心～」
+          <div class="manual-practice-widget" data-phrase='{"id":"manual_sweet_happy_tw","text":"真的嗎？好開心～","tip":"更乾淨、更亮"}'></div>
+        </li>
       </ul>
     </li>
     <li>甜美句尾（3’）：尾巴變輕 + 變亮 + 微收住</li>
@@ -256,6 +286,7 @@ export const MANUAL_DATA = {
       <div class="manual-script">
         <p>「嗨～今天謝謝你陪我一下。<br>
         我等一下就回來，路上小心喔～」</p>
+        <div class="manual-practice-widget" data-phrase='{"id":"manual_sweet_script_tw"}'></div>
       </div>
     </li>
   </ol>
@@ -362,6 +393,7 @@ export const MANUAL_DATA = {
   <div class="manual-script">
     <p>“嗨～早安。今天我想把事情慢慢做好，不用急。<br>
     我等等要出门一下，回来再跟你说。辛苦了，谢谢你喔。”</p>
+    <div class="manual-practice-widget" data-phrase='{"id":"manual_test_script_cn","text":"嗨～早安...","tip":"30秒测试文本"}'></div>
   </div>
 
   <h3>3.3 每周一次对比（超有效）</h3>
@@ -424,7 +456,9 @@ export const MANUAL_DATA = {
 
   <h3>模组 B：前置共鸣（2–4 分钟）</h3>
   <ol>
-    <li><strong>闭嘴哼“嗯—”</strong>：找“上唇、鼻翼、门牙后方”的震动感</li>
+    <li><strong>闭嘴哼“嗯—”</strong>：找“上唇、鼻翼、门牙后方”的震动感
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_hum_cn","text":"嗯——","tip":"闭嘴哼，找鼻梁震动"}'></div>
+    </li>
     <li><strong>ㄋ 起音短句</strong>：每句前轻带“ㄋ…”
       <ul>
         <li>例：ㄋ…你好、ㄋ…我知道、ㄋ…谢谢你</li>
@@ -442,6 +476,7 @@ export const MANUAL_DATA = {
     <li>做滑音（像警报器）：“嗯～～”从低慢慢滑到高（不必滑到破音）</li>
     <li>到高点时 <strong>切掉声音</strong>，但保留那个“小箱子、靠前”的感觉 1–2 秒</li>
     <li>在那个感觉里说一句超短句（1–3 秒）
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_stair_hello_cn","text":"你好","tip":"保留高点位置，轻轻说"}'></div>
       <ul>
         <li>例：“你好”“真的吗”“辛苦了”</li>
       </ul>
@@ -459,8 +494,12 @@ export const MANUAL_DATA = {
   <ul>
     <li>用 4/10 音量说：
       <ul>
-        <li>“我知道了。”×10</li>
-        <li>“没关系。”×10</li>
+        <li>“我知道了。”×10
+          <div class="manual-practice-widget" data-phrase='{"id":"manual_weight_iknow_cn","text":"我知道了","tip":"4/10 音量，轻但有芯"}'></div>
+        </li>
+        <li>“没关系。”×10
+          <div class="manual-practice-widget" data-phrase='{"id":"manual_weight_okay_cn","text":"没关系","tip":"4/10 音量，轻但有芯"}'></div>
+        </li>
       </ul>
     </li>
     <li>如果变得很虚：音量加一格（仍小声），让声音站起来</li>
@@ -469,23 +508,37 @@ export const MANUAL_DATA = {
   <h3>模组 E：清楚亮度（2–3 分钟）</h3>
   <p>目的：增加子音清楚与前置亮度，不是捏尖嗓子。</p>
   <ul>
-    <li>“西、希、细、喜”每字 10 次（小声、清楚、不用力）</li>
-    <li>“七、气、洗、喜”每字 10 次</li>
+    <li>“西、希、细、喜”每字 10 次（小声、清楚、不用力）
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_clarity_xi_cn","text":"西、希、细、喜","tip":"小声、清楚、不用力"}'></div>
+    </li>
+    <li>“七、气、洗、喜”每字 10 次
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_clarity_qi_cn","text":"七、气、洗、喜","tip":"增加子音清楚与前置亮度"}'></div>
+    </li>
   </ul>
 
   <h3>模组 F：句尾不直坠（3–5 分钟）</h3>
   <p>先练“收住”，再练“微上扬”。</p>
   <p><strong>1) 收住版（最自然、最不做作）</strong></p>
   <ul>
-    <li>“我知道。”</li>
-    <li>“可以。”</li>
-    <li>“没关系。”</li>
+    <li>“我知道。”
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_prosody_iknow_cn","text":"我知道。","tip":"句尾收住"}'></div>
+    </li>
+    <li>“可以。”
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_prosody_can_cn","text":"可以。","tip":"句尾收住"}'></div>
+    </li>
+    <li>“没关系。”
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_prosody_okay_cn","text":"没关系。","tip":"句尾收住"}'></div>
+    </li>
   </ul>
   <p>每句 10 次，句尾最后 <strong>0.2 秒</strong>像“点头收尾”，不要摔下去。</p>
   <p><strong>2) 微上扬版（很小很小）</strong></p>
   <ul>
-    <li>“真的吗～”</li>
-    <li>“好呀～”</li>
+    <li>“真的吗～”
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_prosody_really_cn","text":"真的吗～","tip":"微上扬"}'></div>
+    </li>
+    <li>“好呀～”
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_prosody_good_cn","text":"好呀～","tip":"微上扬"}'></div>
+    </li>
   </ul>
   <p>上扬要小到“不像唱歌”。</p>
 </section>
@@ -543,10 +596,18 @@ export const MANUAL_DATA = {
     <li>微笑 30% + 嗯—（1’）</li>
     <li>甜美短句（4’）：每句 8 次
       <ul>
-        <li>“谢谢你喔～”</li>
-        <li>“辛苦了耶。”</li>
-        <li>“可以麻烦你吗～”</li>
-        <li>“真的吗？好开心～”</li>
+        <li>“谢谢你喔～”
+          <div class="manual-practice-widget" data-phrase='{"id":"manual_sweet_thanks_cn","text":"谢谢你喔～","tip":"更干净、更亮"}'></div>
+        </li>
+        <li>“辛苦了耶。”
+          <div class="manual-practice-widget" data-phrase='{"id":"manual_sweet_hardwork_cn","text":"辛苦了耶。","tip":"更干净、更亮"}'></div>
+        </li>
+        <li>“可以麻烦你吗～”
+          <div class="manual-practice-widget" data-phrase='{"id":"manual_sweet_trouble_cn","text":"可以麻烦你吗～","tip":"更干净、更亮"}'></div>
+        </li>
+        <li>“真的吗？好开心～”
+          <div class="manual-practice-widget" data-phrase='{"id":"manual_sweet_happy_cn","text":"真的吗？好开心～","tip":"更干净、更亮"}'></div>
+        </li>
       </ul>
     </li>
     <li>甜美句尾（3’）：尾巴变轻 + 变亮 + 微收住</li>
@@ -554,6 +615,7 @@ export const MANUAL_DATA = {
       <div class="manual-script">
         <p>“嗨～今天谢谢你陪我一下。<br>
         我等一下就回来，路上小心喔～”</p>
+        <div class="manual-practice-widget" data-phrase='{"id":"manual_sweet_script_cn"}'></div>
       </div>
     </li>
   </ol>
@@ -660,6 +722,7 @@ export const MANUAL_DATA = {
   <div class="manual-script">
     <p>"Hi, good morning. I want to take things slow and easy today.<br>
     I'll head out for a bit and talk to you when I'm back. Thanks for everything!"</p>
+    <div class="manual-practice-widget" data-phrase='{"id":"manual_test_script_en","text":"Hi, good morning...","tip":"30s Test Script"}'></div>
   </div>
 
   <h3>3.3 Weekly Comparison</h3>
@@ -718,7 +781,9 @@ export const MANUAL_DATA = {
 
   <h3>Module B: Frontal Resonance (2–4 min)</h3>
   <ol>
-    <li><strong>Closed-mouth "Mmm—"</strong>: Find vibration in lips/nose/front teeth.</li>
+    <li><strong>Closed-mouth "Mmm—"</strong>: Find vibration in lips/nose/front teeth.
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_hum_en","text":"Mmm——","tip":"Feel the buzz in your lips"}'></div>
+    </li>
     <li><strong>"N" Onset</strong>: Start words with a light "N..."
       <ul>
         <li>Ex: N...Nice, N...No, N...Now.</li>
@@ -733,32 +798,44 @@ export const MANUAL_DATA = {
     <li>"Mmm—" to find buzz.</li>
     <li>Glide up ("Mmm~~") like a siren.</li>
     <li>Cut the sound at the top, hold the "small box" feeling.</li>
-    <li>Say a short phrase in that position (1-3s).</li>
+    <li>Say a short phrase in that position (1-3s).
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_stair_hello_en","text":"Hello","tip":"Keep the resonance high"}'></div></li>
     <li>Relax and repeat.</li>
   </ol>
 
   <h3>Module D: Light Weight (2–4 min)</h3>
   <p>Target: <strong>Thin but with a core</strong> (Not whispery).</p>
   <ul>
-    <li>Volume 4/10: Say "I know." ×10, "It's okay." ×10.</li>
+    <li>Volume 4/10: Say "I know." ×10, "It's okay." ×10.
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_weight_iknow_en","text":"I know","tip":"Light but with a core"}'></div>
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_weight_okay_en","text":"It is okay","tip":"Light but with a core"}'></div>
+    </li>
     <li>If too breathy: Add a little volume to engage the cords.</li>
   </ul>
 
   <h3>Module E: Clarity & Brightness (2–3 min)</h3>
   <p>Target: Clarify consonants.</p>
   <ul>
-    <li>"He, She, See, Tea" ×10 (Quiet, clear).</li>
+    <li>"He, She, See, Tea" ×10 (Quiet, clear).
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_clarity_he_en","text":"He, She, See, Tea","tip":"Quiet, clear"}'></div>
+    </li>
   </ul>
 
   <h3>Module F: Prosody (3–5 min)</h3>
   <p><strong>1) The "Hold" (Natural)</strong></p>
   <ul>
-    <li>"I see." / "Okay."</li>
+    <li>"I see." / "Okay."
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_prosody_isee_en","text":"I see.","tip":"Hold the pitch"}'></div>
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_prosody_okay_hold_en","text":"Okay.","tip":"Hold the pitch"}'></div>
+    </li>
     <li>Don't let the pitch drop at the period. Keep it level.</li>
   </ul>
   <p><strong>2) The "Micro-lift" (Sweet)</strong></p>
   <ul>
-    <li>"Really?~" / "Okay~"</li>
+    <li>"Really?~" / "Okay~"
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_prosody_really_lift_en","text":"Really?~","tip":"Micro-lift"}'></div>
+      <div class="manual-practice-widget" data-phrase='{"id":"manual_prosody_okay_lift_en","text":"Okay~","tip":"Micro-lift"}'></div>
+    </li>
     <li>Very subtle upward tail.</li>
   </ul>
 </section>
@@ -816,14 +893,19 @@ export const MANUAL_DATA = {
     <li>Smile 30% + Mmm (1’)</li>
     <li>Sweet Phrases (4’):
       <ul>
-        <li>"Thank you so much~"</li>
-        <li>"Can you help me?~"</li>
+        <li>"Thank you so much~"
+          <div class="manual-practice-widget" data-phrase='{"id":"manual_sweet_thanks_en","text":"Thank you so much~","tip":"Cleaner, Brighter"}'></div>
+        </li>
+        <li>"Can you help me?~"
+          <div class="manual-practice-widget" data-phrase='{"id":"manual_sweet_trouble_en","text":"Can you help me?~","tip":"Cleaner, Brighter"}'></div>
+        </li>
       </ul>
     </li>
     <li>Sweet Script (2’)
       <div class="manual-script">
         <p>"Hi~ Thanks for keeping me company.<br>
         I'll be right back, drive safe okay?~"</p>
+        <div class="manual-practice-widget" data-phrase='{"id":"manual_sweet_script_en"}'></div>
       </div>
     </li>
   </ol>
