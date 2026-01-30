@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="zh-Hant" data-mode="auto" data-theme="warm" data-faction="dark">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Voice Presentation Analyzer</title>
+
+  <script>
+    (function () {
+      const LS_MODE = "vpa::theme.mode";   // "auto" | "light" | "dark"
+      const LS_LIGHT = "vpa::theme.light";  // e.g. "day"
+      const LS_DARK = "vpa::theme.dark";   // e.g. "indigo"
+
+      const LIGHT_THEMES = new Set(["day", "sand", "latte", "blush", "amber", "aqua", "sky", "azure", "fuchsia", "pony2026"]);
+      const DARK_THEMES = new Set(["warm", "lavender", "peach", "ink", "night", "contrast", "slate", "graphite", "clay", "rose", "coral", "gold", "cocoa", "olive", "emerald", "teal", "cyan", "cobalt", "indigo", "violet", "luxegold"]);
+
+      const html = document.documentElement;
+
+      function getMode() {
+        try { return localStorage.getItem(LS_MODE) || html.getAttribute("data-mode") || "auto"; }
+        catch { return "auto"; }
+      }
+      function sysFaction() { return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; }
+
+      function resolveTheme(faction) {
+        try {
+          const saved = localStorage.getItem(faction === "dark" ? LS_DARK : LS_LIGHT);
+          const set = faction === "dark" ? DARK_THEMES : LIGHT_THEMES;
+          if (saved && set.has(saved)) return saved;
+        } catch { }
+        const current = html.getAttribute("data-theme");
+        const set = faction === "dark" ? DARK_THEMES : LIGHT_THEMES;
+        if (set.has(current)) return current;
+        return faction === "dark" ? "warm" : "day"; // 最後退回預設
+      }
+
+      function apply() {
+        const mode = getMode();
+        const faction = mode === "light" ? "light" : mode === "dark" ? "dark" : sysFaction();
+        const theme = resolveTheme(faction);
+        html.setAttribute("data-mode", mode);
+        html.setAttribute("data-faction", faction);
+        html.setAttribute("data-theme", theme);
+      }
+
+      // 盡早套用，避免刷新時又看到 Warm 一閃
+      apply();
+
+      // Auto 模式下，跟著系統深淺動態切換
+      try {
+        matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+          if (getMode() === "auto") apply();
+        });
+      } catch { }
+
+      // 等 DOM 好了再綁主題選單，分別記到對的 key
+      document.addEventListener("DOMContentLoaded", () => {
+        const root = document.getElementById("themeMenu") || document;
+
+        root.addEventListener("click", (ev) => {
+          const btn = ev.target.closest(".theme-item");
+          if (!btn) return;
+          const name = btn.getAttribute("data-theme");
+          if (!name) return;
+
+          const isLight = LIGHT_THEMES.has(name);
+          const isDark = DARK_THEMES.has(name);
+          if (!isLight && !isDark) return;
+
+          try { localStorage.setItem(isDark ? LS_DARK : LS_LIGHT, name); } catch { }
+
+          // 立刻反映到目前顯示的派系
+          const mode = getMode();
+          const activeFaction = mode === "light" ? "light" : mode === "dark" ? "dark" : sysFaction();
+          if ((isDark && activeFaction === "dark") || (isLight && activeFaction === "light")) {
+            html.setAttribute("data-theme", name);
+          }
+        }, { passive: true });
+
+        // 模式分頁：Auto/Light/Dark -> 記憶 + 套用
+        const tabAuto = document.getElementById("tabAuto");
+        const tabLight = document.getElementById("tabLight");
+        const tabDark = document.getElementById("tabDark");
+        function setMode(mode) { try { localStorage.setItem(LS_MODE, mode); } catch { } apply(); }
+        tabAuto?.addEventListener("click", () => setMode("auto"));
+        tabLight?.addEventListener("click", () => setMode("light"));
+        tabDark?.addEventListener("click", () => setMode("dark"));
+      });
+    })();
+  </script>
+
+
+  <meta name="description" content="在瀏覽器本地推論，快速查看聲音被模型感知為女性化／男性化的傾向，並提供即時音高 Stream、統計與簡評。">
+  <link rel="icon" href="./favicon.ico" />
+  <link rel="stylesheet" href="assets/css/base.css" />
+  <link rel="stylesheet" href="assets/css/layout.css" />
+  <link rel="stylesheet" href="assets/css/components.css" />
+  <link rel="stylesheet" href="assets/css/overlays.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "@ffmpeg/ffmpeg": "./assets/vendor/ffmpeg/index.js",
+      "@ffmpeg/util": "https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js"
+    }
+  }
+  </script>
+</head>
+
+<body>
+  <div class="bg"></div>
+
+  <header class="hero">
+    <div class="container">
+      <div class="topbar">
+        <div class="brand">
+          <span class="logo">VPA</span>
+        </div>
+
+        <div class="actions">
+          <div id="themeTip" class="tip" hidden data-i18n="topbar.themeTip">齒輪可切換主題（會記住）</div>
+
+          <button id="helpBtn" class="help-btn" type="button" aria-label="使用指南" aria-haspopup="dialog"
+            aria-controls="helpOverlay" aria-expanded="false" title="使用指南"
+            data-i18n-attrs="aria-label:topbar.helpAria,title:topbar.helpTitle">❓</button>
+          <button id="guideBtn" class="help-btn" type="button" aria-label="女聲訓練手冊" aria-haspopup="dialog"
+            aria-controls="guideOverlay" aria-expanded="false" title="女聲訓練手冊" style="margin-left:4px;">📖</button>
+          <button id="localeBtn" class="lang-btn" type="button" aria-haspopup="menu" aria-expanded="false"
+            aria-controls="localeMenu" aria-label="切換語言" title="切換語言"
+            data-i18n-attrs="aria-label:topbar.localeAria,title:topbar.localeTitle">🌐</button>
+          <div id="localeMenu" class="lang-menu" hidden role="menu" aria-label="選擇語言"
+            data-i18n-attrs="aria-label:topbar.localeMenuAria">
+            <button type="button" class="lang-item" data-locale="zh-Hant" role="menuitemradio" aria-checked="true"
+              data-i18n="topbar.localeNames.zhHant">繁體中文</button>
+            <button type="button" class="lang-item" data-locale="zh-Hans" role="menuitemradio" aria-checked="false"
+              data-i18n="topbar.localeNames.zhHans">简体中文</button>
+            <button type="button" class="lang-item" data-locale="en" role="menuitemradio" aria-checked="false"
+              data-i18n="topbar.localeNames.en">English</button>
+          </div>
+          <button id="settingsBtn" class="gear" type="button" aria-label="主題設定" aria-expanded="false" title="主題設定"
+            data-i18n-attrs="aria-label:topbar.settingsAria,title:topbar.settingsTitle">⚙️</button>
+          <div id="themeMenu" class="theme-menu" hidden>
+            <div class="mode-tabs" role="tablist">
+              <button id="tabAuto" role="tab" aria-selected="true" data-i18n="topbar.themeTabs.auto">Auto</button>
+              <button id="tabLight" role="tab" data-i18n="topbar.themeTabs.light">淺色</button>
+              <button id="tabDark" role="tab" data-i18n="topbar.themeTabs.dark">深色</button>
+            </div>
+
+            <div class="section">
+              <div class="section-title" style="color:var(--accent-1);">Premium & Special</div>
+              <div class="theme-grid">
+                <button class="theme-item" data-theme="luxegold"
+                  style="grid-column:1/-1; justify-content:center; background:linear-gradient(45deg, #333, #000); border:1px solid #ffd700; color:#ffd700;"
+                  data-i18n-html="topbar.themeLuxeGold">
+                  <span class="swatch" style="background:#ffd700; box-shadow:0 0 5px #ffd700;"></span> 🏆 Luxe Gold
+                </button>
+                <button class="theme-item" data-theme="pony2026"
+                  style="grid-column:1/-1; justify-content:center; background:linear-gradient(to right, #fff0f5, #e6e6fa); border:1px solid #ffb7b2; color:#4a3b2a; margin-top:8px;"
+                  data-i18n-html="topbar.themePony2026">
+                  <span class="swatch" style="background:linear-gradient(to right, #ff69b4, #87cefa);"></span> 🦄 Year
+                  of Pony 2026
+                </button>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-title" data-i18n="topbar.lightGroup">淺色派</div>
+              <div class="theme-grid">
+                <button class="theme-item" data-theme="day"><span class="swatch swatch--day"></span> Day</button>
+                <button class="theme-item" data-theme="sand"><span class="swatch swatch--sand"></span> Sand</button>
+                <button class="theme-item" data-theme="latte"><span class="swatch swatch--latte"></span> Latte</button>
+                <button class="theme-item" data-theme="blush"><span class="swatch swatch--blush"></span> Blush</button>
+                <button class="theme-item" data-theme="amber"><span class="swatch swatch--amber"></span> Amber</button>
+                <button class="theme-item" data-theme="aqua"><span class="swatch swatch--aqua"></span> Aqua</button>
+                <button class="theme-item" data-theme="sky"><span class="swatch swatch--sky"></span> Sky</button>
+                <button class="theme-item" data-theme="azure"><span class="swatch swatch--azure"></span> Azure</button>
+                <button class="theme-item" data-theme="fuchsia"><span class="swatch swatch--fuchsia"></span>
+                  Fuchsia</button>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-title" data-i18n="topbar.darkGroup">深色派</div>
+              <div class="theme-grid">
+                <button class="theme-item" data-theme="warm"><span class="swatch swatch--warm"></span> Warm</button>
+                <button class="theme-item" data-theme="lavender"><span class="swatch swatch--lavender"></span>
+                  Lavender</button>
+                <button class="theme-item" data-theme="peach"><span class="swatch swatch--peach"></span> Peach</button>
+                <button class="theme-item" data-theme="ink"><span class="swatch swatch--ink"></span> Ink</button>
+                <button class="theme-item" data-theme="night"><span class="swatch swatch--night"></span> Night</button>
+                <button class="theme-item" data-theme="contrast"><span class="swatch swatch--contrast"></span>
+                  Contrast</button>
+                <button class="theme-item" data-theme="slate"><span class="swatch swatch--slate"></span> Slate</button>
+                <button class="theme-item" data-theme="graphite"><span class="swatch swatch--graphite"></span>
+                  Graphite</button>
+                <button class="theme-item" data-theme="clay"><span class="swatch swatch--clay"></span> Clay</button>
+                <button class="theme-item" data-theme="rose"><span class="swatch swatch--rose"></span> Rose</button>
+                <button class="theme-item" data-theme="coral"><span class="swatch swatch--coral"></span> Coral</button>
+                <button class="theme-item" data-theme="gold"><span class="swatch swatch--gold"></span> Gold</button>
+                <button class="theme-item" data-theme="cocoa"><span class="swatch swatch--cocoa"></span> Cocoa</button>
+                <button class="theme-item" data-theme="olive"><span class="swatch swatch--olive"></span> Olive</button>
+                <button class="theme-item" data-theme="emerald"><span class="swatch swatch--emerald"></span>
+                  Emerald</button>
+                <button class="theme-item" data-theme="teal"><span class="swatch swatch--teal"></span> Teal</button>
+                <button class="theme-item" data-theme="cyan"><span class="swatch swatch--cyan"></span> Cyan</button>
+                <button class="theme-item" data-theme="cobalt"><span class="swatch swatch--cobalt"></span>
+                  Cobalt</button>
+                <button class="theme-item" data-theme="indigo"><span class="swatch swatch--indigo"></span>
+                  Indigo</button>
+                <button class="theme-item" data-theme="violet"><span class="swatch swatch--violet"></span>
+                  Violet</button>
+                <button class="theme-item" data-theme="grape"><span class="swatch swatch--grape"></span> Grape</button>
+                <button class="theme-item" data-theme="plum"><span class="swatch swatch--plum"></span> Plum</button>
+                <button class="theme-item" data-theme="magenta"><span class="swatch swatch--magenta"></span>
+                  Magenta</button>
+              </div>
+            </div>
+
+            <div class="section voice-settings-section">
+              <details id="voiceAdvanced">
+                <summary data-i18n="settings.voiceProfile.title">說話者設定</summary>
+
+                <div class="voice-settings">
+                  <div class="voice-presets" role="group" aria-label="Voice profile presets">
+                    <button type="button" class="menu-inline-btn" data-profile="auto" aria-pressed="true"
+                      data-i18n="settings.voiceProfile.auto">Auto（推薦）</button>
+                    <button type="button" class="menu-inline-btn" data-profile="masculine" aria-pressed="false"
+                      data-i18n="settings.voiceProfile.masculine">Masculine</button>
+                    <button type="button" class="menu-inline-btn" data-profile="neutral" aria-pressed="false"
+                      data-i18n="settings.voiceProfile.neutral">Neutral</button>
+                    <button type="button" class="menu-inline-btn" data-profile="feminine" aria-pressed="false"
+                      data-i18n="settings.voiceProfile.feminine">Feminine</button>
+                    <button type="button" class="menu-inline-btn" data-profile="soprano" aria-pressed="false"
+                      data-i18n="settings.voiceProfile.soprano">Soprano / Falsetto</button>
+                  </div>
+                  <label for="pitchMinInput" data-i18n="settings.voiceProfile.rangeLabel">偵測音高範圍（Hz）</label>
+                  <div class="voice-range">
+                    <input id="pitchMinInput" type="number" min="50" max="580" step="1"
+                      aria-describedby="pitchRangeHint" disabled />
+                    <span class="range-sep">–</span>
+                    <input id="pitchMaxInput" type="number" min="120" max="600" step="1"
+                      aria-describedby="pitchRangeHint" disabled />
+                  </div>
+                  <button id="pitchRangeReset" type="button" class="menu-inline-btn"
+                    data-i18n="settings.voiceProfile.reset" disabled>重設為預設值</button>
+                  <p id="pitchRangeHint" class="menu-hint" data-i18n="settings.voiceProfile.hint">預設女性 150–450
+                    Hz，可依說話者調整偵測上下限（僅影響音高偵測，圖軸仍為 50–600 Hz）。</p>
+                </div>
+              </details>
+              <p class="menu-hint" data-i18n="settings.voiceProfile.autoHint">偵測不穩？打開〈進階〉調整語者設定。</p>
+            </div>
+            <div class="menu-actions">
+              <button id="exportBtn" class="menu-action" type="button" aria-label="匯出分析（JSON）"
+                data-i18n="topbar.exportJson" data-i18n-attrs="aria-label:topbar.exportJsonAria">匯出分析（JSON）</button>
+              <p class="menu-hint" data-i18n="topbar.exportJsonHint">下載最近一次分析的所有指標為 JSON 檔案。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h1 class="hero-title" data-i18n="hero.title">Voice Presentation Analyzer</h1>
+      <p class="sub" data-i18n-html="hero.subtitleHtml">
+        在瀏覽器本地推論，搭配即時音高與共鳴監控，掌握聲線被模型感知的女性化 / 男性化傾向。<span class="chip">本地推論</span><span class="chip">即時監控</span><span
+          class="chip">統計＋簡評</span><span class="chip">30+ 主題</span>
+      </p>
+    </div>
+  </header>
+
+  <main id="dropZone" class="container">
+    <section class="start-wrap">
+      <div id="onboardTip" class="onboard-tip" hidden>
+        <h3 data-i18n="onboarding.title">第一次使用？</h3>
+        <div data-i18n-html="onboarding.stepsHtml">
+          <p>按下「開始錄音」練習 5–10 秒，或點右下角 ⬆︎ 上傳音檔。錄音時會打開即時 Hz Stream（音高走勢）與共鳴監控。</p>
+          <p>若還不熟悉，可以先點右上角的 <b>❓</b> 查看完整指南。</p>
+        </div>
+        <div class="tip-actions">
+          <button type="button" id="onboardDismiss" data-i18n="onboarding.dismiss">知道了</button>
+        </div>
+      </div>
+      <button id="recordBtn" class="record-btn" type="button">
+        <span class="idle" data-i18n="record.idle">🎙️ 開始錄音</span>
+        <span class="rec" data-i18n="record.active">⏹ 停止錄音</span>
+      </button>
+      <button id="practiceToggle" class="btn ghost" data-i18n="practice.toggle" aria-expanded="false"
+        aria-controls="practicePanel">
+        句庫練習
+      </button>
+
+      <aside id="practicePanel" class="practice-panel" hidden role="region" aria-labelledby="practiceHeading">
+        <header class="practice-header">
+          <h3 id="practiceHeading" data-i18n="practice.heading">句庫練習</h3>
+          <p id="practiceHint" class="muted" data-i18n="practice.hint">
+            按下錄音會立即開始，完成後可用右側播放鍵重聽上一段；每句建議 3–7 秒，卡片會顯示女性傾向／男性傾向百分比。
+          </p>
+        </header>
+
+        <div id="practiceNav" class="practice-nav" role="radiogroup" aria-label="依分類瀏覽句子"></div>
+
+        <div id="practiceList" class="practice-list" aria-live="polite" aria-busy="false"></div>
+      </aside>
+
+      <div class="status" id="status" role="status" aria-live="polite">
+        <span id="statusLabel" class="status-label" data-i18n="record.statusReady">準備就緒</span>
+        <span id="statusTimer" class="status-timer" role="timer" aria-hidden="true" title="錄音時間"
+          data-i18n-attrs="title:record.timerTitle">00:00</span>
+      </div>
+    </section>
+
+    <section id="pitchWrap" class="pitch-wrap" hidden>
+      <div class="pitch-head">
+        <div class="now">
+          <span id="pitchNow">— Hz</span>
+          <span id="bandNow" class="band-tag">—</span>
+        </div>
+        <div class="now">
+          <span id="volNow">— dB</span>
+        </div>
+      </div>
+      <canvas id="pitchCanvas" width="900" height="220" aria-label="Pitch stream"></canvas>
+      <div class="pitch-scale" data-i18n="realtime.pitchScale">
+        縱軸 50–600 Hz（左右刻度顯示 Hz；色帶：灰50–85 / 藍85–165 / 灰165–180 / 粉180–310 / 灰310–450 / 淡紫450–600）
+      </div>
+    </section>
+
+    <section id="formantWrap" class="formant-wrap" hidden>
+      <div class="formant-head">
+        <h2 data-i18n="realtime.formantTitle">Formant（共振峰）/ Resonance（共鳴）即時監控</h2>
+        <p class="formant-note" data-i18n="realtime.formantNote">F1–F3（第一至第三共振峰）估計、共鳴亮度與氣聲比例</p>
+      </div>
+      <div class="formant-grid">
+        <div class="formant-card">
+          <div class="label" data-i18n="realtime.formants.f1Label">F1</div>
+          <div class="value" id="f1Now">— Hz</div>
+          <div class="range" data-i18n="realtime.formants.f1Range">建議 180–350 Hz</div>
+        </div>
+        <div class="formant-card">
+          <div class="label" data-i18n="realtime.formants.f2Label">F2</div>
+          <div class="value" id="f2Now">— Hz</div>
+          <div class="range" data-i18n="realtime.formants.f2Range">建議 1600–2500 Hz</div>
+        </div>
+        <div class="formant-card">
+          <div class="label" data-i18n="realtime.formants.f3Label">F3</div>
+          <div class="value" id="f3Now">— Hz</div>
+          <div class="range" data-i18n="realtime.formants.f3Range">建議 2500–3200 Hz</div>
+        </div>
+        <div class="formant-card">
+          <div class="label" data-i18n="realtime.formants.breathLabel">氣聲比例</div>
+          <div class="value" id="breathNow">—</div>
+          <div class="range" data-i18n="realtime.formants.breathRange">建議 8%–18%</div>
+        </div>
+      </div>
+      <div class="resonance-panel">
+        <div class="label" data-i18n="realtime.resonance.label">共鳴平衡</div>
+        <div class="value" id="resonanceNow">—</div>
+        <div class="range" id="tiltNow" data-i18n="realtime.resonance.tiltPlaceholder">Spectral Tilt（頻譜傾斜度）— dB</div>
+        <div class="resonance-bar" id="resonanceBar">
+          <div class="res-part chest" id="resChest"><span id="resChestVal"
+              data-i18n="analysis.resonanceBar.default.chest">胸 0%</span></div>
+          <div class="res-part mask" id="resMask"><span id="resMaskVal"
+              data-i18n="analysis.resonanceBar.default.mask">前置 0%</span></div>
+          <div class="res-part head" id="resHead"><span id="resHeadVal" data-i18n="analysis.resonanceBar.default.head">頭
+              0%</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="meter" class="meter hidden" aria-live="polite">
+      <div class="bar female" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Female"
+        aria-describedby="meterHint">
+        <div class="bar-header">
+          <span class="label" data-i18n="realtime.meter.feminine">Feminine（女性化）</span>
+          <span class="value" id="femaleVal">0.0%</span>
+        </div>
+        <div class="bar-track" aria-hidden="true"></div>
+        <div class="bar-scale" aria-hidden="true">
+          <span class="bar-scale__label bar-scale__label--zero" data-i18n="analysis.meter.scale.zero">0%</span>
+          <span class="bar-scale__label bar-scale__label--forty" data-i18n="analysis.meter.scale.forty">40%</span>
+          <span class="bar-scale__label bar-scale__label--sixty" data-i18n="analysis.meter.scale.sixty">60%</span>
+          <span class="bar-scale__label bar-scale__label--full" data-i18n="analysis.meter.scale.full">100%</span>
+        </div>
+      </div>
+      <div class="bar male" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Male"
+        aria-describedby="meterHint">
+        <div class="bar-header">
+          <span class="label" data-i18n="realtime.meter.masculine">Masculine（男性化）</span>
+          <span class="value" id="maleVal">0.0%</span>
+        </div>
+        <div class="bar-track" aria-hidden="true"></div>
+        <div class="bar-scale" aria-hidden="true">
+          <span class="bar-scale__label bar-scale__label--zero" data-i18n="analysis.meter.scale.zero">0%</span>
+          <span class="bar-scale__label bar-scale__label--forty" data-i18n="analysis.meter.scale.forty">40%</span>
+          <span class="bar-scale__label bar-scale__label--sixty" data-i18n="analysis.meter.scale.sixty">60%</span>
+          <span class="bar-scale__label bar-scale__label--full" data-i18n="analysis.meter.scale.full">100%</span>
+        </div>
+      </div>
+      <p id="meterHint" class="meter-hint" data-i18n="analysis.meter.hint">
+        0–40%：模型較少感知為該方向，可再練習共鳴與語調。40–60%：落在重疊帶，建議延長錄音或調整口型以取得穩定趨勢。60% 以上：模型明顯辨識為該方向，請記錄當下的支撐與感覺以便複製。</p>
+    </section>
+
+    <div class="callout" data-i18n-html="callout.bodyHtml">
+      <p>提示：可錄音或上傳 mp3 / m4a / mp4 / mov。錄音期間會顯示即時 Hz Stream（音高走勢）與共鳴監控，分析完成提供回放、傾向儀表與統計簡評。需要導覽請點右上角 <b>❓</b>。</p>
+    </div>
+
+    <details id="warmupCard" class="warmup-card" data-i18n-attrs="aria-label:practice.warmup.title">
+      <summary class="warmup-card__summary">
+        <span class="warmup-card__title" data-i18n="practice.warmup.title">暖身三步驟</span>
+        <span class="warmup-card__hint" data-i18n="practice.warmup.summary">錄音前 1 分鐘快速開聲。</span>
+      </summary>
+      <div class="warmup-card__body">
+        <p data-i18n="practice.warmup.intro">主畫面錄音鍵下方也能展開這張卡片，照順序練一次再開始錄音。</p>
+        <ol class="warmup-card__list">
+          <li>
+            <span class="warmup-step-label" data-i18n="practice.warmup.steps.hum.name">嗯</span>
+            <span data-i18n="practice.warmup.steps.hum.desc">：輕哼把震動帶到鼻梁，對應共鳴卡的「胸腔偏重」提示。</span>
+          </li>
+          <li>
+            <span class="warmup-step-label" data-i18n="practice.warmup.steps.yi.name">依——</span>
+            <span data-i18n="practice.warmup.steps.yi.desc">：拉長前母音讓舌頭前放，提升元音聚焦指標。</span>
+          </li>
+          <li>
+            <span class="warmup-step-label" data-i18n="practice.warmup.steps.hu.name">呼</span>
+            <span data-i18n="practice.warmup.steps.hu.desc">：慢慢吐氣放鬆喉頭，穩定氣聲比例與頻譜傾斜度。</span>
+          </li>
+        </ol>
+      </div>
+    </details>
+
+    <section class="info">
+      <details open data-i18n-html="info.quickStartHtml">
+        <summary>快速開始（第一次使用先看這裡）</summary>
+        <ul class="bullets">
+          <li>按下上方的 <b>🎙️ 開始錄音</b>，以平常說話聲調錄 5–10 秒；或點右下角 <b>⬆︎</b> 上傳 mp3 / m4a / mp4 / mov。</li>
+          <li>錄音期間會顯示 <b>Hz Stream（音高走勢）</b> 與 <b>Formant（共振峰）/ Resonance（共鳴）</b> 即時監控；停止後等候模型分析。</li>
+          <li>完成後可播放剛剛那段、查看女性化 / 男性化儀表、統計卡與一行簡評。</li>
+          <li>第一次用？點右上角的 <b>❓</b> 查看圖解指南，或關閉上方提示泡泡繼續。</li>
+        </ul>
+      </details>
+
+      <details data-i18n-html="info.interfaceHtml">
+        <summary>介面導覽與即時監控</summary>
+        <ul class="bullets">
+          <li><b>❓ 使用指南：</b>整理快速開始、面板解說與常見錄音情境，支援鍵盤 <kbd>Esc</kbd> 關閉。</li>
+          <li><b>錄音鍵：</b>支援 MediaRecorder 並顯示狀態提示；停止後自動進入解碼與推論流程。</li>
+          <li><b>Hz Stream（音高走勢）：</b>僅在錄音期間顯示，追蹤 50–600 Hz 音高與音量；左右刻度標示 Hz，統計會沿用錄音及上傳抽樣。</li>
+          <li><b>Formant（共振峰）/ Resonance（共鳴）：</b>同步估計 F1–F3、氣聲比例與共鳴分佈，協助判讀聲音質地。</li>
+          <li><b>統計卡：</b>整合 Pitch / Volume 百分位數、環境噪音、SNR 與傾向簡評，可對照練習成果。</li>
+          <li><b>主題設定：</b>齒輪可切換 Auto / 淺色 / 深色派並記住每派最後一次的主題。</li>
+        </ul>
+      </details>
+
+      <details data-i18n-html="info.modelHtml">
+        <summary>模型概覽</summary>
+        <div class="kv">
+          <div>名稱：</div>
+          <div><a href="https://huggingface.co/prithivMLmods/Common-Voice-Gender-Detection" target="_blank"
+              rel="noopener">Common-Voice-Gender-Detection</a>（ONNX）</div>
+          <div>架構：</div>
+          <div>Wav2Vec2（<a href="https://arxiv.org/pdf/2006.11477" target="_blank" rel="noopener">Self-Supervised
+              Learning for Speech Recognition</a>）</div>
+          <div>標籤空間：</div>
+          <div>二分類（<code>female</code> / <code>male</code>）</div>
+          <div>來源資料：</div>
+          <div>Mozilla Common Voice 等語料（以英語朗讀為主）</div>
+          <div>授權：</div>
+          <div>Apache-2.0（模型）；本頁程式碼依你的 repo 授權</div>
+          <div>DOI：</div>
+          <div><a href="https://doi.org/10.57967/hf/5684" target="_blank" rel="noopener">10.57967/hf/5684</a></div>
+        </div>
+      </details>
+
+      <details data-i18n-html="info.accuracyHtml">
+        <summary>準確度（開發者報告）</summary>
+        <ul class="bullets" style="margin-top:6px;">
+          <li>整體準確率：<b>98.46%</b>（6545 筆）</li>
+          <li>female：precision <b>0.9705</b>、recall <b>0.9916</b>、F1 <b>0.9809</b>（2622 筆）</li>
+          <li>male：precision <b>0.9943</b>、recall <b>0.9799</b>、F1 <b>0.9870</b>（3923 筆）</li>
+        </ul>
+        <p class="subline">說明：上述為作者資料分佈下的離線評估；不同語言、環境、內容（唱歌）可能與此有落差。</p>
+      </details>
+
+      <details data-i18n-html="info.methodHtml">
+        <summary>方法簡述（本頁實作）</summary>
+        <ul class="bullets">
+          <li><b>推論引擎：</b>Transformers.js + ONNX Runtime；優先 WebGPU，無 GPU 時自動回落至 WASM。</li>
+          <li><b>前處理：</b>立體聲混成單聲道並重採樣至 <b>16 kHz</b>。若 WebAudio 解不動，自動改由 ffmpeg.wasm 轉檔。</li>
+          <li><b>錄音與即時監控：</b>MediaRecorder + WebAudio ScriptProcessor，每 50 ms 抽樣 ACF 音高、音量與頻譜特徵。</li>
+          <li><b>長檔策略：</b>≤150 秒直接整段推論；>150 秒依實際推論裝置自動挑選串流視窗與步長（WebGPU：&lt;600 秒 hop 4 秒、視窗 18/12/8/6/4；≥600 秒 hop 6
+            秒、視窗 24/18/12/8/6/4。WASM：&lt;240 秒 hop 3 秒；240–419 秒 hop 3.5 秒；≥420 秒 hop 4 秒，均保留 12/8/6/4 備援）。</li>
+          <li><b>自適應 VAD：</b>長檔偵測靜音，只裁出語音片段再分析；<u>不改變原始音訊</u>。</li>
+          <li><b>聚合與統計：</b>長檔以 log-odds 加權聚合結果；同時保存 Pitch / Volume / Formant / SNR 百分位數供統計卡與簡評。</li>
+          <li><b>隱私與資源管理：</b>推論全在瀏覽器完成，只保留最新一段回放 URL；換檔會釋放快取與 AudioContext。</li>
+        </ul>
+      </details>
+
+      <details data-i18n-html="info.ethicsHtml">
+        <summary>用途定位與倫理提醒</summary>
+        <ul class="bullets">
+          <li>定位：自我練習回饋、教學示範、資料標註輔助、研究原型。</li>
+          <li>限制：此分數是「模型對聲音表現的傾向」，<b>不是性別認同、醫療或法律判定</b>。</li>
+          <li>請勿：用於歧視、排除、或任何影響權益的自動決策。</li>
+        </ul>
+      </details>
+
+      <details data-i18n-html="info.versionHtml">
+        <summary>版本與授權</summary>
+        <div class="kv">
+          <div>版本：</div>
+          <div><code id="ver">build</code></div>
+          <div>更新：</div>
+          <div><code id="updatedAt">—</code></div>
+          <div>授權：</div>
+          <div>模型 <code>Apache-2.0</code>；網站程式碼依你的 repo 授權</div>
+          <div>原始碼：</div>
+          <div><a href="https://github.com/shusei/vpa" target="_blank" rel="noopener">GitHub / vpa</a></div>
+        </div>
+      </details>
+
+      <details data-i18n-html="info.compatHtml">
+        <summary>相容性與效能</summary>
+        <ul class="bullets">
+          <li>瀏覽器：近期 Chrome / Edge / Firefox / Safari；<b>開啟 WebGPU 更快</b>。</li>
+          <li>格式：audio/*、.m4a、.mp3、.wav、.mp4、.mov（影片僅取音軌）。</li>
+          <li>備援：WebAudio 解不動時自動落到 ffmpeg.wasm，轉完即釋放記憶體。</li>
+        </ul>
+      </details>
+    </section>
+  </main>
+
+  <div id="helpOverlay" class="help-overlay" hidden tabindex="-1" role="dialog" aria-modal="true"
+    aria-labelledby="helpTitle">
+    <div class="help-dialog" data-i18n-html="help.dialogHtml">
+      <div class="help-close-affix">
+        <button type="button" id="helpTop" class="help-top" aria-label="回到頁首">⇧</button>
+        <button type="button" id="helpClose" class="help-close" aria-label="關閉使用指南">✕</button>
+      </div>
+      <h2 id="helpTitle">Voice Presentation Analyzer 使用指南</h2>
+      <p>本工具在瀏覽器端完成推論，適合自我練習或教學示範。以下整理常見操作與每個面板的重點。</p>
+      <!-- 内容省略：翻譯會覆蓋 -->
+    </div>
+  </div>
+
+  <div id="guideOverlay" class="help-overlay" hidden tabindex="-1" role="dialog" aria-modal="true"
+    aria-labelledby="guideTitle">
+    <div class="help-dialog guide-dialog">
+      <div class="help-close-affix">
+        <button type="button" class="help-top guide-top" aria-label="回到頁首">⇧</button>
+        <button type="button" class="help-close guide-close" aria-label="關閉手冊">✕</button>
+      </div>
+      <h2 id="guideTitle">女聲訓練手冊</h2>
+      <div id="guideContent" class="guide-body">
+        <!-- Content injected by manual-ui.js -->
+      </div>
+    </div>
+  </div>
+
+  <input id="fileInput" type="file" accept="audio/*,audio/mp4,video/mp4,video/quicktime,.m4a,.mp4,.mov" hidden />
+  <button id="uploadFab" type="button" class="fab" title="上傳音檔（mp3 / m4a / mp4 / mov）"
+    aria-label="上傳音檔（mp3 / m4a / mp4 / mov）" data-i18n-attrs="title:upload.title,aria-label:upload.aria">⬆︎</button>
+
+  <footer class="footer">
+    <div class="container">
+      <small data-i18n="footer.note">Demo only．模型傾向分數僅供自我練習參考</small>
+    </div>
+  </footer>
+
+  <script>
+    window.ONNX_MODEL_ID = 'prithivMLmods/Common-Voice-Gender-Detection-ONNX';
+  </script>
+  <script type="module" src="src/main.js"></script>
+</body>
+
+</html>

@@ -10,7 +10,7 @@
   };
   const loadJson = async (path) => {
     const url = resolveUrl(path);
-    if (typeof window === "undefined" && typeof url === "object" && url && url.protocol === "file:"){
+    if (typeof window === "undefined" && typeof url === "object" && url && url.protocol === "file:") {
       const fs = await import("node:fs/promises");
       const text = await fs.readFile(url, "utf8");
       return JSON.parse(text);
@@ -36,7 +36,8 @@
       CONFIDENCE_INCLUDE_THRESHOLD,
       CONFIDENCE_VOICED_THRESHOLD,
       EPSILON,
-    } = await import("../assets/js/pitch-shared.js");
+    } = await import("../src/pitch-shared.js");
+    const { renderStatsCard } = await import("../src/ui/stats-card.js");
 
     const formants = Array.isArray(store.formants) ? store.formants : [];
     const dbSeries = Array.isArray(store.db) ? store.db : [];
@@ -62,7 +63,7 @@
       const z = zcr[i];
       if (Number.isFinite(z)) spec.zcr = z;
       const e = energy[i];
-      if (Array.isArray(e)){
+      if (Array.isArray(e)) {
         const [low, mid, high] = e;
         spec.energy = {
           low: Number.isFinite(low) ? low : NaN,
@@ -80,11 +81,11 @@
     const arrays = { raw: [], smooth: [], voiced: [], confidence: [] };
     const tracker = makeNoiseTracker();
     let lastVoiced = false;
-    for (let i=0;i<total;i++){
+    for (let i = 0; i < total; i++) {
       const db = dbSeries[i] ?? NaN;
       const gate = tracker.shouldDetect(db, lastVoiced);
       let candHz = null;
-      if (gate.detect){
+      if (gate.detect) {
         const raw = rawPitch[i];
         if (Number.isFinite(raw)) candHz = raw;
         else tracker.capture(db);
@@ -111,33 +112,33 @@
     } = {}) => {
       const n = Math.min(flags.length, confArr.length);
       const mask = new Array(n).fill(false);
-      for (let i=0;i<n;i++){
+      for (let i = 0; i < n; i++) {
         mask[i] = Boolean(flags[i]) && (confArr[i] ?? 0) >= minConfidence;
       }
-      if (maxGapFrames > 0 && mask.length){
+      if (maxGapFrames > 0 && mask.length) {
         let gapStart = -1;
-        for (let i=0;i<=n;i++){
+        for (let i = 0; i <= n; i++) {
           const flag = i < n ? mask[i] : true;
-          if (!flag){
+          if (!flag) {
             if (gapStart < 0) gapStart = i;
-          } else if (gapStart >= 0){
+          } else if (gapStart >= 0) {
             const gapLen = i - gapStart;
-            const prev = gapStart > 0 ? mask[gapStart-1] : false;
+            const prev = gapStart > 0 ? mask[gapStart - 1] : false;
             const next = i < n ? mask[i] : false;
-            if (prev && next && gapLen <= maxGapFrames){
-              for (let j=gapStart;j<i;j++) mask[j] = true;
+            if (prev && next && gapLen <= maxGapFrames) {
+              for (let j = gapStart; j < i; j++) mask[j] = true;
             }
             gapStart = -1;
           }
         }
         const dilation = Math.max(1, Math.floor(maxGapFrames / 2));
-        if (dilation > 0){
+        if (dilation > 0) {
           const expanded = mask.slice();
-          for (let i=0;i<n;i++){
+          for (let i = 0; i < n; i++) {
             if (!mask[i]) continue;
-            for (let d=1; d<=dilation; d++){
-              if (i-d >= 0) expanded[i-d] = true;
-              if (i+d < n) expanded[i+d] = true;
+            for (let d = 1; d <= dilation; d++) {
+              if (i - d >= 0) expanded[i - d] = true;
+              if (i + d < n) expanded[i + d] = true;
             }
           }
           return expanded;
@@ -146,12 +147,12 @@
       return mask;
     };
     const mask = buildEligibleMask(arrays.voiced, arrays.confidence);
-    const eligibleCount = mask.reduce((acc, flag)=> acc + (flag ? 1 : 0), 0);
-    const formantCoverage = [0,1,2].map((idx)=>{
+    const eligibleCount = mask.reduce((acc, flag) => acc + (flag ? 1 : 0), 0);
+    const formantCoverage = [0, 1, 2].map((idx) => {
       if (!eligibleCount) return 0;
       let count = 0;
       const limit = Math.min(formants.length, mask.length);
-      for (let i=0;i<limit;i++){
+      for (let i = 0; i < limit; i++) {
         if (!mask[i]) continue;
         const triple = formants[i] || [];
         const val = triple[idx];
@@ -159,7 +160,7 @@
       }
       return count / eligibleCount;
     });
-    const coverageOk = formantCoverage.every((val)=> Number.isFinite(val) && val >= -1e-6 && val <= 1 + 1e-6);
+    const coverageOk = formantCoverage.every((val) => Number.isFinite(val) && val >= -1e-6 && val <= 1 + 1e-6);
     (coverageOk ? PASS : FAIL)("FORMANT_COVERAGE in [0,1]", `(f1=${formantCoverage[0].toFixed(3)}, f2=${formantCoverage[1].toFixed(3)}, f3=${formantCoverage[2].toFixed(3)})`);
 
     const octaveCorrected = Number(state.counters?.octaveCorrected) || 0;
@@ -168,10 +169,10 @@
     (hardMute <= 8 ? PASS : FAIL)("HARD_MUTE <= 8", `value=${hardMute}`);
 
     const included = [];
-    for (let i=0;i<arrays.smooth.length;i++){
+    for (let i = 0; i < arrays.smooth.length; i++) {
       const hz = arrays.smooth[i];
       const conf = arrays.confidence[i] ?? 0;
-      if (Number.isFinite(hz) && conf >= CONFIDENCE_INCLUDE_THRESHOLD){
+      if (Number.isFinite(hz) && conf >= CONFIDENCE_INCLUDE_THRESHOLD) {
         included.push(hz);
       }
     }
@@ -198,7 +199,7 @@
       let ema = null;
       let sum = 0;
       let count = 0;
-      for (let i=0;i<limit;i++){
+      for (let i = 0; i < limit; i++) {
         if (maskArr && !maskArr[i]) continue;
         let val = arr[i];
         if (!Number.isFinite(val)) continue;
@@ -213,9 +214,9 @@
     };
 
     const breathSummary = summarizeBreathiness(breathiness, mask, frameSec);
-    const dbVals = dbSeries.filter((v)=>Number.isFinite(v));
+    const dbVals = dbSeries.filter((v) => Number.isFinite(v));
     const dbStats = makeStats(dbVals);
-    const sortedDb = dbVals.slice().sort((a,b)=>a-b);
+    const sortedDb = dbVals.slice().sort((a, b) => a - b);
     const p10Idx = Math.max(0, Math.min(sortedDb.length - 1, Math.floor((sortedDb.length - 1) * 0.10)));
     const envDb = sortedDb[p10Idx] ?? NaN;
     const snr = Number.isFinite(dbStats?.med) && Number.isFinite(envDb) ? (dbStats.med - envDb) : NaN;
@@ -248,12 +249,12 @@
     const maskPct = Number(energyPct.mask);
     const headPct = Number(energyPct.head);
     const pctValues = [chestPct, maskPct, headPct];
-    const energySum = pctValues.reduce((acc, val)=> Number.isFinite(val) ? acc + val : acc, 0);
-    const energyValid = pctValues.every((val)=> Number.isFinite(val));
+    const energySum = pctValues.reduce((acc, val) => Number.isFinite(val) ? acc + val : acc, 0);
+    const energyValid = pctValues.every((val) => Number.isFinite(val));
     (energyValid && Math.abs(energySum - 1) <= 1e-6 ? PASS : FAIL)("RESONANCE_ENERGY_SUM == 1", `sum=${energyValid ? energySum.toFixed(6) : "NaN"}`);
     const targets = [0.19899625304760646, 0.33760414274166645, 0.4633996042107273];
-    const withinTolerance = energyValid && pctValues.every((val, idx)=> Math.abs(val - targets[idx]) <= 0.01);
-    (withinTolerance ? PASS : FAIL)("RESONANCE_ENERGY_MATCH", `values=${energyValid ? pctValues.map((v)=> v.toFixed(4)).join(",") : "NaN"}`);
+    const withinTolerance = energyValid && pctValues.every((val, idx) => Math.abs(val - targets[idx]) <= 0.01);
+    (withinTolerance ? PASS : FAIL)("RESONANCE_ENERGY_MATCH", `values=${energyValid ? pctValues.map((v) => v.toFixed(4)).join(",") : "NaN"}`);
 
     const intonation = computeIntonationMetrics({
       processed: arrays.smooth,
@@ -264,10 +265,68 @@
       confidenceThreshold: CONFIDENCE_INCLUDE_THRESHOLD,
       voicedThreshold: CONFIDENCE_VOICED_THRESHOLD,
     });
-    if (intonation && Number.isFinite(intonation.range)){
+    if (intonation && Number.isFinite(intonation.range)) {
       console.log(`INTONATION_RANGE -> ${intonation.range.toFixed(2)} Hz`);
     }
+
+
+
+    console.log("[Verify] Loading fixture data...");
+    // Force render to UI to verify visuals
+    const advSummary = data.advanced;
+
+    // Check if UI elements exist
+    const meterEl = document.getElementById("meter");
+    console.log("[Verify] #meter element found:", !!meterEl);
+
+    let statsEl = document.getElementById("streamStats");
+    console.log("[Verify] #streamStats element found (before):", !!statsEl);
+
+    try {
+      console.log("[Verify] Calling renderStatsCard...");
+
+      // Construct data bundle
+      const bundle = {
+        psHzSmooth: new Array(100).fill(230),
+        psConfidence: new Array(100).fill(1),
+        psDb: new Array(100).fill(70),
+        psVoiced: new Array(100).fill(true),
+        lastPf: data.probabilities?.feminine ?? 0.9,
+        lastPm: data.probabilities?.masculine ?? 0.1,
+        offlineFeatureStore: data.offlineSamples, // Pass the offline samples!
+        advSummary: data.advanced // Explicitly pass it too
+      };
+
+      // Render
+      renderStatsCard(bundle);
+
+      // Re-check
+      statsEl = document.getElementById("streamStats");
+      console.log("[Verify] #streamStats element found (after):", !!statsEl);
+
+      if (statsEl) {
+        statsEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        console.log("[Verify] SUCCESS: UI Updated with Fixture Data. Check the stats card for 'Liaison' and 'Vowel Focus'.");
+        console.log("[Verify] Advanced Summary Data:", advSummary);
+      } else {
+        console.error("[Verify] FAILED: renderStatsCard did not create #streamStats container.");
+        // Manual fallback to debug
+        if (meterEl) {
+          const debugDiv = document.createElement("div");
+          debugDiv.style.border = "2px solid red";
+          debugDiv.style.padding = "10px";
+          debugDiv.style.color = "red";
+          debugDiv.innerHTML = "<h3>Debug: renderStatsCard failed or container missing</h3><p>Check console for details.</p>";
+          meterEl.insertAdjacentElement("afterend", debugDiv);
+          console.log("[Verify] Created manual debug element.");
+        }
+      }
+    } catch (renderErr) {
+      console.error("[Verify] Error during renderStatsCard:", renderErr);
+    }
+
   } catch (err) {
     FAIL("verify-sweet-fixture", err?.message || String(err));
+    console.error("[Verify] Script failed:", err);
   }
 })();
