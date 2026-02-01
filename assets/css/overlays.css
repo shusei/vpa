@@ -40,6 +40,7 @@ body.help-open {
   font-size: 28px;
   letter-spacing: .5px;
   background: linear-gradient(135deg, var(--ink) 30%, var(--accent-1));
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   display: inline-block;
