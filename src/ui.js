@@ -142,8 +142,70 @@ export function startDrawLoop() {
 
 
 
+function beginnerText(keySuffix, defaultVal, params) {
+  const key = `summary.beginnerHighlights.${keySuffix}`;
+  const val = t(key, params);
+  return val || defaultVal;
+}
+
 export function renderBeginnerHighlights(summary, context = {}) {
-  return "";
+  const heading = beginnerText("heading", "Highlights");
+  const empty = beginnerText("empty", "Record a longer clip to unlock coaching tips.");
+  const cards = [];
+  const bandLabel = context.band || context.bandLabel || null;
+  if (bandLabel && bandLabel !== "—") {
+    cards.push({
+      key: "pitch",
+      title: beginnerText("items.pitch.title", "Pitch focus"),
+      value: bandLabel,
+      tip: beginnerText("items.pitch.tip", "Stay near this pitch range and finish each sentence with a gentle lift.", { value: bandLabel }),
+    });
+  }
+  const resonanceLabel = summary?.resonanceDisplay || summary?.resonanceLabel || null;
+  if (resonanceLabel && resonanceLabel !== "—") {
+    cards.push({
+      key: "resonance",
+      title: beginnerText("items.resonance.title", "Resonance focus"),
+      value: resonanceLabel,
+      tip: beginnerText("items.resonance.tip", "Recall this resonance placement with a soft hum, then speak while keeping that feel.", { value: resonanceLabel }),
+    });
+  }
+  const speech = summary?.speechRate || null;
+  if (speech && speech.label && speech.key !== "insufficient") {
+    cards.push({
+      key: "speech",
+      title: beginnerText("items.speech.title", "Pacing focus"),
+      value: speech.label,
+      tip: beginnerText("items.speech.tip", "Keep this pacing and tap a steady beat so every phrase lands on the same pulse.", { value: speech.label }),
+    });
+  }
+
+  if (!cards.length) {
+    if (!heading && !empty) return "";
+    return `
+      <div class="beginner-summary">
+        <h3 class="beginner-summary__title">${escapeHtml(heading)}</h3>
+        <p class="beginner-summary__empty">${escapeHtml(empty)}</p>
+      </div>
+    `;
+  }
+
+  const cardsHtml = cards.map((card) => `
+    <div class="adv-card beginner-summary__card" data-highlight="${escapeAttr(card.key)}">
+      <div class="k">${escapeHtml(card.title)}</div>
+      <div class="v">${escapeHtml(card.value)}</div>
+      <div class="hint">${escapeHtml(card.tip)}</div>
+    </div>
+  `).join("");
+
+  return `
+    <div class="beginner-summary">
+      <h3 class="beginner-summary__title">${escapeHtml(heading)}</h3>
+      <div class="beginner-summary__grid">
+        ${cardsHtml}
+      </div>
+    </div>
+  `;
 }
 
 

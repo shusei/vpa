@@ -34,6 +34,9 @@ export async function loadPracticeData(locale = "zh-Hant") {
       }
     } catch (error) {
       console.warn("[practice] load failed", path, error);
+      if (window.location.protocol === "file:") {
+        console.warn("[practice] Fetch failed on file:// protocol. Please run a local server (e.g. npx serve .)");
+      }
     }
   }
   return { ...FALLBACK };
