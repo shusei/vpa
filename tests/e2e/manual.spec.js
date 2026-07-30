@@ -1,47 +1,37 @@
-// @ts-check
-const { test, expect } = require('@playwright/test');
+import { expect, test } from "@playwright/test";
+import { captureRuntimeErrors, openProductionPage } from "./helpers.js";
 
-test.describe('Voice Manual Overlay', () => {
-    test.beforeEach(async ({ page }) => {
-        await page.goto('/');
-    });
+test.describe("Voice Manual Overlay", () => {
+  let runtimeErrors;
 
-    test('should open manual when clicking the book button', async ({ page }) => {
-        const guideBtn = page.locator('#guideBtn');
-        const overlay = page.locator('#guideOverlay');
+  test.beforeEach(async ({ page }) => {
+    runtimeErrors = captureRuntimeErrors(page);
+    await openProductionPage(page);
+  });
 
-        // Initially hidden
-        await expect(overlay).toBeHidden();
+  test.afterEach(() => {
+    expect(runtimeErrors).toEqual([]);
+  });
 
-        // Click open
-        await guideBtn.click();
+  test("opens the manual from the book button", async ({ page }) => {
+    const guideBtn = page.locator("#guideBtn");
+    const overlay = page.locator("#guideOverlay");
 
-        // Should be visible
-        await expect(overlay).toBeVisible();
+    await expect(overlay).toBeHidden();
+    await guideBtn.click();
+    await expect(overlay).toBeVisible();
+    await expect(page.locator("#guideTitle")).toHaveText("女聲訓練手冊");
+    await expect(page.locator("#guideContent")).toContainText("0) 你每天照做什麼");
+  });
 
-        // Title check
-        await expect(page.locator('#guideTitle')).toHaveText('女聲訓練手冊');
+  test("closes the manual and restores focus", async ({ page }) => {
+    const guideBtn = page.locator("#guideBtn");
+    const overlay = page.locator("#guideOverlay");
 
-        // Content check (Section 0 existence)
-        await expect(page.locator('#guideContent')).toContainText('0) 你每天照做什麼');
-    });
-
-    test('should close manual when clicking close button', async ({ page }) => {
-        const guideBtn = page.locator('#guideBtn');
-        const overlay = page.locator('#guideOverlay');
-        const closeBtn = page.locator('.guide-close');
-
-        // Open first
-        await guideBtn.click();
-        await expect(overlay).toBeVisible();
-
-        // Click close
-        await closeBtn.click();
-
-        // Should be hidden
-        await expect(overlay).toBeHidden();
-
-        // Focus should return to trigger button
-        await expect(guideBtn).toBeFocused();
-    });
+    await guideBtn.click();
+    await expect(overlay).toBeVisible();
+    await page.locator(".guide-close").click();
+    await expect(overlay).toBeHidden();
+    await expect(guideBtn).toBeFocused();
+  });
 });

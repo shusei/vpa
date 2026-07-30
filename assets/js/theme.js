@@ -29,7 +29,7 @@ const THEME_FACTION = {
   aqua: "light", sky: "light", azure: "light", fuchsia: "light", pony2026: "light",
 
   warm: "dark", lavender: "dark", peach: "dark", ink: "dark", night: "dark", contrast: "dark",
-  slate: "dark", graphite: "dark", clay: "dark", rose: "dark", coral: "dark", gold: "dark", luxegold: "dark",
+  slate: "dark", graphite: "dark", clay: "dark", rose: "dark", coral: "dark", gold: "dark", cocoa: "dark", luxegold: "dark",
   olive: "dark", emerald: "dark", teal: "dark", cyan: "dark", cobalt: "dark", indigo: "dark",
   violet: "dark", grape: "dark", plum: "dark", magenta: "dark",
 };

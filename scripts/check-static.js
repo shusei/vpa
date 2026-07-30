@@ -13,7 +13,7 @@ const DEFAULT_CSS_FILES = [
   'assets/css/components.css',
   'assets/css/overlays.css',
 ];
-const THREAD_CONFIG_FILE = 'assets/app.js';
+const THREAD_CONFIG_FILES = ['assets/app-core.js', 'assets/js/app-bootstrap.js'];
 
 function readSource(relativePath) {
   const filePath = resolve(projectRoot, relativePath);
@@ -286,12 +286,24 @@ for (const file of cssTargets) {
   }
 }
 
-const threadIssues = checkThreadConfig(THREAD_CONFIG_FILE);
-if (threadIssues.length) {
-  allIssues.push(`WASM 執行緒設定檢查失敗（${THREAD_CONFIG_FILE}）：`);
-  allIssues.push(...threadIssues.map((issue) => `  - ${issue}`));
-} else {
-  console.log(`[OK] ${THREAD_CONFIG_FILE}：WASM 執行緒設定檢查通過。`);
+let threadConfigPassed = false;
+const threadConfigErrors = [];
+for (const file of THREAD_CONFIG_FILES) {
+  const issues = checkThreadConfig(file);
+  if (!issues.length) {
+    console.log(`[OK] ${file}：WASM 執行緒設定檢查通過。`);
+    threadConfigPassed = true;
+    break;
+  }
+  threadConfigErrors.push({ file, issues });
+}
+
+if (!threadConfigPassed) {
+  allIssues.push(`WASM 執行緒設定檢查失敗（${THREAD_CONFIG_FILES.join(' / ')}）：`);
+  threadConfigErrors.forEach(({ file, issues }) => {
+    allIssues.push(`  - ${file}`);
+    allIssues.push(...issues.map((issue) => `    - ${issue}`));
+  });
 }
 
 if (allIssues.length) {

@@ -1,0 +1,66 @@
+import { expect } from "@playwright/test";
+
+const TRANSFORMERS_STUB = `
+export const env = { backends: { onnx: { wasm: {} } } };
+export async function pipeline(task, modelId, options = {}) {
+  globalThis.__vpaPipelineCalls = globalThis.__vpaPipelineCalls || [];
+  globalThis.__vpaPipelineCalls.push({ task, modelId, device: options.device });
+  return async function classify(audio, inferenceOptions = {}) {
+    globalThis.__vpaInferenceCalls = globalThis.__vpaInferenceCalls || [];
+    globalThis.__vpaInferenceCalls.push({ samples: audio.length, inferenceOptions });
+    return [
+      { label: "female", score: 0.64 },
+      { label: "male", score: 0.36 }
+    ];
+  };
+}
+`;
+
+export async function installDeterministicRuntime(page, { mockAnalytics = true } = {}) {
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("vpa.locale", "zh-Hant");
+      localStorage.setItem("vpa.onboardTipDone", "1");
+      localStorage.setItem("vpa.themeTipDone", "1");
+    } catch { }
+  });
+
+  await page.route("https://cdn.jsdelivr.net/**/transformers.min.js", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "text/javascript",
+      body: TRANSFORMERS_STUB,
+    });
+  });
+
+  if (mockAnalytics) {
+    await page.route("https://www.googletagmanager.com/gtag/js**", async (route) => {
+      await route.fulfill({ status: 200, contentType: "text/javascript", body: "" });
+    });
+    await page.route(/https:\/\/(?:www\.)?google-analytics\.com\/g\/collect.*/, async (route) => {
+      await route.fulfill({ status: 204, body: "" });
+    });
+  }
+}
+
+export function captureRuntimeErrors(page) {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(`pageerror: ${error.message}`));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(`console: ${message.text()}`);
+  });
+  return errors;
+}
+
+export async function openProductionPage(page, options) {
+  await installDeterministicRuntime(page, options);
+  await page.goto("/");
+  await expect(page.locator("#playBtn")).toBeAttached();
+}
+
+export async function waitForAnalysis(page, previousAnalysisId = 0) {
+  await expect.poll(async () => page.evaluate(() => window.vpaLatestAnalysis?.analysisId || 0), {
+    timeout: 60_000,
+  }).toBeGreaterThan(previousAnalysisId);
+  return page.evaluate(() => window.vpaLatestAnalysis);
+}
