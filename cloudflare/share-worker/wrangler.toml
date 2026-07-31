@@ -10,7 +10,7 @@ SITE_ORIGINS = "https://shusei.github.io,http://127.0.0.1:8080,http://localhost:
 [[d1_databases]]
 binding = "SHARE_DB"
 database_name = "vpa-share"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "2b8a17db-c456-4308-8195-e3dc32117e2f"
 
 [triggers]
 crons = ["17 3 * * *"]
