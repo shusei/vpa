@@ -1,4 +1,14 @@
-const decodedAudioAnalyzers = new Map();
+const ANALYZER_REGISTRY_KEY = Symbol.for("vpa.decodedAudioAnalyzers");
+const decodedAudioAnalyzers = globalThis[ANALYZER_REGISTRY_KEY] instanceof Map
+  ? globalThis[ANALYZER_REGISTRY_KEY]
+  : new Map();
+
+if (globalThis[ANALYZER_REGISTRY_KEY] !== decodedAudioAnalyzers) {
+  Object.defineProperty(globalThis, ANALYZER_REGISTRY_KEY, {
+    configurable: true,
+    value: decodedAudioAnalyzers,
+  });
+}
 
 function validExtensionId(value) {
   return typeof value === "string" && /^[a-z][a-z0-9-]{1,47}$/.test(value);

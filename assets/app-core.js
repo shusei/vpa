@@ -11,7 +11,7 @@ import { createAnalysisEngineBridge } from "./js/analysis-engine-bridge.js";
 import {
   createAnalysisFlowController,
   runDecodedAudioAnalyzers as sharedRunDecodedAudioAnalyzers,
-} from "./js/analysis-flow.js?v=20260801-inapp1";
+} from "./js/analysis-flow.js";
 import { createAnalysisSessionController } from "./js/analysis-session.js";
 import { createAdvancedAdapters } from "./js/advanced-adapters.js";
 import { createAdvancedRuntime } from "./js/advanced-runtime.js";

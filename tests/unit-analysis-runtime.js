@@ -20,6 +20,25 @@ const { pickStreamStrategy } = await import("../assets/js/stream-strategy.js");
 
 const translate = (key) => key;
 
+test("decoded audio analyzers share one registry across cache-busted module URLs", async () => {
+  const alternateModule = await import("../assets/js/analysis-flow.js?registry-identity-test");
+  alternateModule.resetDecodedAudioAnalyzersForTest();
+  const unregister = alternateModule.registerDecodedAudioAnalyzer("voice-age-v2", ({ durationSec }) => ({
+    durationSec,
+  }));
+
+  assert.deepEqual(await alternateModule.runDecodedAudioAnalyzers({ durationSec: 4 }), {
+    "voice-age-v2": { durationSec: 4 },
+  });
+  const primaryModule = await import("../assets/js/analysis-flow.js");
+  assert.deepEqual(await primaryModule.runDecodedAudioAnalyzers({ durationSec: 7 }), {
+    "voice-age-v2": { durationSec: 7 },
+  });
+
+  unregister();
+  alternateModule.resetDecodedAudioAnalyzersForTest();
+});
+
 test("detects app webviews without flagging real mobile Safari", () => {
   const line = detectEmbeddedBrowser({
     platform: "Linux armv8l",
