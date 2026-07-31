@@ -1,14 +1,21 @@
 .experience-nav,
 .quick-experience {
   --quick-bg:#f4f8f8;
+  --quick-bg-end:color-mix(in oklab, var(--quick-bg) 84%, var(--quick-accent) 16%);
   --quick-surface:#fff;
   --quick-surface-strong:#e8f1f1;
   --quick-ink:#17272c;
   --quick-muted:#52676c;
   --quick-accent:#d86f91;
   --quick-accent-2:#61a9c6;
+  --quick-accent-ink:#101b20;
   --quick-action:#263d46;
+  --quick-action-end:color-mix(in oklab, var(--quick-action) 76%, var(--quick-accent-2) 24%);
   --quick-action-ink:#fff;
+  --quick-danger-a:#86243f;
+  --quick-danger-b:#aa3453;
+  --quick-danger-ink:#fff;
+  --quick-emphasis:#824158;
   --quick-border:rgba(23, 39, 44, .14);
   --quick-shadow:rgba(24, 48, 56, .16);
 }
@@ -32,8 +39,13 @@ html[data-faction="dark"] .quick-experience {
   --quick-muted:#c1d0d3;
   --quick-accent:#f0a3ba;
   --quick-accent-2:#83c4dd;
+  --quick-accent-ink:#16262b;
   --quick-action:#f1d9df;
   --quick-action-ink:#24353b;
+  --quick-danger-a:#86243f;
+  --quick-danger-b:#aa3453;
+  --quick-danger-ink:#fff;
+  --quick-emphasis:#f0a3ba;
   --quick-border:rgba(238, 248, 248, .16);
   --quick-shadow:rgba(0, 0, 0, .34);
 }
@@ -60,7 +72,7 @@ html[data-faction="dark"] .quick-experience {
   width:44px;
   height:44px;
   border-radius:14px;
-  color:var(--quick-action-ink);
+  color:var(--quick-accent-ink);
   background:linear-gradient(135deg, var(--quick-accent-2), var(--quick-accent));
   font-weight:950;
   letter-spacing:.05em;
@@ -112,7 +124,7 @@ html[data-faction="dark"] .quick-experience {
   background:
     radial-gradient(circle at 12% 18%, color-mix(in oklab, var(--quick-accent-2) 28%, transparent) 0 11%, transparent 31%),
     radial-gradient(circle at 90% 34%, color-mix(in oklab, var(--quick-accent) 25%, transparent) 0 13%, transparent 34%),
-    linear-gradient(155deg, var(--quick-bg), color-mix(in oklab, var(--quick-bg) 84%, var(--quick-accent) 16%));
+    linear-gradient(155deg, var(--quick-bg), var(--quick-bg-end));
 }
 .quick-experience__container {
   position:relative;
@@ -136,7 +148,7 @@ html[data-faction="dark"] .quick-experience {
   text-align:center;
 }
 .quick-eyebrow {
-  color:color-mix(in oklab, var(--quick-accent) 68%, var(--quick-ink) 32%);
+  color:var(--quick-emphasis);
   font-size:.75rem;
   font-weight:950;
   letter-spacing:.18em;
@@ -196,11 +208,12 @@ html[data-faction="dark"] .quick-experience {
 .quick-primary {
   border:0;
   color:var(--quick-action-ink);
-  background:linear-gradient(110deg, var(--quick-action), color-mix(in oklab, var(--quick-action) 76%, var(--quick-accent-2) 24%));
+  background:linear-gradient(110deg, var(--quick-action), var(--quick-action-end));
   box-shadow:0 16px 34px var(--quick-shadow);
 }
 .quick-primary--stop {
-  background:linear-gradient(110deg, #a53d58, var(--quick-accent));
+  color:var(--quick-danger-ink);
+  background:linear-gradient(110deg, var(--quick-danger-a), var(--quick-danger-b));
 }
 .quick-secondary {
   border:1px solid var(--quick-border);
@@ -306,7 +319,7 @@ html[data-faction="dark"] .quick-experience {
   padding:18px 0;
 }
 .quick-result__score strong {
-  color:color-mix(in oklab, var(--quick-accent) 54%, var(--quick-ink) 46%);
+  color:var(--quick-emphasis);
   font-family:Georgia, serif;
   font-size:clamp(5.5rem, 23vw, 9rem);
   line-height:.8;

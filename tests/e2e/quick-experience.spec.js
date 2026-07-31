@@ -47,6 +47,110 @@ test("quick and professional experiences share one analysis result", async ({ pa
   expect(runtimeErrors).toEqual([]);
 });
 
+test("quick experience text keeps accessible contrast across every theme", async ({ page }) => {
+  const runtimeErrors = captureRuntimeErrors(page);
+  await openDevelopmentPage(page);
+
+  const themes = await page.locator(".theme-item").evaluateAll((buttons) => {
+    return buttons.map((button) => button.dataset.theme);
+  });
+  const failures = [];
+
+  for (const theme of themes) {
+    await page.locator(`.theme-item[data-theme="${theme}"]`).evaluate((button) => button.click());
+    const audit = await page.evaluate(() => {
+      const host = document.querySelector("#quickExperience");
+      const canvas = document.createElement("canvas");
+      canvas.width = 1;
+      canvas.height = 1;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+      function rgba(value) {
+        ctx.clearRect(0, 0, 1, 1);
+        ctx.fillStyle = "rgba(0, 0, 0, 0)";
+        ctx.fillRect(0, 0, 1, 1);
+        ctx.fillStyle = value;
+        ctx.fillRect(0, 0, 1, 1);
+        return Array.from(ctx.getImageData(0, 0, 1, 1).data);
+      }
+
+      function luminance(color) {
+        const channels = color.slice(0, 3).map((channel) => {
+          const normalized = channel / 255;
+          return normalized <= 0.04045
+            ? normalized / 12.92
+            : ((normalized + 0.055) / 1.055) ** 2.4;
+        });
+        return (0.2126 * channels[0]) + (0.7152 * channels[1]) + (0.0722 * channels[2]);
+      }
+
+      function contrast(foreground, background) {
+        const foregroundLuminance = luminance(rgba(foreground));
+        const backgroundLuminance = luminance(rgba(background));
+        return (Math.max(foregroundLuminance, backgroundLuminance) + 0.05)
+          / (Math.min(foregroundLuminance, backgroundLuminance) + 0.05);
+      }
+
+      function resolvedColor(value) {
+        const probe = document.createElement("span");
+        probe.style.color = value;
+        host.append(probe);
+        const color = getComputedStyle(probe).color;
+        probe.remove();
+        return color;
+      }
+
+      const pairs = [
+        ["body", "var(--quick-ink)", "var(--quick-bg)"],
+        ["body-gradient-end", "var(--quick-ink)", "var(--quick-bg-end)"],
+        ["muted-body", "var(--quick-muted)", "var(--quick-bg)"],
+        ["muted-body-gradient-end", "var(--quick-muted)", "var(--quick-bg-end)"],
+        ["card", "var(--quick-ink)", "var(--quick-surface)"],
+        ["muted-card", "var(--quick-muted)", "var(--quick-surface)"],
+        ["strong-card", "var(--quick-ink)", "var(--quick-surface-strong)"],
+        ["muted-strong-card", "var(--quick-muted)", "var(--quick-surface-strong)"],
+        ["primary", "var(--quick-action-ink)", "var(--quick-action)"],
+        ["primary-gradient-end", "var(--quick-action-ink)", "var(--quick-action-end)"],
+        ["emphasis-body", "var(--quick-emphasis)", "var(--quick-bg)"],
+        ["emphasis-card", "var(--quick-emphasis)", "var(--quick-surface)"],
+        ["brand-accent", "var(--quick-accent-ink)", "var(--quick-accent)"],
+        ["brand-accent-2", "var(--quick-accent-ink)", "var(--quick-accent-2)"],
+        ["stop-start", "var(--quick-danger-ink)", "var(--quick-danger-a)"],
+        ["stop-end", "var(--quick-danger-ink)", "var(--quick-danger-b)"],
+      ].map(([label, foreground, background]) => {
+        const resolvedForeground = resolvedColor(foreground);
+        const resolvedBackground = resolvedColor(background);
+        return {
+          background: resolvedBackground,
+          foreground: resolvedForeground,
+          label,
+          ratio: contrast(resolvedForeground, resolvedBackground),
+        };
+      });
+
+      return {
+        faction: document.documentElement.dataset.faction,
+        pairs,
+      };
+    });
+
+    for (const pair of audit.pairs) {
+      if (pair.ratio < 4.5) {
+        failures.push({
+          ...pair,
+          faction: audit.faction,
+          ratio: Number(pair.ratio.toFixed(2)),
+          theme,
+        });
+      }
+    }
+  }
+
+  expect(themes.length).toBeGreaterThanOrEqual(30);
+  expect(failures).toEqual([]);
+  expect(runtimeErrors).toEqual([]);
+});
+
 test("quick recording delegates to the production recording and analysis path", async ({ page }) => {
   const runtimeErrors = captureRuntimeErrors(page);
   await openDevelopmentPage(page);
