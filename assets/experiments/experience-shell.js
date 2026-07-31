@@ -10,12 +10,13 @@ import {
   formatAdvancedResult,
   onAdvancedResult,
 } from "./advanced-experience.js";
-import { audioFileFromUrl, shareResultFiles } from "./audio-share.js";
+import { shareResultFiles } from "./audio-share.js";
 import {
   compareChallenge,
   createChallengeUrl,
   readChallenge,
 } from "./challenge-link.js";
+import { createDynamicCardController } from "./dynamic-card-controller.js";
 import {
   getDailyPromptId,
   getStandardPromptId,
@@ -45,7 +46,7 @@ let quickStartedAt = 0;
 let timerId = null;
 let analysisTimeoutId = null;
 let shareOpen = false;
-let includeAudio = false;
+let dynamicAudioOptIn = false;
 let shareStatusKey = "";
 let currentChallenge = null;
 let standardStep = 0;
@@ -132,6 +133,16 @@ if (professionalHero) {
   professionalHero.insertAdjacentElement("beforebegin", experienceNav);
   experienceNav.insertAdjacentElement("afterend", quickExperience);
 }
+
+const dynamicCard = createDynamicCardController({
+  createResultCard,
+  downloadBlob,
+  ensureChallenge,
+  formatResult: formatAdvancedResult,
+  getAudioUrl: () => recorderCtl.getLastRecordingUrl(),
+  render: () => renderQuickExperience(),
+  track,
+});
 
 function localeOptions() {
   return [
@@ -361,22 +372,20 @@ function shareComposerMarkup(result) {
     <section class="quick-share-composer">
       <h2>${escapeHtml(t("experiment.quick.share.title"))}</h2>
       <label class="quick-share-option">
-        <input type="checkbox" data-quick-audio ${includeAudio ? "checked" : ""} ${audioDisabled ? "disabled" : ""} />
+        <input type="checkbox" data-quick-audio ${dynamicAudioOptIn ? "checked" : ""} ${audioDisabled ? "disabled" : ""} />
         <span>
           <strong>${escapeHtml(t("experiment.quick.share.includeAudio"))}</strong>
           <small>${escapeHtml(t(audioDefaultKey))}</small>
         </span>
       </label>
-      ${includeAudio && audioUrl ? `
-        <div class="quick-audio-preview">
-          <span>${escapeHtml(t("experiment.quick.share.preview"))}</span>
-          <audio controls preload="metadata" src="${escapeHtml(audioUrl)}"></audio>
-          <p>${escapeHtml(t("experiment.quick.share.audioWarning"))}</p>
-        </div>
-      ` : ""}
-      <button type="button" class="quick-primary" data-quick-system-share ${result.ready ? "" : "disabled"}>
-        ${escapeHtml(t("experiment.quick.share.system"))}
-      </button>
+      ${dynamicAudioOptIn && audioUrl ? `
+        <p class="quick-share-audio-warning">${escapeHtml(t("experiment.quick.share.audioWarning"))}</p>
+        ${dynamicCard.markup(result)}
+      ` : `
+        <button type="button" class="quick-primary" data-quick-system-share ${result.ready ? "" : "disabled"}>
+          ${escapeHtml(t("experiment.quick.share.system"))}
+        </button>
+      `}
       <button type="button" class="quick-secondary" data-quick-copy-challenge ${result.ready ? "" : "disabled"}>
         ${escapeHtml(t("experiment.quick.share.copyChallenge"))}
       </button>
@@ -550,16 +559,22 @@ function bindQuickControls() {
   });
   quickExperience.querySelector("[data-quick-share]")?.addEventListener("click", () => {
     shareOpen = !shareOpen;
-    includeAudio = false;
+    dynamicCard.reset();
+    dynamicAudioOptIn = false;
     shareStatusKey = "";
     renderQuickExperience();
     track("share_opened", { mode: "quick" });
   });
   quickExperience.querySelector("[data-quick-audio]")?.addEventListener("change", (event) => {
-    includeAudio = Boolean(event.target.checked);
+    dynamicAudioOptIn = Boolean(event.target.checked);
+    dynamicCard.reset();
     shareStatusKey = "";
     renderQuickExperience();
-    track("audio_share_opt_in", { enabled: includeAudio });
+    track("audio_share_opt_in", {
+      enabled: dynamicAudioOptIn,
+      source: "dynamic_card",
+    });
+    if (dynamicAudioOptIn) dynamicCard.open();
   });
   quickExperience.querySelector("[data-quick-system-share]")?.addEventListener("click", () => {
     shareQuickResult();
@@ -567,11 +582,13 @@ function bindQuickControls() {
   quickExperience.querySelector("[data-quick-copy-challenge]")?.addEventListener("click", () => {
     copyChallengeLink();
   });
+  dynamicCard.bind(quickExperience, latestResult);
 }
 
 function setExperience(value, { persist = true } = {}) {
   if (!VALID_EXPERIENCES.has(value) || value === currentExperience) return;
   currentExperience = value;
+  if (value === "professional") dynamicCard.reset();
   if (persist) saveExperience(value);
   document.documentElement.setAttribute("data-experience", value);
   renderExperienceNav();
@@ -603,6 +620,7 @@ function clearIncomingChallenge() {
 
 function resetQuickTest() {
   clearTimers();
+  dynamicCard.reset();
   recorderCtl.stopPlayback();
   latestAnalysis = null;
   latestResult = null;
@@ -610,7 +628,7 @@ function resetQuickTest() {
   quickErrorKey = "";
   quickStartedAt = 0;
   shareOpen = false;
-  includeAudio = false;
+  dynamicAudioOptIn = false;
   shareStatusKey = "";
   currentChallenge = null;
   if (quickTestMode === "standard") {
@@ -648,7 +666,7 @@ function continueStandardTest() {
   quickStage = "idle";
   quickErrorKey = "";
   shareOpen = false;
-  includeAudio = false;
+  dynamicAudioOptIn = false;
   shareStatusKey = "";
   currentChallenge = null;
   renderQuickExperience();
@@ -694,7 +712,7 @@ async function toggleQuickRecording() {
   latestAnalysis = null;
   latestResult = null;
   shareOpen = false;
-  includeAudio = false;
+  dynamicAudioOptIn = false;
   quickStage = "requesting";
   renderQuickExperience();
   track("quick_test_started", {
@@ -759,11 +777,7 @@ async function shareQuickResult() {
     const cardUrl = new URL(challenge.url);
     cardUrl.hash = "";
     const cardBlob = await createResultCard(latestResult, { shareUrl: cardUrl.toString() });
-    const audioFile = includeAudio
-      ? await audioFileFromUrl(recorderCtl.getLastRecordingUrl())
-      : null;
     const response = await shareResultFiles({
-      audioFile,
       cardBlob,
       caption: formatted.caption,
       title: t("experiment.quick.share.shareTitle"),
@@ -771,15 +785,13 @@ async function shareQuickResult() {
     });
     if (response.method === "unsupported" || response.method === "unsupported-files") {
       downloadBlob(cardBlob, "vpa-result.png");
-      if (audioFile) downloadBlob(audioFile, audioFile.name);
-      shareStatusKey = audioFile
-        ? "experiment.quick.share.downloadedWithAudio"
-        : "experiment.quick.share.downloaded";
+      shareStatusKey = "experiment.quick.share.downloaded";
     } else {
       shareStatusKey = "experiment.quick.share.shared";
     }
     track("share_success", {
-      includes_audio: Boolean(audioFile),
+      includes_audio: false,
+      media: "png",
       method: response.method,
     });
   } catch (error) {
@@ -794,6 +806,7 @@ async function shareQuickResult() {
 }
 
 function finalizeQuickResult(result) {
+  dynamicCard.reset();
   latestResult = result;
   quickStage = "result";
   saveLatestResult(result);
@@ -817,7 +830,7 @@ onAdvancedResult(({ analysis, result }) => {
   quickErrorKey = "";
   quickStartedAt = 0;
   shareOpen = false;
-  includeAudio = false;
+  dynamicAudioOptIn = false;
   shareStatusKey = "";
   currentChallenge = null;
 
@@ -864,6 +877,7 @@ onAdvancedResult(({ analysis, result }) => {
 });
 
 onLocaleChange(() => {
+  dynamicCard.reset();
   renderAll();
 });
 

@@ -255,6 +255,12 @@ html[data-faction="dark"] .advanced-experience {
 .advanced-share__platforms button {
   flex:1 1 94px;
 }
+.advanced-share__hint {
+  margin:0;
+  color:var(--experiment-muted);
+  font-size:.78rem;
+  line-height:1.55;
+}
 .advanced-share__fallbacks button {
   flex:1 1 180px;
 }

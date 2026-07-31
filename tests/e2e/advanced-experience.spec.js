@@ -32,7 +32,10 @@ test("professional experience renders advanced result and creates a local share 
   await expect(page.locator(".advanced-experience__score strong")).toHaveText(`${result.score}%`);
   await expect(page.locator("#advancedExperience").getByText("聲音年齡印象", { exact: true }))
     .toBeVisible();
-  await expect(page.getByRole("button", { name: "產生分享卡" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "分享圖片＋文字（推薦）" })).toBeEnabled();
+  await expect(page.locator(".advanced-share__hint")).toContainText(
+    "X／Threads／LINE／Facebook 捷徑只會分享文字與連結",
+  );
 
   const blob = await page.evaluate(async () => {
     const card = await window.vpaAdvancedExperience.createCard();

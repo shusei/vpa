@@ -16,6 +16,36 @@ async function openDevelopmentPage(page, options = {}) {
   ))).toBe(true);
 }
 
+async function inspectVoiceCardVideo(video) {
+  return video.evaluate(async (element) => {
+    if (element.readyState < HTMLMediaElement.HAVE_METADATA) {
+      await new Promise((resolvePromise, reject) => {
+        element.addEventListener("loadedmetadata", resolvePromise, { once: true });
+        element.addEventListener("error", reject, { once: true });
+      });
+    }
+    element.muted = true;
+    await element.play();
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 250));
+    const captured = typeof element.captureStream === "function"
+      ? element.captureStream()
+      : null;
+    const blob = await fetch(element.currentSrc || element.src).then((response) => response.blob());
+    const details = {
+      audioTracks: captured?.getAudioTracks().length || 0,
+      duration: element.duration,
+      height: element.videoHeight,
+      size: blob.size,
+      type: blob.type,
+      videoTracks: captured?.getVideoTracks().length || 0,
+      width: element.videoWidth,
+    };
+    captured?.getTracks().forEach((track) => track.stop());
+    element.pause();
+    return details;
+  });
+}
+
 test("quick and professional experiences share one analysis result", async ({ page }) => {
   const runtimeErrors = captureRuntimeErrors(page);
   await openDevelopmentPage(page);
@@ -334,7 +364,7 @@ test("challenge link carries only summary data and compares the next result", as
   expect(runtimeErrors).toEqual([]);
 });
 
-test("audio sharing is opt-in and uses the system file share path", async ({ page }) => {
+test("image sharing is default and dynamic video requires explicit voice opt-in", async ({ page }) => {
   const runtimeErrors = captureRuntimeErrors(page);
   await page.addInitScript(() => {
     Object.defineProperty(navigator, "canShare", {
@@ -359,27 +389,222 @@ test("audio sharing is opt-in and uses the system file share path", async ({ pag
 
   await page.evaluate(async (analysis) => {
     const { recorderCtl } = await import("/assets/app.js");
-    const audioUrl = URL.createObjectURL(new Blob(["voice"], { type: "audio/webm" }));
-    recorderCtl.getLastRecordingUrl = () => audioUrl;
+    recorderCtl.getLastRecordingUrl = () => "/tests/.generated-media/tone.wav";
     window.vpaAdvancedExperience.renderAnalysis(analysis);
   }, fixture);
 
   await page.locator("[data-quick-share]").click();
   await expect(page.locator("[data-quick-audio]")).not.toBeChecked();
+  await expect(page.locator("[data-quick-system-share]")).toHaveText("分享圖片＋文字");
+  await expect(page.locator(".quick-dynamic-card")).toHaveCount(0);
   await page.locator("[data-quick-system-share]").click();
   await expect.poll(() => page.evaluate(() => window.__vpaLastShare?.files.length)).toBe(1);
   expect(await page.evaluate(() => window.__vpaLastShare.files[0].name)).toBe("vpa-result.png");
+  expect(await page.evaluate(() => window.__vpaLastShare.text.length)).toBeGreaterThan(10);
+  expect(await page.evaluate(() => window.__vpaLastShare.url)).toContain("#vpa-challenge=");
 
   await page.locator("[data-quick-audio]").check();
-  await expect(page.locator(".quick-audio-preview audio")).toBeVisible();
-  await page.locator("[data-quick-system-share]").click();
+  await expect(page.locator("[data-quick-system-share]")).toHaveCount(0);
+  await expect(page.locator(".quick-share-audio-warning")).toBeVisible();
+  await expect(page.locator(".quick-dynamic-editor")).toBeVisible();
+  await expect(page.locator(".quick-dynamic-editor audio")).toBeVisible();
+  const optInEvents = await page.evaluate(() => {
+    return (window.dataLayer || [])
+      .map((entry) => Array.from(entry))
+      .filter((entry) => entry[0] === "event" && entry[1] === "audio_share_opt_in")
+      .map((entry) => entry[2]);
+  });
+  expect(optInEvents).toEqual([
+    expect.objectContaining({
+      enabled: true,
+      source: "dynamic_card",
+    }),
+  ]);
+
+  await page.locator("[data-quick-audio]").uncheck();
+  await expect(page.locator("[data-quick-system-share]")).toBeVisible();
+  await expect(page.locator(".quick-dynamic-card")).toHaveCount(0);
+  expect(await page.evaluate(() => Object.keys(localStorage).some((key) => key.includes("audio"))))
+    .toBe(false);
+  expect(runtimeErrors).toEqual([]);
+});
+
+test("dynamic voice card exports selected audio and preserves the fallback chain", async ({ page }) => {
+  const runtimeErrors = captureRuntimeErrors(page);
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "canShare", {
+      configurable: true,
+      value: ({ files }) => Array.isArray(files) && files.length > 0,
+    });
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: async (payload) => {
+        window.__vpaLastShare = {
+          files: (payload.files || []).map((file) => ({
+            name: file.name,
+            size: file.size,
+            type: file.type,
+          })),
+          text: payload.text,
+          url: payload.url,
+        };
+      },
+    });
+  });
+  await openDevelopmentPage(page);
+
+  const expectedScoreBand = await page.evaluate(async (analysis) => {
+    const { recorderCtl } = await import("/assets/app.js");
+    recorderCtl.getLastRecordingUrl = () => "/tests/.generated-media/tone.wav";
+    window.vpaAdvancedExperience.renderAnalysis(analysis);
+    return Math.floor(window.vpaExperience.getLatestResult().score / 10) * 10;
+  }, fixture);
+
+  await page.locator("[data-quick-share]").click();
+  await page.locator("[data-quick-audio]").check();
+  await expect(page.locator(".quick-dynamic-editor")).toBeVisible();
+  await expect(page.locator(".quick-dynamic-editor audio")).toBeVisible();
+
+  await page.locator("[data-dynamic-start]").evaluate((input) => {
+    input.value = "0.5";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await page.locator("[data-dynamic-end]").evaluate((input) => {
+    input.value = "3.8";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await expect(page.locator("[data-dynamic-range]")).toContainText("0.5");
+  await expect(page.locator("[data-dynamic-range]")).toContainText("3.8");
+
+  await page.locator("[data-dynamic-generate]").click();
+  const video = page.locator(".quick-dynamic-output video");
+  await expect(video).toBeVisible({ timeout: 30_000 });
+  const media = await inspectVoiceCardVideo(video);
+
+  expect(media.type).toContain("video/mp4");
+  expect(media.size).toBeGreaterThan(50_000);
+  expect(media.width).toBe(720);
+  expect(media.height).toBe(1280);
+  expect(media.duration).toBeGreaterThanOrEqual(7.5);
+  expect(media.duration).toBeLessThanOrEqual(15.5);
+  expect(media.videoTracks).toBe(1);
+  expect(media.audioTracks).toBe(1);
+  if (process.env.VPA_DYNAMIC_CAPTURE) {
+    await video.evaluate(async (element) => {
+      const target = Math.max(0, Math.min(element.duration - 0.25, 7));
+      if (Math.abs(element.currentTime - target) < 0.05) return;
+      await new Promise((resolvePromise, reject) => {
+        element.addEventListener("seeked", resolvePromise, { once: true });
+        element.addEventListener("error", reject, { once: true });
+        element.currentTime = target;
+      });
+    });
+    await page.screenshot({
+      fullPage: true,
+      path: resolve(process.env.VPA_DYNAMIC_CAPTURE),
+    });
+  }
+
+  await page.locator("[data-dynamic-share]").click();
+  await expect.poll(() => page.evaluate(() => window.__vpaLastShare?.files.length)).toBe(1);
+  expect(await page.evaluate(() => window.__vpaLastShare.files[0])).toMatchObject({
+    name: "vpa-voice-card.mp4",
+  });
+  expect(await page.evaluate(() => window.__vpaLastShare.files[0].type))
+    .toBe("video/mp4");
+  expect(await page.evaluate(() => window.__vpaLastShare.url)).not.toContain("audio");
+  const analytics = await page.evaluate(() => {
+    return (window.dataLayer || [])
+      .map((entry) => Array.from(entry))
+      .filter((entry) => entry[0] === "event")
+      .map((entry) => ({
+        name: entry[1],
+        params: entry[2],
+      }));
+  });
+  expect(analytics).toEqual(expect.arrayContaining([
+    expect.objectContaining({
+      name: "audio_share_opt_in",
+      params: expect.objectContaining({
+        enabled: true,
+        source: "dynamic_card",
+      }),
+    }),
+    expect.objectContaining({
+      name: "share_success",
+      params: expect.objectContaining({
+        media: "mp4",
+        score_band: expectedScoreBand,
+      }),
+    }),
+  ]));
+  expect(analytics.some(({ params }) => (
+    Object.hasOwn(params || {}, "audio")
+    || Object.hasOwn(params || {}, "score")
+  ))).toBe(false);
+
+  await page.locator("[data-dynamic-close]").click();
+  await page.evaluate(() => {
+    const nativeSupport = MediaRecorder.isTypeSupported.bind(MediaRecorder);
+    MediaRecorder.isTypeSupported = (type) => (
+      type.startsWith("video/webm") && nativeSupport(type)
+    );
+    window.__vpaLastShare = null;
+  });
+  await page.locator("[data-dynamic-open]").click();
+  await expect(page.locator(".quick-dynamic-editor")).toBeVisible();
+  await page.locator("[data-dynamic-generate]").click();
+  await expect(video).toBeVisible({ timeout: 30_000 });
+  const webmMedia = await inspectVoiceCardVideo(video);
+  expect(webmMedia.type).toContain("video/webm");
+  expect(webmMedia.duration).toBeGreaterThanOrEqual(7.5);
+  expect(webmMedia.videoTracks).toBe(1);
+  expect(webmMedia.audioTracks).toBe(1);
+  await page.locator("[data-dynamic-share]").click();
+  await expect.poll(() => page.evaluate(() => window.__vpaLastShare?.files.length)).toBe(1);
+  expect(await page.evaluate(() => window.__vpaLastShare.files[0].name))
+    .toBe("vpa-voice-card.webm");
+  expect(await page.evaluate(() => window.__vpaLastShare.files[0].type))
+    .toBe("video/webm");
+
+  await page.locator("[data-dynamic-close]").click();
+  await page.evaluate(() => {
+    Object.defineProperty(HTMLCanvasElement.prototype, "captureStream", {
+      configurable: true,
+      value: undefined,
+    });
+    window.__vpaLastShare = null;
+  });
+  await page.locator("[data-dynamic-open]").click();
+  await expect(page.locator(".quick-dynamic-editor")).toBeVisible();
+  await page.locator("[data-dynamic-generate]").click();
+  await expect(page.locator(".quick-dynamic-output img")).toBeVisible();
+  await expect(page.locator(".quick-dynamic-output audio")).toBeVisible();
+
+  const fallbackAudio = await page.locator(".quick-dynamic-output audio").evaluate(async (element) => {
+    const blob = await fetch(element.currentSrc || element.src).then((response) => response.blob());
+    const context = new AudioContext();
+    try {
+      const decoded = await context.decodeAudioData(await blob.arrayBuffer());
+      return {
+        duration: decoded.duration,
+        size: blob.size,
+        type: blob.type,
+      };
+    } finally {
+      await context.close();
+    }
+  });
+  expect(fallbackAudio.type).toBe("audio/wav");
+  expect(fallbackAudio.size).toBeGreaterThan(100_000);
+  expect(fallbackAudio.duration).toBeCloseTo(4, 1);
+
+  await page.locator("[data-dynamic-share]").click();
   await expect.poll(() => page.evaluate(() => window.__vpaLastShare?.files.length)).toBe(2);
   expect(await page.evaluate(() => window.__vpaLastShare.files.map((file) => file.name))).toEqual([
     "vpa-result.png",
-    "vpa-voice.weba",
+    "vpa-voice-clip.wav",
   ]);
-  expect(await page.evaluate(() => Object.keys(localStorage).some((key) => key.includes("audio"))))
-    .toBe(false);
   expect(runtimeErrors).toEqual([]);
 });
 
@@ -392,10 +617,15 @@ test.describe("mobile quick experience", () => {
   test("quick landing and result remain inside the viewport", async ({ page }) => {
     const runtimeErrors = captureRuntimeErrors(page);
     await openDevelopmentPage(page);
-    await page.evaluate((analysis) => {
+    await page.evaluate(async (analysis) => {
+      const { recorderCtl } = await import("/assets/app.js");
+      recorderCtl.getLastRecordingUrl = () => "/tests/.generated-media/tone.wav";
       window.vpaAdvancedExperience.renderAnalysis(analysis);
     }, fixture);
 
+    await page.locator("[data-quick-share]").click();
+    await page.locator("[data-quick-audio]").check();
+    await expect(page.locator(".quick-dynamic-editor")).toBeVisible();
     const overflow = await page.evaluate(() => {
       return document.documentElement.scrollWidth - document.documentElement.clientWidth;
     });

@@ -17,10 +17,14 @@ import {
   encodeChallenge,
   readChallenge,
 } from "../assets/experiments/challenge-link.js";
+import { shareResultFiles } from "../assets/experiments/audio-share.js";
 import {
-  audioFileFromUrl,
-  shareResultFiles,
-} from "../assets/experiments/audio-share.js";
+  defaultClipRange,
+  dynamicVoiceCardInternals,
+  extractWaveform,
+  getSupportedVideoProfiles,
+  normalizeClipRange,
+} from "../assets/experiments/dynamic-voice-card.js";
 import {
   DAILY_PROMPT_IDS,
   getDailyPromptId,
@@ -138,6 +142,68 @@ assert.equal(
   "second",
 );
 
+class MockMediaRecorder {
+  static isTypeSupported(type) {
+    return type === "video/mp4" || type === "video/webm";
+  }
+}
+
+assert.deepEqual(getSupportedVideoProfiles(MockMediaRecorder), [
+  { extension: "mp4", mimeType: "video/mp4" },
+  { extension: "webm", mimeType: "video/webm" },
+]);
+assert.deepEqual(getSupportedVideoProfiles(null), []);
+assert.deepEqual(defaultClipRange(12), {
+  duration: 10,
+  end: 10,
+  outputDuration: 10,
+  start: 0,
+});
+assert.deepEqual(defaultClipRange(5), {
+  duration: 5,
+  end: 5,
+  outputDuration: 8,
+  start: 0,
+});
+assert.deepEqual(normalizeClipRange({
+  duration: 20,
+  end: 19,
+  start: 4,
+}), {
+  duration: 15,
+  end: 19,
+  outputDuration: 15,
+  start: 4,
+});
+assert.deepEqual(normalizeClipRange({
+  duration: 10,
+  end: 2,
+  start: 8,
+}), {
+  duration: 3,
+  end: 10,
+  outputDuration: 8,
+  start: 7,
+});
+const waveform = extractWaveform({
+  getChannelData: () => Float32Array.from([
+    0, 0.2, -0.5, 0.25, 1, -0.75, 0.1, 0,
+    0, 0.4, -0.3, 0.2, 0.8, -0.6, 0.2, 0,
+  ]),
+  length: 16,
+  numberOfChannels: 1,
+  sampleRate: 8,
+}, {
+  duration: 2,
+  end: 2,
+  start: 0,
+}, 16);
+assert.equal(waveform.length, 16);
+assert.equal(Math.max(...waveform), 1);
+assert.ok(waveform.every((value) => value >= 0.04 && value <= 1));
+assert.equal(dynamicVoiceCardInternals.MIN_OUTPUT_SECONDS, 8);
+assert.equal(dynamicVoiceCardInternals.MAX_OUTPUT_SECONDS, 15);
+
 const shareUrl = buildShareUrl({
   href: "https://example.com/vpa/dev.html?fixture=1#result",
 });
@@ -222,13 +288,11 @@ assert.equal(standardChallenge.schema, 2);
 assert.equal(standardChallenge.testMode, "standard");
 assert.equal(standardChallenge.promptId, STANDARD_TEST_ID);
 
-const audioFile = await audioFileFromUrl("blob:test", async () => ({
-  blob: async () => new Blob(["audio"], { type: "audio/webm" }),
-  ok: true,
-}));
-assert.equal(audioFile.name, "vpa-voice.weba");
-assert.equal(audioFile.type, "audio/webm");
-
+const audioFile = new File(
+  [new Blob(["audio"], { type: "audio/wav" })],
+  "vpa-voice-clip.wav",
+  { type: "audio/wav" },
+);
 const nativeShareCalls = [];
 const nativeShare = await shareResultFiles({
   audioFile,
@@ -290,6 +354,7 @@ const translationKeys = [
   "share.failed",
   "share.opened",
   "share.platformAria",
+  "share.platformHint",
   "share.primary",
   "share.shared",
   "share.title",
@@ -316,6 +381,40 @@ const quickTranslationKeys = [
   "challenge.tied",
   "errors.analysisTimeout",
   "errors.recordingFailed",
+  "dynamic.audioFailed",
+  "dynamic.brand",
+  "dynamic.challenge",
+  "dynamic.challengeLabel",
+  "dynamic.clipHint",
+  "dynamic.clipRange",
+  "dynamic.clipTitle",
+  "dynamic.close",
+  "dynamic.download",
+  "dynamic.downloaded",
+  "dynamic.endLabel",
+  "dynamic.eyebrow",
+  "dynamic.failed",
+  "dynamic.fallbackAlt",
+  "dynamic.fallbackHint",
+  "dynamic.generate",
+  "dynamic.loadingAudio",
+  "dynamic.noAudio",
+  "dynamic.open",
+  "dynamic.outputDuration",
+  "dynamic.progress.decoding",
+  "dynamic.progress.encoding",
+  "dynamic.progress.keepOpen",
+  "dynamic.readyFallback",
+  "dynamic.readyVideo",
+  "dynamic.retry",
+  "dynamic.share",
+  "dynamic.shared",
+  "dynamic.shareFailed",
+  "dynamic.shareTitle",
+  "dynamic.startLabel",
+  "dynamic.subtitle",
+  "dynamic.title",
+  "dynamic.waveform",
   "footer",
   "history.label",
   "history.none",
@@ -355,11 +454,9 @@ const quickTranslationKeys = [
   "share.copied",
   "share.copyChallenge",
   "share.downloaded",
-  "share.downloadedWithAudio",
   "share.failed",
   "share.includeAudio",
   "share.open",
-  "share.preview",
   "share.shareTitle",
   "share.shared",
   "share.system",
@@ -430,6 +527,8 @@ const intentionalJapaneseMatches = [
   "analysis.meter.scale.sixty",
   "analysis.meter.scale.zero",
   "experiment.advanced.beta",
+  "experiment.quick.dynamic.brand",
+  "experiment.quick.dynamic.eyebrow",
   "experiment.quick.eyebrow",
   "experiment.quick.reveal.eyebrow",
   "hero.title",

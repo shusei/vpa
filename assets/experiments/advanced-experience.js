@@ -303,6 +303,7 @@ export function renderAnalysis(analysis, { notify = true } = {}) {
         <button type="button" data-share-platform="facebook" ${disabled}>Facebook</button>
         <button type="button" data-share-instagram ${disabled}>IG</button>
       </div>
+      <p class="advanced-share__hint">${escapeHtml(t("experiment.advanced.share.platformHint"))}</p>
       <div class="advanced-share__fallbacks">
         <button type="button" data-share-download ${disabled}>${escapeHtml(t("experiment.advanced.share.download"))}</button>
         <button type="button" data-share-copy ${disabled}>${escapeHtml(t("experiment.advanced.share.copy"))}</button>
