@@ -24,6 +24,15 @@ runFfmpeg([
   wavPath,
 ], "tone.wav");
 
+const longWavPath = resolve(outputDir, "tone-30.wav");
+runFfmpeg([
+  "-f", "lavfi",
+  "-i", "sine=frequency=220:sample_rate=48000:duration=30",
+  "-ac", "1",
+  "-c:a", "pcm_s16le",
+  longWavPath,
+], "tone-30.wav");
+
 runFfmpeg([
   "-i", wavPath,
   "-c:a", "libmp3lame",

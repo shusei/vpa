@@ -1,3 +1,5 @@
+import { buildShareText } from "./audio-share.js";
+
 function roundedRect(ctx, x, y, width, height, radius) {
   const safeRadius = Math.min(radius, width / 2, height / 2);
   ctx.beginPath();
@@ -33,7 +35,7 @@ function toBlob(canvas) {
 }
 
 export function buildShareTargets({ caption, url }) {
-  const combined = `${caption}\n${url}`.trim();
+  const combined = buildShareText(caption, url);
   return {
     facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
     line: `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}`,
@@ -150,7 +152,12 @@ export function downloadBlob(blob, filename) {
 export async function shareWithSystem({ blob, caption, title, url }) {
   if (typeof navigator.share !== "function") return { method: "unsupported" };
   const file = new File([blob], "vpa-advanced-result.png", { type: "image/png" });
-  const filePayload = { files: [file], text: caption, title, url };
+  const filePayload = {
+    files: [file],
+    text: buildShareText(caption, url),
+    title,
+    url,
+  };
   if (typeof navigator.canShare === "function" && navigator.canShare(filePayload)) {
     await navigator.share(filePayload);
     return { method: "files" };

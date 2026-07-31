@@ -1,5 +1,5 @@
 import { t } from "../js/i18n.js";
-import { shareResultFiles } from "./audio-share.js";
+import { buildShareText, shareResultFiles } from "./audio-share.js";
 import {
   createSelectedAudioFile,
   defaultClipRange,
@@ -116,6 +116,37 @@ export function createDynamicCardController({
     `;
   }
 
+  function makePreviewAudible(video) {
+    if (!video) return;
+    video.defaultMuted = false;
+    video.muted = false;
+    if (!(video.volume > 0)) video.volume = 1;
+  }
+
+  async function playPreview(root) {
+    const video = root.querySelector("[data-dynamic-preview]");
+    if (!video) return;
+    makePreviewAudible(video);
+    if (video.ended) video.currentTime = 0;
+    try {
+      await video.play();
+    } catch (error) {
+      console.error("[dynamic-card] preview playback failed", error);
+      state.statusKey = "experiment.quick.dynamic.previewFailed";
+      render();
+    }
+  }
+
+  function preparePreview(root) {
+    const video = root.querySelector("[data-dynamic-preview]");
+    if (!video) return;
+    const enableAudio = () => makePreviewAudible(video);
+    video.addEventListener("pointerdown", enableAudio);
+    video.addEventListener("touchstart", enableAudio, { passive: true });
+    video.addEventListener("play", enableAudio);
+    video.load();
+  }
+
   function outputMarkup() {
     const output = state.output;
     if (!output) return "";
@@ -130,7 +161,11 @@ export function createDynamicCardController({
           }))}
         </span>
         ${isVideo ? `
-          <video controls playsinline loop preload="metadata" src="${escapeHtml(output.previewUrl)}"></video>
+          <video controls playsinline loop preload="auto" data-dynamic-preview
+            src="${escapeHtml(output.previewUrl)}"></video>
+          <button type="button" class="quick-secondary" data-dynamic-preview-play>
+            ${escapeHtml(t("experiment.quick.dynamic.preview"))}
+          </button>
         ` : `
           <img src="${escapeHtml(output.previewUrl)}" alt="${escapeHtml(t("experiment.quick.dynamic.fallbackAlt"))}" />
           <audio controls preload="metadata" src="${escapeHtml(output.audioPreviewUrl)}"></audio>
@@ -358,7 +393,7 @@ export function createDynamicCardController({
     );
     const payload = {
       files: [file],
-      text: formatResult(result).caption,
+      text: buildShareText(formatResult(result).caption, challenge.url),
       title: t("experiment.quick.dynamic.shareTitle"),
       url: challenge.url,
     };
@@ -431,6 +466,10 @@ export function createDynamicCardController({
   }
 
   function bind(root, result) {
+    preparePreview(root);
+    root.querySelector("[data-dynamic-preview-play]")?.addEventListener("click", () => {
+      playPreview(root);
+    });
     root.querySelector("[data-dynamic-open]")?.addEventListener("click", () => {
       open();
     });

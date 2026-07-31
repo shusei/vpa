@@ -25,7 +25,7 @@ import {
   STANDARD_PROMPT_IDS,
   STANDARD_TEST_ID,
 } from "./quick-prompts.js";
-import { downloadBlob } from "./share-card.js";
+import { buildShareTargets, downloadBlob } from "./share-card.js";
 import { aggregateStandardResults } from "./standard-result.js";
 import { analyzeVoiceQuality } from "./voice-quality-metrics.js";
 
@@ -405,6 +405,26 @@ function shareComposerMarkup(result) {
   `;
 }
 
+function shareShortcutMarkup() {
+  const platforms = ["x", "threads", "line", "facebook", "tiktok"];
+  return `
+    <section class="quick-share-shortcuts" aria-label="${escapeHtml(t("experiment.quick.share.directTitle"))}">
+      <div class="quick-share-shortcuts__copy">
+        <strong>${escapeHtml(t("experiment.quick.share.directTitle"))}</strong>
+        <small>${escapeHtml(t("experiment.quick.share.directHint"))}</small>
+      </div>
+      <div class="quick-share-shortcuts__buttons">
+        ${platforms.map((platform) => `
+          <button type="button" data-quick-platform="${platform}"
+            aria-label="${escapeHtml(t("experiment.quick.share.directAria", { platform }))}">
+            ${platform === "x" ? "X" : platform === "line" ? "LINE" : platform[0].toUpperCase() + platform.slice(1)}
+          </button>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
 function standardSummaryMarkup(result) {
   if (!result.standard) return "";
   return `
@@ -482,6 +502,7 @@ function resultMarkup() {
         <p class="quick-error">${escapeHtml(t("experiment.advanced.insufficient"))}</p>
       `}
       <p class="quick-result__disclaimer">${escapeHtml(t("experiment.advanced.disclaimer"))}</p>
+      ${ready ? shareShortcutMarkup() : ""}
       <div class="quick-result__actions">
         <button type="button" class="quick-primary" data-quick-share ${ready ? "" : "disabled"}>
           ${escapeHtml(t("experiment.quick.share.open"))}
@@ -565,6 +586,11 @@ function bindQuickControls() {
   });
   quickExperience.querySelector("[data-quick-standard-next]")?.addEventListener("click", () => {
     continueStandardTest();
+  });
+  quickExperience.querySelectorAll("[data-quick-platform]").forEach((button) => {
+    button.addEventListener("click", () => {
+      openQuickPlatform(button.getAttribute("data-quick-platform"));
+    });
   });
   quickExperience.querySelector("[data-quick-share]")?.addEventListener("click", () => {
     shareOpen = !shareOpen;
@@ -775,6 +801,40 @@ async function copyChallengeLink() {
   await copyText(challenge.url);
   shareStatusKey = "experiment.quick.share.copied";
   renderQuickExperience();
+}
+
+function openQuickPlatform(platform) {
+  if (platform === "tiktok") {
+    const hasAudio = Boolean(recorderCtl.getLastRecordingUrl());
+    shareOpen = true;
+    dynamicAudioOptIn = hasAudio;
+    dynamicCard.reset();
+    shareStatusKey = hasAudio
+      ? "experiment.quick.share.tiktokReady"
+      : "experiment.quick.share.tiktokNeedsAudio";
+    renderQuickExperience();
+    if (hasAudio) dynamicCard.open();
+    track("share_platform_selected", {
+      mode: "quick",
+      platform,
+      score_band: Math.floor(latestResult.score / 10) * 10,
+    });
+    return;
+  }
+  const challenge = ensureChallenge();
+  if (!challenge || !latestResult) return;
+  const targets = buildShareTargets({
+    caption: formatAdvancedResult(latestResult).caption,
+    url: challenge.url,
+  });
+  const target = targets[platform];
+  if (!target) return;
+  window.open(target, "_blank", "noopener,noreferrer");
+  track("share_platform_selected", {
+    mode: "quick",
+    platform,
+    score_band: Math.floor(latestResult.score / 10) * 10,
+  });
 }
 
 async function shareQuickResult() {

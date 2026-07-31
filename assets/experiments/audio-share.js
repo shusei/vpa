@@ -1,3 +1,10 @@
+export function buildShareText(caption, url) {
+  return [caption, url]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
 export async function shareResultFiles({
   audioFile = null,
   cardBlob,
@@ -18,7 +25,7 @@ export async function shareResultFiles({
   ) {
     await navigatorLike.share({
       files,
-      text: caption,
+      text: buildShareText(caption, url),
       title,
       url,
     });

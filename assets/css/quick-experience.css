@@ -518,6 +518,51 @@ html[data-faction="dark"] .quick-experience {
   margin:0;
   font-weight:850;
 }
+.quick-share-shortcuts {
+  display:grid;
+  gap:13px;
+  padding:17px 19px;
+  border:1px solid var(--quick-border);
+  border-radius:18px;
+  background:var(--quick-surface);
+}
+.quick-share-shortcuts__copy {
+  display:grid;
+  gap:4px;
+}
+.quick-share-shortcuts__copy strong {
+  font-size:.95rem;
+}
+.quick-share-shortcuts__copy small {
+  color:var(--quick-muted);
+  font-size:.76rem;
+  line-height:1.5;
+}
+.quick-share-shortcuts__buttons {
+  display:grid;
+  grid-template-columns:repeat(5, minmax(0, 1fr));
+  gap:8px;
+}
+.quick-share-shortcuts__buttons button {
+  min-height:44px;
+  padding:8px 6px;
+  border:0;
+  border-radius:13px;
+  color:#fff;
+  background:#111;
+  font:850 .8rem "Segoe UI", "Noto Sans TC", sans-serif;
+  cursor:pointer;
+}
+.quick-share-shortcuts__buttons button[data-quick-platform="line"] {
+  background:#06a845;
+}
+.quick-share-shortcuts__buttons button[data-quick-platform="facebook"] {
+  background:#1877f2;
+}
+.quick-share-shortcuts__buttons button:focus-visible {
+  outline:3px solid var(--quick-emphasis);
+  outline-offset:3px;
+}
 .quick-share-composer {
   display:grid;
   gap:12px;
@@ -746,6 +791,9 @@ html[data-experience="professional"] #quickExperience {
   }
   .quick-result__actions .quick-link {
     grid-column:auto;
+  }
+  .quick-share-shortcuts__buttons {
+    grid-template-columns:1fr 1fr;
   }
   .quick-dynamic-actions {
     grid-template-columns:1fr;

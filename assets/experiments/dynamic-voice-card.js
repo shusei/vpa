@@ -1,6 +1,4 @@
 const MIN_OUTPUT_SECONDS = 8;
-const MAX_OUTPUT_SECONDS = 15;
-const DEFAULT_CLIP_SECONDS = 10;
 const MIN_CLIP_SECONDS = 3;
 const FRAME_RATE = 30;
 
@@ -106,24 +104,13 @@ export function normalizeClipRange({
     };
   }
   const minimum = Math.min(MIN_CLIP_SECONDS, safeDuration);
-  let safeStart = clamp(start, 0, Math.max(0, safeDuration - minimum));
-  let safeEnd = clamp(end, safeStart + minimum, safeDuration);
-  if (safeEnd - safeStart > MAX_OUTPUT_SECONDS) {
-    safeEnd = safeStart + MAX_OUTPUT_SECONDS;
-  }
-  if (safeEnd > safeDuration) {
-    safeEnd = safeDuration;
-    safeStart = Math.max(0, safeEnd - MAX_OUTPUT_SECONDS);
-  }
+  const safeStart = clamp(start, 0, Math.max(0, safeDuration - minimum));
+  const safeEnd = clamp(end, safeStart + minimum, safeDuration);
   const clipDuration = Math.max(0, safeEnd - safeStart);
   return {
     duration: clipDuration,
     end: safeEnd,
-    outputDuration: clamp(
-      Math.max(clipDuration, MIN_OUTPUT_SECONDS),
-      MIN_OUTPUT_SECONDS,
-      MAX_OUTPUT_SECONDS,
-    ),
+    outputDuration: Math.max(clipDuration, MIN_OUTPUT_SECONDS),
     start: safeStart,
   };
 }
@@ -132,7 +119,7 @@ export function defaultClipRange(duration) {
   const safeDuration = Math.max(0, Number(duration) || 0);
   return normalizeClipRange({
     duration: safeDuration,
-    end: Math.min(DEFAULT_CLIP_SECONDS, safeDuration),
+    end: safeDuration,
     start: 0,
   });
 }
@@ -647,9 +634,7 @@ export async function generateDynamicVoiceCard({
 }
 
 export const dynamicVoiceCardInternals = {
-  DEFAULT_CLIP_SECONDS,
   FRAME_RATE,
-  MAX_OUTPUT_SECONDS,
   MIN_CLIP_SECONDS,
   MIN_OUTPUT_SECONDS,
   VIDEO_PROFILES,

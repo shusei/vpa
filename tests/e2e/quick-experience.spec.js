@@ -365,6 +365,33 @@ test("challenge link carries only summary data and compares the next result", as
   expect(runtimeErrors).toEqual([]);
 });
 
+test("result page offers direct platform sharing without an app picker", async ({ page }) => {
+  const runtimeErrors = captureRuntimeErrors(page);
+  await openDevelopmentPage(page);
+  await page.evaluate(async (analysis) => {
+    const { recorderCtl } = await import("/assets/app.js");
+    recorderCtl.getLastRecordingUrl = () => "/tests/.generated-media/tone.wav";
+    window.vpaAdvancedExperience.renderAnalysis(analysis);
+    window.open = (url) => {
+      window.__vpaOpenedShareUrl = String(url);
+      return null;
+    };
+  }, fixture);
+
+  await expect(page.locator("[data-quick-platform]")).toHaveCount(5);
+  await page.locator('[data-quick-platform="threads"]').click();
+  await expect.poll(() => page.evaluate(() => window.__vpaOpenedShareUrl)).toContain(
+    "https://www.threads.com/intent/post?text=",
+  );
+  expect(decodeURIComponent(await page.evaluate(() => window.__vpaOpenedShareUrl)))
+    .toContain("#vpa-challenge=");
+
+  await page.locator('[data-quick-platform="tiktok"]').click();
+  await expect(page.locator("[data-quick-audio]")).toBeChecked();
+  await expect(page.locator(".quick-dynamic-editor")).toBeVisible();
+  await expect(page.locator(".quick-share-status")).toContainText("TikTok");
+  expect(runtimeErrors).toEqual([]);
+});
 test("image sharing is default and dynamic video requires explicit voice opt-in", async ({ page }) => {
   const runtimeErrors = captureRuntimeErrors(page);
   await page.addInitScript(() => {
@@ -430,6 +457,54 @@ test("image sharing is default and dynamic video requires explicit voice opt-in"
   expect(runtimeErrors).toEqual([]);
 });
 
+test("dynamic video keeps a full untrimmed 30 second recording", async ({ page }) => {
+  const runtimeErrors = captureRuntimeErrors(page);
+  await openDevelopmentPage(page);
+  await page.evaluate(async (analysis) => {
+    const { recorderCtl } = await import("/assets/app.js");
+    recorderCtl.getLastRecordingUrl = () => "/tests/.generated-media/tone-30.wav";
+    window.vpaAdvancedExperience.renderAnalysis(analysis);
+  }, fixture);
+
+  await page.locator('[data-quick-platform="tiktok"]').click();
+  await expect(page.locator(".quick-dynamic-editor")).toBeVisible();
+  await expect(page.locator("[data-dynamic-range]")).toContainText("0.0");
+  await expect(page.locator("[data-dynamic-range]")).toContainText("30.0");
+  await expect(page.locator("[data-dynamic-output-duration]")).toContainText("30.0");
+
+  await page.locator("[data-dynamic-generate]").click();
+  const video = page.locator(".quick-dynamic-output video");
+  await expect(video).toBeVisible({ timeout: 50_000 });
+  const media = await inspectVoiceCardVideo(video);
+  expect(media.duration).toBeGreaterThanOrEqual(29.5);
+  expect(media.duration).toBeLessThanOrEqual(30.5);
+  expect(media.audioTracks).toBe(1);
+  await video.evaluate((element) => {
+    element.muted = true;
+  });
+  expect(await video.evaluate((element) => element.muted)).toBe(true);
+  await video.dispatchEvent("pointerdown");
+  expect(await video.evaluate((element) => element.muted)).toBe(false);
+  await video.evaluate((element) => {
+    element.pause();
+    element.muted = true;
+  });
+  await page.locator("[data-dynamic-preview-play]").click();
+  await expect.poll(() => video.evaluate((element) => element.paused)).toBe(false);
+  expect(await video.evaluate((element) => ({
+    defaultMuted: element.defaultMuted,
+    muted: element.muted,
+    preload: element.preload,
+    volume: element.volume,
+  }))).toEqual({
+    defaultMuted: false,
+    muted: false,
+    preload: "auto",
+    volume: 1,
+  });
+  expect(media.videoTracks).toBe(1);
+  expect(runtimeErrors).toEqual([]);
+});
 test("dynamic voice card exports selected audio and preserves the fallback chain", async ({ page }) => {
   const runtimeErrors = captureRuntimeErrors(page);
   await page.addInitScript(() => {

@@ -17,7 +17,10 @@ import {
   encodeChallenge,
   readChallenge,
 } from "../assets/experiments/challenge-link.js";
-import { shareResultFiles } from "../assets/experiments/audio-share.js";
+import {
+  buildShareText,
+  shareResultFiles,
+} from "../assets/experiments/audio-share.js";
 import {
   defaultClipRange,
   dynamicVoiceCardInternals,
@@ -188,9 +191,21 @@ assert.deepEqual(getSupportedVideoProfiles(MockMediaRecorder), [
 ]);
 assert.deepEqual(getSupportedVideoProfiles(null), []);
 assert.deepEqual(defaultClipRange(12), {
-  duration: 10,
-  end: 10,
-  outputDuration: 10,
+  duration: 12,
+  end: 12,
+  outputDuration: 12,
+  start: 0,
+});
+assert.deepEqual(defaultClipRange(15), {
+  duration: 15,
+  end: 15,
+  outputDuration: 15,
+  start: 0,
+});
+assert.deepEqual(defaultClipRange(30), {
+  duration: 30,
+  end: 30,
+  outputDuration: 30,
   start: 0,
 });
 assert.deepEqual(defaultClipRange(5), {
@@ -235,8 +250,8 @@ const waveform = extractWaveform({
 assert.equal(waveform.length, 16);
 assert.equal(Math.max(...waveform), 1);
 assert.ok(waveform.every((value) => value >= 0.04 && value <= 1));
+
 assert.equal(dynamicVoiceCardInternals.MIN_OUTPUT_SECONDS, 8);
-assert.equal(dynamicVoiceCardInternals.MAX_OUTPUT_SECONDS, 15);
 
 const shareUrl = buildShareUrl({
   href: "https://example.com/vpa/dev.html?fixture=1#result",
@@ -252,6 +267,7 @@ assert.match(shareTargets.threads, /^https:\/\/www\.threads\.com\/intent\/post\?
 assert.match(shareTargets.line, /^https:\/\/social-plugins\.line\.me\/lineit\/share\?/);
 assert.match(shareTargets.facebook, /^https:\/\/www\.facebook\.com\/sharer\/sharer\.php\?/);
 assert.ok(Object.values(shareTargets).every((target) => target.includes(encodeURIComponent(shareUrl))));
+assert.equal(buildShareText("VPA score 72%", shareUrl), `VPA score 72%\n${shareUrl}`);
 
 const challenge = createChallengePayload(reference, {
   randomUUID: () => "12345678-1234-1234-1234-123456789abc",
@@ -374,6 +390,8 @@ const nativeShare = await shareResultFiles({
 });
 assert.equal(nativeShare.method, "files");
 assert.equal(nativeShareCalls[0].files.length, 2);
+assert.equal(nativeShareCalls[0].text, "VPA result\nhttps://example.com/vpa/");
+assert.equal(nativeShareCalls[0].url, "https://example.com/vpa/");
 
 const translationKeys = [
   "archetype.title",
@@ -488,6 +506,8 @@ const quickTranslationKeys = [
   "dynamic.noAudio",
   "dynamic.open",
   "dynamic.outputDuration",
+  "dynamic.preview",
+  "dynamic.previewFailed",
   "dynamic.progress.decoding",
   "dynamic.progress.encoding",
   "dynamic.progress.keepOpen",
@@ -540,6 +560,9 @@ const quickTranslationKeys = [
   "share.cancelled",
   "share.copied",
   "share.copyChallenge",
+  "share.directAria",
+  "share.directHint",
+  "share.directTitle",
   "share.downloaded",
   "share.failed",
   "share.includeAudio",
@@ -547,6 +570,8 @@ const quickTranslationKeys = [
   "share.shareTitle",
   "share.shared",
   "share.system",
+  "share.tiktokNeedsAudio",
+  "share.tiktokReady",
   "share.title",
   "start",
   "standard.audioDefault",
