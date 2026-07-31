@@ -1,4 +1,4 @@
-import { recorderCtl } from "../app.js?v=20260801-multiappopen1";
+import { recorderCtl } from "../app.js?v=20260801-sharefix1";
 import { registerDecodedAudioAnalyzer } from "../js/analysis-flow.js";
 import {
   getCurrentLocale,
@@ -10,14 +10,14 @@ import {
   createResultCard,
   formatAdvancedResult,
   onAdvancedResult,
-} from "./advanced-experience.js";
-import { shareResultFiles } from "./audio-share.js";
+} from "./advanced-experience.js?v=20260801-sharefix1";
+import { shareResultFiles } from "./audio-share.js?v=20260801-sharefix1";
 import {
   compareChallenge,
   createChallengeUrl,
   readChallenge,
 } from "./challenge-link.js";
-import { createDynamicCardController } from "./dynamic-card-controller.js";
+import { createDynamicCardController } from "./dynamic-card-controller.js?v=20260801-sharefix1";
 import {
   getDailyPromptId,
   getStandardPromptId,
@@ -25,11 +25,12 @@ import {
   STANDARD_PROMPT_IDS,
   STANDARD_TEST_ID,
 } from "./quick-prompts.js";
+import { buildShareTargets, downloadBlob } from "./share-card.js?v=20260801-sharefix1";
 import {
-  buildShareTargets,
-  buildShareUrl,
-  downloadBlob,
-} from "./share-card.js";
+  getPublicShareResult,
+  openPublicPlatformShare,
+  resetPublicShareCache,
+} from "./public-share.js?v=20260801-sharefix1";
 import { aggregateStandardResults } from "./standard-result.js";
 import { analyzeVoiceQuality } from "./voice-quality-metrics.js";
 
@@ -150,9 +151,9 @@ if (professionalHero) {
 const dynamicCard = createDynamicCardController({
   createResultCard,
   downloadBlob,
+  ensureChallenge,
   formatResult: formatAdvancedResult,
   getAudioUrl: () => recorderCtl.getLastRecordingUrl(),
-  getShareUrl: () => buildShareUrl(),
   render: () => renderQuickExperience(),
   track,
 });
@@ -613,7 +614,7 @@ function bindQuickControls() {
       enabled: dynamicAudioOptIn,
       source: "dynamic_card",
     });
-    if (dynamicAudioOptIn) dynamicCard.open();
+    if (dynamicAudioOptIn) dynamicCard.open(latestResult);
   });
   quickExperience.querySelector("[data-quick-system-share]")?.addEventListener("click", () => {
     shareQuickResult();
@@ -808,33 +809,66 @@ async function copyChallengeLink() {
 }
 
 async function openQuickPlatform(platform) {
-  if (!latestResult?.ready) return;
+  if (platform === "tiktok") {
+    shareOpen = true;
+    dynamicAudioOptIn = false;
+    dynamicCard.reset();
+    shareStatusKey = "";
+    renderQuickExperience();
+    track("share_platform_selected", {
+      mode: "quick",
+      platform,
+      score_band: Math.floor(latestResult.score / 10) * 10,
+    });
+    return;
+  }
+  const challenge = ensureChallenge();
+  if (!challenge || !latestResult) return;
+  const formatted = formatAdvancedResult(latestResult);
+  const targets = buildShareTargets({
+    caption: formatted.caption,
+    url: challenge.url,
+  });
+  const target = targets[platform];
+  if (!target) return;
+  const publicShare = await openPublicPlatformShare({
+    analysis: latestAnalysis,
+    challenge,
+    formatted,
+    platform,
+    result: latestResult,
+  });
+  if (publicShare.method === "unconfigured" || publicShare.method === "unsupported") {
+    window.open(target, "_blank", "noopener,noreferrer");
+  }
   track("share_platform_selected", {
     mode: "quick",
     platform,
     score_band: Math.floor(latestResult.score / 10) * 10,
   });
-  if (platform === "tiktok") {
-    await shareQuickResult({ platform });
-    return;
-  }
-  const shareUrl = buildShareUrl();
-  const targets = buildShareTargets({
-    caption: formatAdvancedResult(latestResult).caption,
-    url: shareUrl,
-  });
-  const target = targets[platform];
-  if (!target) return;
-  window.open(target, "_blank", "noopener,noreferrer");
 }
 
-async function shareQuickResult({ platform = "system" } = {}) {
-  if (!latestResult?.ready) return;
+async function shareQuickResult() {
+  const challenge = ensureChallenge();
+  if (!challenge || !latestResult) return;
   shareStatusKey = "";
   try {
     const formatted = formatAdvancedResult(latestResult);
-    const shareUrl = buildShareUrl();
-    const cardBlob = await createResultCard(latestResult, { shareUrl });
+    let shareUrl = challenge.url;
+    try {
+      const published = await getPublicShareResult({
+        analysis: latestAnalysis,
+        challenge,
+        formatted,
+        result: latestResult,
+      });
+      if (published?.url) shareUrl = published.url;
+    } catch (error) {
+      console.error("[quick-share] short URL failed", error);
+    }
+    const cardUrl = new URL(shareUrl);
+    cardUrl.hash = "";
+    const cardBlob = await createResultCard(latestResult, { shareUrl: cardUrl.toString() });
     const response = await shareResultFiles({
       cardBlob,
       caption: formatted.caption,
@@ -851,7 +885,6 @@ async function shareQuickResult({ platform = "system" } = {}) {
       includes_audio: false,
       media: "png",
       method: response.method,
-      platform,
     });
   } catch (error) {
     if (error?.name === "AbortError") {
@@ -863,8 +896,10 @@ async function shareQuickResult({ platform = "system" } = {}) {
   }
   renderQuickExperience();
 }
+
 function finalizeQuickResult(result) {
   dynamicCard.reset();
+  resetPublicShareCache();
   latestResult = result;
   quickStage = "result";
   saveLatestResult(result);

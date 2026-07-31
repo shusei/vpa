@@ -1,0 +1,14 @@
+{
+  "name": "vpa-share-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "db:apply": "wrangler d1 execute vpa-share --remote --file=./schema.sql",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "test": "node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.27.0"
+  }
+}

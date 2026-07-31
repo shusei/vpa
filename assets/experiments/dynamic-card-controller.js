@@ -1,12 +1,11 @@
 import { t } from "../js/i18n.js";
-import { buildShareText, shareResultFiles } from "./audio-share.js";
+import { buildShareText, shareResultFiles } from "./audio-share.js?v=20260801-sharefix1";
 import {
   createSelectedAudioFile,
   defaultClipRange,
   generateDynamicVoiceCard,
-  normalizeClipRange,
   readAudioDuration,
-} from "./dynamic-voice-card.js";
+} from "./dynamic-voice-card.js?v=20260801-sharefix1";
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -24,13 +23,14 @@ function percentageBand(score) {
 export function createDynamicCardController({
   createResultCard,
   downloadBlob,
-  getShareUrl,
+  ensureChallenge,
   formatResult,
   getAudioUrl,
   render,
   track,
 }) {
   let generationId = 0;
+  let activeRoot = null;
   let state = initialState();
 
   function initialState() {
@@ -64,14 +64,6 @@ export function createDynamicCardController({
     state = initialState();
   }
 
-  function clipText() {
-    if (!state.clip) return "";
-    return t("experiment.quick.dynamic.clipRange", {
-      end: state.clip.end.toFixed(1),
-      start: state.clip.start.toFixed(1),
-    });
-  }
-
   function progressMarkup() {
     const percent = Math.max(0, Math.min(100, Math.round(state.progress * 100)));
     const phaseKey = state.phase === "decoding"
@@ -86,36 +78,6 @@ export function createDynamicCardController({
     `;
   }
 
-  function rangeMarkup(audioUrl) {
-    const duration = state.audioDuration;
-    const clip = state.clip;
-    if (!clip) return "";
-    return `
-      <div class="quick-dynamic-editor">
-        <audio controls preload="metadata" src="${escapeHtml(audioUrl)}"></audio>
-        <div class="quick-dynamic-range__head">
-          <strong>${escapeHtml(t("experiment.quick.dynamic.clipTitle"))}</strong>
-          <span data-dynamic-range>${escapeHtml(clipText())}</span>
-        </div>
-        <label>
-          <span>${escapeHtml(t("experiment.quick.dynamic.startLabel"))}</span>
-          <input type="range" min="0" max="${duration}" step="0.1" value="${clip.start}" data-dynamic-start />
-        </label>
-        <label>
-          <span>${escapeHtml(t("experiment.quick.dynamic.endLabel"))}</span>
-          <input type="range" min="0" max="${duration}" step="0.1" value="${clip.end}" data-dynamic-end />
-        </label>
-        <small data-dynamic-output-duration>${escapeHtml(t("experiment.quick.dynamic.outputDuration", {
-          value: clip.outputDuration.toFixed(1),
-        }))}</small>
-        <p>${escapeHtml(t("experiment.quick.dynamic.clipHint"))}</p>
-        <button type="button" class="quick-primary" data-dynamic-generate>
-          ${escapeHtml(t("experiment.quick.dynamic.generate"))}
-        </button>
-      </div>
-    `;
-  }
-
   function makePreviewAudible(video) {
     if (!video) return;
     video.defaultMuted = false;
@@ -123,27 +85,13 @@ export function createDynamicCardController({
     if (!(video.volume > 0)) video.volume = 1;
   }
 
-  async function playPreview(root) {
-    const video = root.querySelector("[data-dynamic-preview]");
-    if (!video) return;
-    makePreviewAudible(video);
-    if (video.ended) video.currentTime = 0;
-    try {
-      await video.play();
-    } catch (error) {
-      console.error("[dynamic-card] preview playback failed", error);
-      state.statusKey = "experiment.quick.dynamic.previewFailed";
-      render();
-    }
-  }
-
   function preparePreview(root) {
     const video = root.querySelector("[data-dynamic-preview]");
     if (!video) return;
+    makePreviewAudible(video);
     const enableAudio = () => makePreviewAudible(video);
-    video.addEventListener("pointerdown", enableAudio);
-    video.addEventListener("touchstart", enableAudio, { passive: true });
-    video.addEventListener("play", enableAudio);
+    video.addEventListener("pointerdown", enableAudio, { once: true });
+    video.addEventListener("touchstart", enableAudio, { once: true, passive: true });
     video.load();
   }
 
@@ -161,11 +109,8 @@ export function createDynamicCardController({
           }))}
         </span>
         ${isVideo ? `
-          <video controls playsinline loop preload="auto" data-dynamic-preview
+          <video controls playsinline preload="auto" data-dynamic-preview
             src="${escapeHtml(output.previewUrl)}"></video>
-          <button type="button" class="quick-secondary" data-dynamic-preview-play>
-            ${escapeHtml(t("experiment.quick.dynamic.preview"))}
-          </button>
         ` : `
           <img src="${escapeHtml(output.previewUrl)}" alt="${escapeHtml(t("experiment.quick.dynamic.fallbackAlt"))}" />
           <audio controls preload="metadata" src="${escapeHtml(output.audioPreviewUrl)}"></audio>
@@ -216,7 +161,6 @@ export function createDynamicCardController({
           ${state.phase === "loading" ? `
             <p class="quick-dynamic-loading" role="status">${escapeHtml(t("experiment.quick.dynamic.loadingAudio"))}</p>
           ` : ""}
-          ${state.phase === "ready" ? rangeMarkup(audioUrl) : ""}
           ${state.phase === "decoding" || state.phase === "encoding" ? progressMarkup() : ""}
           ${state.phase === "complete" ? outputMarkup() : ""}
           ${state.phase === "error" ? `
@@ -234,9 +178,9 @@ export function createDynamicCardController({
     `;
   }
 
-  async function open() {
+  async function open(result) {
     const audioUrl = getAudioUrl();
-    if (!audioUrl) return;
+    if (!audioUrl || !result?.ready) return;
     const requestId = ++generationId;
     state.open = true;
     state.phase = "loading";
@@ -247,7 +191,8 @@ export function createDynamicCardController({
       if (requestId !== generationId) return;
       state.audioDuration = duration;
       state.clip = defaultClipRange(duration);
-      state.phase = "ready";
+      await generate(result);
+      return;
     } catch (error) {
       console.error("[dynamic-card] audio metadata failed", error);
       if (requestId !== generationId) return;
@@ -260,26 +205,6 @@ export function createDynamicCardController({
   function close() {
     reset();
     render();
-  }
-
-  function updateClip(root, next) {
-    state.clip = normalizeClipRange({
-      duration: state.audioDuration,
-      end: next.end,
-      start: next.start,
-    });
-    const startInput = root.querySelector("[data-dynamic-start]");
-    const endInput = root.querySelector("[data-dynamic-end]");
-    const range = root.querySelector("[data-dynamic-range]");
-    const outputDuration = root.querySelector("[data-dynamic-output-duration]");
-    if (startInput) startInput.value = String(state.clip.start);
-    if (endInput) endInput.value = String(state.clip.end);
-    if (range) range.textContent = clipText();
-    if (outputDuration) {
-      outputDuration.textContent = t("experiment.quick.dynamic.outputDuration", {
-        value: state.clip.outputDuration.toFixed(1),
-      });
-    }
   }
 
   function labelsFor(result, formatted) {
@@ -301,12 +226,13 @@ export function createDynamicCardController({
     };
   }
 
-  async function createFallback(result, shareUrl) {
+  async function createFallback(result, challenge) {
+    const cardUrl = new URL(challenge.url);
+    cardUrl.hash = "";
     const [cardBlob, audioFile] = await Promise.all([
-      createResultCard(result, { shareUrl }),
+      createResultCard(result, { shareUrl: cardUrl.toString() }),
       createSelectedAudioFile({
         audioUrl: getAudioUrl(),
-        clip: state.clip,
       }),
     ]);
     return {
@@ -318,7 +244,7 @@ export function createDynamicCardController({
     };
   }
 
-  async function generate(result, root) {
+  async function generate(result) {
     if (!state.clip || state.phase === "decoding" || state.phase === "encoding") return;
     const requestId = ++generationId;
     revokeOutput();
@@ -327,19 +253,18 @@ export function createDynamicCardController({
     state.progress = 0;
     state.statusKey = "";
     render();
-    const shareUrl = getShareUrl();
+    const challenge = ensureChallenge();
     const formatted = formatResult(result);
     try {
       const output = await generateDynamicVoiceCard({
         audioUrl: getAudioUrl(),
-        clip: state.clip,
         labels: labelsFor(result, formatted),
         onProgress: (event) => {
           if (requestId !== generationId) return;
           state.phase = event.phase === "decoding" ? "decoding" : "encoding";
           state.progress = Number(event.progress) || 0;
-          const progress = root.querySelector(".quick-dynamic-progress i");
-          const status = root.querySelector(".quick-dynamic-progress > span");
+          const progress = activeRoot?.querySelector(".quick-dynamic-progress i");
+          const status = activeRoot?.querySelector(".quick-dynamic-progress > span");
           if (progress) progress.style.width = `${Math.round(state.progress * 100)}%`;
           if (status) {
             status.textContent = t("experiment.quick.dynamic.progress.encoding", {
@@ -361,7 +286,7 @@ export function createDynamicCardController({
     } catch (videoError) {
       console.warn("[dynamic-card] video output failed, using fallback", videoError);
       try {
-        state.output = await createFallback(result, shareUrl);
+        state.output = await createFallback(result, challenge);
       } catch (fallbackError) {
         console.error("[dynamic-card] fallback failed", fallbackError);
         if (requestId !== generationId) return;
@@ -380,7 +305,7 @@ export function createDynamicCardController({
     render();
   }
 
-  async function shareVideo(output, result, shareUrl) {
+  async function shareVideo(output, result, challenge) {
     const fileType = String(output.mimeType || `video/${output.extension}`)
       .split(";")[0]
       .trim();
@@ -391,9 +316,8 @@ export function createDynamicCardController({
     );
     const payload = {
       files: [file],
-      text: buildShareText(formatResult(result).caption, shareUrl),
+      text: buildShareText(formatResult(result).caption, challenge.url),
       title: t("experiment.quick.dynamic.shareTitle"),
-      url: shareUrl,
     };
     if (
       typeof navigator.share === "function"
@@ -410,19 +334,19 @@ export function createDynamicCardController({
   async function share(result) {
     const output = state.output;
     if (!output) return;
-    const shareUrl = getShareUrl();
+    const challenge = ensureChallenge();
     state.statusKey = "";
     try {
       let method;
       if (output.kind === "video") {
-        method = await shareVideo(output, result, shareUrl);
+        method = await shareVideo(output, result, challenge);
       } else {
         const response = await shareResultFiles({
           audioFile: output.audioFile,
           cardBlob: output.cardBlob,
           caption: formatResult(result).caption,
           title: t("experiment.quick.dynamic.shareTitle"),
-          url: shareUrl,
+          url: challenge.url,
         });
         method = response.method;
         if (method === "unsupported" || method === "unsupported-files") {
@@ -465,32 +389,15 @@ export function createDynamicCardController({
 
   function bind(root, result) {
     preparePreview(root);
-    root.querySelector("[data-dynamic-preview-play]")?.addEventListener("click", () => {
-      playPreview(root);
-    });
+    activeRoot = root;
     root.querySelector("[data-dynamic-open]")?.addEventListener("click", () => {
-      open();
+      open(result);
     });
     root.querySelector("[data-dynamic-close]")?.addEventListener("click", () => {
       close();
     });
     root.querySelector("[data-dynamic-retry]")?.addEventListener("click", () => {
-      open();
-    });
-    root.querySelector("[data-dynamic-start]")?.addEventListener("input", (event) => {
-      updateClip(root, {
-        end: state.clip.end,
-        start: Number(event.target.value),
-      });
-    });
-    root.querySelector("[data-dynamic-end]")?.addEventListener("input", (event) => {
-      updateClip(root, {
-        end: Number(event.target.value),
-        start: state.clip.start,
-      });
-    });
-    root.querySelector("[data-dynamic-generate]")?.addEventListener("click", () => {
-      generate(result, root);
+      open(result);
     });
     root.querySelector("[data-dynamic-share]")?.addEventListener("click", () => {
       share(result);

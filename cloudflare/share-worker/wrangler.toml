@@ -1,0 +1,16 @@
+name = "vpa-share"
+main = "src/index.js"
+compatibility_date = "2026-07-31"
+
+[vars]
+PUBLIC_APP_URL = "https://shusei.github.io/vpa/"
+SHARE_TTL_DAYS = "365"
+SITE_ORIGINS = "https://shusei.github.io,http://127.0.0.1:8080,http://localhost:8080"
+
+[[d1_databases]]
+binding = "SHARE_DB"
+database_name = "vpa-share"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[triggers]
+crons = ["17 3 * * *"]

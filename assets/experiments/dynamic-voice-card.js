@@ -1,5 +1,3 @@
-const MIN_OUTPUT_SECONDS = 8;
-const MIN_CLIP_SECONDS = 3;
 const FRAME_RATE = 30;
 
 const VIDEO_PROFILES = [
@@ -89,39 +87,14 @@ export function getSupportedVideoProfiles(MediaRecorderLike = globalThis.MediaRe
   });
 }
 
-export function normalizeClipRange({
-  duration,
-  end,
-  start,
-}) {
-  const safeDuration = Math.max(0, Number(duration) || 0);
-  if (!(safeDuration > 0)) {
-    return {
-      duration: 0,
-      end: 0,
-      outputDuration: MIN_OUTPUT_SECONDS,
-      start: 0,
-    };
-  }
-  const minimum = Math.min(MIN_CLIP_SECONDS, safeDuration);
-  const safeStart = clamp(start, 0, Math.max(0, safeDuration - minimum));
-  const safeEnd = clamp(end, safeStart + minimum, safeDuration);
-  const clipDuration = Math.max(0, safeEnd - safeStart);
-  return {
-    duration: clipDuration,
-    end: safeEnd,
-    outputDuration: Math.max(clipDuration, MIN_OUTPUT_SECONDS),
-    start: safeStart,
-  };
-}
-
 export function defaultClipRange(duration) {
   const safeDuration = Math.max(0, Number(duration) || 0);
-  return normalizeClipRange({
+  return {
     duration: safeDuration,
     end: safeDuration,
+    outputDuration: safeDuration,
     start: 0,
-  });
+  };
 }
 
 export function extractWaveform(audioBuffer, clip, bucketCount = 96) {
@@ -524,7 +497,6 @@ export async function readAudioDuration(audioUrl) {
 
 export async function createSelectedAudioFile({
   audioUrl,
-  clip: requestedClip,
 }) {
   if (!audioUrl) throw new TypeError("audio URL is required");
   const AudioContextLike = window.AudioContext || window.webkitAudioContext;
@@ -533,13 +505,7 @@ export async function createSelectedAudioFile({
   }
   const { audioBuffer, audioContext } = await decodeAudio(audioUrl, AudioContextLike);
   try {
-    const clip = requestedClip
-      ? normalizeClipRange({
-        duration: audioBuffer.duration,
-        end: requestedClip.end,
-        start: requestedClip.start,
-      })
-      : defaultClipRange(audioBuffer.duration);
+    const clip = defaultClipRange(audioBuffer.duration);
     if (!(clip.duration > 0)) throw new Error("Selected audio clip is empty");
     const blob = encodeWaveClip(audioBuffer, clip);
     return new File([blob], "vpa-voice-clip.wav", { type: "audio/wav" });
@@ -554,7 +520,6 @@ export async function createSelectedAudioFile({
 
 export async function generateDynamicVoiceCard({
   audioUrl,
-  clip: requestedClip,
   labels,
   onProgress,
   result,
@@ -573,13 +538,7 @@ export async function generateDynamicVoiceCard({
   onProgress?.({ phase: "decoding", progress: 0 });
   const { audioBuffer, audioContext } = await decodeAudio(audioUrl, AudioContextLike);
   try {
-    const clip = requestedClip
-      ? normalizeClipRange({
-        duration: audioBuffer.duration,
-        end: requestedClip.end,
-        start: requestedClip.start,
-      })
-      : defaultClipRange(audioBuffer.duration);
+    const clip = defaultClipRange(audioBuffer.duration);
     if (!(clip.duration > 0)) throw new Error("Selected audio clip is empty");
     const waveform = extractWaveform(audioBuffer, clip);
     const canvas = document.createElement("canvas");
@@ -635,8 +594,6 @@ export async function generateDynamicVoiceCard({
 
 export const dynamicVoiceCardInternals = {
   FRAME_RATE,
-  MIN_CLIP_SECONDS,
-  MIN_OUTPUT_SECONDS,
   VIDEO_PROFILES,
   clamp,
   encodeWaveClip,

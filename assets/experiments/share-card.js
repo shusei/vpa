@@ -1,4 +1,4 @@
-import { buildShareText } from "./audio-share.js";
+import { buildShareText } from "./audio-share.js?v=20260801-sharefix1";
 
 function roundedRect(ctx, x, y, width, height, radius) {
   const safeRadius = Math.min(radius, width / 2, height / 2);
@@ -38,7 +38,7 @@ export function buildShareTargets({ caption, url }) {
   const combined = buildShareText(caption, url);
   return {
     facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
-    line: `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}`,
+    line: `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}&text=${encodeURIComponent(caption)}`,
     threads: `https://www.threads.com/intent/post?text=${encodeURIComponent(combined)}`,
     x: `https://twitter.com/intent/tweet?text=${encodeURIComponent(caption)}&url=${encodeURIComponent(url)}&hashtags=VoicePresentationAnalyzer`,
   };
@@ -156,12 +156,11 @@ export async function shareWithSystem({ blob, caption, title, url }) {
     files: [file],
     text: buildShareText(caption, url),
     title,
-    url,
   };
   if (typeof navigator.canShare === "function" && navigator.canShare(filePayload)) {
     await navigator.share(filePayload);
     return { method: "files" };
   }
-  await navigator.share({ text: caption, title, url });
+  await navigator.share({ text: buildShareText(caption, url), title });
   return { method: "url" };
 }

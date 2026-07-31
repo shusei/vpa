@@ -68,7 +68,7 @@ test("professional experience renders advanced result and creates a local share 
   expect(Object.keys(ageEvents[0]).filter((key) => privateKeys.includes(key))).toEqual([]);
   await expect(page.getByRole("button", { name: "分享圖片＋文字（推薦）" })).toBeEnabled();
   await expect(page.locator(".advanced-share__hint")).toContainText(
-    "X／Threads／LINE／Facebook 捷徑只會分享文字與連結",
+    "X／Threads／LINE／Facebook 會直接分享個人化結果圖、文字與短連結",
   );
 
   const blob = await page.evaluate(async () => {
@@ -94,6 +94,41 @@ test("professional experience renders advanced result and creates a local share 
       path: resolve(process.env.VPA_CAPTURE),
     });
   }
+  expect(runtimeErrors).toEqual([]);
+});
+
+test("professional X sharing publishes the personalized public result", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.VPA_SHARE_SERVICE_ORIGIN = "https://share.example";
+  });
+  await page.route("https://share.example/api/shares", async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        id: "abcdefghijklmnop",
+        imageUrl: "https://share.example/i/abcdefghijklmnop.jpg",
+        url: "https://share.example/r/abcdefghijklmnop",
+      }),
+      contentType: "application/json",
+      status: 201,
+    });
+  });
+  const runtimeErrors = captureRuntimeErrors(page);
+  await openDevelopmentPage(page);
+  await page.evaluate((analysis) => {
+    window.vpaExperience.setExperience("professional");
+    window.vpaAdvancedExperience.renderAnalysis(analysis);
+    window.open = (url) => {
+      if (String(url) !== "about:blank") window.__vpaOpenedShareUrl = String(url);
+      return null;
+    };
+  }, fixture);
+
+  await page.locator('[data-share-platform="x"]').click();
+  await expect.poll(() => page.evaluate(() => window.__vpaOpenedShareUrl || ""))
+    .toContain("https://twitter.com/intent/tweet?");
+  const opened = decodeURIComponent(await page.evaluate(() => window.__vpaOpenedShareUrl));
+  expect(opened).toContain("https://share.example/r/abcdefghijklmnop");
+  expect(opened).not.toContain("#vpa-challenge=");
   expect(runtimeErrors).toEqual([]);
 });
 

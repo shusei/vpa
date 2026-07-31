@@ -621,35 +621,12 @@ html[data-faction="dark"] .quick-experience {
   background:var(--quick-surface);
   cursor:pointer;
 }
-.quick-dynamic-editor,
 .quick-dynamic-output {
   display:grid;
   gap:13px;
 }
-.quick-dynamic-editor audio,
 .quick-dynamic-output audio {
   width:100%;
-}
-.quick-dynamic-range__head {
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  font-size:.82rem;
-}
-.quick-dynamic-range__head span {
-  color:var(--quick-muted);
-  font-variant-numeric:tabular-nums;
-}
-.quick-dynamic-editor label {
-  display:grid;
-  gap:5px;
-  color:var(--quick-muted);
-  font-size:.74rem;
-  font-weight:800;
-}
-.quick-dynamic-editor input[type="range"] {
-  width:100%;
-  accent-color:var(--quick-emphasis);
 }
 .quick-dynamic-progress {
   display:grid;

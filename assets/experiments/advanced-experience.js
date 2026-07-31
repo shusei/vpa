@@ -1,18 +1,24 @@
-import { onInferenceDone } from "../app.js?v=20260801-multiappopen1";
+import { onInferenceDone } from "../app.js?v=20260801-sharefix1";
 import { getCurrentLocale, onLocaleChange, t } from "../js/i18n.js";
 import { evaluateAdvancedExperience } from "./advanced-evaluator.js";
+import { createChallengeUrl } from "./challenge-link.js";
+import {
+  getPublicShareResult,
+  openPublicPlatformShare,
+} from "./public-share.js?v=20260801-sharefix1";
 import {
   buildShareTargets,
   buildShareUrl,
   createShareCardBlob,
   downloadBlob,
   shareWithSystem,
-} from "./share-card.js";
+} from "./share-card.js?v=20260801-sharefix1";
 
 let lastAnalysis = null;
 let lastResult = null;
 let renderedAnalysisId = 0;
 const resultListeners = new Set();
+const resultChallenges = new WeakMap();
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -194,6 +200,27 @@ function shareLabels(result) {
   };
 }
 
+function shareChallenge(result) {
+  if (!result || typeof result !== "object") return null;
+  let challenge = resultChallenges.get(result);
+  if (!challenge) {
+    challenge = createChallengeUrl(result);
+    resultChallenges.set(result, challenge);
+  }
+  return challenge;
+}
+
+async function publicShareFor(result) {
+  const challenge = shareChallenge(result);
+  if (!challenge) return null;
+  return getPublicShareResult({
+    analysis: lastAnalysis,
+    challenge,
+    formatted: formatAdvancedResult(result),
+    result,
+  });
+}
+
 export async function createResultCard(result = lastResult, { shareUrl = buildShareUrl() } = {}) {
   if (!result) return null;
   return createShareCardBlob({
@@ -206,12 +233,20 @@ export async function createResultCard(result = lastResult, { shareUrl = buildSh
 
 async function handleSystemShare(result, { downloadWhenUnsupported = true } = {}) {
   try {
-    const blob = await createResultCard(result);
+    const challenge = shareChallenge(result);
+    let shareUrl = challenge?.url || buildShareUrl();
+    try {
+      const published = await publicShareFor(result);
+      if (published?.url) shareUrl = published.url;
+    } catch (error) {
+      console.error("[advanced-experiment] short URL failed", error);
+    }
+    const blob = await createResultCard(result, { shareUrl });
     const response = await shareWithSystem({
       blob,
       caption: shareCaption(result),
       title: t("experiment.advanced.share.title"),
-      url: buildShareUrl(),
+      url: shareUrl,
     });
     if (response.method === "unsupported" && downloadWhenUnsupported) {
       downloadBlob(blob, "vpa-advanced-result.png");
@@ -246,7 +281,15 @@ async function downloadShareCard(result) {
 }
 
 async function copyShareText(result) {
-  const text = `${shareCaption(result)}\n${buildShareUrl()}`;
+  const challenge = shareChallenge(result);
+  let shareUrl = challenge?.url || buildShareUrl();
+  try {
+    const published = await publicShareFor(result);
+    if (published?.url) shareUrl = published.url;
+  } catch (error) {
+    console.error("[advanced-experiment] copy short URL failed", error);
+  }
+  const text = `${shareCaption(result)}\n${shareUrl}`;
   try {
     await navigator.clipboard.writeText(text);
   } catch {
@@ -263,14 +306,26 @@ async function copyShareText(result) {
   track("share_copy", { score_band: Math.floor(result.score / 10) * 10 });
 }
 
-function openPlatform(platform, result) {
+async function openPlatform(platform, result) {
+  const challenge = shareChallenge(result);
+  if (!challenge) return;
+  const formatted = formatAdvancedResult(result);
   const targets = buildShareTargets({
-    caption: shareCaption(result),
-    url: buildShareUrl(),
+    caption: formatted.caption,
+    url: challenge.url,
   });
   const target = targets[platform];
   if (!target) return;
-  window.open(target, "_blank", "noopener,noreferrer");
+  const publicShare = await openPublicPlatformShare({
+    analysis: lastAnalysis,
+    challenge,
+    formatted,
+    platform,
+    result,
+  });
+  if (publicShare.method === "unconfigured" || publicShare.method === "unsupported") {
+    window.open(target, "_blank", "noopener,noreferrer");
+  }
   setShareStatus("experiment.advanced.share.opened");
   track("share_platform_selected", {
     platform,

@@ -27,7 +27,6 @@ export async function shareResultFiles({
       files,
       text: buildShareText(caption, url),
       title,
-      url,
     });
     return {
       includesAudio: Boolean(audioFile),
@@ -41,6 +40,6 @@ export async function shareResultFiles({
       method: "unsupported-files",
     };
   }
-  await navigatorLike.share({ text: caption, title, url });
+  await navigatorLike.share({ text: buildShareText(caption, url), title });
   return { method: "url" };
 }
