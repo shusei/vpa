@@ -3,6 +3,7 @@ export function createRecordingFlowController(deps) {
     dismissOnboardTip,
     handleFileOrBlob,
     pickSupportedMime,
+    prepareAnalysis = () => null,
     refreshAvailability,
     requestMicStream,
     setBusy,
@@ -147,6 +148,9 @@ export function createRecordingFlowController(deps) {
     refreshAvailability();
     try {
       mediaRecorder.start();
+      void Promise.resolve()
+        .then(() => prepareAnalysis())
+        .catch((error) => console.warn("[model-preload] unable to start preload.", error));
     } catch (err) {
       setIsRecording(false);
       refreshAvailability();

@@ -13,9 +13,14 @@ Object.defineProperty(globalThis, "navigator", {
 
 const { analyzeStreamed, analyzeWhole, runStreamedWithWindow } = await import("../assets/js/analysis-core.js");
 const { createAnalysisFlowController } = await import("../assets/js/analysis-flow.js");
+const { createAnalysisEngineBridge } = await import("../assets/js/analysis-engine-bridge.js");
 const { ensurePipeline } = await import("../assets/js/model-core.js");
-const { detectEmbeddedBrowser } = await import("../assets/js/embedded-browser.js");
-const { selectRepresentativeSamples } = await import("../assets/js/inference-sampling.js");
+const { detectEmbeddedBrowser, openExternalBrowser } = await import("../assets/js/embedded-browser.js");
+const {
+  mobileInferenceMaxSec,
+  selectRepresentativeSamples,
+  shouldUseMobileFastPath,
+} = await import("../assets/js/inference-sampling.js");
 const { pickStreamStrategy } = await import("../assets/js/stream-strategy.js");
 
 const translate = (key) => key;
@@ -57,6 +62,42 @@ test("detects app webviews without flagging real mobile Safari", () => {
   assert.equal(safari.platform, "ios");
 });
 
+test("detects social app browsers used on Android and iPhone", () => {
+  const cases = [
+    ["facebook", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Mobile FBAN/EMA;FBAV/470.0"],
+    ["instagram", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Mobile Instagram 335.0.0"],
+    ["threads", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Mobile Barcelona 335.0.0"],
+    ["tiktok", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Mobile TikTok 35.2.0"],
+    ["x", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Mobile TwitterAndroid"],
+  ];
+  cases.forEach(([expectedApp, userAgent]) => {
+    const result = detectEmbeddedBrowser({ platform: "mobile", userAgent });
+    assert.equal(result.embedded, true);
+    assert.equal(result.app, expectedApp);
+  });
+});
+test("external browser opening prefers LIFF and falls back to Android intent", async () => {
+  let liffOptions = null;
+  const liffResult = await openExternalBrowser({
+    context: { app: "line", embedded: true, platform: "ios" },
+    liffLike: {
+      isInClient: () => true,
+      openWindow: (options) => { liffOptions = options; },
+    },
+    locationLike: { href: "https://example.com/dev.html" },
+  });
+  assert.equal(liffResult.method, "liff");
+  assert.deepEqual(liffOptions, { external: true, url: "https://example.com/dev.html" });
+
+  let assigned = "";
+  const androidResult = await openExternalBrowser({
+    context: { app: "line", embedded: true, platform: "android" },
+    liffLike: null,
+    locationLike: { assign: (value) => { assigned = value; }, href: "https://example.com/dev.html" },
+  });
+  assert.equal(androidResult.method, "android-intent");
+  assert.ok(assigned.startsWith("intent://example.com/dev.html#Intent;"));
+});
 test("embedded inference samples start, middle, and end without changing the recording", () => {
   const originalSamples = Float32Array.from({ length: 200 }, (_value, index) => index);
   const selected = selectRepresentativeSamples(originalSamples, 10, { maxDurationSec: 8 });
@@ -70,6 +111,47 @@ test("embedded inference samples start, middle, and end without changing the rec
   assert.equal(originalSamples.length, 200);
 });
 
+test("mobile browsers use device-appropriate representative inference windows", () => {
+  assert.equal(mobileInferenceMaxSec({ app: "line", embedded: true, platform: "android" }), 4.5);
+  assert.equal(mobileInferenceMaxSec({ app: "instagram", embedded: true, platform: "ios" }), 6);
+  assert.equal(mobileInferenceMaxSec({ app: "", embedded: false, platform: "ios" }), 8);
+  assert.equal(shouldUseMobileFastPath({ embedded: false, platform: "ios" }), true);
+  assert.equal(shouldUseMobileFastPath({ embedded: false, platform: "android" }), true);
+  assert.equal(shouldUseMobileFastPath({ embedded: false, platform: "desktop" }), false);
+});
+
+test("background model preload is deduplicated and reused", async () => {
+  let classifier = null;
+  let loadCount = 0;
+  let releaseLoad;
+  const pendingModel = new Promise((resolve) => {
+    releaseLoad = () => resolve(async () => []);
+  });
+  const bridge = createAnalysisEngineBridge({
+    MODEL_ID: "model",
+    getClf: () => classifier,
+    pipeline: () => { },
+    setClf: (value) => { classifier = value; },
+    setCurrentDevice: () => { },
+    setStatus: () => { },
+    sharedEnsurePipeline: async (state) => {
+      loadCount += 1;
+      const model = await pendingModel;
+      state.setClf(model);
+      return model;
+    },
+    t: translate,
+  });
+
+  const first = bridge.preloadPipeline();
+  const second = bridge.preloadPipeline();
+  await Promise.resolve();
+  assert.equal(loadCount, 1);
+  releaseLoad();
+  assert.equal(await first, await second);
+  await bridge.preloadPipeline();
+  assert.equal(loadCount, 1);
+});
 test("model runtime selects WASM when WebGPU is unavailable", async () => {
   globalThis.navigator = { userAgent: "node-test" };
   let selectedDevice = null;

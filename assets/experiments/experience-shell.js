@@ -1,4 +1,4 @@
-import { recorderCtl } from "../app.js";
+import { recorderCtl } from "../app.js?v=20260801-multiappopen1";
 import { registerDecodedAudioAnalyzer } from "../js/analysis-flow.js";
 import {
   getCurrentLocale,

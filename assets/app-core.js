@@ -7,7 +7,7 @@ import {
   analyzeStreamed as sharedAnalyzeStreamed,
   runStreamedWithWindow as sharedRunStreamedWithWindow,
 } from "./js/analysis-core.js";
-import { createAnalysisEngineBridge } from "./js/analysis-engine-bridge.js";
+import { createAnalysisEngineBridge } from "./js/analysis-engine-bridge.js?v=20260801-mobilefast1";
 import {
   createAnalysisFlowController,
   runDecodedAudioAnalyzers as sharedRunDecodedAudioAnalyzers,
@@ -82,14 +82,18 @@ import {
   pickSupportedMime as sharedPickSupportedMime,
   requestMicStream as sharedRequestMicStream,
 } from "./js/recording-utils.js";
-import { createRecordingFlowController } from "./js/recording-flow.js";
+import { createRecordingFlowController } from "./js/recording-flow.js?v=20260801-mobilefast1";
 import {
   bandOf as sharedBandOf,
   isDivergent as sharedIsDivergent,
 } from "./js/summary-helpers.js";
 import { detectThreadCount as sharedDetectThreadCount } from "./js/thread-count.js";
-import { installEmbeddedBrowserGuard } from "./js/embedded-browser.js";
-import { selectRepresentativeSamples } from "./js/inference-sampling.js";
+import { installEmbeddedBrowserGuard } from "./js/embedded-browser.js?v=20260801-multiappopen1";
+import {
+  mobileInferenceMaxSec,
+  shouldUseMobileFastPath,
+  selectRepresentativeSamples,
+} from "./js/inference-sampling.js?v=20260801-mobilefast1";
 import { pickStreamStrategy as sharedPickStreamStrategy } from "./js/stream-strategy.js";
 import { finishStreamStats as sharedFinishStreamStats } from "./js/stats-core.js";
 import { createStatsOrchestration } from "./js/stats-orchestration.js";
@@ -178,6 +182,7 @@ const WARMUP_CARD_OPEN_KEY = "vpa::warmup.open";
 /** 只用遠端（Hugging Face Hub），停用本機 /models 尋址 */
 env.allowLocalModels = false;
 env.allowRemoteModels = true;
+env.useBrowserCache = true;
 const THREAD_STORAGE_KEY = "vpa::onnxThreads";
 const VOLUME_DISPLAY_MODE = "relative";
 const MEDIA_RECORDER_DATA_TIMEOUT_MS = 5000;
@@ -398,6 +403,11 @@ const recordingFlowController = createRecordingFlowController({
   dismissOnboardTip,
   handleFileOrBlob: (fileOrBlob, source = "upload") => analysisFlowController.handleFileOrBlob(fileOrBlob, source),
   pickSupportedMime: () => sharedPickSupportedMime(),
+  prepareAnalysis: () => (
+    shouldUseMobileFastPath(embeddedBrowserContext)
+      ? analysisEngineBridge.preloadPipeline()
+      : null
+  ),
   refreshAvailability: () => uiStateControls.refreshAvailability(),
   requestMicStream: () => sharedRequestMicStream(),
   setBusy: (value) => analysisSession.setBusy(value),
@@ -539,8 +549,10 @@ const analysisFlowController = createAnalysisFlowController({
   notifyInferenceListeners,
   offlineExtractStreamMetrics,
   prepareInferenceSamples: ({ samples, sampleRate }) => (
-    embeddedBrowserContext.embedded
-      ? selectRepresentativeSamples(samples, sampleRate)
+    shouldUseMobileFastPath(embeddedBrowserContext)
+      ? selectRepresentativeSamples(samples, sampleRate, {
+        maxDurationSec: mobileInferenceMaxSec(embeddedBrowserContext),
+      })
       : null
   ),
   runDecodedAudioAnalyzers: sharedRunDecodedAudioAnalyzers,

@@ -1,4 +1,4 @@
-import { onInferenceDone } from "../app.js";
+import { onInferenceDone } from "../app.js?v=20260801-multiappopen1";
 import { getCurrentLocale, onLocaleChange, t } from "../js/i18n.js";
 import { evaluateAdvancedExperience } from "./advanced-evaluator.js";
 import {

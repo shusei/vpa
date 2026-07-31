@@ -37,8 +37,17 @@ export function createAnalysisEngineBridge(deps) {
     });
   }
 
-  async function ensurePipeline() {
-    return sharedEnsurePipeline({
+  let pipelinePromise = null;
+
+  async function loadPipeline({ reportProgress = true } = {}) {
+    const existing = getClf();
+    if (existing) return existing;
+    if (pipelinePromise) {
+      if (reportProgress) setStatus(t("status.modelLoading"), true);
+      return pipelinePromise;
+    }
+
+    pipelinePromise = sharedEnsurePipeline({
       getClf,
       setClf,
       setCurrentDevice,
@@ -46,8 +55,26 @@ export function createAnalysisEngineBridge(deps) {
       pipeline,
       modelId: MODEL_ID,
       t,
-      setStatus,
+      setStatus: reportProgress ? setStatus : () => { },
     });
+    try {
+      return await pipelinePromise;
+    } finally {
+      pipelinePromise = null;
+    }
+  }
+
+  function ensurePipeline() {
+    return loadPipeline();
+  }
+
+  async function preloadPipeline() {
+    try {
+      return await loadPipeline({ reportProgress: false });
+    } catch (error) {
+      console.warn("[model-preload] background preload failed; analysis will retry.", error);
+      return null;
+    }
   }
 
   function pickStreamStrategy(durationSec) {
@@ -112,5 +139,6 @@ export function createAnalysisEngineBridge(deps) {
     analyzeStreamed,
     analyzeWhole,
     decodeSmartToFloat32,
+    preloadPipeline,
   };
 }

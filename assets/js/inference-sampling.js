@@ -1,4 +1,18 @@
-export const EMBEDDED_INFERENCE_MAX_SEC = 8;
+export const EMBEDDED_INFERENCE_MAX_SEC = 6;
+export const LINE_INFERENCE_MAX_SEC = 4.5;
+export const MOBILE_INFERENCE_MAX_SEC = 8;
+
+export function shouldUseMobileFastPath(context) {
+  return context?.platform === "android"
+    || context?.platform === "ios"
+    || context?.platform === "mobile";
+}
+
+export function mobileInferenceMaxSec(context) {
+  if (context?.app === "line") return LINE_INFERENCE_MAX_SEC;
+  if (context?.embedded) return EMBEDDED_INFERENCE_MAX_SEC;
+  return MOBILE_INFERENCE_MAX_SEC;
+}
 
 export function selectRepresentativeSamples(
   samples,
