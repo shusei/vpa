@@ -6,7 +6,7 @@
   "scripts": {
     "start": "http-server -p 8080 -c-1",
     "test": "npm run test:unit && npm run test:syntax && npm run test:markup && npm run test:ffmpeg && npm run test:decode && npm run test:phrases",
-    "test:unit": "node tests/unit-pitch-shared.js && node tests/unit-analysis-runtime.js",
+    "test:unit": "node tests/unit-pitch-shared.js && node tests/unit-analysis-runtime.js && node tests/unit-advanced-experience.js",
     "test:syntax": "node --check assets/app.js && node --check assets/app-core.js",
     "test:markup": "node scripts/check-static.js",
     "test:ffmpeg": "node tests/verify-ffmpeg-download.mjs",

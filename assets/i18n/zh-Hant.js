@@ -27,6 +27,78 @@ const warmupStepsHtml = [
 
 export default {
   locale: "zh-Hant",
+  experiment: {
+    advanced: {
+      archetype: {
+        title: "聲音角色",
+      },
+      archetypes: {
+        airySweet: "空氣系甜嗓",
+        balancedIntelligent: "平衡知性聲線",
+        brightForward: "明亮前置聲線",
+        falsettoExplorer: "高音探索型",
+        livelyExpressive: "靈動表現型",
+        matureWarm: "成熟溫暖聲線",
+        neutralClear: "中性清晰聲線",
+      },
+      beta: "ADVANCED BETA",
+      components: {
+        intonation: "語調動態",
+        model: "原始模型",
+        pitch: "音高表現",
+        resonance: "共鳴證據",
+        weight: "綜合權重 {{value}}%",
+      },
+      confidence: {
+        high: "高",
+        label: "可信度",
+        low: "低",
+        medium: "中",
+      },
+      contradiction: "高音 × 共鳴不一致",
+      disclaimer: "這是聲音呈現的實驗性回饋，不代表實際年齡、性別認同、醫療或身分判定。",
+      insight: {
+        balancedGrowth: "整體已接近平衡，可選一個較弱面向進行小幅調整。",
+        consistencyOpportunity: "延長穩定發聲時間，可讓這次結果更具代表性。",
+        falsettoContrast: "音高已明顯提升，但前置共鳴仍有落差；先保持放鬆，再把母音焦點往前移。",
+        insufficient: "目前資料不足，請在安靜環境以自然音量連續說話 5–8 秒。",
+        label: "本次挑戰",
+        pitchOpportunity: "共鳴方向清楚，接下來可練習更穩定的音高支撐。",
+        resonanceOpportunity: "音高方向已到位，下一步是加強 F2／F3 與前置共鳴。",
+        strongIntegration: "音高、共鳴與語調配合良好，試著記住這次發聲感覺。",
+      },
+      insufficient: "有效共鳴或錄音品質不足，暫不顯示進階分數；請錄製至少 5–8 秒的連續語音。",
+      mode: {
+        advanced: "進階嚴格",
+        aria: "選擇分析模式",
+        basic: "基礎分析",
+        label: "分析模式",
+        note: "基礎分數完全沿用原模型；進階模式額外檢查共鳴、音高、語調和錄音品質。",
+      },
+      share: {
+        cancelled: "已取消分享。",
+        caption: "我的 VPA 進階分數是 {{score}}%，聲音年齡印象為 {{age}}，角色是「{{archetype}}」。你能超過我嗎？",
+        cardDisclaimer: "聲音呈現的趣味回饋，不代表真實年齡或身分。",
+        challenge: "你能超過 {{score}} 分嗎？",
+        copied: "分享文字已複製。",
+        copy: "複製文字",
+        download: "下載分享卡",
+        downloaded: "分享卡已下載。",
+        failed: "目前無法分享，請改用下載分享卡。",
+        opened: "已開啟分享平台。",
+        platformAria: "選擇分享平台",
+        primary: "產生分享卡",
+        shared: "分享完成。",
+        title: "我的 VPA 進階聲音分析",
+      },
+      strictScore: "進階女性化",
+      title: "進階嚴格分析",
+      voiceAge: {
+        title: "聲音年齡印象",
+        value: "{{min}}–{{max}} 歲感",
+      },
+    },
+  },
   ui: {
     advancedMode: {
       title: "細節層級",

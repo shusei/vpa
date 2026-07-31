@@ -27,6 +27,78 @@ const warmupStepsHtml = [
 
 export default {
   locale: "en",
+  experiment: {
+    advanced: {
+      archetype: {
+        title: "Voice character",
+      },
+      archetypes: {
+        airySweet: "Airy Sweet",
+        balancedIntelligent: "Balanced & Polished",
+        brightForward: "Bright Forward",
+        falsettoExplorer: "High-note Explorer",
+        livelyExpressive: "Lively & Expressive",
+        matureWarm: "Mature & Warm",
+        neutralClear: "Neutral & Clear",
+      },
+      beta: "ADVANCED BETA",
+      components: {
+        intonation: "Intonation",
+        model: "Base model",
+        pitch: "Pitch",
+        resonance: "Resonance evidence",
+        weight: "{{value}}% combined weight",
+      },
+      confidence: {
+        high: "High",
+        label: "Confidence",
+        low: "Low",
+        medium: "Medium",
+      },
+      contradiction: "Pitch × resonance mismatch",
+      disclaimer: "This experimental voice-presentation feedback does not determine actual age, gender identity, medical status, or identity.",
+      insight: {
+        balancedGrowth: "The overall balance is close. Pick the weakest dimension and make one small adjustment.",
+        consistencyOpportunity: "Sustain a stable voice for longer to make the result more representative.",
+        falsettoContrast: "Pitch has risen, but forward resonance still lags. Stay relaxed and move vowel focus forward.",
+        insufficient: "There is not enough evidence yet. Speak continuously at a natural volume for 5–8 seconds in a quiet space.",
+        label: "Next challenge",
+        pitchOpportunity: "The resonance direction is clear. Next, practise steadier pitch support.",
+        resonanceOpportunity: "Pitch is on target. Next, strengthen F2/F3 and forward resonance.",
+        strongIntegration: "Pitch, resonance, and intonation work well together. Remember how this production felt.",
+      },
+      insufficient: "There is not enough usable resonance or recording quality for an advanced score. Record at least 5–8 seconds of continuous speech.",
+      mode: {
+        advanced: "Advanced strict",
+        aria: "Choose analysis mode",
+        basic: "Basic analysis",
+        label: "Analysis mode",
+        note: "Basic keeps the original model score unchanged. Advanced also checks resonance, pitch, intonation, and recording quality.",
+      },
+      share: {
+        cancelled: "Sharing cancelled.",
+        caption: "My VPA advanced score is {{score}}%, with a {{age}} voice-age impression and a “{{archetype}}” character. Can you beat it?",
+        cardDisclaimer: "For playful voice-presentation feedback, not actual age or identity.",
+        challenge: "Can you beat {{score}}?",
+        copied: "Share text copied.",
+        copy: "Copy text",
+        download: "Download card",
+        downloaded: "Share card downloaded.",
+        failed: "Sharing is unavailable. Download the share card instead.",
+        opened: "Share platform opened.",
+        platformAria: "Choose a sharing platform",
+        primary: "Create share card",
+        shared: "Shared.",
+        title: "My VPA advanced voice analysis",
+      },
+      strictScore: "Advanced feminine",
+      title: "Advanced strict analysis",
+      voiceAge: {
+        title: "Voice-age impression",
+        value: "Sounds {{min}}–{{max}}",
+      },
+    },
+  },
   ui: {
     advancedMode: {
       title: "Detail level",
