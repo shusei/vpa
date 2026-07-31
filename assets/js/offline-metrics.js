@@ -93,6 +93,7 @@ export function resetOfflineFeatureStore(store) {
   store.breathiness.length = 0;
   store.energy.length = 0;
   store.zcr.length = 0;
+  store.extensions = {};
 }
 
 function rms(arr, a, b) {

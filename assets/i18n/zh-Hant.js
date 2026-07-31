@@ -78,6 +78,7 @@ export default {
       share: {
         cancelled: "已取消分享。",
         caption: "我的 VPA 女性化傾向是 {{score}}%，聲音年齡印象為 {{age}}，角色是「{{archetype}}」。你的聲音會是多少？",
+        captionWithoutAge: "我的 VPA 女性化傾向是 {{score}}%，聲音角色是「{{archetype}}」。這次錄音未可靠推估聲音年齡，你的聲音會是多少？",
         cardDisclaimer: "聲音呈現的趣味回饋，不代表真實年齡或身分。",
         challenge: "你的女性化傾向會超過 {{score}}% 嗎？",
         copied: "分享文字已複製。",
@@ -96,7 +97,32 @@ export default {
       title: "進階嚴格分析",
       voiceAge: {
         title: "聲音年齡印象",
+        unavailable: "本次不推估",
         value: "{{min}}–{{max}} 歲感",
+      },
+      voiceAgeV2: {
+        confidence: "年齡可信度：{{value}}",
+        connectedReference: "朗讀參考值，不納入年齡",
+        dbValue: "{{value}} dB",
+        eyebrow: "VOICE AGE 2.0 / RESEARCH PREVIEW",
+        metrics: {
+          cpp: "CPP（倒頻譜峰值）",
+          hnr: "HNR（諧噪比）",
+          jitter: "Jitter（週期擾動）",
+          shimmer: "Shimmer（振幅擾動）",
+        },
+        notAvailable: "資料不足",
+        note: "Jitter／Shimmer 只有持續母音達到穩定門檻才納入；日常朗讀只採 HNR／CPP 等可用證據。這仍是研究預覽，不代表實際年齡。",
+        percentValue: "{{value}}%",
+        rejected: "錄音品質或有效週期不足，本次保留男女聲結果，但不輸出聲音年齡。",
+        sampleType: "樣本：{{value}}",
+        sampleTypes: {
+          connectedSpeech: "日常朗讀",
+          sustainedVowel: "持續母音",
+          unknown: "未分類",
+        },
+        title: "聲音年齡 2.0 證據",
+        used: "通過門檻，納入年齡",
       },
     },
     experience: {

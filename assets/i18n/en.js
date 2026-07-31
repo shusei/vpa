@@ -78,6 +78,7 @@ export default {
       share: {
         cancelled: "Sharing cancelled.",
         caption: "My VPA feminine tendency is {{score}}%, with a {{age}} voice-age impression and a “{{archetype}}” character. What will yours be?",
+        captionWithoutAge: "My VPA feminine tendency is {{score}}%, with a “{{archetype}}” voice character. This recording could not support a reliable voice-age estimate. What will yours be?",
         cardDisclaimer: "For playful voice-presentation feedback, not actual age or identity.",
         challenge: "Will your feminine tendency exceed {{score}}%?",
         copied: "Share text copied.",
@@ -96,7 +97,32 @@ export default {
       title: "Advanced strict analysis",
       voiceAge: {
         title: "Voice-age impression",
+        unavailable: "Not estimated",
         value: "Sounds {{min}}–{{max}}",
+      },
+      voiceAgeV2: {
+        confidence: "Age confidence: {{value}}",
+        connectedReference: "Speech reference only; not used for age",
+        dbValue: "{{value}} dB",
+        eyebrow: "VOICE AGE 2.0 / RESEARCH PREVIEW",
+        metrics: {
+          cpp: "CPP (cepstral peak)",
+          hnr: "HNR (harmonic-to-noise)",
+          jitter: "Jitter (period perturbation)",
+          shimmer: "Shimmer (amplitude perturbation)",
+        },
+        notAvailable: "Not enough data",
+        note: "Jitter and Shimmer contribute only when a sustained vowel passes the stability gate. Everyday speech uses eligible HNR, CPP, and related evidence. This remains a research preview, not actual age.",
+        percentValue: "{{value}}%",
+        rejected: "Recording quality or periodic evidence was insufficient. The presentation result remains available, but voice age is not estimated.",
+        sampleType: "Sample: {{value}}",
+        sampleTypes: {
+          connectedSpeech: "Everyday speech",
+          sustainedVowel: "Sustained vowel",
+          unknown: "Unclassified",
+        },
+        title: "Voice Age 2.0 evidence",
+        used: "Passed gate; used for age",
       },
     },
     experience: {

@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "fixtureVersion": "voice-age-calibration-contract-1",
+  "ageVersion": "voice-age-impression-2.0.0-research",
+  "qualityVersion": "voice-quality-1.0.0",
+  "strictScoreVersion": "advanced-beta-1",
+  "status": "research-preview",
+  "humanCalibrationAccepted": false,
+  "maximumConfidence": "medium",
+  "sampleTypes": {
+    "connectedSpeech": {
+      "minimumDurationSec": 3.5,
+      "requiredMetrics": [
+        "cpp",
+        "hnr"
+      ]
+    },
+    "sustainedVowel": {
+      "minimumDurationSec": 2.5,
+      "requiredMetrics": [
+        "cpp",
+        "hnr",
+        "jitterLocal",
+        "shimmerLocal"
+      ]
+    }
+  },
+  "ageBands": [
+    {
+      "id": "20s",
+      "min": 20,
+      "max": 29,
+      "minimumSpeakersPerSampleType": 60
+    },
+    {
+      "id": "30s",
+      "min": 30,
+      "max": 39,
+      "minimumSpeakersPerSampleType": 60
+    },
+    {
+      "id": "40s",
+      "min": 40,
+      "max": 49,
+      "minimumSpeakersPerSampleType": 60
+    },
+    {
+      "id": "50s",
+      "min": 50,
+      "max": 59,
+      "minimumSpeakersPerSampleType": 60
+    },
+    {
+      "id": "60plus",
+      "min": 60,
+      "max": 89,
+      "minimumSpeakersPerSampleType": 60
+    }
+  ],
+  "requiredConditions": [
+    "clean",
+    "background-noise",
+    "breathy",
+    "falsetto",
+    "clipped",
+    "mobile-microphone",
+    "desktop-microphone"
+  ],
+  "splitRule": "speaker-disjoint",
+  "acceptance": {
+    "maximumExpectedCalibrationError": 0.12,
+    "minimumMacroF1": 0.62,
+    "minimumAdjacentBandAccuracy": 0.85,
+    "maximumRefusalRate": 0.35
+  },
+  "committedHumanSamples": []
+}

@@ -264,7 +264,7 @@ test("three-line standard test runs the production path three times and uses the
   });
   expect(standardChallenge.payload).toMatchObject({
     promptId: "standard-v1",
-    schema: 2,
+    schema: 3,
     testMode: "standard",
   });
   if (process.env.VPA_STANDARD_CAPTURE) {
@@ -339,6 +339,7 @@ test("challenge link carries only summary data and compares the next result", as
   expect(Object.keys(challenge.payload).sort()).toEqual([
     "ageMax",
     "ageMin",
+    "ageVersion",
     "archetype",
     "id",
     "promptId",
@@ -347,7 +348,7 @@ test("challenge link carries only summary data and compares the next result", as
     "scoreVersion",
     "testMode",
   ]);
-  expect(challenge.payload.schema).toBe(2);
+  expect(challenge.payload.schema).toBe(3);
   expect(challenge.payload.testMode).toBe("daily");
 
   await page.goto(challenge.url);

@@ -2908,6 +2908,57 @@
       0.11571540265832682,
       0.0875684128225176
     ],
+    "extensions": {
+      "voice-age-v2": {
+        "analyzedDurationSec": 4.95,
+        "durationSec": 4.95,
+        "metrics": {
+          "cpp": {
+            "frames": 78,
+            "reliable": true,
+            "valueDb": 13.8
+          },
+          "hnr": {
+            "frames": 78,
+            "reliable": true,
+            "valueDb": 17.6
+          },
+          "jitterLocal": {
+            "pairs": 302,
+            "reliable": false,
+            "valuePct": 1.34
+          },
+          "shimmerLocal": {
+            "pairs": 286,
+            "reliable": false,
+            "valuePct": 4.82
+          }
+        },
+        "quality": {
+          "confidenceKey": "high",
+          "ready": true,
+          "reasons": [],
+          "score": 0.84
+        },
+        "sampleType": "connectedSpeech",
+        "sampleTypeSource": "explicit",
+        "signal": {
+          "clippedRatio": 0,
+          "globalRms": 0.094,
+          "peak": 0.47
+        },
+        "version": "voice-quality-1.0.0",
+        "voicing": {
+          "coverage": 0.74,
+          "frameCount": 244,
+          "longestVoicedSec": 1.92,
+          "medianPitchHz": 232.8,
+          "periodicity": 0.83,
+          "voicedDurationSec": 3.6,
+          "voicedFrameCount": 180
+        }
+      }
+    },
     "duration": 4.95
   },
   "realtimeStream": {

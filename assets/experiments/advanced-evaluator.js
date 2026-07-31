@@ -1,3 +1,5 @@
+import { evaluateVoiceAgeV2 } from "./voice-age-v2.js";
+
 const VERSION = "advanced-beta-1";
 
 const PITCH_POINTS = [
@@ -148,59 +150,6 @@ function resonanceScore(analysis) {
   };
 }
 
-function voiceAgeImpression(analysis, components, confidence) {
-  const advanced = analysis?.advanced;
-  const pitchYouth = components.pitch;
-  const brightness = interpolate(F3_POINTS, advanced?.formants?.f3?.median);
-  const intonation = components.intonation;
-  const breathiness = finite(advanced?.breathinessAvg);
-  const breathYouth = Number.isFinite(breathiness)
-    ? 1 - Math.min(1, Math.abs(breathiness - 0.22) / 0.45)
-    : NaN;
-  const tilt = finite(advanced?.tiltAvg);
-  const tiltYouth = Number.isFinite(tilt)
-    ? 1 - Math.min(1, Math.abs(tilt - 1.5) / 10)
-    : NaN;
-  const values = [
-    [pitchYouth, 0.28],
-    [brightness, 0.26],
-    [intonation, 0.22],
-    [breathYouth, 0.14],
-    [tiltYouth, 0.1],
-  ].filter(([value]) => Number.isFinite(value));
-  const totalWeight = values.reduce((sum, [, weight]) => sum + weight, 0);
-  const youthfulness = totalWeight > 0
-    ? values.reduce((sum, [value, weight]) => sum + (value * weight), 0) / totalWeight
-    : 0.5;
-  let bandKey = "mature";
-  let min = 36;
-  let max = 48;
-  if (youthfulness >= 0.78) {
-    bandKey = "veryYouthful";
-    min = 18;
-    max = 24;
-  } else if (youthfulness >= 0.64) {
-    bandKey = "youthful";
-    min = 22;
-    max = 30;
-  } else if (youthfulness >= 0.5) {
-    bandKey = "balanced";
-    min = 28;
-    max = 38;
-  } else if (youthfulness < 0.32) {
-    bandKey = "grounded";
-    min = 45;
-    max = 60;
-  }
-  return {
-    bandKey,
-    confidenceKey: confidence >= 0.7 && values.length >= 4 ? "medium" : "low",
-    max,
-    min,
-    youthfulness: clamp01(youthfulness),
-  };
-}
-
 function archetypeFor(analysis, components, contradiction) {
   const advanced = analysis?.advanced;
   const breathiness = finite(advanced?.breathinessAvg);
@@ -263,7 +212,8 @@ export function evaluateAdvancedExperience(analysis) {
     strict,
   };
   const ready = insufficientReasons.length === 0;
-  const voiceAge = voiceAgeImpression(analysis, components, quality);
+  const voiceAge = evaluateVoiceAgeV2(analysis, components);
+  const voiceQuality = analysis?.offlineSamples?.extensions?.["voice-age-v2"] || null;
   const archetypeKey = archetypeFor(analysis, components, contradiction);
   let insightKey = "balancedGrowth";
   if (!ready) insightKey = "insufficient";
@@ -287,6 +237,7 @@ export function evaluateAdvancedExperience(analysis) {
     score: Math.round(strict * 100),
     version: VERSION,
     voiceAge,
+    voiceQuality,
   };
 }
 

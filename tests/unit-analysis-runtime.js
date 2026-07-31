@@ -240,6 +240,64 @@ test("analysis flow chooses whole and streamed paths at 150 seconds", async () =
   assert.equal(calls[2][0], "streamed");
 });
 
+test("analysis flow captures extensions from the final VAD-selected audio before inference", async () => {
+  const calls = [];
+  const original = new Float32Array(16_000);
+  const selected = new Float32Array(8_000);
+  const controller = createAnalysisFlowController({
+    analyzeStreamed: async () => { },
+    analyzeWhole: async (samples) => calls.push(["whole", samples]),
+    decodeSmartToFloat32: async () => ({
+      float32: original,
+      sr: 16_000,
+      durationSec: 1,
+    }),
+    finishAnalysisRun: () => { },
+    finishStreamStats: () => calls.push(["stats"]),
+    fmtSec: String,
+    isAnalysisActive: () => true,
+    MAX_WHOLE_SEC: 150,
+    maybeApplyAdaptiveVAD: () => ({
+      arr: selected,
+      keptSec: 0.5,
+      used: true,
+    }),
+    microYield: async () => { },
+    notifyInferenceListeners: () => { },
+    offlineExtractStreamMetrics: (samples, sampleRate, append) => {
+      calls.push(["offline", samples, sampleRate, append]);
+    },
+    runDecodedAudioAnalyzers: async (context) => {
+      calls.push(["extensions", context]);
+      return { fixture: { ready: true } };
+    },
+    setAnalysisExtensions: (value) => calls.push(["capture", value]),
+    setPlaybackSource: () => { },
+    setStatus: () => { },
+    startAnalysisRun: () => 1,
+    t: translate,
+    TARGET_SR: 16_000,
+    updatePlaybackAvailability: () => { },
+    WARN_LONG_SEC: 180,
+  });
+
+  await controller.handleFileOrBlob(new Blob(), "recording");
+
+  assert.deepEqual(calls.map(([name]) => name), [
+    "offline",
+    "offline",
+    "extensions",
+    "capture",
+    "whole",
+    "stats",
+  ]);
+  assert.equal(calls[2][1].samples, selected);
+  assert.equal(calls[2][1].durationSec, 0.5);
+  assert.equal(calls[2][1].sampleRate, 16_000);
+  assert.equal(calls[2][1].source, "recording");
+  assert.deepEqual(calls[3][1], { fixture: { ready: true } });
+});
+
 test("analysis flow warns only above the 180 second boundary", async () => {
   async function run(durationSec) {
     const statuses = [];

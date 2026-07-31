@@ -52,9 +52,31 @@ assert.equal(reference.ready, true);
 assert.equal(reference.version, "advanced-beta-1");
 assert.ok(reference.score >= 60 && reference.score < 100);
 assert.ok(reference.score < Math.round(fixture.probabilities.feminine * 100));
+assert.equal(reference.voiceAge.ready, true);
+assert.equal(reference.voiceAge.version, "voice-age-impression-2.0.0-research");
 assert.ok(reference.voiceAge.min >= 18);
-assert.ok(reference.voiceAge.max <= 60);
+assert.ok(reference.voiceAge.max <= 65);
+assert.equal(reference.voiceAge.confidenceKey, "medium");
+assert.equal(reference.voiceQuality.version, "voice-quality-1.0.0");
 assert.ok(reference.components.resonance > 0.5);
+
+const connectedPerturbation = structuredClone(fixture);
+connectedPerturbation.offlineSamples.extensions["voice-age-v2"].metrics.jitterLocal.valuePct = 18;
+connectedPerturbation.offlineSamples.extensions["voice-age-v2"].metrics.shimmerLocal.valuePct = 30;
+const connectedPerturbationResult = evaluateAdvancedExperience(connectedPerturbation);
+assert.equal(
+  connectedPerturbationResult.voiceAge.youthfulness,
+  reference.voiceAge.youthfulness,
+);
+
+const missingVoiceQuality = structuredClone(fixture);
+delete missingVoiceQuality.offlineSamples.extensions["voice-age-v2"];
+const ageRejected = evaluateAdvancedExperience(missingVoiceQuality);
+assert.equal(ageRejected.ready, true);
+assert.equal(ageRejected.voiceAge.ready, false);
+assert.deepEqual(ageRejected.voiceAge.reasons, ["metrics"]);
+assert.equal(ageRejected.voiceAge.min, null);
+assert.equal(ageRejected.voiceAge.max, null);
 
 const resonanceMismatch = structuredClone(fixture);
 resonanceMismatch.probabilities.feminine = 0.95;
@@ -134,8 +156,20 @@ assert.deepEqual(standardResult.standard.scores, [64, 81, 72]);
 assert.equal(standardResult.archetypeKey, "airySweet");
 assert.equal(standardResult.voiceAge.min, 20);
 assert.equal(standardResult.voiceAge.max, 28);
+assert.equal(standardResult.voiceAge.ready, true);
+assert.equal(standardResult.voiceAge.version, reference.voiceAge.version);
 assert.equal(standardResult.components.pitch, 0.74);
 assert.equal(standardResult.version, `${reference.version}.standard3`);
+const standardAgeMissing = structuredClone(standardInputs);
+standardAgeMissing[1].voiceAge.ready = false;
+standardAgeMissing[1].voiceAge.min = null;
+standardAgeMissing[1].voiceAge.max = null;
+standardAgeMissing[1].voiceAge.reasons = ["quality"];
+const standardAgeRejected = aggregateStandardResults(standardAgeMissing);
+assert.equal(standardAgeRejected.ready, true);
+assert.equal(standardAgeRejected.voiceAge.ready, false);
+assert.equal(standardAgeRejected.voiceAge.min, null);
+assert.ok(standardAgeRejected.voiceAge.reasons.includes("quality"));
 assert.throws(() => aggregateStandardResults(standardInputs.slice(0, 2)), TypeError);
 assert.equal(
   standardResultInternals.majority(["first", "second", "third"], "second"),
@@ -243,14 +277,31 @@ assert.equal(challengeUrl.payload.score, reference.score);
 assert.match(challengeUrl.url, /^https:\/\/example\.com\/vpa\/dev\.html#vpa-challenge=/);
 assert.deepEqual(readChallenge({ hash: new URL(challengeUrl.url).hash }), challengeUrl.payload);
 assert.equal(readChallenge({ hash: "#vpa-challenge=broken" }), null);
-assert.deepEqual(compareChallenge(challenge, { ready: true, score: challenge.score + 4 }), {
+assert.deepEqual(compareChallenge(challenge, {
+  ready: true,
+  score: challenge.score + 4,
+  version: reference.version,
+}), {
   difference: 4,
   opponentScore: challenge.score,
   outcome: "beat",
   score: challenge.score + 4,
 });
-assert.equal(compareChallenge(challenge, { ready: true, score: challenge.score - 1 }).outcome, "behind");
-assert.equal(compareChallenge(challenge, { ready: true, score: challenge.score }).outcome, "tied");
+assert.equal(compareChallenge(challenge, {
+  ready: true,
+  score: challenge.score - 1,
+  version: reference.version,
+}).outcome, "behind");
+assert.equal(compareChallenge(challenge, {
+  ready: true,
+  score: challenge.score,
+  version: reference.version,
+}).outcome, "tied");
+assert.equal(compareChallenge(challenge, {
+  ready: true,
+  score: challenge.score,
+  version: "advanced-beta-2",
+}), null);
 
 const dailyResult = {
   ...reference,
@@ -262,9 +313,10 @@ const dailyResult = {
 const dailyChallenge = createChallengePayload(dailyResult, {
   randomUUID: () => "87654321-4321-4321-4321-cba987654321",
 });
-assert.equal(dailyChallenge.schema, 2);
+assert.equal(dailyChallenge.schema, 3);
 assert.equal(dailyChallenge.testMode, "daily");
 assert.equal(dailyChallenge.promptId, promptMorning);
+assert.equal(dailyChallenge.ageVersion, reference.voiceAge.version);
 assert.deepEqual(decodeChallenge(encodeChallenge(dailyChallenge)), dailyChallenge);
 assert.equal(compareChallenge(dailyChallenge, dailyResult).outcome, "tied");
 assert.equal(compareChallenge(dailyChallenge, {
@@ -275,6 +327,21 @@ assert.equal(compareChallenge(dailyChallenge, {
   },
 }), null);
 
+const noAgeChallenge = createChallengePayload({
+  ...ageRejected,
+  quickTest: {
+    mode: "daily",
+    promptId: promptMorning,
+  },
+}, {
+  randomUUID: () => "99887766-1234-1234-1234-123456789abc",
+});
+assert.equal(noAgeChallenge.schema, 3);
+assert.equal("ageMin" in noAgeChallenge, false);
+assert.equal("ageMax" in noAgeChallenge, false);
+assert.equal("ageVersion" in noAgeChallenge, false);
+assert.deepEqual(decodeChallenge(encodeChallenge(noAgeChallenge)), noAgeChallenge);
+
 const standardChallenge = createChallengePayload({
   ...standardResult,
   quickTest: {
@@ -284,7 +351,7 @@ const standardChallenge = createChallengePayload({
 }, {
   randomUUID: () => "11223344-1234-1234-1234-123456789abc",
 });
-assert.equal(standardChallenge.schema, 2);
+assert.equal(standardChallenge.schema, 3);
 assert.equal(standardChallenge.testMode, "standard");
 assert.equal(standardChallenge.promptId, STANDARD_TEST_ID);
 
@@ -345,6 +412,7 @@ const translationKeys = [
   "mode.note",
   "share.cancelled",
   "share.caption",
+  "share.captionWithoutAge",
   "share.cardDisclaimer",
   "share.challenge",
   "share.copied",
@@ -361,7 +429,26 @@ const translationKeys = [
   "strictScore",
   "title",
   "voiceAge.title",
+  "voiceAge.unavailable",
   "voiceAge.value",
+  "voiceAgeV2.confidence",
+  "voiceAgeV2.connectedReference",
+  "voiceAgeV2.dbValue",
+  "voiceAgeV2.eyebrow",
+  "voiceAgeV2.metrics.cpp",
+  "voiceAgeV2.metrics.hnr",
+  "voiceAgeV2.metrics.jitter",
+  "voiceAgeV2.metrics.shimmer",
+  "voiceAgeV2.notAvailable",
+  "voiceAgeV2.note",
+  "voiceAgeV2.percentValue",
+  "voiceAgeV2.rejected",
+  "voiceAgeV2.sampleType",
+  "voiceAgeV2.sampleTypes.connectedSpeech",
+  "voiceAgeV2.sampleTypes.sustainedVowel",
+  "voiceAgeV2.sampleTypes.unknown",
+  "voiceAgeV2.title",
+  "voiceAgeV2.used",
 ];
 
 function resolveTranslation(dictionary, key) {
@@ -527,6 +614,9 @@ const intentionalJapaneseMatches = [
   "analysis.meter.scale.sixty",
   "analysis.meter.scale.zero",
   "experiment.advanced.beta",
+  "experiment.advanced.voiceAgeV2.dbValue",
+  "experiment.advanced.voiceAgeV2.eyebrow",
+  "experiment.advanced.voiceAgeV2.percentValue",
   "experiment.quick.dynamic.brand",
   "experiment.quick.dynamic.eyebrow",
   "experiment.quick.eyebrow",

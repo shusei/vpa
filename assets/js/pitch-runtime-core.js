@@ -50,6 +50,7 @@ export function createPitchRuntimeCore(deps) {
     breathiness: [],
     energy: [],
     zcr: [],
+    extensions: {},
   };
 
   const yinBuffers = {
@@ -224,6 +225,9 @@ export function createPitchRuntimeCore(deps) {
     psVoiced,
     resetOfflineFeatureStore,
     saveIntonationRawPreference,
+    setAnalysisExtensions: (value) => {
+      offlineFeatureStore.extensions = value && typeof value === "object" ? value : {};
+    },
     setShowIntonationRawPoints: (value) => { showIntonationRawPoints = !!value; },
   };
 }

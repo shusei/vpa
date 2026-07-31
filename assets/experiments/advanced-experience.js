@@ -65,6 +65,9 @@ function renderComponent(key, score, weight) {
 }
 
 function ageValue(result) {
+  if (!result?.voiceAge?.ready) {
+    return t("experiment.advanced.voiceAge.unavailable");
+  }
   return t("experiment.advanced.voiceAge.value", {
     max: result.voiceAge.max,
     min: result.voiceAge.min,
@@ -79,6 +82,80 @@ function confidenceValue(result) {
   return t(`experiment.advanced.confidence.${result.confidence.key}`);
 }
 
+function ageConfidenceValue(result) {
+  return t(`experiment.advanced.confidence.${result.voiceAge?.confidenceKey || "low"}`);
+}
+
+function sampleTypeValue(result) {
+  const sampleType = result.voiceAge?.sampleType || result.voiceQuality?.sampleType || "unknown";
+  return t(`experiment.advanced.voiceAgeV2.sampleTypes.${sampleType}`);
+}
+
+function metricValue(metric, key) {
+  const value = Number(metric?.[key]);
+  if (!Number.isFinite(value)) return t("experiment.advanced.voiceAgeV2.notAvailable");
+  return key === "valuePct"
+    ? t("experiment.advanced.voiceAgeV2.percentValue", { value: value.toFixed(2) })
+    : t("experiment.advanced.voiceAgeV2.dbValue", { value: value.toFixed(1) });
+}
+
+function voiceMetricMarkup(labelKey, metric, valueKey, usedForAge) {
+  const statusKey = usedForAge
+    ? "experiment.advanced.voiceAgeV2.used"
+    : "experiment.advanced.voiceAgeV2.connectedReference";
+  return `
+    <article class="voice-age-metric">
+      <span>${escapeHtml(t(`experiment.advanced.voiceAgeV2.metrics.${labelKey}`))}</span>
+      <strong>${escapeHtml(metricValue(metric, valueKey))}</strong>
+      <small>${escapeHtml(t(statusKey))}</small>
+    </article>
+  `;
+}
+
+function voiceAgeEvidenceMarkup(result) {
+  const voiceQuality = result.voiceQuality;
+  if (!voiceQuality) {
+    return `
+      <section class="voice-age-evidence voice-age-evidence--unavailable">
+        <h3>${escapeHtml(t("experiment.advanced.voiceAgeV2.title"))}</h3>
+        <p>${escapeHtml(t("experiment.advanced.voiceAgeV2.rejected"))}</p>
+      </section>
+    `;
+  }
+  const metrics = voiceQuality.metrics || {};
+  const sustained = voiceQuality.sampleType === "sustainedVowel";
+  const rejected = result.voiceAge?.ready
+    ? ""
+    : `<p class="voice-age-evidence__warning">${escapeHtml(t("experiment.advanced.voiceAgeV2.rejected"))}</p>`;
+  return `
+    <section class="voice-age-evidence">
+      <div class="voice-age-evidence__head">
+        <div>
+          <span>${escapeHtml(t("experiment.advanced.voiceAgeV2.eyebrow"))}</span>
+          <h3>${escapeHtml(t("experiment.advanced.voiceAgeV2.title"))}</h3>
+        </div>
+        <div class="voice-age-evidence__badges">
+          <span>${escapeHtml(t("experiment.advanced.voiceAgeV2.sampleType", {
+            value: sampleTypeValue(result),
+          }))}</span>
+          <span>${escapeHtml(t("experiment.advanced.voiceAgeV2.confidence", {
+            value: ageConfidenceValue(result),
+          }))}</span>
+        </div>
+      </div>
+      ${rejected}
+      <div class="voice-age-evidence__metrics">
+        ${voiceMetricMarkup("jitter", metrics.jitterLocal, "valuePct", sustained && metrics.jitterLocal?.reliable)}
+        ${voiceMetricMarkup("shimmer", metrics.shimmerLocal, "valuePct", sustained && metrics.shimmerLocal?.reliable)}
+        ${voiceMetricMarkup("hnr", metrics.hnr, "valueDb", metrics.hnr?.reliable)}
+        ${voiceMetricMarkup("cpp", metrics.cpp, "valueDb", metrics.cpp?.reliable)}
+      </div>
+      <p class="voice-age-evidence__note">${escapeHtml(t("experiment.advanced.voiceAgeV2.note"))}</p>
+      <code>${escapeHtml(result.voiceAge?.version || "voice-age-unavailable")}</code>
+    </section>
+  `;
+}
+
 function statusElement() {
   return resultPanel.querySelector("[data-share-status]");
 }
@@ -89,7 +166,10 @@ function setShareStatus(messageKey) {
 }
 
 function shareCaption(result) {
-  return t("experiment.advanced.share.caption", {
+  const key = result.voiceAge?.ready
+    ? "experiment.advanced.share.caption"
+    : "experiment.advanced.share.captionWithoutAge";
+  return t(key, {
     age: ageValue(result),
     archetype: archetypeValue(result),
     score: result.score,
@@ -287,6 +367,7 @@ export function renderAnalysis(analysis, { notify = true } = {}) {
       ${renderComponent("pitch", result.components.pitch, 15)}
       ${renderComponent("intonation", result.components.intonation, 10)}
     </div>
+    ${voiceAgeEvidenceMarkup(result)}
     <div class="advanced-experience__insight">
       <span>${escapeHtml(t("experiment.advanced.insight.label"))}</span>
       <strong>${escapeHtml(t(`experiment.advanced.insight.${result.insightKey}`))}</strong>
@@ -313,12 +394,18 @@ export function renderAnalysis(analysis, { notify = true } = {}) {
   `;
   resultPanel.hidden = false;
   bindShareActions(result);
-  track("advanced_result_view", {
-    age_band: result.voiceAge.bandKey,
-    archetype: result.archetypeKey,
-    confidence: result.confidence.key,
-    score_band: Math.floor(result.score / 10) * 10,
-  });
+  if (notify) {
+    track("advanced_result_view", {
+      confidence: result.confidence.key,
+      score_band: Math.floor(result.score / 10) * 10,
+    });
+    track("voice_age_evaluated", {
+      confidence: result.voiceAge.confidenceKey,
+      ready: result.voiceAge.ready,
+      sample_type: result.voiceAge.sampleType,
+      version: result.voiceAge.version,
+    });
+  }
   if (notify) notifyResultListeners(analysis, result);
   return result;
 }

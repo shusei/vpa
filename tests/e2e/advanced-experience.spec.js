@@ -1,7 +1,11 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
-import { captureRuntimeErrors, installDeterministicRuntime } from "./helpers.js";
+import {
+  captureRuntimeErrors,
+  installDeterministicRuntime,
+  waitForAnalysis,
+} from "./helpers.js";
 
 const fixture = JSON.parse(readFileSync(
   resolve("fixtures/analysis/sweet_feminine.json"),
@@ -32,6 +36,36 @@ test("professional experience renders advanced result and creates a local share 
   await expect(page.locator(".advanced-experience__score strong")).toHaveText(`${result.score}%`);
   await expect(page.locator("#advancedExperience").getByText("聲音年齡印象", { exact: true }))
     .toBeVisible();
+  await expect(page.getByRole("heading", { name: "聲音年齡 2.0 證據" })).toBeVisible();
+  await expect(page.locator(".voice-age-evidence__metrics")).toContainText("Jitter");
+  await expect(page.locator(".voice-age-evidence__metrics")).toContainText("Shimmer");
+  await expect(page.locator(".voice-age-evidence__metrics")).toContainText("HNR");
+  await expect(page.locator(".voice-age-evidence__metrics")).toContainText("CPP");
+  await expect(page.locator(".voice-age-evidence > code"))
+    .toHaveText("voice-age-impression-2.0.0-research");
+  const ageEvents = await page.evaluate(() => (
+    (window.dataLayer || [])
+      .map((entry) => Array.from(entry))
+      .filter((entry) => entry[0] === "event" && entry[1] === "voice_age_evaluated")
+      .map((entry) => entry[2])
+  ));
+  expect(ageEvents).toHaveLength(1);
+  expect(ageEvents[0]).toMatchObject({
+    confidence: "medium",
+    ready: true,
+    sample_type: "connectedSpeech",
+    version: "voice-age-impression-2.0.0-research",
+  });
+  const privateKeys = [
+    "age",
+    "age_band",
+    "archetype",
+    "cpp",
+    "hnr",
+    "jitter",
+    "shimmer",
+  ];
+  expect(Object.keys(ageEvents[0]).filter((key) => privateKeys.includes(key))).toEqual([]);
   await expect(page.getByRole("button", { name: "分享圖片＋文字（推薦）" })).toBeEnabled();
   await expect(page.locator(".advanced-share__hint")).toContainText(
     "X／Threads／LINE／Facebook 捷徑只會分享文字與連結",
@@ -60,6 +94,51 @@ test("professional experience renders advanced result and creates a local share 
       path: resolve(process.env.VPA_CAPTURE),
     });
   }
+  expect(runtimeErrors).toEqual([]);
+});
+
+test("age refusal keeps the strict presentation result and sharing available", async ({ page }) => {
+  const runtimeErrors = captureRuntimeErrors(page);
+  await openDevelopmentPage(page);
+  const withoutAgeMetrics = structuredClone(fixture);
+  delete withoutAgeMetrics.offlineSamples.extensions["voice-age-v2"];
+
+  const result = await page.evaluate((analysis) => {
+    window.vpaExperience.setExperience("professional");
+    return window.vpaAdvancedExperience.renderAnalysis(analysis);
+  }, withoutAgeMetrics);
+
+  expect(result.ready).toBe(true);
+  expect(result.voiceAge.ready).toBe(false);
+  await expect(page.locator(".advanced-experience__score strong")).toHaveText(`${result.score}%`);
+  await expect(page.locator("#advancedExperience").getByText("本次不推估", { exact: true }))
+    .toBeVisible();
+  await expect(page.locator(".voice-age-evidence")).toContainText(
+    "本次保留男女聲結果，但不輸出聲音年齡",
+  );
+  await expect(page.getByRole("button", { name: "分享圖片＋文字（推薦）" })).toBeEnabled();
+  const caption = await page.evaluate(() => (
+    window.vpaAdvancedExperience.formatResult(window.vpaAdvancedExperience.getLastResult()).caption
+  ));
+  expect(caption).toContain("未可靠推估聲音年齡");
+  expect(runtimeErrors).toEqual([]);
+});
+
+test("decoded dev audio captures local Voice Age 2.0 acoustic summaries", async ({ page }) => {
+  const runtimeErrors = captureRuntimeErrors(page);
+  await openDevelopmentPage(page);
+  await page.locator('#experienceNav [data-experience-target="professional"]').click();
+  await page.locator("#fileInput").setInputFiles(resolve("tests/.generated-media/tone.wav"));
+  const analysis = await waitForAnalysis(page);
+  const voiceQuality = analysis.offlineSamples.extensions["voice-age-v2"];
+
+  expect(voiceQuality.version).toBe("voice-quality-1.0.0");
+  expect(voiceQuality.sampleType).toBe("sustainedVowel");
+  expect(voiceQuality.quality.ready).toBe(true);
+  expect(voiceQuality.metrics.jitterLocal.reliable).toBe(true);
+  expect(voiceQuality.metrics.shimmerLocal.reliable).toBe(true);
+  expect(voiceQuality.metrics.hnr.valueDb).toBeGreaterThan(0);
+  expect(voiceQuality.metrics.cpp.valueDb).toBeGreaterThan(0);
   expect(runtimeErrors).toEqual([]);
 });
 

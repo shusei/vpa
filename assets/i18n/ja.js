@@ -77,6 +77,7 @@ const advanced = {
   share: {
     cancelled: "共有をキャンセルしました。",
     caption: "VPA の女性的な傾向は {{score}}%、声年齢の印象は {{age}}、キャラクターは「{{archetype}}」でした。あなたの声は何%？",
+    captionWithoutAge: "VPA の女性的な傾向は {{score}}%、声のキャラクターは「{{archetype}}」でした。今回は信頼できる声年齢を推定できませんでした。あなたの声は何%？",
     cardDisclaimer: "声の印象を楽しむための結果です。実年齢や本人確認を示すものではありません。",
     challenge: "女性的な傾向は {{score}}% を超えられる？",
     copied: "共有テキストをコピーしました。",
@@ -95,7 +96,32 @@ const advanced = {
   title: "プロ向け厳密分析",
   voiceAge: {
     title: "声年齢の印象",
+    unavailable: "今回は推定なし",
     value: "{{min}}〜{{max}} 歳くらい",
+  },
+  voiceAgeV2: {
+    confidence: "年齢の信頼度：{{value}}",
+    connectedReference: "朗読の参考値（年齢には不使用）",
+    dbValue: "{{value}} dB",
+    eyebrow: "VOICE AGE 2.0 / RESEARCH PREVIEW",
+    metrics: {
+      cpp: "CPP（ケプストラムピーク）",
+      hnr: "HNR（調波対雑音比）",
+      jitter: "Jitter（周期変動）",
+      shimmer: "Shimmer（振幅変動）",
+    },
+    notAvailable: "データ不足",
+    note: "Jitter／Shimmer は、持続母音が安定性基準を満たした場合のみ使用します。日常発話では有効な HNR／CPP などを使います。これは研究プレビューであり、実年齢ではありません。",
+    percentValue: "{{value}}%",
+    rejected: "録音品質または周期性の根拠が不足しています。声の傾向結果は残しますが、声年齢は推定しません。",
+    sampleType: "サンプル：{{value}}",
+    sampleTypes: {
+      connectedSpeech: "日常発話",
+      sustainedVowel: "持続母音",
+      unknown: "未分類",
+    },
+    title: "声年齢 2.0 の根拠",
+    used: "基準を通過し年齢に使用",
   },
 };
 

@@ -1,3 +1,38 @@
+const decodedAudioAnalyzers = new Map();
+
+function validExtensionId(value) {
+  return typeof value === "string" && /^[a-z][a-z0-9-]{1,47}$/.test(value);
+}
+
+export function registerDecodedAudioAnalyzer(id, analyzer) {
+  if (!validExtensionId(id)) throw new TypeError("analysis extension id is invalid");
+  if (typeof analyzer !== "function") throw new TypeError("analysis extension must be a function");
+  decodedAudioAnalyzers.set(id, analyzer);
+  return () => {
+    if (decodedAudioAnalyzers.get(id) === analyzer) {
+      decodedAudioAnalyzers.delete(id);
+    }
+  };
+}
+
+export async function runDecodedAudioAnalyzers(context) {
+  if (!decodedAudioAnalyzers.size) return {};
+  const results = {};
+  for (const [id, analyzer] of decodedAudioAnalyzers) {
+    try {
+      const result = await analyzer(context);
+      if (result !== undefined && result !== null) results[id] = result;
+    } catch (error) {
+      console.error(`[analysis-extension:${id}]`, error);
+    }
+  }
+  return results;
+}
+
+export function resetDecodedAudioAnalyzersForTest() {
+  decodedAudioAnalyzers.clear();
+}
+
 export function createAnalysisFlowController(deps) {
   const {
     analyzeStreamed,
@@ -12,6 +47,8 @@ export function createAnalysisFlowController(deps) {
     microYield,
     notifyInferenceListeners,
     offlineExtractStreamMetrics,
+    runDecodedAudioAnalyzers = async () => ({}),
+    setAnalysisExtensions = () => { },
     setPlaybackSource,
     setStatus,
     startAnalysisRun,
@@ -55,6 +92,15 @@ export function createAnalysisFlowController(deps) {
       }
 
       if (!isAnalysisActive(token)) return;
+
+      const extensions = await runDecodedAudioAnalyzers({
+        durationSec,
+        samples: float32,
+        sampleRate: sr,
+        source,
+      });
+      if (!isAnalysisActive(token)) return;
+      setAnalysisExtensions(extensions);
 
       if (durationSec <= MAX_WHOLE_SEC) {
         await analyzeWhole(float32, sr, durationSec, token);

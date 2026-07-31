@@ -1,4 +1,5 @@
 import { recorderCtl } from "../app.js";
+import { registerDecodedAudioAnalyzer } from "../js/analysis-flow.js";
 import {
   getCurrentLocale,
   onLocaleChange,
@@ -26,6 +27,7 @@ import {
 } from "./quick-prompts.js";
 import { downloadBlob } from "./share-card.js";
 import { aggregateStandardResults } from "./standard-result.js";
+import { analyzeVoiceQuality } from "./voice-quality-metrics.js";
 
 const EXPERIENCE_KEY = "vpa::experiment.experience";
 const LATEST_RESULT_KEY = "vpa::quick.latestResult";
@@ -51,6 +53,12 @@ let shareStatusKey = "";
 let currentChallenge = null;
 let standardStep = 0;
 let standardRuns = [];
+
+registerDecodedAudioAnalyzer("voice-age-v2", ({ samples, sampleRate }) => (
+  analyzeVoiceQuality(samples, sampleRate, {
+    sampleType: currentExperience === "quick" ? "connectedSpeech" : undefined,
+  })
+));
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -94,8 +102,9 @@ function saveLatestResult(result) {
   if (!result?.ready) return;
   try {
     localStorage.setItem(LATEST_RESULT_KEY, JSON.stringify({
-      ageMax: result.voiceAge.max,
-      ageMin: result.voiceAge.min,
+      ageMax: result.voiceAge.ready ? result.voiceAge.max : null,
+      ageMin: result.voiceAge.ready ? result.voiceAge.min : null,
+      ageVersion: result.voiceAge.version,
       archetype: result.archetypeKey,
       at: Date.now(),
       score: result.score,

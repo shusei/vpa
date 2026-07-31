@@ -78,6 +78,7 @@ export default {
       share: {
         cancelled: "已取消分享。",
         caption: "我的 VPA 女性化倾向是 {{score}}%，声音年龄印象为 {{age}}，角色是“{{archetype}}”。你的声音会是多少？",
+        captionWithoutAge: "我的 VPA 女性化倾向是 {{score}}%，声音角色是“{{archetype}}”。这次录音未可靠推估声音年龄，你的声音会是多少？",
         cardDisclaimer: "声音呈现的趣味反馈，不代表真实年龄或身份。",
         challenge: "你的女性化倾向会超过 {{score}}% 吗？",
         copied: "分享文字已复制。",
@@ -96,7 +97,32 @@ export default {
       title: "进阶严格分析",
       voiceAge: {
         title: "声音年龄印象",
+        unavailable: "本次不推估",
         value: "{{min}}–{{max}} 岁感",
+      },
+      voiceAgeV2: {
+        confidence: "年龄可信度：{{value}}",
+        connectedReference: "朗读参考值，不计入年龄",
+        dbValue: "{{value}} dB",
+        eyebrow: "VOICE AGE 2.0 / RESEARCH PREVIEW",
+        metrics: {
+          cpp: "CPP（倒谱峰值）",
+          hnr: "HNR（谐噪比）",
+          jitter: "Jitter（周期扰动）",
+          shimmer: "Shimmer（振幅扰动）",
+        },
+        notAvailable: "数据不足",
+        note: "Jitter／Shimmer 只有持续元音达到稳定门槛才会采用；日常朗读只采用 HNR／CPP 等有效证据。这仍是研究预览，不代表实际年龄。",
+        percentValue: "{{value}}%",
+        rejected: "录音质量或有效周期不足，本次保留男女声结果，但不输出声音年龄。",
+        sampleType: "样本：{{value}}",
+        sampleTypes: {
+          connectedSpeech: "日常朗读",
+          sustainedVowel: "持续元音",
+          unknown: "未分类",
+        },
+        title: "声音年龄 2.0 证据",
+        used: "通过门槛，计入年龄",
       },
     },
     experience: {

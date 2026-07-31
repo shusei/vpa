@@ -10,8 +10,9 @@ export function cloneOfflineFeatureStore(offlineFeatureStore) {
   const breathiness = Array.from(offlineFeatureStore.breathiness);
   const energy = offlineFeatureStore.energy.map((triple) => Array.isArray(triple) ? triple.slice() : [NaN, NaN, NaN]);
   const zcr = Array.from(offlineFeatureStore.zcr);
+  const extensions = cloneValue(offlineFeatureStore.extensions || {});
   const duration = Number.isFinite(frameSec) ? frameSec * pitchProcessed.length : NaN;
-  return {
+  const result = {
     frameSec,
     pitchRaw,
     pitchProcessed,
@@ -25,6 +26,18 @@ export function cloneOfflineFeatureStore(offlineFeatureStore) {
     zcr,
     duration,
   };
+  if (Object.keys(extensions).length) result.extensions = extensions;
+  return result;
+}
+
+function cloneValue(value) {
+  if (Array.isArray(value)) return value.map((item) => cloneValue(item));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, cloneValue(item)]),
+    );
+  }
+  return value;
 }
 
 export function sanitizeForJson(value) {

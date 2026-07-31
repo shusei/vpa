@@ -16,18 +16,12 @@ export function createAnalysisTelemetryController() {
         window.vpaLatestAnalysis = sanitized;
         if (typeof window.gtag === "function") {
           try {
-            const pitchMed = Number(sanitized?.pitch?.stats?.med);
-            const pitchSpread = Number(sanitized?.pitch?.spreadHz);
-            const voicedRatio = Number(sanitized?.summary?.voicedRatio);
             const source = sanitized?.source || sanitized?.meta?.source || "unknown";
             const eventPayload = {
               event_category: "analysis",
               event_label: String(source),
               source: String(source),
             };
-            if (Number.isFinite(pitchMed)) eventPayload.pitch_median_hz = Number(pitchMed.toFixed(2));
-            if (Number.isFinite(pitchSpread)) eventPayload.pitch_spread_hz = Number(pitchSpread.toFixed(2));
-            if (Number.isFinite(voicedRatio)) eventPayload.voiced_ratio = Number(voicedRatio.toFixed(4));
             window.gtag("event", "analysis_completed", eventPayload);
             window.__vpaLastGAEvent = {
               name: "analysis_completed",

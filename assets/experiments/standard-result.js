@@ -45,6 +45,56 @@ function stabilityKey(spread) {
   return "low";
 }
 
+function aggregateVoiceAge(results, reference) {
+  const ages = results.map((result) => result.voiceAge);
+  const confidenceScore = median(ages.map((age) => age?.confidenceScore));
+  const version = ages.every((age) => age?.version === reference.voiceAge?.version)
+    ? reference.voiceAge?.version
+    : "voice-age-mixed";
+  if (ages.some((age) => !age?.ready)) {
+    return {
+      bandKey: "unavailable",
+      calibration: reference.voiceAge?.calibration || "unknown",
+      confidenceKey: confidenceKey(confidenceScore),
+      confidenceScore,
+      evidence: [],
+      max: null,
+      min: null,
+      ready: false,
+      reasons: [...new Set(ages.flatMap((age) => age?.reasons || ["metrics"]))],
+      sampleType: majority(
+        ages.map((age) => age?.sampleType),
+        reference.voiceAge?.sampleType || "unknown",
+      ),
+      version,
+      youthfulness: null,
+    };
+  }
+  return {
+    bandKey: majority(
+      ages.map((age) => age.bandKey),
+      reference.voiceAge.bandKey,
+    ),
+    calibration: majority(
+      ages.map((age) => age.calibration),
+      reference.voiceAge.calibration,
+    ),
+    confidenceKey: confidenceKey(confidenceScore),
+    confidenceScore,
+    evidence: [],
+    max: Math.round(median(ages.map((age) => age.max))),
+    min: Math.round(median(ages.map((age) => age.min))),
+    ready: true,
+    reasons: [],
+    sampleType: majority(
+      ages.map((age) => age.sampleType),
+      reference.voiceAge.sampleType,
+    ),
+    version,
+    youthfulness: median(ages.map((age) => age.youthfulness)),
+  };
+}
+
 export function aggregateStandardResults(results) {
   if (!Array.isArray(results) || results.length !== REQUIRED_RESULT_COUNT) {
     throw new TypeError("standard test requires exactly three results");
@@ -92,23 +142,12 @@ export function aggregateStandardResults(results) {
       stabilityKey: stabilityKey(spread),
     },
     version,
-    voiceAge: {
-      bandKey: majority(
-        results.map((result) => result.voiceAge?.bandKey),
-        reference.voiceAge.bandKey,
-      ),
-      confidenceKey: majority(
-        results.map((result) => result.voiceAge?.confidenceKey),
-        reference.voiceAge.confidenceKey,
-      ),
-      max: Math.round(median(results.map((result) => result.voiceAge?.max))),
-      min: Math.round(median(results.map((result) => result.voiceAge?.min))),
-      youthfulness: median(results.map((result) => result.voiceAge?.youthfulness)),
-    },
+    voiceAge: aggregateVoiceAge(results, reference),
   };
 }
 
 export const standardResultInternals = {
+  aggregateVoiceAge,
   confidenceKey,
   majority,
   median,

@@ -8,9 +8,12 @@ import {
   runStreamedWithWindow as sharedRunStreamedWithWindow,
 } from "./js/analysis-core.js";
 import { createAnalysisEngineBridge } from "./js/analysis-engine-bridge.js";
+import {
+  createAnalysisFlowController,
+  runDecodedAudioAnalyzers as sharedRunDecodedAudioAnalyzers,
+} from "./js/analysis-flow.js";
 import { createAnalysisSessionController } from "./js/analysis-session.js";
 import { createAdvancedAdapters } from "./js/advanced-adapters.js";
-import { createAnalysisFlowController } from "./js/analysis-flow.js";
 import { createAdvancedRuntime } from "./js/advanced-runtime.js";
 import {
   averageFinite as sharedAverageFinite,
@@ -530,6 +533,8 @@ const analysisFlowController = createAnalysisFlowController({
   microYield: sharedMicroYield,
   notifyInferenceListeners,
   offlineExtractStreamMetrics,
+  runDecodedAudioAnalyzers: sharedRunDecodedAudioAnalyzers,
+  setAnalysisExtensions: (value) => pitchRuntimeCore.setAnalysisExtensions(value),
   setPlaybackSource: (blob) => playerSessionController.setPlaybackSource(blob, updatePlaybackAvailability),
   setStatus,
   startAnalysisRun: () => analysisSession.startAnalysisRun(() => {

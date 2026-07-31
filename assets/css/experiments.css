@@ -189,6 +189,93 @@ html[data-faction="dark"] .advanced-experience {
   margin-top:5px;
   color:var(--experiment-muted);
 }
+.voice-age-evidence {
+  display:grid;
+  gap:16px;
+  margin-top:24px;
+  padding:20px;
+  border:1px solid var(--experiment-subtle);
+  border-radius:22px;
+  color:var(--experiment-ink);
+  background:var(--experiment-card);
+}
+.voice-age-evidence__head {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+}
+.voice-age-evidence__head > div:first-child > span {
+  color:var(--experiment-emphasis);
+  font-size:.72rem;
+  font-weight:900;
+  letter-spacing:.12em;
+}
+.voice-age-evidence__head h3 {
+  margin:4px 0 0;
+  font-family:Georgia, "Noto Serif TC", serif;
+  font-size:1.3rem;
+}
+.voice-age-evidence__badges {
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:7px;
+}
+.voice-age-evidence__badges span {
+  padding:6px 9px;
+  border:1px solid color-mix(in oklab, var(--accent-2) 38%, transparent);
+  border-radius:999px;
+  color:var(--experiment-muted);
+  font-size:.74rem;
+  font-weight:750;
+}
+.voice-age-evidence__metrics {
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  gap:10px;
+}
+.voice-age-metric {
+  display:grid;
+  gap:5px;
+  min-width:0;
+  padding:13px;
+  border-radius:15px;
+  color:var(--experiment-ink);
+  background:color-mix(in oklab, var(--experiment-subtle) 70%, transparent);
+}
+.voice-age-metric span,
+.voice-age-metric small {
+  color:var(--experiment-muted);
+  font-size:.72rem;
+}
+.voice-age-metric strong {
+  overflow-wrap:anywhere;
+  font-size:1.05rem;
+}
+.voice-age-evidence__warning {
+  margin:0;
+  padding:10px 12px;
+  border-radius:12px;
+  color:color-mix(in oklab, #d97706 76%, var(--experiment-ink) 24%);
+  background:color-mix(in oklab, #d97706 12%, transparent);
+  font-weight:750;
+}
+.voice-age-evidence__note {
+  margin:0;
+  color:var(--experiment-muted);
+  font-size:.76rem;
+  line-height:1.55;
+}
+.voice-age-evidence > code {
+  justify-self:start;
+  color:var(--experiment-muted);
+  font-size:.68rem;
+}
+.voice-age-evidence--unavailable p {
+  margin:0;
+  color:var(--experiment-muted);
+}
 .advanced-experience__insight {
   display:grid;
   gap:6px;
@@ -290,5 +377,14 @@ html[data-faction="dark"] .advanced-experience {
   }
   .advanced-experience__components {
     grid-template-columns:1fr;
+  }
+  .voice-age-evidence__head {
+    display:grid;
+  }
+  .voice-age-evidence__badges {
+    justify-content:flex-start;
+  }
+  .voice-age-evidence__metrics {
+    grid-template-columns:repeat(2, minmax(0, 1fr));
   }
 }
