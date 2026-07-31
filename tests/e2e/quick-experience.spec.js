@@ -365,8 +365,27 @@ test("challenge link carries only summary data and compares the next result", as
   expect(runtimeErrors).toEqual([]);
 });
 
-test("result page offers direct platform sharing without an app picker", async ({ page }) => {
+test("platform sharing uses a preview-ready short link and defaults to an image", async ({ page }) => {
   const runtimeErrors = captureRuntimeErrors(page);
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "canShare", {
+      configurable: true,
+      value: ({ files }) => Array.isArray(files) && files.length > 0,
+    });
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: async (payload) => {
+        window.__vpaLastShare = {
+          files: (payload.files || []).map((file) => ({
+            name: file.name,
+            type: file.type,
+          })),
+          text: payload.text,
+          url: payload.url,
+        };
+      },
+    });
+  });
   await openDevelopmentPage(page);
   await page.evaluate(async (analysis) => {
     const { recorderCtl } = await import("/assets/app.js");
@@ -383,13 +402,25 @@ test("result page offers direct platform sharing without an app picker", async (
   await expect.poll(() => page.evaluate(() => window.__vpaOpenedShareUrl)).toContain(
     "https://www.threads.com/intent/post?text=",
   );
-  expect(decodeURIComponent(await page.evaluate(() => window.__vpaOpenedShareUrl)))
-    .toContain("#vpa-challenge=");
+  const openedShareUrl = decodeURIComponent(
+    await page.evaluate(() => window.__vpaOpenedShareUrl),
+  );
+  const shortestShareUrl = await page.evaluate(() => `${location.origin}/`);
+  expect(openedShareUrl).toContain(shortestShareUrl);
+  expect(openedShareUrl).not.toContain("#vpa-challenge=");
 
   await page.locator('[data-quick-platform="tiktok"]').click();
-  await expect(page.locator("[data-quick-audio]")).toBeChecked();
-  await expect(page.locator(".quick-dynamic-editor")).toBeVisible();
-  await expect(page.locator(".quick-share-status")).toContainText("TikTok");
+  await expect.poll(() => page.evaluate(() => window.__vpaLastShare?.files.length)).toBe(1);
+  expect(await page.evaluate(() => window.__vpaLastShare.files[0])).toEqual({
+    name: "vpa-result.png",
+    type: "image/png",
+  });
+  expect(await page.evaluate(() => window.__vpaLastShare.url)).toBe(shortestShareUrl);
+  expect(await page.evaluate(() => window.__vpaLastShare.text)).toContain(shortestShareUrl);
+
+  await page.locator("[data-quick-share]").click();
+  await expect(page.locator("[data-quick-audio]")).not.toBeChecked();
+  await expect(page.locator(".quick-dynamic-editor")).toHaveCount(0);
   expect(runtimeErrors).toEqual([]);
 });
 test("image sharing is default and dynamic video requires explicit voice opt-in", async ({ page }) => {
@@ -423,13 +454,15 @@ test("image sharing is default and dynamic video requires explicit voice opt-in"
 
   await page.locator("[data-quick-share]").click();
   await expect(page.locator("[data-quick-audio]")).not.toBeChecked();
-  await expect(page.locator("[data-quick-system-share]")).toHaveText("分享圖片＋文字");
+  await expect(page.locator("[data-quick-system-share]")).toHaveText("分享圖片＋文字＋短連結");
   await expect(page.locator(".quick-dynamic-card")).toHaveCount(0);
   await page.locator("[data-quick-system-share]").click();
   await expect.poll(() => page.evaluate(() => window.__vpaLastShare?.files.length)).toBe(1);
   expect(await page.evaluate(() => window.__vpaLastShare.files[0].name)).toBe("vpa-result.png");
   expect(await page.evaluate(() => window.__vpaLastShare.text.length)).toBeGreaterThan(10);
-  expect(await page.evaluate(() => window.__vpaLastShare.url)).toContain("#vpa-challenge=");
+  const sharedUrl = await page.evaluate(() => window.__vpaLastShare.url);
+  expect(sharedUrl).toBe(await page.evaluate(() => `${location.origin}/`));
+  expect(await page.evaluate(() => window.__vpaLastShare.text)).toContain(sharedUrl);
 
   await page.locator("[data-quick-audio]").check();
   await expect(page.locator("[data-quick-system-share]")).toHaveCount(0);
@@ -466,7 +499,9 @@ test("dynamic video keeps a full untrimmed 30 second recording", async ({ page }
     window.vpaAdvancedExperience.renderAnalysis(analysis);
   }, fixture);
 
-  await page.locator('[data-quick-platform="tiktok"]').click();
+  await page.locator("[data-quick-share]").click();
+  await expect(page.locator("[data-quick-audio]")).not.toBeChecked();
+  await page.locator("[data-quick-audio]").check();
   await expect(page.locator(".quick-dynamic-editor")).toBeVisible();
   await expect(page.locator("[data-dynamic-range]")).toContainText("0.0");
   await expect(page.locator("[data-dynamic-range]")).toContainText("30.0");
@@ -561,8 +596,10 @@ test("dynamic voice card exports selected audio and preserves the fallback chain
   expect(media.size).toBeGreaterThan(50_000);
   expect(media.width).toBe(720);
   expect(media.height).toBe(1280);
-  expect(media.duration).toBeGreaterThanOrEqual(7.5);
-  expect(media.duration).toBeLessThanOrEqual(15.5);
+  // MediaRecorder may omit the trailing silent visual hold, but it must keep
+  // the complete manually selected 0.5–3.8 second audio range.
+  expect(media.duration).toBeGreaterThanOrEqual(3.2);
+  expect(media.duration).toBeLessThanOrEqual(8.5);
   expect(media.videoTracks).toBe(1);
   expect(media.audioTracks).toBe(1);
   if (process.env.VPA_DYNAMIC_CAPTURE) {
@@ -588,7 +625,9 @@ test("dynamic voice card exports selected audio and preserves the fallback chain
   });
   expect(await page.evaluate(() => window.__vpaLastShare.files[0].type))
     .toBe("video/mp4");
-  expect(await page.evaluate(() => window.__vpaLastShare.url)).not.toContain("audio");
+  const dynamicSharedUrl = await page.evaluate(() => window.__vpaLastShare.url);
+  expect(dynamicSharedUrl).toBe(await page.evaluate(() => `${location.origin}/`));
+  expect(await page.evaluate(() => window.__vpaLastShare.text)).toContain(dynamicSharedUrl);
   const analytics = await page.evaluate(() => {
     return (window.dataLayer || [])
       .map((entry) => Array.from(entry))
@@ -681,6 +720,8 @@ test("dynamic voice card exports selected audio and preserves the fallback chain
     "vpa-result.png",
     "vpa-voice-clip.wav",
   ]);
+  expect(await page.evaluate(() => window.__vpaLastShare.url))
+    .toBe(await page.evaluate(() => `${location.origin}/`));
   expect(runtimeErrors).toEqual([]);
 });
 

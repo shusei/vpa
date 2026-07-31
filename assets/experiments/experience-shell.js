@@ -25,7 +25,11 @@ import {
   STANDARD_PROMPT_IDS,
   STANDARD_TEST_ID,
 } from "./quick-prompts.js";
-import { buildShareTargets, downloadBlob } from "./share-card.js";
+import {
+  buildShareTargets,
+  buildShareUrl,
+  downloadBlob,
+} from "./share-card.js";
 import { aggregateStandardResults } from "./standard-result.js";
 import { analyzeVoiceQuality } from "./voice-quality-metrics.js";
 
@@ -146,9 +150,9 @@ if (professionalHero) {
 const dynamicCard = createDynamicCardController({
   createResultCard,
   downloadBlob,
-  ensureChallenge,
   formatResult: formatAdvancedResult,
   getAudioUrl: () => recorderCtl.getLastRecordingUrl(),
+  getShareUrl: () => buildShareUrl(),
   render: () => renderQuickExperience(),
   track,
 });
@@ -803,54 +807,39 @@ async function copyChallengeLink() {
   renderQuickExperience();
 }
 
-function openQuickPlatform(platform) {
-  if (platform === "tiktok") {
-    const hasAudio = Boolean(recorderCtl.getLastRecordingUrl());
-    shareOpen = true;
-    dynamicAudioOptIn = hasAudio;
-    dynamicCard.reset();
-    shareStatusKey = hasAudio
-      ? "experiment.quick.share.tiktokReady"
-      : "experiment.quick.share.tiktokNeedsAudio";
-    renderQuickExperience();
-    if (hasAudio) dynamicCard.open();
-    track("share_platform_selected", {
-      mode: "quick",
-      platform,
-      score_band: Math.floor(latestResult.score / 10) * 10,
-    });
-    return;
-  }
-  const challenge = ensureChallenge();
-  if (!challenge || !latestResult) return;
-  const targets = buildShareTargets({
-    caption: formatAdvancedResult(latestResult).caption,
-    url: challenge.url,
-  });
-  const target = targets[platform];
-  if (!target) return;
-  window.open(target, "_blank", "noopener,noreferrer");
+async function openQuickPlatform(platform) {
+  if (!latestResult?.ready) return;
   track("share_platform_selected", {
     mode: "quick",
     platform,
     score_band: Math.floor(latestResult.score / 10) * 10,
   });
+  if (platform === "tiktok") {
+    await shareQuickResult({ platform });
+    return;
+  }
+  const shareUrl = buildShareUrl();
+  const targets = buildShareTargets({
+    caption: formatAdvancedResult(latestResult).caption,
+    url: shareUrl,
+  });
+  const target = targets[platform];
+  if (!target) return;
+  window.open(target, "_blank", "noopener,noreferrer");
 }
 
-async function shareQuickResult() {
-  const challenge = ensureChallenge();
-  if (!challenge || !latestResult) return;
+async function shareQuickResult({ platform = "system" } = {}) {
+  if (!latestResult?.ready) return;
   shareStatusKey = "";
   try {
     const formatted = formatAdvancedResult(latestResult);
-    const cardUrl = new URL(challenge.url);
-    cardUrl.hash = "";
-    const cardBlob = await createResultCard(latestResult, { shareUrl: cardUrl.toString() });
+    const shareUrl = buildShareUrl();
+    const cardBlob = await createResultCard(latestResult, { shareUrl });
     const response = await shareResultFiles({
       cardBlob,
       caption: formatted.caption,
       title: t("experiment.quick.share.shareTitle"),
-      url: challenge.url,
+      url: shareUrl,
     });
     if (response.method === "unsupported" || response.method === "unsupported-files") {
       downloadBlob(cardBlob, "vpa-result.png");
@@ -862,6 +851,7 @@ async function shareQuickResult() {
       includes_audio: false,
       media: "png",
       method: response.method,
+      platform,
     });
   } catch (error) {
     if (error?.name === "AbortError") {
@@ -873,7 +863,6 @@ async function shareQuickResult() {
   }
   renderQuickExperience();
 }
-
 function finalizeQuickResult(result) {
   dynamicCard.reset();
   latestResult = result;
