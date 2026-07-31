@@ -11,7 +11,7 @@ import { createAnalysisEngineBridge } from "./js/analysis-engine-bridge.js";
 import {
   createAnalysisFlowController,
   runDecodedAudioAnalyzers as sharedRunDecodedAudioAnalyzers,
-} from "./js/analysis-flow.js";
+} from "./js/analysis-flow.js?v=20260801-inapp1";
 import { createAnalysisSessionController } from "./js/analysis-session.js";
 import { createAdvancedAdapters } from "./js/advanced-adapters.js";
 import { createAdvancedRuntime } from "./js/advanced-runtime.js";
@@ -88,6 +88,8 @@ import {
   isDivergent as sharedIsDivergent,
 } from "./js/summary-helpers.js";
 import { detectThreadCount as sharedDetectThreadCount } from "./js/thread-count.js";
+import { installEmbeddedBrowserGuard } from "./js/embedded-browser.js";
+import { selectRepresentativeSamples } from "./js/inference-sampling.js";
 import { pickStreamStrategy as sharedPickStreamStrategy } from "./js/stream-strategy.js";
 import { finishStreamStats as sharedFinishStreamStats } from "./js/stats-core.js";
 import { createStatsOrchestration } from "./js/stats-orchestration.js";
@@ -197,6 +199,9 @@ const runtimeBootstrap = await bootstrapAppRuntime({
   sharedDetectThreadCount,
   threadStorageKey: THREAD_STORAGE_KEY,
 });
+const embeddedBrowserGuard = installEmbeddedBrowserGuard();
+const embeddedBrowserContext = embeddedBrowserGuard.context;
+window.vpaEmbeddedBrowser = embeddedBrowserContext;
 const getSummaryText = () => runtimeBootstrap.getSummaryText();
 const {
   advancedSectionController,
@@ -533,6 +538,11 @@ const analysisFlowController = createAnalysisFlowController({
   microYield: sharedMicroYield,
   notifyInferenceListeners,
   offlineExtractStreamMetrics,
+  prepareInferenceSamples: ({ samples, sampleRate }) => (
+    embeddedBrowserContext.embedded
+      ? selectRepresentativeSamples(samples, sampleRate)
+      : null
+  ),
   runDecodedAudioAnalyzers: sharedRunDecodedAudioAnalyzers,
   setAnalysisExtensions: (value) => pitchRuntimeCore.setAnalysisExtensions(value),
   setPlaybackSource: (blob) => playerSessionController.setPlaybackSource(blob, updatePlaybackAvailability),

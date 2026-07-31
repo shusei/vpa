@@ -14,9 +14,42 @@ Object.defineProperty(globalThis, "navigator", {
 const { analyzeStreamed, analyzeWhole, runStreamedWithWindow } = await import("../assets/js/analysis-core.js");
 const { createAnalysisFlowController } = await import("../assets/js/analysis-flow.js");
 const { ensurePipeline } = await import("../assets/js/model-core.js");
+const { detectEmbeddedBrowser } = await import("../assets/js/embedded-browser.js");
+const { selectRepresentativeSamples } = await import("../assets/js/inference-sampling.js");
 const { pickStreamStrategy } = await import("../assets/js/stream-strategy.js");
 
 const translate = (key) => key;
+
+test("detects app webviews without flagging real mobile Safari", () => {
+  const line = detectEmbeddedBrowser({
+    platform: "Linux armv8l",
+    userAgent: "Mozilla/5.0 (Linux; Android 14; wv) AppleWebKit/537.36 Version/4.0 Chrome/124.0 Mobile Safari/537.36 Line/14.9.0",
+  });
+  assert.deepEqual(
+    { app: line.app, embedded: line.embedded, platform: line.platform },
+    { app: "line", embedded: true, platform: "android" },
+  );
+
+  const safari = detectEmbeddedBrowser({
+    platform: "iPhone",
+    userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 Version/17.4 Mobile/15E148 Safari/604.1",
+  });
+  assert.equal(safari.embedded, false);
+  assert.equal(safari.platform, "ios");
+});
+
+test("embedded inference samples start, middle, and end without changing the recording", () => {
+  const originalSamples = Float32Array.from({ length: 200 }, (_value, index) => index);
+  const selected = selectRepresentativeSamples(originalSamples, 10, { maxDurationSec: 8 });
+
+  assert.equal(selected.used, true);
+  assert.equal(selected.durationSec, 8);
+  assert.equal(selected.samples.length, 80);
+  assert.equal(selected.samples[0], 0);
+  assert.ok(selected.samples.includes(100));
+  assert.equal(selected.samples.at(-1), 199);
+  assert.equal(originalSamples.length, 200);
+});
 
 test("model runtime selects WASM when WebGPU is unavailable", async () => {
   globalThis.navigator = { userAgent: "node-test" };
@@ -296,6 +329,55 @@ test("analysis flow captures extensions from the final VAD-selected audio before
   assert.equal(calls[2][1].sampleRate, 16_000);
   assert.equal(calls[2][1].source, "recording");
   assert.deepEqual(calls[3][1], { fixture: { ready: true } });
+});
+
+test("embedded fast inference leaves full audio available to acoustic analysis", async () => {
+  const full = new Float32Array(16_000 * 20);
+  const selected = new Float32Array(16_000 * 8);
+  const calls = [];
+  const controller = createAnalysisFlowController({
+    analyzeStreamed: async () => { },
+    analyzeWhole: async (...args) => calls.push(["whole", ...args]),
+    decodeSmartToFloat32: async () => ({
+      durationSec: 20,
+      float32: full,
+      sr: 16_000,
+    }),
+    finishAnalysisRun: () => { },
+    finishStreamStats: () => calls.push(["stats"]),
+    fmtSec: String,
+    isAnalysisActive: () => true,
+    MAX_WHOLE_SEC: 150,
+    maybeApplyAdaptiveVAD: () => null,
+    microYield: async () => { },
+    notifyInferenceListeners: () => { },
+    offlineExtractStreamMetrics: (samples) => calls.push(["offline", samples]),
+    prepareInferenceSamples: (context) => {
+      calls.push(["prepare", context.samples]);
+      return { durationSec: 8, samples: selected, used: true };
+    },
+    runDecodedAudioAnalyzers: async (context) => {
+      calls.push(["extensions", context.samples]);
+      return {};
+    },
+    setPlaybackSource: () => { },
+    setStatus: () => { },
+    startAnalysisRun: () => 1,
+    t: translate,
+    TARGET_SR: 16_000,
+    updatePlaybackAvailability: () => { },
+    WARN_LONG_SEC: 180,
+  });
+
+  await controller.handleFileOrBlob(new Blob(), "recording");
+
+  assert.equal(calls.find(([name]) => name === "offline")[1], full);
+  assert.equal(calls.find(([name]) => name === "extensions")[1], full);
+  assert.equal(calls.find(([name]) => name === "prepare")[1], full);
+  const whole = calls.find(([name]) => name === "whole");
+  assert.equal(whole[1], selected);
+  assert.equal(whole[2], 16_000);
+  assert.equal(whole[3], 8);
 });
 
 test("analysis flow warns only above the 180 second boundary", async () => {

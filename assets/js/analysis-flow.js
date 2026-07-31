@@ -47,6 +47,7 @@ export function createAnalysisFlowController(deps) {
     microYield,
     notifyInferenceListeners,
     offlineExtractStreamMetrics,
+    prepareInferenceSamples = () => null,
     runDecodedAudioAnalyzers = async () => ({}),
     setAnalysisExtensions = () => { },
     setPlaybackSource,
@@ -102,13 +103,27 @@ export function createAnalysisFlowController(deps) {
       if (!isAnalysisActive(token)) return;
       setAnalysisExtensions(extensions);
 
-      if (durationSec <= MAX_WHOLE_SEC) {
-        await analyzeWhole(float32, sr, durationSec, token);
+      const inferenceSelection = prepareInferenceSamples({
+        durationSec,
+        sampleRate: sr,
+        samples: float32,
+        source,
+      });
+      const inferenceSamples = inferenceSelection?.samples instanceof Float32Array
+        ? inferenceSelection.samples
+        : float32;
+      const selectedDuration = Number(inferenceSelection?.durationSec);
+      const inferenceDurationSec = Number.isFinite(selectedDuration) && selectedDuration > 0
+        ? selectedDuration
+        : durationSec;
+
+      if (inferenceDurationSec <= MAX_WHOLE_SEC) {
+        await analyzeWhole(inferenceSamples, sr, inferenceDurationSec, token);
       } else {
         await analyzeStreamed(
-          float32,
+          inferenceSamples,
           sr,
-          durationSec,
+          inferenceDurationSec,
           t("status.streamingSwitch", { limit: MAX_WHOLE_SEC }),
           token,
         );
