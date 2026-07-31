@@ -16,13 +16,37 @@ export async function pipeline(task, modelId, options = {}) {
 }
 `;
 
-export async function installDeterministicRuntime(page, { mockAnalytics = true } = {}) {
-  await page.addInitScript(() => {
-    try {
-      localStorage.setItem("vpa.locale", "zh-Hant");
-      localStorage.setItem("vpa.onboardTipDone", "1");
-      localStorage.setItem("vpa.themeTipDone", "1");
-    } catch { }
+export async function installDeterministicRuntime(page, {
+  mockAnalytics = true,
+  navigatorLanguages = null,
+  storedLocale = "zh-Hant",
+} = {}) {
+  await page.addInitScript(({ languages, locale }) => {
+    if (!sessionStorage.getItem("__vpaTestSeeded")) {
+      try {
+        if (locale === null) {
+          localStorage.removeItem("vpa.locale");
+        } else {
+          localStorage.setItem("vpa.locale", locale);
+        }
+        localStorage.setItem("vpa.onboardTipDone", "1");
+        localStorage.setItem("vpa.themeTipDone", "1");
+        sessionStorage.setItem("__vpaTestSeeded", "1");
+      } catch { }
+    }
+    if (Array.isArray(languages) && languages.length) {
+      Object.defineProperty(navigator, "languages", {
+        configurable: true,
+        get: () => [...languages],
+      });
+      Object.defineProperty(navigator, "language", {
+        configurable: true,
+        get: () => languages[0],
+      });
+    }
+  }, {
+    languages: navigatorLanguages,
+    locale: storedLocale,
   });
 
   await page.route("https://cdn.jsdelivr.net/**/transformers.min.js", async (route) => {

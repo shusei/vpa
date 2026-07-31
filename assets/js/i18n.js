@@ -1,10 +1,18 @@
 import zhHant from "../i18n/zh-Hant.js";
 
 const STORAGE_KEY = "vpa.locale";
-const SUPPORTED_LOCALES = ["zh-Hant", "zh-Hans", "en"];
+const BASE_LOCALES = ["zh-Hant", "zh-Hans", "en"];
+const EXPERIMENTAL_LOCALES = typeof window !== "undefined" && Array.isArray(window.VPA_EXPERIMENT_LOCALES)
+  ? window.VPA_EXPERIMENT_LOCALES
+  : [];
+const SUPPORTED_LOCALES = Array.from(new Set([
+  ...BASE_LOCALES,
+  ...EXPERIMENTAL_LOCALES.filter((locale) => locale === "ja"),
+]));
 const LOADERS = {
   "zh-Hans": () => import("../i18n/zh-Hans.js"),
   en: () => import("../i18n/en.js"),
+  ja: () => import("../i18n/ja.js"),
 };
 
 let currentLocale = "zh-Hant";
@@ -86,6 +94,9 @@ function mapCandidateLocale(candidate) {
   }
   if (lower.startsWith("en")) {
     return "en";
+  }
+  if (lower.startsWith("ja") && SUPPORTED_LOCALES.includes("ja")) {
+    return "ja";
   }
   return null;
 }
@@ -195,5 +206,11 @@ export async function initI18n() {
 export async function setLocale(locale) {
   return internalSetLocale(locale, true);
 }
+
+export const i18nInternals = {
+  detectPreferredLocale,
+  mapCandidateLocale,
+  supportedLocales: [...SUPPORTED_LOCALES],
+};
 
 applyDomTranslations();

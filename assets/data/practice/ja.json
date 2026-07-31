@@ -1,0 +1,188 @@
+{
+  "version": 1,
+  "license": "CC BY-NC 4.0",
+  "categories": [
+    { "id": "greet", "title": "あいさつ" },
+    { "id": "assist", "title": "お願い" },
+    { "id": "time", "title": "予定" },
+    { "id": "nav", "title": "道案内" },
+    { "id": "shop", "title": "買い物" },
+    { "id": "size", "title": "サイズ" },
+    { "id": "return", "title": "返品・交換" },
+    { "id": "pay", "title": "支払い" },
+    { "id": "cs", "title": "問い合わせ" },
+    { "id": "work", "title": "仕事" },
+    { "id": "life", "title": "暮らし" },
+    { "id": "food", "title": "食事" }
+  ],
+  "phrases": [
+    {
+      "id": "greet.ask",
+      "cat": "greet",
+      "text": "すみません、少しお時間をいただけますか。",
+      "tip": "語尾まで息を保ち、やわらかく問いかけます。",
+      "difficulty": 1
+    },
+    {
+      "id": "greet.thanks",
+      "cat": "greet",
+      "text": "今日は手伝ってくださって、本当にありがとうございます。",
+      "tip": "感謝の言葉を急がず、母音を明瞭にします。",
+      "difficulty": 1
+    },
+    {
+      "id": "assist.check",
+      "cat": "assist",
+      "text": "この設定を一緒に確認していただけますか。",
+      "tip": "「確認」の前後を滑らかにつなげます。",
+      "difficulty": 1
+    },
+    {
+      "id": "assist.explain",
+      "cat": "assist",
+      "text": "もう一度、ゆっくり説明してもらえるとうれしいです。",
+      "tip": "自然な抑揚をつけ、語尾を落としすぎないようにします。",
+      "difficulty": 2
+    },
+    {
+      "id": "time.tomorrow",
+      "cat": "time",
+      "text": "明日の午後三時なら、ゆっくりお話しできます。",
+      "tip": "時刻をはっきり発音します。",
+      "difficulty": 1
+    },
+    {
+      "id": "time.change",
+      "cat": "time",
+      "text": "予定を来週の火曜日に変更してもよろしいですか。",
+      "tip": "一息で無理をせず、途中で自然に区切ります。",
+      "difficulty": 2
+    },
+    {
+      "id": "nav.station",
+      "cat": "nav",
+      "text": "ここから一番近い駅まで、歩いて何分くらいですか。",
+      "tip": "疑問文の語尾を軽く上げます。",
+      "difficulty": 1
+    },
+    {
+      "id": "nav.corner",
+      "cat": "nav",
+      "text": "次の角を右に曲がると、入口が見えてきます。",
+      "tip": "方向を示す語を明瞭に発音します。",
+      "difficulty": 1
+    },
+    {
+      "id": "shop.color",
+      "cat": "shop",
+      "text": "この商品は、ほかの色も置いてありますか。",
+      "tip": "母音を前に集める感覚で読みます。",
+      "difficulty": 1
+    },
+    {
+      "id": "shop.gift",
+      "cat": "shop",
+      "text": "友だちへの贈り物として包んでください。",
+      "tip": "子音を強くしすぎず、流れを保ちます。",
+      "difficulty": 2
+    },
+    {
+      "id": "size.try",
+      "cat": "size",
+      "text": "こちらの服を試着してもよろしいでしょうか。",
+      "tip": "丁寧な語尾をやさしくまとめます。",
+      "difficulty": 1
+    },
+    {
+      "id": "size.larger",
+      "cat": "size",
+      "text": "もう少し大きいサイズを見せてください。",
+      "tip": "「大きい」を伸ばしすぎないようにします。",
+      "difficulty": 1
+    },
+    {
+      "id": "return.exchange",
+      "cat": "return",
+      "text": "サイズが合わなかったので、交換をお願いできますか。",
+      "tip": "理由とお願いの間を短く区切ります。",
+      "difficulty": 2
+    },
+    {
+      "id": "return.receipt",
+      "cat": "return",
+      "text": "レシートはこちらです。返品の手続きをお願いします。",
+      "tip": "二つの文を同じ音量で読みます。",
+      "difficulty": 2
+    },
+    {
+      "id": "pay.card",
+      "cat": "pay",
+      "text": "クレジットカードで支払うことはできますか。",
+      "tip": "外来語も自然なリズムで発音します。",
+      "difficulty": 1
+    },
+    {
+      "id": "pay.receipt",
+      "cat": "pay",
+      "text": "領収書を一枚いただけますでしょうか。",
+      "tip": "口を横に引きすぎず、やわらかく読みます。",
+      "difficulty": 2
+    },
+    {
+      "id": "cs.problem",
+      "cat": "cs",
+      "text": "昨日から同じ問題が続いていて困っています。",
+      "tip": "感情を乗せても音量は安定させます。",
+      "difficulty": 2
+    },
+    {
+      "id": "cs.contact",
+      "cat": "cs",
+      "text": "確認が終わりましたら、メールで連絡してください。",
+      "tip": "文の後半で声が小さくならないようにします。",
+      "difficulty": 2
+    },
+    {
+      "id": "work.review",
+      "cat": "work",
+      "text": "資料を更新しましたので、内容の確認をお願いします。",
+      "tip": "一定のテンポで落ち着いて読みます。",
+      "difficulty": 2
+    },
+    {
+      "id": "work.idea",
+      "cat": "work",
+      "text": "新しい案について、みなさんの意見を聞かせてください。",
+      "tip": "最後まで前向きな明るさを保ちます。",
+      "difficulty": 2
+    },
+    {
+      "id": "life.delivery",
+      "cat": "life",
+      "text": "荷物は玄関の前に置いていただいて大丈夫です。",
+      "tip": "長い文を二つのまとまりに分けます。",
+      "difficulty": 2
+    },
+    {
+      "id": "life.weather",
+      "cat": "life",
+      "text": "窓を開けると、涼しい風が部屋に入ってきました。",
+      "tip": "情景を思い浮かべながら自然に読みます。",
+      "difficulty": 1
+    },
+    {
+      "id": "food.order",
+      "cat": "food",
+      "text": "おすすめの料理を一つ注文したいです。",
+      "tip": "口角を軽く上げ、明るい響きを意識します。",
+      "difficulty": 1
+    },
+    {
+      "id": "food.allergy",
+      "cat": "food",
+      "text": "この料理に乳製品が入っているか教えてください。",
+      "tip": "重要な語を明瞭にし、急がず読みます。",
+      "difficulty": 2
+    }
+  ]
+}

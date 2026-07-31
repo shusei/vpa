@@ -13,13 +13,14 @@ async function openDevelopmentPage(page) {
   await page.goto("/dev.html");
   await expect(page.locator("#playBtn")).toBeAttached();
   await expect.poll(() => page.evaluate(() => Boolean(window.vpaAdvancedExperience))).toBe(true);
+  await expect.poll(() => page.evaluate(() => Boolean(window.vpaExperience))).toBe(true);
 }
 
-test("development page renders advanced result and creates a local share card", async ({ page }) => {
+test("professional experience renders advanced result and creates a local share card", async ({ page }) => {
   const runtimeErrors = captureRuntimeErrors(page);
   await openDevelopmentPage(page);
 
-  await page.getByRole("button", { name: "進階嚴格" }).click();
+  await page.locator('#experienceNav [data-experience-target="professional"]').click();
   const result = await page.evaluate((analysis) => {
     return window.vpaAdvancedExperience.renderAnalysis(analysis);
   }, fixture);
@@ -29,7 +30,8 @@ test("development page renders advanced result and creates a local share card", 
   expect(result.score).toBeLessThan(100);
   await expect(page.locator("#advancedExperience")).toBeVisible();
   await expect(page.locator(".advanced-experience__score strong")).toHaveText(`${result.score}%`);
-  await expect(page.getByText("聲音年齡印象", { exact: true })).toBeVisible();
+  await expect(page.locator("#advancedExperience").getByText("聲音年齡印象", { exact: true }))
+    .toBeVisible();
   await expect(page.getByRole("button", { name: "產生分享卡" })).toBeEnabled();
 
   const blob = await page.evaluate(async () => {
@@ -62,7 +64,7 @@ test("advanced experiment text keeps accessible contrast across every theme", as
   const runtimeErrors = captureRuntimeErrors(page);
   await openDevelopmentPage(page);
   await page.evaluate((analysis) => {
-    window.vpaAdvancedExperience.setMode("advanced");
+    window.vpaExperience.setExperience("professional");
     window.vpaAdvancedExperience.renderAnalysis(analysis);
   }, fixture);
 
@@ -75,7 +77,7 @@ test("advanced experiment text keeps accessible contrast across every theme", as
     await page.locator("#settingsBtn").click();
     await page.locator(`.theme-item[data-theme="${theme}"]`).click();
     const audit = await page.evaluate(() => {
-      const host = document.querySelector(".analysis-mode-experiment");
+      const host = document.querySelector("#advancedExperience");
       const canvas = document.createElement("canvas");
       canvas.width = 1;
       canvas.height = 1;
@@ -157,9 +159,6 @@ test("advanced experiment text keeps accessible contrast across every theme", as
       };
     });
     if (process.env.VPA_THEME_CAPTURE && ["day", "pony2026", "warm", "contrast"].includes(theme)) {
-      await page.locator(".analysis-mode-experiment").screenshot({
-        path: resolve(`test-results/advanced-mode-${theme}.png`),
-      });
       await page.locator("#advancedExperience").screenshot({
         path: resolve(`test-results/advanced-panel-${theme}.png`),
       });
@@ -188,10 +187,10 @@ test.describe("mobile advanced experience", () => {
     hasTouch: true,
   });
 
-  test("mode selector and result panel stay within the viewport", async ({ page }) => {
+  test("experience selector and result panel stay within the viewport", async ({ page }) => {
     const runtimeErrors = captureRuntimeErrors(page);
     await openDevelopmentPage(page);
-    await page.getByRole("button", { name: "進階嚴格" }).click();
+    await page.locator('#experienceNav [data-experience-target="professional"]').click();
     await page.evaluate((analysis) => {
       window.vpaAdvancedExperience.renderAnalysis(analysis);
     }, fixture);

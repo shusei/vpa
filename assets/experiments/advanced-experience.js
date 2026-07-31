@@ -9,13 +9,10 @@ import {
   shareWithSystem,
 } from "./share-card.js";
 
-const MODE_KEY = "vpa::experiment.analysisMode";
-const VALID_MODES = new Set(["basic", "advanced"]);
-
-let currentMode = readMode();
 let lastAnalysis = null;
 let lastResult = null;
 let renderedAnalysisId = 0;
+const resultListeners = new Set();
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -24,24 +21,6 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
-}
-
-function readMode() {
-  try {
-    const stored = localStorage.getItem(MODE_KEY);
-    if (VALID_MODES.has(stored)) return stored;
-  } catch {
-    // Storage is optional.
-  }
-  return "basic";
-}
-
-function saveMode(mode) {
-  try {
-    localStorage.setItem(MODE_KEY, mode);
-  } catch {
-    // Storage is optional.
-  }
 }
 
 function track(eventName, params = {}) {
@@ -56,50 +35,14 @@ function track(eventName, params = {}) {
   }
 }
 
-const recordButton = document.getElementById("recordBtn");
 const meter = document.getElementById("meter");
-const modeSelector = document.createElement("div");
-modeSelector.id = "analysisModeExperiment";
-modeSelector.className = "analysis-mode-experiment";
-modeSelector.setAttribute("role", "group");
-
 const resultPanel = document.createElement("section");
 resultPanel.id = "advancedExperience";
 resultPanel.className = "advanced-experience";
 resultPanel.setAttribute("aria-live", "polite");
 resultPanel.hidden = true;
 
-if (recordButton) recordButton.insertAdjacentElement("beforebegin", modeSelector);
 if (meter) meter.insertAdjacentElement("afterend", resultPanel);
-
-function renderModeSelector() {
-  modeSelector.setAttribute("aria-label", t("experiment.advanced.mode.aria"));
-  modeSelector.innerHTML = `
-    <span class="analysis-mode-experiment__label">${escapeHtml(t("experiment.advanced.mode.label"))}</span>
-    <span class="analysis-mode-experiment__buttons">
-      <button type="button" data-experiment-mode="basic" aria-pressed="${currentMode === "basic"}">
-        ${escapeHtml(t("experiment.advanced.mode.basic"))}
-      </button>
-      <button type="button" data-experiment-mode="advanced" aria-pressed="${currentMode === "advanced"}">
-        ${escapeHtml(t("experiment.advanced.mode.advanced"))}
-      </button>
-    </span>
-    <span class="analysis-mode-experiment__note">${escapeHtml(t("experiment.advanced.mode.note"))}</span>
-  `;
-  modeSelector.querySelectorAll("[data-experiment-mode]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const mode = button.getAttribute("data-experiment-mode");
-      if (!VALID_MODES.has(mode) || mode === currentMode) return;
-      currentMode = mode;
-      saveMode(mode);
-      document.documentElement.setAttribute("data-analysis-mode", mode);
-      renderModeSelector();
-      if (mode === "advanced" && lastAnalysis) renderAnalysis(lastAnalysis);
-      else resultPanel.hidden = true;
-      track("advanced_mode_selected", { mode });
-    });
-  });
-}
 
 function componentLabel(key) {
   return t(`experiment.advanced.components.${key}`);
@@ -171,18 +114,19 @@ function shareLabels(result) {
   };
 }
 
-async function createCard(result) {
+export async function createResultCard(result = lastResult, { shareUrl = buildShareUrl() } = {}) {
+  if (!result) return null;
   return createShareCardBlob({
     labels: shareLabels(result),
     result,
-    shareUrl: buildShareUrl(),
+    shareUrl,
     theme: document.documentElement.getAttribute("data-faction") === "light" ? "light" : "dark",
   });
 }
 
 async function handleSystemShare(result, { downloadWhenUnsupported = true } = {}) {
   try {
-    const blob = await createCard(result);
+    const blob = await createResultCard(result);
     const response = await shareWithSystem({
       blob,
       caption: shareCaption(result),
@@ -211,7 +155,7 @@ async function handleSystemShare(result, { downloadWhenUnsupported = true } = {}
 
 async function downloadShareCard(result) {
   try {
-    const blob = await createCard(result);
+    const blob = await createResultCard(result);
     downloadBlob(blob, "vpa-advanced-result.png");
     setShareStatus("experiment.advanced.share.downloaded");
     track("share_card_download", { source: "button" });
@@ -274,13 +218,36 @@ function bindShareActions(result) {
   });
 }
 
-export function renderAnalysis(analysis) {
+export function formatAdvancedResult(result) {
+  if (!result) return null;
+  return {
+    age: ageValue(result),
+    archetype: archetypeValue(result),
+    caption: shareCaption(result),
+    confidence: confidenceValue(result),
+    insight: t(`experiment.advanced.insight.${result.insightKey}`),
+  };
+}
+
+export function onAdvancedResult(listener) {
+  if (typeof listener !== "function") return () => { };
+  resultListeners.add(listener);
+  return () => resultListeners.delete(listener);
+}
+
+function notifyResultListeners(analysis, result) {
+  resultListeners.forEach((listener) => {
+    try {
+      listener({ analysis, result });
+    } catch (error) {
+      console.warn("[advanced-experiment] result listener failed", error);
+    }
+  });
+}
+
+export function renderAnalysis(analysis, { notify = true } = {}) {
   lastAnalysis = analysis;
   lastResult = evaluateAdvancedExperience(analysis);
-  if (currentMode !== "advanced") {
-    resultPanel.hidden = true;
-    return lastResult;
-  }
   const result = lastResult;
   const scoreText = result.ready ? `${result.score}%` : "—";
   const insufficient = result.ready
@@ -351,6 +318,7 @@ export function renderAnalysis(analysis) {
     confidence: result.confidence.key,
     score_band: Math.floor(result.score / 10) * 10,
   });
+  if (notify) notifyResultListeners(analysis, result);
   return result;
 }
 
@@ -373,27 +341,15 @@ onInferenceDone(async () => {
 });
 
 onLocaleChange(() => {
-  renderModeSelector();
-  if (lastAnalysis && currentMode === "advanced") renderAnalysis(lastAnalysis);
+  if (lastAnalysis) renderAnalysis(lastAnalysis, { notify: false });
 });
 
-document.documentElement.setAttribute("data-analysis-mode", currentMode);
-renderModeSelector();
-
 window.vpaAdvancedExperience = {
-  createCard: () => lastResult ? createCard(lastResult) : null,
+  createCard: () => createResultCard(lastResult),
   evaluate: evaluateAdvancedExperience,
+  formatResult: formatAdvancedResult,
+  getLastAnalysis: () => lastAnalysis,
   getLastResult: () => lastResult,
   getLocale: getCurrentLocale,
   renderAnalysis,
-  setMode(mode) {
-    if (!VALID_MODES.has(mode)) return false;
-    currentMode = mode;
-    saveMode(mode);
-    document.documentElement.setAttribute("data-analysis-mode", mode);
-    renderModeSelector();
-    if (mode === "advanced" && lastAnalysis) renderAnalysis(lastAnalysis);
-    else resultPanel.hidden = true;
-    return true;
-  },
 };

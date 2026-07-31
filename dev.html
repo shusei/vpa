@@ -89,6 +89,20 @@
       });
     })();
   </script>
+  <script>
+    (function () {
+      const key = "vpa::experiment.experience";
+      const hasChallenge = location.hash.startsWith("#vpa-challenge=");
+      let experience = "quick";
+      if (!hasChallenge) {
+        try {
+          const saved = localStorage.getItem(key);
+          if (saved === "quick" || saved === "professional") experience = saved;
+        } catch { }
+      }
+      document.documentElement.setAttribute("data-experience", experience);
+    })();
+  </script>
 
 
   <meta name="description" content="在瀏覽器本地推論，快速查看聲音被模型感知為女性化／男性化的傾向，並提供即時音高 Stream、統計與簡評。">
@@ -98,6 +112,7 @@
   <link rel="stylesheet" href="assets/css/components.css" />
   <link rel="stylesheet" href="assets/css/overlays.css" />
   <link rel="stylesheet" href="assets/css/experiments.css" />
+  <link rel="stylesheet" href="assets/css/quick-experience.css" />
   <script type="importmap">
   {
     "imports": {
@@ -105,6 +120,14 @@
       "@ffmpeg/util": "https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js"
     }
   }
+  </script>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y485R7RH0H"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag("js", new Date());
+    gtag("config", "G-Y485R7RH0H");
   </script>
 </head>
 
@@ -137,6 +160,8 @@
               data-i18n="topbar.localeNames.zhHans">简体中文</button>
             <button type="button" class="lang-item" data-locale="en" role="menuitemradio" aria-checked="false"
               data-i18n="topbar.localeNames.en">English</button>
+            <button type="button" class="lang-item" data-locale="ja" role="menuitemradio" aria-checked="false"
+              data-i18n="topbar.localeNames.ja">日本語</button>
           </div>
           <button id="settingsBtn" class="gear" type="button" aria-label="主題設定" aria-expanded="false" title="主題設定"
             data-i18n-attrs="aria-label:topbar.settingsAria,title:topbar.settingsTitle">⚙️</button>
@@ -567,9 +592,10 @@
 
   <script>
     window.ONNX_MODEL_ID = 'prithivMLmods/Common-Voice-Gender-Detection-ONNX';
+    window.VPA_EXPERIMENT_LOCALES = ['ja'];
   </script>
   <script type="module" src="assets/app.js?v=__APP_VERSION__"></script>
-  <script type="module" src="assets/experiments/advanced-experience.js?v=__APP_VERSION__"></script>
+  <script type="module" src="assets/experiments/experience-shell.js?v=__APP_VERSION__"></script>
 </body>
 
 </html>

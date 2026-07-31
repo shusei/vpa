@@ -9,7 +9,9 @@ function normalizeLocale(locale) {
     "zh-Hans": "zh-Hans",
     "en-US": "en",
     en: "en",
-    "en-GB": "en"
+    "en-GB": "en",
+    "ja-JP": "ja",
+    ja: "ja"
   };
   return map[locale] || "zh-Hant";
 }
