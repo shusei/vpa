@@ -58,6 +58,130 @@ test("development page renders advanced result and creates a local share card", 
   expect(runtimeErrors).toEqual([]);
 });
 
+test("advanced experiment text keeps accessible contrast across every theme", async ({ page }) => {
+  const runtimeErrors = captureRuntimeErrors(page);
+  await openDevelopmentPage(page);
+  await page.evaluate((analysis) => {
+    window.vpaAdvancedExperience.setMode("advanced");
+    window.vpaAdvancedExperience.renderAnalysis(analysis);
+  }, fixture);
+
+  const themes = await page.locator(".theme-item").evaluateAll((buttons) => {
+    return buttons.map((button) => button.dataset.theme);
+  });
+  const failures = [];
+
+  for (const theme of themes) {
+    await page.locator("#settingsBtn").click();
+    await page.locator(`.theme-item[data-theme="${theme}"]`).click();
+    const audit = await page.evaluate(() => {
+      const host = document.querySelector(".analysis-mode-experiment");
+      const canvas = document.createElement("canvas");
+      canvas.width = 1;
+      canvas.height = 1;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+      function rgba(value) {
+        ctx.clearRect(0, 0, 1, 1);
+        ctx.fillStyle = "rgba(0, 0, 0, 0)";
+        ctx.fillRect(0, 0, 1, 1);
+        ctx.fillStyle = value;
+        ctx.fillRect(0, 0, 1, 1);
+        return Array.from(ctx.getImageData(0, 0, 1, 1).data);
+      }
+
+      function composite(foreground, background) {
+        const alpha = foreground[3] / 255;
+        return [
+          (foreground[0] * alpha) + (background[0] * (1 - alpha)),
+          (foreground[1] * alpha) + (background[1] * (1 - alpha)),
+          (foreground[2] * alpha) + (background[2] * (1 - alpha)),
+          255,
+        ];
+      }
+
+      function luminance(color) {
+        const channels = color.slice(0, 3).map((channel) => {
+          const normalized = channel / 255;
+          return normalized <= 0.04045
+            ? normalized / 12.92
+            : ((normalized + 0.055) / 1.055) ** 2.4;
+        });
+        return (0.2126 * channels[0]) + (0.7152 * channels[1]) + (0.0722 * channels[2]);
+      }
+
+      function contrast(foreground, background) {
+        const backgroundRgba = rgba(background);
+        const foregroundRgba = composite(rgba(foreground), backgroundRgba);
+        const foregroundLuminance = luminance(foregroundRgba);
+        const backgroundLuminance = luminance(backgroundRgba);
+        return (Math.max(foregroundLuminance, backgroundLuminance) + 0.05)
+          / (Math.min(foregroundLuminance, backgroundLuminance) + 0.05);
+      }
+
+      function resolvedPair(foregroundToken, backgroundToken) {
+        const probe = document.createElement("span");
+        probe.style.color = `var(${foregroundToken})`;
+        probe.style.backgroundColor = `var(${backgroundToken})`;
+        host.append(probe);
+        const style = getComputedStyle(probe);
+        const pair = {
+          background: style.backgroundColor,
+          foreground: style.color,
+        };
+        probe.remove();
+        return {
+          ...pair,
+          ratio: contrast(pair.foreground, pair.background),
+        };
+      }
+
+      const pairs = [
+        ["--experiment-ink", "--experiment-bg-a"],
+        ["--experiment-ink", "--experiment-bg-b"],
+        ["--experiment-ink", "--experiment-card"],
+        ["--experiment-muted", "--experiment-bg-a"],
+        ["--experiment-muted", "--experiment-card"],
+        ["--experiment-active-ink", "--experiment-active-a"],
+        ["--experiment-active-ink", "--experiment-active-b"],
+        ["--experiment-emphasis", "--experiment-bg-a"],
+        ["--experiment-emphasis", "--experiment-card"],
+      ].map(([foregroundToken, backgroundToken]) => ({
+        backgroundToken,
+        foregroundToken,
+        ...resolvedPair(foregroundToken, backgroundToken),
+      }));
+      return {
+        faction: document.documentElement.dataset.faction,
+        pairs,
+      };
+    });
+    if (process.env.VPA_THEME_CAPTURE && ["day", "pony2026", "warm", "contrast"].includes(theme)) {
+      await page.locator(".analysis-mode-experiment").screenshot({
+        path: resolve(`test-results/advanced-mode-${theme}.png`),
+      });
+      await page.locator("#advancedExperience").screenshot({
+        path: resolve(`test-results/advanced-panel-${theme}.png`),
+      });
+    }
+
+    for (const pair of audit.pairs) {
+      if (pair.ratio < 4.5) {
+        failures.push({
+          ...pair,
+          faction: audit.faction,
+          ratio: Number(pair.ratio.toFixed(2)),
+          theme,
+        });
+      }
+    }
+  }
+
+  expect(themes.length).toBeGreaterThanOrEqual(30);
+  expect(failures).toEqual([]);
+  expect(runtimeErrors).toEqual([]);
+});
+
 test.describe("mobile advanced experience", () => {
   test.use({
     viewport: { width: 390, height: 844 },
