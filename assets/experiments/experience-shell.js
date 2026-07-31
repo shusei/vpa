@@ -16,7 +16,15 @@ import {
   createChallengeUrl,
   readChallenge,
 } from "./challenge-link.js";
+import {
+  getDailyPromptId,
+  getStandardPromptId,
+  promptTranslationKey,
+  STANDARD_PROMPT_IDS,
+  STANDARD_TEST_ID,
+} from "./quick-prompts.js";
 import { downloadBlob } from "./share-card.js";
+import { aggregateStandardResults } from "./standard-result.js";
 
 const EXPERIENCE_KEY = "vpa::experiment.experience";
 const LATEST_RESULT_KEY = "vpa::quick.latestResult";
@@ -25,6 +33,10 @@ const QUICK_ANALYSIS_TIMEOUT_MS = 90000;
 
 let currentExperience = readChallenge() ? "quick" : readExperience();
 let incomingChallenge = readChallenge();
+let quickTestMode = incomingChallenge?.testMode === "standard" ? "standard" : "daily";
+let dailyPromptId = incomingChallenge?.testMode === "daily"
+  ? incomingChallenge.promptId
+  : getDailyPromptId();
 let latestAnalysis = null;
 let latestResult = null;
 let quickStage = "idle";
@@ -36,6 +48,8 @@ let shareOpen = false;
 let includeAudio = false;
 let shareStatusKey = "";
 let currentChallenge = null;
+let standardStep = 0;
+let standardRuns = [];
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -84,6 +98,7 @@ function saveLatestResult(result) {
       archetype: result.archetypeKey,
       at: Date.now(),
       score: result.score,
+      testMode: result.quickTest?.mode || "daily",
       version: result.version,
     }));
   } catch {
@@ -176,7 +191,34 @@ function latestResultMarkup() {
   `;
 }
 
-function landingMarkup() {
+function activePromptId() {
+  return quickTestMode === "standard"
+    ? getStandardPromptId(standardStep)
+    : dailyPromptId;
+}
+
+function activePromptText() {
+  const key = promptTranslationKey(activePromptId());
+  return key ? t(key) : t("experiment.quick.prompt");
+}
+
+function promptMarkup({ showProgress = false } = {}) {
+  const label = showProgress
+    ? t("experiment.quick.standard.progress", {
+      current: standardStep + 1,
+      total: STANDARD_PROMPT_IDS.length,
+    })
+    : t("experiment.quick.promptLabel");
+  return `
+    <article class="quick-prompt">
+      <span>${escapeHtml(label)}</span>
+      <blockquote>${escapeHtml(activePromptText())}</blockquote>
+      <small>${escapeHtml(t("experiment.quick.promptHint"))}</small>
+    </article>
+  `;
+}
+
+function dailyLandingMarkup() {
   return `
     <section class="quick-landing" data-quick-stage="idle">
       ${challengeBanner()}
@@ -185,14 +227,13 @@ function landingMarkup() {
         <h1>${escapeHtml(t("experiment.quick.title"))}</h1>
         <p>${escapeHtml(t("experiment.quick.subtitle"))}</p>
       </div>
-      <article class="quick-prompt">
-        <span>${escapeHtml(t("experiment.quick.promptLabel"))}</span>
-        <blockquote>${escapeHtml(t("experiment.quick.prompt"))}</blockquote>
-        <small>${escapeHtml(t("experiment.quick.promptHint"))}</small>
-      </article>
+      ${promptMarkup()}
       ${quickErrorKey ? `<p class="quick-error" role="alert">${escapeHtml(t(quickErrorKey))}</p>` : ""}
       <button type="button" class="quick-primary" data-quick-record>
         ${escapeHtml(t("experiment.quick.start"))}
+      </button>
+      <button type="button" class="quick-link quick-standard-cta" data-quick-standard>
+        ${escapeHtml(t("experiment.quick.standard.cta"))}
       </button>
       <div class="quick-trust">
         <span>${escapeHtml(t("experiment.quick.trust.local"))}</span>
@@ -202,6 +243,36 @@ function landingMarkup() {
       <div class="quick-history">${latestResultMarkup()}</div>
     </section>
   `;
+}
+
+function standardLandingMarkup() {
+  return `
+    <section class="quick-landing quick-standard" data-quick-stage="idle">
+      ${challengeBanner()}
+      <div class="quick-landing__hero">
+        <span class="quick-eyebrow">${escapeHtml(t("experiment.quick.standard.progress", {
+          current: standardStep + 1,
+          total: STANDARD_PROMPT_IDS.length,
+        }))}</span>
+        <h1>${escapeHtml(t("experiment.quick.standard.title"))}</h1>
+        <p>${escapeHtml(t("experiment.quick.standard.subtitle"))}</p>
+      </div>
+      ${promptMarkup({ showProgress: true })}
+      ${quickErrorKey ? `<p class="quick-error" role="alert">${escapeHtml(t(quickErrorKey))}</p>` : ""}
+      <button type="button" class="quick-primary" data-quick-record>
+        ${escapeHtml(t("experiment.quick.start"))}
+      </button>
+      <button type="button" class="quick-link" data-quick-daily>
+        ${escapeHtml(t("experiment.quick.standard.backDaily"))}
+      </button>
+    </section>
+  `;
+}
+
+function landingMarkup() {
+  return quickTestMode === "standard"
+    ? standardLandingMarkup()
+    : dailyLandingMarkup();
 }
 
 function progressMarkup() {
@@ -220,11 +291,43 @@ function progressMarkup() {
       <h1>${escapeHtml(t(statusKey))}</h1>
       <strong class="quick-progress__timer" data-quick-timer>${isRecording ? "00:00" : "···"}</strong>
       <p>${escapeHtml(t(isRecording ? "experiment.quick.recordingHint" : "experiment.quick.analyzingHint"))}</p>
+      ${isRecording || quickStage === "requesting"
+        ? `<div class="quick-progress__prompt">${escapeHtml(activePromptText())}</div>`
+        : ""}
       ${isRecording ? `
         <button type="button" class="quick-primary quick-primary--stop" data-quick-record>
           ${escapeHtml(t("experiment.quick.stop"))}
         </button>
       ` : ""}
+    </section>
+  `;
+}
+
+function standardCheckpointMarkup() {
+  const result = standardRuns[standardRuns.length - 1];
+  return `
+    <section class="quick-standard-checkpoint" data-quick-stage="standard-next">
+      <span class="quick-eyebrow">${escapeHtml(t("experiment.quick.standard.progress", {
+        current: standardRuns.length,
+        total: STANDARD_PROMPT_IDS.length,
+      }))}</span>
+      <h1>${escapeHtml(t("experiment.quick.standard.stepComplete", {
+        current: standardRuns.length,
+      }))}</h1>
+      <strong>${escapeHtml(t("experiment.quick.standard.stepScore", {
+        score: result.score,
+      }))}</strong>
+      <div class="quick-standard-scores" aria-label="${escapeHtml(t("experiment.quick.standard.scoresLabel"))}">
+        ${standardRuns.map((run, index) => `
+          <span>${index + 1}<strong>${run.score}%</strong></span>
+        `).join("")}
+      </div>
+      <button type="button" class="quick-primary" data-quick-standard-next>
+        ${escapeHtml(t("experiment.quick.standard.next"))}
+      </button>
+      <button type="button" class="quick-link" data-quick-daily>
+        ${escapeHtml(t("experiment.quick.standard.backDaily"))}
+      </button>
     </section>
   `;
 }
@@ -236,9 +339,9 @@ function comparisonMarkup(result) {
     <section class="quick-comparison">
       <span>${escapeHtml(t("experiment.quick.challenge.comparison"))}</span>
       <div>
-        <strong>${comparison.opponentScore}</strong>
+        <strong>${comparison.opponentScore}%</strong>
         <i>VS</i>
-        <strong>${comparison.score}</strong>
+        <strong>${comparison.score}%</strong>
       </div>
       <p>${escapeHtml(t(`experiment.quick.challenge.${comparison.outcome}`, {
         difference: Math.abs(comparison.difference),
@@ -251,6 +354,9 @@ function shareComposerMarkup(result) {
   if (!shareOpen) return "";
   const audioUrl = recorderCtl.getLastRecordingUrl();
   const audioDisabled = !audioUrl;
+  const audioDefaultKey = result.quickTest?.mode === "standard"
+    ? "experiment.quick.standard.audioDefault"
+    : "experiment.quick.share.audioDefault";
   return `
     <section class="quick-share-composer">
       <h2>${escapeHtml(t("experiment.quick.share.title"))}</h2>
@@ -258,7 +364,7 @@ function shareComposerMarkup(result) {
         <input type="checkbox" data-quick-audio ${includeAudio ? "checked" : ""} ${audioDisabled ? "disabled" : ""} />
         <span>
           <strong>${escapeHtml(t("experiment.quick.share.includeAudio"))}</strong>
-          <small>${escapeHtml(t("experiment.quick.share.audioDefault"))}</small>
+          <small>${escapeHtml(t(audioDefaultKey))}</small>
         </span>
       </label>
       ${includeAudio && audioUrl ? `
@@ -281,19 +387,64 @@ function shareComposerMarkup(result) {
   `;
 }
 
+function standardSummaryMarkup(result) {
+  if (!result.standard) return "";
+  return `
+    <section class="quick-standard-summary">
+      <div>
+        <span>${escapeHtml(t("experiment.quick.standard.stability"))}</span>
+        <strong>${escapeHtml(t(`experiment.quick.standard.stabilityValues.${result.standard.stabilityKey}`))}</strong>
+        <small>${escapeHtml(t("experiment.quick.standard.spread", {
+          spread: result.standard.spread,
+        }))}</small>
+      </div>
+      <div>
+        <span>${escapeHtml(t("experiment.quick.standard.scoresLabel"))}</span>
+        <strong>${result.standard.scores.map((score) => `${score}%`).join(" / ")}</strong>
+      </div>
+    </section>
+  `;
+}
+
 function resultMarkup() {
   const result = latestResult;
   if (!result) return landingMarkup();
   const formatted = formatAdvancedResult(result);
   const ready = result.ready;
+  const isStandard = result.quickTest?.mode === "standard";
+  const scoreKey = isStandard
+    ? "experiment.quick.reveal.standardScore"
+    : "experiment.quick.reveal.singleScore";
+  const feminine = ready ? Math.max(0, Math.min(100, Math.round(result.score))) : null;
+  const masculine = ready ? 100 - feminine : null;
   return `
     <section class="quick-result" data-quick-stage="result">
       ${comparisonMarkup(result)}
       <span class="quick-eyebrow">${escapeHtml(t("experiment.quick.reveal.eyebrow"))}</span>
       <div class="quick-result__score">
-        <strong>${ready ? result.score : "—"}</strong>
-        <span>${escapeHtml(t("experiment.quick.reveal.score"))}</span>
+        <span class="quick-result__tendency-label">${escapeHtml(t("experiment.quick.reveal.tendency"))}</span>
+        ${ready ? `
+          <div class="quick-result__tendency" aria-label="${escapeHtml(t("experiment.quick.reveal.tendencyAria", {
+            feminine,
+            masculine,
+          }))}">
+            <article class="quick-result__feminine">
+              <span>${escapeHtml(t("experiment.quick.reveal.feminine"))}</span>
+              <strong>${feminine}%</strong>
+            </article>
+            <article class="quick-result__masculine">
+              <span>${escapeHtml(t("experiment.quick.reveal.masculine"))}</span>
+              <strong>${masculine}%</strong>
+            </article>
+          </div>
+          <div class="quick-result__tendency-meter" aria-hidden="true">
+            <span style="width:${feminine}%"></span>
+            <i style="width:${masculine}%"></i>
+          </div>
+        ` : `<strong class="quick-result__unavailable">—</strong>`}
+        <small>${escapeHtml(t(scoreKey))}</small>
       </div>
+      ${ready ? standardSummaryMarkup(result) : ""}
       ${ready ? `
         <div class="quick-result__identity">
           <article>
@@ -320,8 +471,19 @@ function resultMarkup() {
         <button type="button" class="quick-secondary" data-quick-retry>
           ${escapeHtml(t("experiment.quick.retry"))}
         </button>
+        ${isStandard ? `
+          <button type="button" class="quick-link" data-quick-daily>
+            ${escapeHtml(t("experiment.quick.standard.backDaily"))}
+          </button>
+        ` : `
+          <button type="button" class="quick-link quick-standard-cta" data-quick-standard>
+            ${escapeHtml(t("experiment.quick.standard.cta"))}
+          </button>
+        `}
         <button type="button" class="quick-link" data-experience-target="professional">
-          ${escapeHtml(t("experiment.quick.viewProfessional"))}
+          ${escapeHtml(t(isStandard
+            ? "experiment.quick.standard.viewProfessional"
+            : "experiment.quick.viewProfessional"))}
         </button>
       </div>
       ${shareComposerMarkup(result)}
@@ -337,7 +499,9 @@ function renderQuickExperience() {
         ? landingMarkup()
         : quickStage === "result"
           ? resultMarkup()
-          : progressMarkup()}
+          : quickStage === "standard-next"
+            ? standardCheckpointMarkup()
+            : progressMarkup()}
       <footer class="quick-footer">${escapeHtml(t("experiment.quick.footer"))}</footer>
     </div>
   `;
@@ -370,6 +534,19 @@ function bindQuickControls() {
   });
   quickExperience.querySelector("[data-quick-retry]")?.addEventListener("click", () => {
     resetQuickTest();
+  });
+  quickExperience.querySelectorAll("[data-quick-standard]").forEach((button) => {
+    button.addEventListener("click", () => {
+      startStandardTest();
+    });
+  });
+  quickExperience.querySelectorAll("[data-quick-daily]").forEach((button) => {
+    button.addEventListener("click", () => {
+      returnToDailyTest();
+    });
+  });
+  quickExperience.querySelector("[data-quick-standard-next]")?.addEventListener("click", () => {
+    continueStandardTest();
   });
   quickExperience.querySelector("[data-quick-share]")?.addEventListener("click", () => {
     shareOpen = !shareOpen;
@@ -414,6 +591,16 @@ function clearTimers() {
   }
 }
 
+function clearIncomingChallenge() {
+  incomingChallenge = null;
+  if (!location.hash.startsWith("#vpa-challenge=")) return;
+  try {
+    history.replaceState(null, "", `${location.pathname}${location.search}`);
+  } catch {
+    // History is optional.
+  }
+}
+
 function resetQuickTest() {
   clearTimers();
   recorderCtl.stopPlayback();
@@ -422,6 +609,44 @@ function resetQuickTest() {
   quickStage = "idle";
   quickErrorKey = "";
   quickStartedAt = 0;
+  shareOpen = false;
+  includeAudio = false;
+  shareStatusKey = "";
+  currentChallenge = null;
+  if (quickTestMode === "standard") {
+    standardStep = 0;
+    standardRuns = [];
+  }
+  renderQuickExperience();
+}
+
+function startStandardTest() {
+  if (incomingChallenge?.testMode !== "standard") clearIncomingChallenge();
+  quickTestMode = "standard";
+  standardStep = 0;
+  standardRuns = [];
+  resetQuickTest();
+  track("standard_test_selected");
+}
+
+function returnToDailyTest() {
+  if (incomingChallenge?.testMode !== "daily") clearIncomingChallenge();
+  quickTestMode = "daily";
+  dailyPromptId = incomingChallenge?.promptId || getDailyPromptId();
+  standardStep = 0;
+  standardRuns = [];
+  resetQuickTest();
+  track("daily_test_selected", { prompt_id: dailyPromptId });
+}
+
+function continueStandardTest() {
+  if (quickTestMode !== "standard") return;
+  standardStep = standardRuns.length;
+  if (!getStandardPromptId(standardStep)) return;
+  latestAnalysis = null;
+  latestResult = null;
+  quickStage = "idle";
+  quickErrorKey = "";
   shareOpen = false;
   includeAudio = false;
   shareStatusKey = "";
@@ -472,7 +697,11 @@ async function toggleQuickRecording() {
   includeAudio = false;
   quickStage = "requesting";
   renderQuickExperience();
-  track("quick_test_started");
+  track("quick_test_started", {
+    mode: quickTestMode,
+    prompt_id: activePromptId(),
+    standard_step: quickTestMode === "standard" ? standardStep + 1 : undefined,
+  });
   recordButton.click();
   const started = await waitForRecordingState(true, 30000);
   if (!started) {
@@ -564,20 +793,13 @@ async function shareQuickResult() {
   renderQuickExperience();
 }
 
-onAdvancedResult(({ analysis, result }) => {
-  clearTimers();
-  latestAnalysis = analysis;
+function finalizeQuickResult(result) {
   latestResult = result;
   quickStage = "result";
-  quickErrorKey = "";
-  quickStartedAt = 0;
-  shareOpen = false;
-  includeAudio = false;
-  shareStatusKey = "";
-  currentChallenge = null;
   saveLatestResult(result);
   renderQuickExperience();
   track("quick_test_completed", {
+    mode: result.quickTest?.mode || "daily",
     ready: result.ready,
     score_band: result.ready ? Math.floor(result.score / 10) * 10 : -1,
   });
@@ -586,6 +808,59 @@ onAdvancedResult(({ analysis, result }) => {
       outcome: compareChallenge(incomingChallenge, result)?.outcome || "unknown",
     });
   }
+}
+
+onAdvancedResult(({ analysis, result }) => {
+  if (quickTestMode === "standard" && quickStage !== "analyzing") return;
+  clearTimers();
+  latestAnalysis = analysis;
+  quickErrorKey = "";
+  quickStartedAt = 0;
+  shareOpen = false;
+  includeAudio = false;
+  shareStatusKey = "";
+  currentChallenge = null;
+
+  if (quickTestMode === "standard") {
+    if (!result.ready) {
+      finalizeQuickResult({
+        ...result,
+        quickTest: {
+          mode: "standard",
+          promptId: STANDARD_TEST_ID,
+        },
+      });
+      return;
+    }
+    standardRuns.push(result);
+    track("standard_test_step_completed", {
+      score_band: Math.floor(result.score / 10) * 10,
+      standard_step: standardRuns.length,
+    });
+    if (standardRuns.length < STANDARD_PROMPT_IDS.length) {
+      latestResult = null;
+      quickStage = "standard-next";
+      renderQuickExperience();
+      return;
+    }
+    const aggregate = aggregateStandardResults(standardRuns);
+    finalizeQuickResult({
+      ...aggregate,
+      quickTest: {
+        mode: "standard",
+        promptId: STANDARD_TEST_ID,
+      },
+    });
+    return;
+  }
+
+  finalizeQuickResult({
+    ...result,
+    quickTest: {
+      mode: "daily",
+      promptId: dailyPromptId,
+    },
+  });
 });
 
 onLocaleChange(() => {
@@ -600,6 +875,9 @@ window.vpaExperience = {
   getExperience: () => currentExperience,
   getLatestAnalysis: () => latestAnalysis,
   getLatestResult: () => latestResult,
+  getQuickTestMode: () => quickTestMode,
+  getStandardRuns: () => [...standardRuns],
   resetQuickTest,
   setExperience,
+  startStandardTest,
 };

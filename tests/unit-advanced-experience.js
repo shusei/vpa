@@ -21,6 +21,18 @@ import {
   audioFileFromUrl,
   shareResultFiles,
 } from "../assets/experiments/audio-share.js";
+import {
+  DAILY_PROMPT_IDS,
+  getDailyPromptId,
+  getStandardPromptId,
+  promptTranslationKey,
+  STANDARD_PROMPT_IDS,
+  STANDARD_TEST_ID,
+} from "../assets/experiments/quick-prompts.js";
+import {
+  aggregateStandardResults,
+  standardResultInternals,
+} from "../assets/experiments/standard-result.js";
 import en from "../assets/i18n/en.js";
 import ja from "../assets/i18n/ja.js";
 import zhHans from "../assets/i18n/zh-Hans.js";
@@ -80,6 +92,52 @@ assert.equal(advancedEvaluatorInternals.interpolate([
   [200, 1],
 ], 150), 0.5);
 
+const promptMorning = getDailyPromptId(new Date(2026, 6, 31, 1, 0));
+const promptEvening = getDailyPromptId(new Date(2026, 6, 31, 23, 59));
+const promptNextDay = getDailyPromptId(new Date(2026, 7, 1, 0, 1));
+assert.equal(promptMorning, promptEvening);
+assert.notEqual(promptMorning, promptNextDay);
+assert.equal(DAILY_PROMPT_IDS.length, 10);
+assert.equal(STANDARD_PROMPT_IDS.length, 3);
+assert.deepEqual(
+  STANDARD_PROMPT_IDS.map((_, index) => getStandardPromptId(index)),
+  STANDARD_PROMPT_IDS,
+);
+assert.equal(getStandardPromptId(3), null);
+assert.equal(promptTranslationKey(promptMorning), `experiment.quick.prompts.${promptMorning}`);
+
+const standardInputs = [64, 81, 72].map((score, index) => ({
+  ...structuredClone(reference),
+  archetypeKey: index === 1 ? "brightForward" : "airySweet",
+  components: {
+    ...reference.components,
+    pitch: [0.62, 0.88, 0.74][index],
+    strict: score / 100,
+  },
+  score,
+  voiceAge: {
+    ...reference.voiceAge,
+    max: [30, 24, 28][index],
+    min: [22, 18, 20][index],
+  },
+}));
+const standardResult = aggregateStandardResults(standardInputs);
+assert.equal(standardResult.ready, true);
+assert.equal(standardResult.score, 72);
+assert.equal(standardResult.standard.spread, 17);
+assert.equal(standardResult.standard.stabilityKey, "low");
+assert.deepEqual(standardResult.standard.scores, [64, 81, 72]);
+assert.equal(standardResult.archetypeKey, "airySweet");
+assert.equal(standardResult.voiceAge.min, 20);
+assert.equal(standardResult.voiceAge.max, 28);
+assert.equal(standardResult.components.pitch, 0.74);
+assert.equal(standardResult.version, `${reference.version}.standard3`);
+assert.throws(() => aggregateStandardResults(standardInputs.slice(0, 2)), TypeError);
+assert.equal(
+  standardResultInternals.majority(["first", "second", "third"], "second"),
+  "second",
+);
+
 const shareUrl = buildShareUrl({
   href: "https://example.com/vpa/dev.html?fixture=1#result",
 });
@@ -127,6 +185,42 @@ assert.deepEqual(compareChallenge(challenge, { ready: true, score: challenge.sco
 });
 assert.equal(compareChallenge(challenge, { ready: true, score: challenge.score - 1 }).outcome, "behind");
 assert.equal(compareChallenge(challenge, { ready: true, score: challenge.score }).outcome, "tied");
+
+const dailyResult = {
+  ...reference,
+  quickTest: {
+    mode: "daily",
+    promptId: promptMorning,
+  },
+};
+const dailyChallenge = createChallengePayload(dailyResult, {
+  randomUUID: () => "87654321-4321-4321-4321-cba987654321",
+});
+assert.equal(dailyChallenge.schema, 2);
+assert.equal(dailyChallenge.testMode, "daily");
+assert.equal(dailyChallenge.promptId, promptMorning);
+assert.deepEqual(decodeChallenge(encodeChallenge(dailyChallenge)), dailyChallenge);
+assert.equal(compareChallenge(dailyChallenge, dailyResult).outcome, "tied");
+assert.equal(compareChallenge(dailyChallenge, {
+  ...dailyResult,
+  quickTest: {
+    mode: "daily",
+    promptId: promptNextDay,
+  },
+}), null);
+
+const standardChallenge = createChallengePayload({
+  ...standardResult,
+  quickTest: {
+    mode: "standard",
+    promptId: STANDARD_TEST_ID,
+  },
+}, {
+  randomUUID: () => "11223344-1234-1234-1234-123456789abc",
+});
+assert.equal(standardChallenge.schema, 2);
+assert.equal(standardChallenge.testMode, "standard");
+assert.equal(standardChallenge.promptId, STANDARD_TEST_ID);
 
 const audioFile = await audioFileFromUrl("blob:test", async () => ({
   blob: async () => new Blob(["audio"], { type: "audio/webm" }),
@@ -230,6 +324,16 @@ const quickTranslationKeys = [
   "prompt",
   "promptHint",
   "promptLabel",
+  "prompts.arrival",
+  "prompts.commute",
+  "prompts.dinner",
+  "prompts.directions",
+  "prompts.repeat",
+  "prompts.shopping",
+  "prompts.timing",
+  "prompts.weather",
+  "prompts.weekend",
+  "prompts.workload",
   "recording",
   "recordingHint",
   "requesting",
@@ -237,8 +341,14 @@ const quickTranslationKeys = [
   "reveal.age",
   "reveal.archetype",
   "reveal.eyebrow",
+  "reveal.feminine",
   "reveal.insight",
+  "reveal.masculine",
   "reveal.score",
+  "reveal.singleScore",
+  "reveal.standardScore",
+  "reveal.tendency",
+  "reveal.tendencyAria",
   "share.audioDefault",
   "share.audioWarning",
   "share.cancelled",
@@ -255,6 +365,22 @@ const quickTranslationKeys = [
   "share.system",
   "share.title",
   "start",
+  "standard.audioDefault",
+  "standard.backDaily",
+  "standard.cta",
+  "standard.next",
+  "standard.progress",
+  "standard.scoresLabel",
+  "standard.spread",
+  "standard.stability",
+  "standard.stabilityValues.high",
+  "standard.stabilityValues.low",
+  "standard.stabilityValues.medium",
+  "standard.stepComplete",
+  "standard.stepScore",
+  "standard.subtitle",
+  "standard.title",
+  "standard.viewProfessional",
   "stop",
   "subtitle",
   "title",

@@ -1,5 +1,11 @@
+import {
+  isQuickPromptId,
+  STANDARD_TEST_ID,
+} from "./quick-prompts.js";
+
 const HASH_KEY = "vpa-challenge";
-const SCHEMA_VERSION = 1;
+const LEGACY_SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const SCORE_VERSION_PATTERN = /^[a-z0-9._-]{1,48}$/i;
 const ARCHETYPE_PATTERN = /^[a-z][a-zA-Z0-9]{1,47}$/;
 const CHALLENGE_ID_PATTERN = /^[a-zA-Z0-9-]{8,64}$/;
@@ -32,39 +38,59 @@ function makeChallengeId(cryptoLike = globalThis.crypto) {
 
 function normalizeChallenge(value) {
   if (!value || typeof value !== "object") return null;
+  const schema = Number(value.schema);
   const score = Math.round(Number(value.score));
   const ageMin = Math.round(Number(value.ageMin));
   const ageMax = Math.round(Number(value.ageMax));
   const archetype = String(value.archetype || "");
   const scoreVersion = String(value.scoreVersion || "");
   const id = String(value.id || "");
-  if (value.schema !== SCHEMA_VERSION) return null;
+  if (schema !== LEGACY_SCHEMA_VERSION && schema !== SCHEMA_VERSION) return null;
   if (!Number.isFinite(score) || score < 0 || score > 100) return null;
   if (!Number.isFinite(ageMin) || !Number.isFinite(ageMax)) return null;
   if (ageMin < 10 || ageMax > 90 || ageMin >= ageMax) return null;
   if (!ARCHETYPE_PATTERN.test(archetype)) return null;
   if (!SCORE_VERSION_PATTERN.test(scoreVersion)) return null;
   if (!CHALLENGE_ID_PATTERN.test(id)) return null;
-  return {
+  const normalized = {
     ageMax,
     ageMin,
     archetype,
     id,
-    schema: SCHEMA_VERSION,
+    schema,
     score,
     scoreVersion,
+  };
+  if (schema === LEGACY_SCHEMA_VERSION) return normalized;
+
+  const promptId = String(value.promptId || "");
+  const testMode = String(value.testMode || "");
+  const validPrompt = testMode === "daily"
+    ? isQuickPromptId(promptId)
+    : testMode === "standard" && promptId === STANDARD_TEST_ID;
+  if (!validPrompt) return null;
+  return {
+    ...normalized,
+    promptId,
+    testMode,
   };
 }
 
 export function createChallengePayload(result, cryptoLike = globalThis.crypto) {
+  const quickTest = result?.quickTest;
+  const hasQuickTest = quickTest?.mode === "daily"
+    ? isQuickPromptId(quickTest.promptId)
+    : quickTest?.mode === "standard" && quickTest.promptId === STANDARD_TEST_ID;
   return normalizeChallenge({
     ageMax: result?.voiceAge?.max,
     ageMin: result?.voiceAge?.min,
     archetype: result?.archetypeKey,
     id: makeChallengeId(cryptoLike),
-    schema: SCHEMA_VERSION,
+    promptId: hasQuickTest ? quickTest.promptId : undefined,
+    schema: hasQuickTest ? SCHEMA_VERSION : LEGACY_SCHEMA_VERSION,
     score: result?.score,
     scoreVersion: result?.version,
+    testMode: hasQuickTest ? quickTest.mode : undefined,
   });
 }
 
@@ -111,6 +137,10 @@ export function compareChallenge(challenge, result) {
   const normalized = normalizeChallenge(challenge);
   const score = Math.round(Number(result?.score));
   if (!normalized || !Number.isFinite(score)) return null;
+  if (normalized.schema === SCHEMA_VERSION) {
+    if (result?.quickTest?.mode !== normalized.testMode) return null;
+    if (result?.quickTest?.promptId !== normalized.promptId) return null;
+  }
   const difference = score - normalized.score;
   return {
     difference,
@@ -122,6 +152,7 @@ export function compareChallenge(challenge, result) {
 
 export const challengeLinkInternals = {
   HASH_KEY,
+  LEGACY_SCHEMA_VERSION,
   SCHEMA_VERSION,
   normalizeChallenge,
 };

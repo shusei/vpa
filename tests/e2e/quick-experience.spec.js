@@ -23,11 +23,20 @@ test("quick and professional experiences share one analysis result", async ({ pa
   await expect(page.locator("html")).toHaveAttribute("data-experience", "quick");
   await expect(page.locator("#quickExperience")).toBeVisible();
   await expect(page.locator("body > .hero")).toBeHidden();
+  await expect(page.locator(".quick-landing .quick-primary")).toHaveCount(1);
+  await expect(page.locator(".quick-standard-cta")).toBeVisible();
+  if (process.env.VPA_QUICK_LANDING_CAPTURE) {
+    await page.screenshot({
+      fullPage: true,
+      path: resolve(process.env.VPA_QUICK_LANDING_CAPTURE),
+    });
+  }
 
   const result = await page.evaluate((analysis) => {
     return window.vpaAdvancedExperience.renderAnalysis(analysis);
   }, fixture);
-  await expect(page.locator(".quick-result__score strong")).toHaveText(String(result.score));
+  await expect(page.locator(".quick-result__feminine strong")).toHaveText(`${result.score}%`);
+  await expect(page.locator(".quick-result__masculine strong")).toHaveText(`${100 - result.score}%`);
 
   await page.locator('.quick-result [data-experience-target="professional"]').click();
   await expect(page.locator("html")).toHaveAttribute("data-experience", "professional");
@@ -37,7 +46,7 @@ test("quick and professional experiences share one analysis result", async ({ pa
   expect(await page.evaluate(() => window.__vpaInferenceCalls?.length || 0)).toBe(0);
 
   await page.locator('#experienceNav [data-experience-target="quick"]').click();
-  await expect(page.locator(".quick-result__score strong")).toHaveText(String(result.score));
+  await expect(page.locator(".quick-result__feminine strong")).toHaveText(`${result.score}%`);
   if (process.env.VPA_QUICK_CAPTURE) {
     await page.screenshot({
       fullPage: true,
@@ -174,6 +183,76 @@ test("quick recording delegates to the production recording and analysis path", 
   expect(runtimeErrors).toEqual([]);
 });
 
+test("three-line standard test runs the production path three times and uses the median", async ({ page }) => {
+  const runtimeErrors = captureRuntimeErrors(page);
+  await openDevelopmentPage(page);
+
+  await page.locator("[data-quick-standard]").click();
+  await expect(page.locator(".quick-standard h1")).toHaveText("三句標準測試");
+  await expect(page.locator(".quick-prompt > span")).toContainText("1 / 3");
+  if (process.env.VPA_STANDARD_LANDING_CAPTURE) {
+    await page.screenshot({
+      fullPage: true,
+      path: resolve(process.env.VPA_STANDARD_LANDING_CAPTURE),
+    });
+  }
+
+  for (let step = 1; step <= 3; step += 1) {
+    await page.locator("[data-quick-record]").click();
+    await expect(page.locator('[data-quick-stage="recording"]')).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(page.locator(".quick-progress__prompt")).not.toBeEmpty();
+    await page.waitForTimeout(1200);
+    await page.locator("[data-quick-record]").click();
+
+    if (step < 3) {
+      await expect(page.locator('[data-quick-stage="standard-next"]')).toBeVisible({
+        timeout: 60_000,
+      });
+      await expect(page.locator(".quick-standard-scores span")).toHaveCount(step);
+      await page.locator("[data-quick-standard-next]").click();
+      await expect(page.locator(".quick-prompt > span")).toContainText(`${step + 1} / 3`);
+    }
+  }
+
+  await expect(page.locator('[data-quick-stage="result"]')).toBeVisible({
+    timeout: 60_000,
+  });
+  await expect(page.locator(".quick-standard-summary")).toBeVisible();
+  const result = await page.evaluate(() => window.vpaExperience.getLatestResult());
+  expect(result.quickTest).toEqual({
+    mode: "standard",
+    promptId: "standard-v1",
+  });
+  expect(result.standard.scores).toHaveLength(3);
+  expect(result.score).toBe([...result.standard.scores].sort((a, b) => a - b)[1]);
+  expect(await page.evaluate(() => window.__vpaInferenceCalls?.length || 0)).toBeGreaterThanOrEqual(3);
+  const standardChallenge = await page.evaluate(async () => {
+    const { createChallengeUrl } = await import("/assets/experiments/challenge-link.js");
+    return createChallengeUrl(window.vpaExperience.getLatestResult());
+  });
+  expect(standardChallenge.payload).toMatchObject({
+    promptId: "standard-v1",
+    schema: 2,
+    testMode: "standard",
+  });
+  if (process.env.VPA_STANDARD_CAPTURE) {
+    await page.screenshot({
+      fullPage: true,
+      path: resolve(process.env.VPA_STANDARD_CAPTURE),
+    });
+  }
+
+  await page.goto(standardChallenge.url);
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => window.vpaExperience?.getQuickTestMode()))
+    .toBe("standard");
+  await expect(page.locator(".quick-challenge-invite")).toContainText(`${result.score}%`);
+  await expect(page.locator(".quick-standard h1")).toBeVisible();
+  expect(runtimeErrors).toEqual([]);
+});
+
 test("Japanese browser language becomes the default locale and a saved choice wins", async ({ page }) => {
   const runtimeErrors = captureRuntimeErrors(page);
   await openDevelopmentPage(page, {
@@ -220,7 +299,8 @@ test("challenge link carries only summary data and compares the next result", as
   await openDevelopmentPage(page);
 
   const challenge = await page.evaluate(async (analysis) => {
-    const result = window.vpaAdvancedExperience.renderAnalysis(analysis);
+    window.vpaAdvancedExperience.renderAnalysis(analysis);
+    const result = window.vpaExperience.getLatestResult();
     const { createChallengeUrl } = await import("/assets/experiments/challenge-link.js");
     return createChallengeUrl(result);
   }, fixture);
@@ -231,18 +311,26 @@ test("challenge link carries only summary data and compares the next result", as
     "ageMin",
     "archetype",
     "id",
+    "promptId",
     "schema",
     "score",
     "scoreVersion",
+    "testMode",
   ]);
+  expect(challenge.payload.schema).toBe(2);
+  expect(challenge.payload.testMode).toBe("daily");
 
   await page.goto(challenge.url);
   await page.reload();
   await expect(page.locator(".quick-challenge-invite")).toContainText(`${challenge.payload.score}`);
+  expect(await page.evaluate(() => window.vpaExperience.getLatestResult())).toBe(null);
   await page.evaluate((analysis) => {
     window.vpaAdvancedExperience.renderAnalysis(analysis);
   }, fixture);
-  await expect(page.locator(".quick-comparison")).toContainText("同分");
+  await expect(page.locator(".quick-comparison")).toContainText("百分比相同");
+  await expect(page.locator(".quick-comparison")).toContainText(
+    `${challenge.payload.score}%`,
+  );
   expect(runtimeErrors).toEqual([]);
 });
 
