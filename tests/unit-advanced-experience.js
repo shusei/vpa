@@ -239,13 +239,13 @@ const shareTargets = buildShareTargets({
   caption: "VPA score 72%",
   url: shareUrl,
 });
-assert.match(shareTargets.x, /^https:\/\/twitter\.com\/intent\/tweet\?/);
+assert.match(shareTargets.x, /^https:\/\/x\.com\/intent\/post\?/);
 assert.match(shareTargets.threads, /^https:\/\/www\.threads\.com\/intent\/post\?/);
-assert.match(shareTargets.line, /^https:\/\/social-plugins\.line\.me\/lineit\/share\?/);
+assert.match(shareTargets.line, /^https:\/\/line\.me\/R\/share\?/);
 assert.ok(Object.values(shareTargets).every((target) => target.includes(encodeURIComponent(shareUrl))));
 const lineTarget = new URL(shareTargets.line);
-assert.equal(lineTarget.searchParams.get("text"), "VPA score 72%");
-assert.equal(lineTarget.searchParams.get("url"), shareUrl);
+assert.equal(lineTarget.searchParams.get("text"), `VPA score 72%\n${shareUrl}`);
+assert.equal(lineTarget.searchParams.has("url"), false);
 assert.equal(buildShareText("VPA score 72%", shareUrl), `VPA score 72%\n${shareUrl}`);
 
 const challenge = createChallengePayload(reference, {

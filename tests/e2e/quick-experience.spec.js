@@ -392,14 +392,14 @@ test("result page offers only the three verified direct sharing platforms", asyn
     .toContain("#vpa-challenge=");
   await page.locator('[data-quick-platform="line"]').click();
   await expect.poll(() => page.evaluate(() => window.__vpaOpenedShareUrl)).toContain(
-    "https://social-plugins.line.me/lineit/share?",
+    "https://line.me/R/share?text=",
   );
   const lineTarget = new URL(await page.evaluate(() => window.__vpaOpenedShareUrl));
   expect(lineTarget.searchParams.get("text")?.length).toBeGreaterThan(10);
-  expect(lineTarget.searchParams.get("url")).toContain("#vpa-challenge=");
+  expect(lineTarget.searchParams.get("text")).toContain("#vpa-challenge=");
   await page.locator('[data-quick-platform="x"]').click();
   await expect.poll(() => page.evaluate(() => window.__vpaOpenedShareUrl)).toContain(
-    "https://twitter.com/intent/tweet?",
+    "https://x.com/intent/post?text=",
   );
   await expect(page.locator('[data-quick-platform="facebook"], [data-quick-platform="tiktok"], [data-quick-platform="instagram"]')).toHaveCount(0);
   expect(runtimeErrors).toEqual([]);
@@ -438,9 +438,9 @@ test("direct LINE sharing publishes a personalized image result with copy", asyn
 
   await page.locator('[data-quick-platform="line"]').click();
   await expect.poll(() => page.evaluate(() => window.__vpaOpenedShareUrl || ""))
-    .toContain("https://social-plugins.line.me/lineit/share?");
+    .toContain("https://line.me/R/share?text=");
   const opened = new URL(await page.evaluate(() => window.__vpaOpenedShareUrl));
-  expect(opened.searchParams.get("url")).toBe("https://share.example/r/abcdefghijklmnop");
+  expect(opened.searchParams.get("text")).toContain("https://share.example/r/abcdefghijklmnop");
   expect(opened.searchParams.get("text")?.length).toBeGreaterThan(10);
   expect(opened.toString()).not.toContain("#vpa-challenge=");
   const uploadContentType = uploadedRequest.headers()["content-type"];

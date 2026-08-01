@@ -25,12 +25,12 @@ import {
   STANDARD_PROMPT_IDS,
   STANDARD_TEST_ID,
 } from "./quick-prompts.js";
-import { buildShareTargets, downloadBlob } from "./share-card.js?v=20260801-socialtrim1";
+import { buildShareTargets, downloadBlob } from "./share-card.js?v=20260801-appopen1";
 import {
   getPublicShareResult,
   openPublicPlatformShare,
   resetPublicShareCache,
-} from "./public-share.js?v=20260801-blanktab1";
+} from "./public-share.js?v=20260801-appopen1";
 import { aggregateStandardResults } from "./standard-result.js";
 import { analyzeVoiceQuality } from "./voice-quality-metrics.js";
 

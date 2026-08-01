@@ -1,11 +1,11 @@
 import { getCurrentLocale, t } from "../js/i18n.js";
-import { buildShareTargets } from "./share-card.js?v=20260801-platformshare1";
+import { buildShareTargets } from "./share-card.js?v=20260801-appopen1";
 import {
   isShareServiceConfigured,
   publishShareResult,
 } from "./share-service.js?v=20260801-sharefix1";
 import { createSocialPreviewBlob } from "./social-preview-card.js?v=20260801-sharefix1";
-import { navigate, prefersCurrentTab } from "./share-navigation.js?v=20260801-blanktab1";
+import { navigate, prefersCurrentTab } from "./share-navigation.js?v=20260801-appopen1";
 
 let publishedShareCache = null;
 
@@ -125,7 +125,7 @@ export async function openPublicPlatformShare({
   if (!fallbackTarget) return { method: "unsupported" };
   const currentTab = prefersCurrentTab(windowLike);
   if (!isShareServiceConfigured(windowLike)) {
-    navigate(null, fallbackTarget, windowLike, { currentTab });
+    navigate(null, fallbackTarget, windowLike, { currentTab, platform });
     return { method: "unconfigured" };
   }
   if (publishedShareCache?.key === shareCacheKey(challenge) && publishedShareCache.result) {
@@ -133,7 +133,7 @@ export async function openPublicPlatformShare({
       caption: formatted.caption,
       url: publishedShareCache.result.url,
     })[platform];
-    navigate(null, target, windowLike, { currentTab });
+    navigate(null, target, windowLike, { currentTab, platform });
     return { method: "public-result", url: publishedShareCache.result.url };
   }
 
@@ -150,11 +150,11 @@ export async function openPublicPlatformShare({
       caption: formatted.caption,
       url: publicShare.url,
     })[platform];
-    navigate(popup, target, windowLike, { currentTab });
+    navigate(popup, target, windowLike, { currentTab, platform });
     return { method: "public-result", url: publicShare.url };
   } catch (error) {
     console.error("[public-share] result publishing failed", error);
-    navigate(popup, fallbackTarget, windowLike, { currentTab });
+    navigate(popup, fallbackTarget, windowLike, { currentTab, platform });
     return { error, method: "fallback" };
   }
 }

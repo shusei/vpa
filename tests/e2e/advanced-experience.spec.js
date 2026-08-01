@@ -128,7 +128,7 @@ test("professional X sharing publishes the personalized public result", async ({
 
   await page.locator('[data-share-platform="x"]').click();
   await expect.poll(() => page.evaluate(() => window.__vpaOpenedShareUrl || ""))
-    .toContain("https://twitter.com/intent/tweet?");
+    .toContain("https://x.com/intent/post?text=");
   const opened = decodeURIComponent(await page.evaluate(() => window.__vpaOpenedShareUrl));
   expect(opened).toContain("https://share.example/r/abcdefghijklmnop");
   expect(opened).not.toContain("#vpa-challenge=");

@@ -5,14 +5,14 @@ import { createChallengeUrl } from "./challenge-link.js";
 import {
   getPublicShareResult,
   openPublicPlatformShare,
-} from "./public-share.js?v=20260801-blanktab1";
+} from "./public-share.js?v=20260801-appopen1";
 import {
   buildShareTargets,
   buildShareUrl,
   createShareCardBlob,
   downloadBlob,
   shareWithSystem,
-} from "./share-card.js?v=20260801-socialtrim1";
+} from "./share-card.js?v=20260801-appopen1";
 
 let lastAnalysis = null;
 let lastResult = null;
