@@ -136,7 +136,7 @@ export default {
       embeddedFast: {
         analyzingHint: "正在使用社群快速聲學分析，不需下載大型模型，聲音不會上傳。",
         body: "留在 X／Threads 也能直接測；系統會用音高、共鳴與 F2／F3 在本機快速計分。",
-        external: "想跑完整模型：點右上或右下的「⋯」／分享選單，再選「在瀏覽器」或「在 Safari 開啟」。",
+        external: "想跑完整模型：X 請點畫面下方中間附近的「⋯」；Threads 請開啟「⋯」／分享選單，再選「在瀏覽器」或「在 Safari 開啟」。",
         title: "社群快速挑戰已啟用",
       },
       challenge: {

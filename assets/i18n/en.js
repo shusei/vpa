@@ -136,7 +136,7 @@ export default {
       embeddedFast: {
         analyzingHint: "Using fast local acoustic analysis—no large model download and no audio upload.",
         body: "You can test directly inside X or Threads. Pitch, resonance, and F2/F3 are scored locally.",
-        external: "For the full model, open the top- or bottom-corner menu (…) or Share, then choose Open in browser or Open in Safari.",
+        external: "For the full model in X, use the (…) button near the lower center. In Threads, open the (…) or Share menu, then choose Open in browser or Open in Safari.",
         title: "Social quick challenge is on",
       },
       challenge: {

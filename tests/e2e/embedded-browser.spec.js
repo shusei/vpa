@@ -56,6 +56,7 @@ test.describe("iOS social app challenge browser", () => {
     await expect(page.locator("[data-embedded-browser-guard]")).toHaveCount(0);
     await expect(page.locator("[data-quick-record]")).toBeVisible();
     await expect(page.locator("[data-embedded-fast-notice]")).toContainText("社群快速挑戰");
+    await expect(page.locator("[data-embedded-fast-notice]")).toContainText("下方中間附近");
     await expect(page.locator("[data-embedded-fast-notice]")).toContainText("Safari");
     await expect.poll(() => page.evaluate(() => window.vpaEmbeddedBrowser)).toMatchObject({
       app: "x",

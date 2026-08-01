@@ -136,7 +136,7 @@ export default {
       embeddedFast: {
         analyzingHint: "正在使用社交平台快速声学分析，无需下载大型模型，声音不会上传。",
         body: "留在 X／Threads 也能直接测试；系统会用音高、共鸣与 F2／F3 在本机快速评分。",
-        external: "想运行完整模型：点右上或右下的“⋯”／分享菜单，再选“在浏览器”或“在 Safari 中打开”。",
+        external: "想运行完整模型：X 请点画面下方中间附近的“⋯”；Threads 请打开“⋯”／分享菜单，再选“在浏览器”或“在 Safari 中打开”。",
         title: "社交平台快速挑战已启用",
       },
       challenge: {
