@@ -26,6 +26,7 @@ export function createDynamicCardController({
   ensureChallenge,
   formatResult,
   getAudioUrl,
+  getShareUrl,
   render,
   track,
 }) {
@@ -42,6 +43,7 @@ export function createDynamicCardController({
       output: null,
       phase: "idle",
       progress: 0,
+      shareUrlPromise: null,
       statusKey: "",
     };
   }
@@ -226,8 +228,20 @@ export function createDynamicCardController({
     };
   }
 
-  async function createFallback(result, challenge) {
-    const cardUrl = new URL(challenge.url);
+  function prepareShareUrl(result, challenge) {
+    if (state.shareUrlPromise) return state.shareUrlPromise;
+    state.shareUrlPromise = Promise.resolve()
+      .then(() => getShareUrl?.(result, challenge))
+      .then((url) => url || challenge.url)
+      .catch((error) => {
+        console.error("[dynamic-card] short URL failed", error);
+        return challenge.url;
+      });
+    return state.shareUrlPromise;
+  }
+
+  async function createFallback(result, shareUrl) {
+    const cardUrl = new URL(shareUrl);
     cardUrl.hash = "";
     const [cardBlob, audioFile] = await Promise.all([
       createResultCard(result, { shareUrl: cardUrl.toString() }),
@@ -255,6 +269,7 @@ export function createDynamicCardController({
     render();
     const challenge = ensureChallenge();
     const formatted = formatResult(result);
+    const shareUrlPromise = prepareShareUrl(result, challenge);
     try {
       const output = await generateDynamicVoiceCard({
         audioUrl: getAudioUrl(),
@@ -286,7 +301,7 @@ export function createDynamicCardController({
     } catch (videoError) {
       console.warn("[dynamic-card] video output failed, using fallback", videoError);
       try {
-        state.output = await createFallback(result, challenge);
+        state.output = await createFallback(result, await shareUrlPromise);
       } catch (fallbackError) {
         console.error("[dynamic-card] fallback failed", fallbackError);
         if (requestId !== generationId) return;
@@ -305,7 +320,7 @@ export function createDynamicCardController({
     render();
   }
 
-  async function shareVideo(output, result, challenge) {
+  async function shareVideo(output, result, shareUrl) {
     const fileType = String(output.mimeType || `video/${output.extension}`)
       .split(";")[0]
       .trim();
@@ -316,7 +331,7 @@ export function createDynamicCardController({
     );
     const payload = {
       files: [file],
-      text: buildShareText(formatResult(result).caption, challenge.url),
+      text: buildShareText(formatResult(result).caption, shareUrl),
       title: t("experiment.quick.dynamic.shareTitle"),
     };
     if (
@@ -337,16 +352,17 @@ export function createDynamicCardController({
     const challenge = ensureChallenge();
     state.statusKey = "";
     try {
+      const shareUrl = await prepareShareUrl(result, challenge);
       let method;
       if (output.kind === "video") {
-        method = await shareVideo(output, result, challenge);
+        method = await shareVideo(output, result, shareUrl);
       } else {
         const response = await shareResultFiles({
           audioFile: output.audioFile,
           cardBlob: output.cardBlob,
           caption: formatResult(result).caption,
           title: t("experiment.quick.dynamic.shareTitle"),
-          url: challenge.url,
+          url: shareUrl,
         });
         method = response.method;
         if (method === "unsupported" || method === "unsupported-files") {

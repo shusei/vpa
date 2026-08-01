@@ -8,8 +8,11 @@ const fixture = JSON.parse(readFileSync(
   "utf8",
 ));
 
-async function openDevelopmentPage(page, options = {}) {
-  await installDeterministicRuntime(page, options);
+async function openDevelopmentPage(page, { shareServiceOrigin = "", ...runtimeOptions } = {}) {
+  await installDeterministicRuntime(page, runtimeOptions);
+  await page.addInitScript((origin) => {
+    window.VPA_SHARE_SERVICE_ORIGIN = origin;
+  }, shareServiceOrigin);
   await page.goto("/dev.html");
   await expect.poll(() => page.evaluate(() => Boolean(
     window.vpaAdvancedExperience && window.vpaExperience
@@ -404,9 +407,6 @@ test("result page offers direct platform sharing without an app picker", async (
 });
 
 test("direct LINE sharing publishes a personalized image result with copy", async ({ page }) => {
-  await page.addInitScript(() => {
-    window.VPA_SHARE_SERVICE_ORIGIN = "https://share.example";
-  });
   let uploadedRequest;
   await page.route("https://share.example/api/shares", async (route) => {
     uploadedRequest = route.request();
@@ -421,9 +421,16 @@ test("direct LINE sharing publishes a personalized image result with copy", asyn
     });
   });
   const runtimeErrors = captureRuntimeErrors(page);
-  await openDevelopmentPage(page);
+  await openDevelopmentPage(page, { shareServiceOrigin: "https://share.example" });
   await page.evaluate((analysis) => {
     window.vpaAdvancedExperience.renderAnalysis(analysis);
+    window.__vpaCopiedText = "";
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async (value) => { window.__vpaCopiedText = String(value); },
+      },
+    });
     window.open = (url) => {
       if (String(url) !== "about:blank") window.__vpaOpenedShareUrl = String(url);
       return null;
@@ -447,6 +454,10 @@ test("direct LINE sharing publishes a personalized image result with copy", asyn
   expect(uploadedImage.type).toBe("image/jpeg");
   expect(uploadedImage.size).toBeGreaterThan(10_000);
   expect(uploadedImage.size).toBeLessThanOrEqual(400_000);
+  await page.locator("[data-quick-share]").click();
+  await page.locator("[data-quick-copy-challenge]").click();
+  await expect.poll(() => page.evaluate(() => window.__vpaCopiedText))
+    .toBe("https://share.example/r/abcdefghijklmnop");
   expect(runtimeErrors).toEqual([]);
 });
 
@@ -548,6 +559,17 @@ test("dynamic video keeps a full untrimmed 30 second recording", async ({ page }
 });
 test("dynamic voice card exports the full recording and preserves the fallback chain", async ({ page }) => {
   const runtimeErrors = captureRuntimeErrors(page);
+  await page.route("https://share.example/api/shares", async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        id: "abcdefghijklmnop",
+        imageUrl: "https://share.example/i/abcdefghijklmnop.jpg",
+        url: "https://share.example/r/abcdefghijklmnop",
+      }),
+      contentType: "application/json",
+      status: 201,
+    });
+  });
   await page.addInitScript(() => {
     Object.defineProperty(navigator, "canShare", {
       configurable: true,
@@ -568,7 +590,7 @@ test("dynamic voice card exports the full recording and preserves the fallback c
       },
     });
   });
-  await openDevelopmentPage(page);
+  await openDevelopmentPage(page, { shareServiceOrigin: "https://share.example" });
 
   const expectedScoreBand = await page.evaluate(async (analysis) => {
     const { recorderCtl } = await import("/assets/app.js");
@@ -617,7 +639,8 @@ test("dynamic voice card exports the full recording and preserves the fallback c
   expect(await page.evaluate(() => window.__vpaLastShare.files[0].type))
     .toBe("video/mp4");
   expect(await page.evaluate(() => window.__vpaLastShare.hasUrl)).toBe(false);
-  expect(await page.evaluate(() => window.__vpaLastShare.text)).toContain("#vpa-challenge=");
+  expect(await page.evaluate(() => window.__vpaLastShare.text))
+    .toContain("https://share.example/r/abcdefghijklmnop");
   const analytics = await page.evaluate(() => {
     return (window.dataLayer || [])
       .map((entry) => Array.from(entry))
@@ -706,9 +729,10 @@ test("dynamic voice card exports the full recording and preserves the fallback c
     "vpa-result.png",
     "vpa-voice-clip.wav",
   ]);
+  expect(await page.evaluate(() => window.__vpaLastShare.text))
+    .toContain("https://share.example/r/abcdefghijklmnop");
   expect(runtimeErrors).toEqual([]);
 });
-
 test.describe("mobile quick experience", () => {
   test.use({
     viewport: { width: 390, height: 844 },

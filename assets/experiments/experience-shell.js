@@ -17,7 +17,7 @@ import {
   createChallengeUrl,
   readChallenge,
 } from "./challenge-link.js";
-import { createDynamicCardController } from "./dynamic-card-controller.js?v=20260801-sharefix1";
+import { createDynamicCardController } from "./dynamic-card-controller.js?v=20260801-shortshare1";
 import {
   getDailyPromptId,
   getStandardPromptId,
@@ -154,6 +154,7 @@ const dynamicCard = createDynamicCardController({
   ensureChallenge,
   formatResult: formatAdvancedResult,
   getAudioUrl: () => recorderCtl.getLastRecordingUrl(),
+  getShareUrl: resolvePublicShareUrl,
   render: () => renderQuickExperience(),
   track,
 });
@@ -603,6 +604,7 @@ function bindQuickControls() {
     dynamicAudioOptIn = false;
     shareStatusKey = "";
     renderQuickExperience();
+    if (shareOpen && latestResult?.ready) void prewarmPublicShare();
     track("share_opened", { mode: "quick" });
   });
   quickExperience.querySelector("[data-quick-audio]")?.addEventListener("change", (event) => {
@@ -803,7 +805,13 @@ async function copyText(value) {
 async function copyChallengeLink() {
   const challenge = ensureChallenge();
   if (!challenge) return;
-  await copyText(challenge.url);
+  let shareUrl = challenge.url;
+  try {
+    shareUrl = await resolvePublicShareUrl(latestResult, challenge);
+  } catch (error) {
+    console.error("[quick-share] copy short URL failed", error);
+  }
+  await copyText(shareUrl);
   shareStatusKey = "experiment.quick.share.copied";
   renderQuickExperience();
 }
@@ -815,6 +823,7 @@ async function openQuickPlatform(platform) {
     dynamicCard.reset();
     shareStatusKey = "";
     renderQuickExperience();
+    if (latestResult?.ready) void prewarmPublicShare();
     track("share_platform_selected", {
       mode: "quick",
       platform,
@@ -848,6 +857,28 @@ async function openQuickPlatform(platform) {
   });
 }
 
+async function resolvePublicShareUrl(result, challenge) {
+  if (!result || !challenge) return challenge?.url || "";
+  const formatted = formatAdvancedResult(result);
+  const published = await getPublicShareResult({
+    analysis: latestAnalysis,
+    challenge,
+    formatted,
+    result,
+  });
+  return published?.url || challenge.url;
+}
+
+async function prewarmPublicShare() {
+  const challenge = ensureChallenge();
+  if (!challenge || !latestResult) return;
+  try {
+    await resolvePublicShareUrl(latestResult, challenge);
+  } catch (error) {
+    console.error("[quick-share] short URL prewarm failed", error);
+  }
+}
+
 async function shareQuickResult() {
   const challenge = ensureChallenge();
   if (!challenge || !latestResult) return;
@@ -856,13 +887,7 @@ async function shareQuickResult() {
     const formatted = formatAdvancedResult(latestResult);
     let shareUrl = challenge.url;
     try {
-      const published = await getPublicShareResult({
-        analysis: latestAnalysis,
-        challenge,
-        formatted,
-        result: latestResult,
-      });
-      if (published?.url) shareUrl = published.url;
+      shareUrl = await resolvePublicShareUrl(latestResult, challenge);
     } catch (error) {
       console.error("[quick-share] short URL failed", error);
     }
