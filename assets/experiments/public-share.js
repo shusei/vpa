@@ -1,5 +1,5 @@
 import { getCurrentLocale, t } from "../js/i18n.js";
-import { buildShareTargets } from "./share-card.js?v=20260801-sharefix1";
+import { buildShareTargets } from "./share-card.js?v=20260801-platformshare1";
 import {
   isShareServiceConfigured,
   publishShareResult,
@@ -48,16 +48,33 @@ function navigate(popup, target, windowLike) {
   windowLike.open(target, "_blank", "noopener,noreferrer");
 }
 
-async function publish({ analysis, challenge, formatted, result }) {
+function cacheResult(cacheKey, promise) {
+  promise.then((result) => {
+    if (publishedShareCache?.key === cacheKey && publishedShareCache.promise === promise) {
+      publishedShareCache.result = result;
+    }
+  }).catch(() => {
+    // The caller handles publication errors and clears a failed cache entry.
+  });
+}
+
+function shareCacheKey(challenge) {
   const theme = document.documentElement.getAttribute("data-faction") === "light"
     ? "light"
     : "dark";
-  const locale = getCurrentLocale();
-  const cacheKey = [challenge.payload.id, locale, theme].join(":");
+  return [challenge.payload.id, getCurrentLocale(), theme].join(":");
+}
+
+async function publish({ analysis, challenge, formatted, result }) {
+  const cacheKey = shareCacheKey(challenge);
   if (publishedShareCache?.key === cacheKey) return publishedShareCache.promise;
 
   const promise = (async () => {
     const cardLabels = labels();
+    const theme = document.documentElement.getAttribute("data-faction") === "light"
+      ? "light"
+      : "dark";
+    const locale = getCurrentLocale();
     const pitchHz = Number(analysis?.pitch?.stats?.med);
     const imageBlob = await createSocialPreviewBlob({
       formatted,
@@ -83,7 +100,8 @@ async function publish({ analysis, challenge, formatted, result }) {
       },
     });
   })();
-  publishedShareCache = { key: cacheKey, promise };
+  publishedShareCache = { key: cacheKey, promise, result: null };
+  cacheResult(cacheKey, promise);
   try {
     return await promise;
   } catch (error) {
@@ -117,6 +135,15 @@ export async function openPublicPlatformShare({
     url: challenge.url,
   })[platform];
   if (!fallbackTarget) return { method: "unsupported" };
+  if (publishedShareCache?.key === shareCacheKey(challenge) && publishedShareCache.result) {
+    const target = buildShareTargets({
+      caption: formatted.caption,
+      url: publishedShareCache.result.url,
+    })[platform];
+    windowLike.open(target, "_blank", "noopener,noreferrer");
+    return { method: "public-result", url: publishedShareCache.result.url };
+  }
+
   const popup = createPendingWindow(windowLike);
   try {
     const publicShare = await getPublicShareResult({

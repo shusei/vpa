@@ -164,6 +164,7 @@ const quick = {
     readyVideo: "{{format}} の動く声カードが完成",
     retry: "もう一度試す",
     share: "スマホのアプリへ共有",
+    shareTikTok: "TikTok \u306b\u5171\u6709",
     shared: "動く声カードを共有しました。",
     shareFailed: "動く声カードを共有できません。ファイルを保存して共有してください。",
     shareTitle: "VPA 動く声カード",

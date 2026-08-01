@@ -37,7 +37,7 @@ function toBlob(canvas) {
 export function buildShareTargets({ caption, url }) {
   const combined = buildShareText(caption, url);
   return {
-    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(caption)}&display=popup`,
     line: `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}&text=${encodeURIComponent(caption)}`,
     threads: `https://www.threads.com/intent/post?text=${encodeURIComponent(combined)}`,
     x: `https://twitter.com/intent/tweet?text=${encodeURIComponent(caption)}&url=${encodeURIComponent(url)}&hashtags=VoicePresentationAnalyzer`,

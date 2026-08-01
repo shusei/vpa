@@ -169,6 +169,7 @@ export default {
         readyVideo: "{{format}} 動態聲音卡已完成",
         retry: "重新嘗試",
         share: "分享到手機 App",
+        shareTikTok: "\u5206\u4eab\u5230 TikTok",
         shared: "動態聲音卡已分享。",
         shareFailed: "目前無法分享動態聲音卡，請改用下載檔案。",
         shareTitle: "我的 VPA 動態聲音卡",

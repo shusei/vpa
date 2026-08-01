@@ -169,6 +169,7 @@ export default {
         readyVideo: "{{format}} dynamic voice card ready",
         retry: "Try again",
         share: "Share to a mobile app",
+        shareTikTok: "Share to TikTok",
         shared: "Dynamic voice card shared.",
         shareFailed: "The dynamic voice card could not be shared. Download the files instead.",
         shareTitle: "My VPA dynamic voice card",
