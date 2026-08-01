@@ -4,14 +4,14 @@ const APP_RULES = [
   ["instagram", /\bInstagram\b/i],
   ["threads", /\bBarcelona\b|\bThreads\b/i],
   ["tiktok", /\bTikTok\b|\bmusical_ly\b|\bBytedanceWebview\b/i],
-  ["x", /\bTwitter for iPhone\b|\bTwitterAndroid\b/i],
+  ["x", /\bTwitter for iPhone\b|\bTwitterAndroid\b|\bTwitter\/|\bX for iPhone\b/i],
   ["wechat", /\bMicroMessenger\b/i],
   ["snapchat", /\bSnapchat\b/i],
 ];
 
 const COPY = {
   en: {
-    body: "This link is open inside an app browser, where voice analysis can be much slower. Use the app menu to open it in Safari or Chrome. You may also continue here with automatic fast analysis.",
+    body: "This link is open inside an app browser, where voice analysis can be much slower. Use the app menu to open it in your preferred browser. You may also continue here with automatic fast analysis.",
     close: "Continue here",
     copied: "Link copied",
     failed: "Your browser could not be opened automatically. Use Copy link, or choose Open in browser from the current app menu.",
@@ -21,7 +21,7 @@ const COPY = {
     title: "Open in your browser for faster analysis",
   },
   ja: {
-    body: "アプリ内ブラウザでは音声分析が非常に遅くなることがあります。アプリのメニューから Safari または Chrome で開いてください。このまま続ける場合は自動で高速分析を使用します。",
+    body: "アプリ内ブラウザでは音声分析が非常に遅くなることがあります。アプリのメニューから普段お使いのブラウザで開いてください。このまま続ける場合は自動で高速分析を使用します。",
     close: "このまま続ける",
     copied: "リンクをコピーしました",
     failed: "ブラウザを自動で開けませんでした。リンクをコピーするか、現在のアプリのメニューからブラウザで開いてください。",
@@ -31,7 +31,7 @@ const COPY = {
     title: "ブラウザで開くと分析が速くなります",
   },
   "zh-Hans": {
-    body: "目前使用的是 App 内置浏览器，语音分析可能会非常慢。请从 App 菜单选择用 Safari 或 Chrome 打开；留在这里也可以，系统会自动使用快速分析。",
+    body: "目前使用的是 App 内置浏览器，语音分析可能会非常慢。请从 App 菜单选择用你常用的浏览器打开；留在这里也可以，系统会自动使用快速分析。",
     close: "继续在这里使用",
     copied: "链接已复制",
     failed: "无法自动打开浏览器。请复制链接，或从当前 App 菜单选择用浏览器打开。",
@@ -41,7 +41,7 @@ const COPY = {
     title: "用浏览器打开，分析会更快",
   },
   "zh-Hant": {
-    body: "目前使用的是 App 內建瀏覽器，語音分析可能會非常慢。請從 App 選單選擇用 Safari 或 Chrome 開啟；留在這裡也可以，系統會自動使用快速分析。",
+    body: "目前使用的是 App 內建瀏覽器，語音分析可能會非常慢。請從 App 選單選擇用你常用的瀏覽器開啟；留在這裡也可以，系統會自動使用快速分析。",
     close: "繼續在這裡使用",
     copied: "連結已複製",
     failed: "無法自動開啟瀏覽器。請複製連結，或從目前 App 選單選擇用瀏覽器開啟。",
@@ -118,6 +118,10 @@ function lineExternalBrowserUrl(url) {
   }
 }
 
+function isChallengeVisit(locationLike) {
+  return String(locationLike?.hash || "").startsWith("#vpa-challenge=");
+}
+
 export async function openExternalBrowser({
   context,
   liffLike = globalThis.liff,
@@ -155,6 +159,10 @@ export async function openExternalBrowser({
       locationLike.assign(intent);
       return { method: "android-intent", opened: true };
     }
+  }
+
+  if (context?.platform === "ios") {
+    return { method: "ios-app-menu-required", opened: false };
   }
 
   try {
@@ -200,6 +208,9 @@ export function installEmbeddedBrowserGuard({
 } = {}) {
   const context = detectEmbeddedBrowser(navigatorLike);
   if (!context.embedded || !documentLike?.body) return { context, element: null };
+  if (context.app !== "line" && isChallengeVisit(locationLike)) {
+    return { context, element: null };
+  }
   try {
     if (sessionStorageLike?.getItem("vpa::embedded-browser-dismissed") === "1") {
       return { context, element: null };
@@ -210,6 +221,7 @@ export function installEmbeddedBrowserGuard({
 
   const copy = COPY[localeKey(documentLike, navigatorLike)];
   const lineExternalUrl = context.app === "line" ? lineExternalBrowserUrl(locationLike?.href) : "";
+  const hideOpenButton = context.platform === "ios" && !lineExternalUrl;
   const element = documentLike.createElement("aside");
   element.dataset.embeddedBrowserGuard = context.app;
   element.setAttribute("role", "alert");
@@ -259,7 +271,9 @@ export function installEmbeddedBrowserGuard({
   closeButton.textContent = copy.close;
   closeButton.style.cssText = "border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:8px 13px;background:transparent;color:#fff;font:700 14px system-ui";
 
-  if (lineExternalUrl) {
+  if (hideOpenButton) {
+    openButton.remove();
+  } else if (lineExternalUrl) {
     openButton.addEventListener("click", () => {
       openButton.setAttribute("aria-busy", "true");
       openButton.textContent = copy.opening;
@@ -290,7 +304,8 @@ export function installEmbeddedBrowserGuard({
     element.remove();
   });
 
-  actions.append(openButton, copyButton, closeButton);
+  if (!hideOpenButton) actions.append(openButton);
+  actions.append(copyButton, closeButton);
   element.append(title, body, actions);
   documentLike.body.append(element);
   return { context, element };

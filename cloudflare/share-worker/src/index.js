@@ -3,6 +3,7 @@ const DEFAULT_SHARE_TTL_DAYS = 365;
 const MAX_IMAGE_BYTES = 400_000;
 const MAX_METADATA_BYTES = 8_000;
 const SHARE_ID_PATTERN = /^[A-Za-z0-9_-]{16}$/;
+const SOCIAL_CRAWLER_PATTERN = /Twitterbot|facebookexternalhit|Facebot|meta-externalagent|meta-externalfetcher|Line-Poker/i;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -286,10 +287,28 @@ function cacheControl(expiresAt) {
   return `public, max-age=${Math.min(86_400, remaining)}`;
 }
 
+function isSocialCrawler(request) {
+  return SOCIAL_CRAWLER_PATTERN.test(request.headers.get("User-Agent") || "");
+}
+
+function redirectToChallenge(targetUrl) {
+  return new Response(null, {
+    headers: {
+      "Cache-Control": "private, no-store",
+      Location: targetUrl,
+      "Referrer-Policy": "no-referrer",
+      Vary: "User-Agent",
+      "X-Content-Type-Options": "nosniff",
+    },
+    status: 302,
+  });
+}
+
 async function showResult(request, env, id) {
   const share = await readShare(id, env);
   if (!share) return Response.redirect(publicAppUrl(env).toString(), 302);
   const url = new URL(request.url);
+  if (!isSocialCrawler(request)) return redirectToChallenge(share.metadata.targetUrl);
   const resultUrl = `${url.origin}/r/${id}`;
   const imageUrl = `${url.origin}/i/${id}.jpg`;
   return new Response(resultHtml({ imageUrl, metadata: share.metadata, resultUrl }), {
@@ -299,6 +318,7 @@ async function showResult(request, env, id) {
       "Content-Type": "text/html; charset=utf-8",
       "Referrer-Policy": "no-referrer",
       "X-Content-Type-Options": "nosniff",
+      Vary: "User-Agent",
     },
   });
 }

@@ -69,6 +69,8 @@ test("detects social app browsers used on Android and iPhone", () => {
     ["threads", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Mobile Barcelona 335.0.0"],
     ["tiktok", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Mobile TikTok 35.2.0"],
     ["x", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Mobile TwitterAndroid"],
+    ["x", "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile Twitter/10.99"],
+    ["x", "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile X for iPhone"],
   ];
   cases.forEach(([expectedApp, userAgent]) => {
     const result = detectEmbeddedBrowser({ platform: "mobile", userAgent });
@@ -76,7 +78,7 @@ test("detects social app browsers used on Android and iPhone", () => {
     assert.equal(result.app, expectedApp);
   });
 });
-test("external browser opening prefers LIFF and uses LINE's external-browser query", async () => {
+test("external browser opening uses supported LINE and Android handoffs without faking iOS Safari", async () => {
   let liffOptions = null;
   const liffResult = await openExternalBrowser({
     context: { app: "line", embedded: true, platform: "ios" },
@@ -121,6 +123,21 @@ test("external browser opening prefers LIFF and uses LINE's external-browser que
   assert.equal(androidResult.method, "android-intent");
   assert.ok(assigned.startsWith("intent://example.com/dev.html#Intent;"));
   assert.ok(assigned.includes("package=com.android.chrome"));
+
+  let iosWindowOpened = false;
+  const iosResult = await openExternalBrowser({
+    context: { app: "x", embedded: true, platform: "ios" },
+    liffLike: null,
+    locationLike: { href: "https://example.com/#vpa-challenge=abc" },
+    windowLike: {
+      open: () => {
+        iosWindowOpened = true;
+      },
+    },
+  });
+  assert.equal(iosResult.method, "ios-app-menu-required");
+  assert.equal(iosResult.opened, false);
+  assert.equal(iosWindowOpened, false);
 });
 test("embedded inference samples start, middle, and end without changing the recording", () => {
   const originalSamples = Float32Array.from({ length: 200 }, (_value, index) => index);

@@ -117,7 +117,9 @@ test("creates one D1 share row and serves immediate OG metadata", async () => {
   assert.match(created.expiresAt, /^\d{4}-\d{2}-\d{2}T/);
   assert.equal(env.SHARE_DB.rows.size, 1);
 
-  const result = await worker.fetch(new Request(created.url), env);
+  const result = await worker.fetch(new Request(created.url, {
+    headers: { "User-Agent": "Twitterbot/1.0" },
+  }), env);
   assert.equal(result.status, 200);
   assert.match(result.headers.get("Content-Type"), /^text\/html/);
   const html = await result.text();
@@ -126,6 +128,14 @@ test("creates one D1 share row and serves immediate OG metadata", async () => {
   assert.match(html, /og:image:type" content="image\/jpeg"/);
   assert.match(html, /女性化傾向 64%/);
   assert.match(html, /https:\/\/shusei\.github\.io\/vpa\/#vpa-challenge=abc/);
+  assert.equal(result.headers.get("Vary"), "User-Agent");
+
+  const human = await worker.fetch(new Request(created.url, {
+    headers: { "User-Agent": "Twitter for iPhone" },
+  }), env);
+  assert.equal(human.status, 302);
+  assert.equal(human.headers.get("Location"), "https://shusei.github.io/vpa/#vpa-challenge=abc");
+  assert.equal(human.headers.get("Cache-Control"), "private, no-store");
 
   const image = await worker.fetch(new Request(created.imageUrl), env);
   assert.equal(image.status, 200);

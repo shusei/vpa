@@ -27,8 +27,7 @@ test.describe("embedded mobile browser guard", () => {
 
     const guard = page.locator("[data-embedded-browser-guard]");
     await expect(guard).toBeVisible();
-    await expect(guard).toContainText("Safari");
-    await expect(guard).toContainText("Chrome");
+    await expect(guard).toContainText("常用的瀏覽器");
     await expect(page.getByRole("button", { name: "用瀏覽器開啟" })).toBeVisible();
     await expect(page.getByRole("button", { name: "複製連結" })).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.vpaEmbeddedBrowser)).toMatchObject({
@@ -41,5 +40,36 @@ test.describe("embedded mobile browser guard", () => {
     await page.locator("[data-quick-record]").click();
     await expect.poll(() => page.evaluate(() => window.__vpaPipelineCalls?.length || 0)).toBe(1);
     await page.locator("[data-quick-record]").click();
+  });
+});
+
+test.describe("iOS social app challenge browser", () => {
+  test.use({
+    userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Twitter for iPhone",
+    viewport: { height: 844, width: 390 },
+  });
+
+  test("opens a challenge immediately without an unusable external-browser prompt", async ({ page }) => {
+    await installDeterministicRuntime(page);
+    await page.goto("/dev.html#vpa-challenge=abc");
+
+    await expect(page.locator("[data-embedded-browser-guard]")).toHaveCount(0);
+    await expect(page.locator("[data-quick-record]")).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.vpaEmbeddedBrowser)).toMatchObject({
+      app: "x",
+      embedded: true,
+      platform: "ios",
+    });
+  });
+
+  test("does not show a fake one-tap Safari button on ordinary pages", async ({ page }) => {
+    await installDeterministicRuntime(page);
+    await page.goto("/dev.html");
+
+    const guard = page.locator("[data-embedded-browser-guard]");
+    await expect(guard).toBeVisible();
+    await expect(guard.locator("[data-embedded-browser-open]")).toHaveCount(0);
+    await expect(guard.locator("[data-embedded-browser-copy]")).toBeVisible();
+    await expect(guard.locator("[data-embedded-browser-close]")).toBeVisible();
   });
 });

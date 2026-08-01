@@ -1,1 +1,1 @@
-export * from "./app-core.js?v=20260801-lineexternal1";
+export * from "./app-core.js?v=20260801-challenge-direct1";
