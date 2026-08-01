@@ -239,10 +239,14 @@ const shareTargets = buildShareTargets({
   caption: "VPA score 72%",
   url: shareUrl,
 });
-assert.match(shareTargets.x, /^https:\/\/x\.com\/intent\/post\?/);
+assert.match(shareTargets.x, /^https:\/\/twitter\.com\/intent\/tweet\?/);
 assert.match(shareTargets.threads, /^https:\/\/www\.threads\.com\/intent\/post\?/);
 assert.match(shareTargets.line, /^https:\/\/line\.me\/R\/share\?/);
 assert.ok(Object.values(shareTargets).every((target) => target.includes(encodeURIComponent(shareUrl))));
+const xTarget = new URL(shareTargets.x);
+assert.equal(xTarget.searchParams.get("text"), "VPA score 72%");
+assert.equal(xTarget.searchParams.get("url"), shareUrl);
+assert.equal(xTarget.searchParams.get("hashtags"), "VoicePresentationAnalyzer");
 const lineTarget = new URL(shareTargets.line);
 assert.equal(lineTarget.searchParams.get("text"), `VPA score 72%\n${shareUrl}`);
 assert.equal(lineTarget.searchParams.has("url"), false);

@@ -10,13 +10,14 @@ import {
   createResultCard,
   formatAdvancedResult,
   onAdvancedResult,
-} from "./advanced-experience.js?v=20260801-socialtrim1";
+  prepareAdvancedXShare,
+} from "./advanced-experience.js?v=20260801-xnative1";
 import { shareResultFiles } from "./audio-share.js?v=20260801-sharefix1";
 import {
   compareChallenge,
   createChallengeUrl,
   readChallenge,
-} from "./challenge-link.js";
+} from "./challenge-link.js?v=20260801-xnative1";
 import { createDynamicCardController } from "./dynamic-card-controller.js?v=20260801-socialtrim1";
 import {
   getDailyPromptId,
@@ -25,12 +26,12 @@ import {
   STANDARD_PROMPT_IDS,
   STANDARD_TEST_ID,
 } from "./quick-prompts.js";
-import { buildShareTargets, downloadBlob } from "./share-card.js?v=20260801-appopen1";
+import { buildShareTargets, downloadBlob } from "./share-card.js?v=20260801-xnative1";
 import {
   getPublicShareResult,
   openPublicPlatformShare,
   resetPublicShareCache,
-} from "./public-share.js?v=20260801-appopen1";
+} from "./public-share.js?v=20260801-xnative1";
 import { aggregateStandardResults } from "./standard-result.js";
 import { analyzeVoiceQuality } from "./voice-quality-metrics.js";
 
@@ -55,9 +56,16 @@ let analysisTimeoutId = null;
 let shareOpen = false;
 let dynamicAudioOptIn = false;
 let shareStatusKey = "";
+let quickXSharePreparing = false;
+let quickXShareReady = false;
 let currentChallenge = null;
 let standardStep = 0;
 let standardRuns = [];
+
+function resetQuickXShareState() {
+  quickXSharePreparing = false;
+  quickXShareReady = false;
+}
 
 registerDecodedAudioAnalyzer("voice-age-v2", ({ samples, sampleRate }) => (
   analyzeVoiceQuality(samples, sampleRate, {
@@ -422,6 +430,7 @@ function shareShortcutMarkup() {
       <div class="quick-share-shortcuts__buttons">
         ${platforms.map((platform) => `
           <button type="button" data-quick-platform="${platform}"
+            ${!latestResult?.ready || (platform === "x" && !quickXShareReady) ? "disabled" : ""}
             aria-label="${escapeHtml(t("experiment.quick.share.directAria", { platform }))}">
             <span class="quick-share-shortcuts__mark" aria-hidden="true">
               ${platform === "x" ? "X" : platform === "line" ? "LINE" : "@"}
@@ -559,6 +568,9 @@ function renderQuickExperience() {
   bindCommonControls(quickExperience);
   bindQuickControls();
   updateQuickTimer();
+  if (currentExperience === "quick" && quickStage === "result" && latestResult?.ready && !quickXShareReady) {
+    void prewarmPublicShare();
+  }
 }
 
 function renderAll() {
@@ -641,6 +653,7 @@ function setExperience(value, { persist = true } = {}) {
   document.documentElement.setAttribute("data-experience", value);
   renderExperienceNav();
   renderQuickExperience();
+  if (value === "professional") prepareAdvancedXShare();
   track("experience_mode_selected", { mode: value });
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -678,6 +691,7 @@ function resetQuickTest() {
   shareOpen = false;
   dynamicAudioOptIn = false;
   shareStatusKey = "";
+  resetQuickXShareState();
   currentChallenge = null;
   if (quickTestMode === "standard") {
     standardStep = 0;
@@ -716,6 +730,7 @@ function continueStandardTest() {
   shareOpen = false;
   dynamicAudioOptIn = false;
   shareStatusKey = "";
+  resetQuickXShareState();
   currentChallenge = null;
   renderQuickExperience();
 }
@@ -761,6 +776,7 @@ async function toggleQuickRecording() {
   latestResult = null;
   shareOpen = false;
   dynamicAudioOptIn = false;
+  resetQuickXShareState();
   quickStage = "requesting";
   renderQuickExperience();
   track("quick_test_started", {
@@ -859,12 +875,28 @@ async function resolvePublicShareUrl(result, challenge) {
 }
 
 async function prewarmPublicShare() {
+  if (quickXShareReady || quickXSharePreparing) return;
   const challenge = ensureChallenge();
-  if (!challenge || !latestResult) return;
+  const result = latestResult;
+  const locale = getCurrentLocale();
+  if (!challenge || !result?.ready) return;
+  quickXSharePreparing = true;
   try {
-    await resolvePublicShareUrl(latestResult, challenge);
+    await resolvePublicShareUrl(result, challenge);
   } catch (error) {
     console.error("[quick-share] short URL prewarm failed", error);
+  } finally {
+    if (
+      result !== latestResult
+      || challenge !== currentChallenge
+      || locale !== getCurrentLocale()
+    ) {
+      return;
+    }
+    quickXSharePreparing = false;
+    quickXShareReady = true;
+    const xButton = quickExperience.querySelector('[data-quick-platform="x"]');
+    if (xButton) xButton.disabled = false;
   }
 }
 
@@ -913,6 +945,7 @@ async function shareQuickResult() {
 
 function finalizeQuickResult(result) {
   dynamicCard.reset();
+  resetQuickXShareState();
   resetPublicShareCache();
   latestResult = result;
   quickStage = "result";
@@ -985,6 +1018,7 @@ onAdvancedResult(({ analysis, result }) => {
 
 onLocaleChange(() => {
   dynamicCard.reset();
+  resetQuickXShareState();
   resetPublicShareCache();
   renderAll();
 });

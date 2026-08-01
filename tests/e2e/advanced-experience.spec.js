@@ -98,10 +98,15 @@ test("professional experience renders advanced result and creates a local share 
 });
 
 test("professional X sharing publishes the personalized public result", async ({ page }) => {
+  let releasePublicShare;
+  const publicShareGate = new Promise((resolvePromise) => {
+    releasePublicShare = resolvePromise;
+  });
   await page.addInitScript(() => {
     window.VPA_SHARE_SERVICE_ORIGIN = "https://share.example";
   });
   await page.route("https://share.example/api/shares", async (route) => {
+    await publicShareGate;
     await route.fulfill({
       body: JSON.stringify({
         id: "abcdefghijklmnop",
@@ -126,12 +131,17 @@ test("professional X sharing publishes the personalized public result", async ({
   await expect(page.locator("[data-share-platform]")).toHaveCount(3);
   await expect(page.locator('[data-share-platform="facebook"], [data-share-instagram]')).toHaveCount(0);
 
+  await expect(page.locator('[data-share-platform="x"]')).toBeDisabled();
+  releasePublicShare();
+  await expect(page.locator('[data-share-platform="x"]')).toBeEnabled();
   await page.locator('[data-share-platform="x"]').click();
   await expect.poll(() => page.evaluate(() => window.__vpaOpenedShareUrl || ""))
-    .toContain("https://x.com/intent/post?text=");
-  const opened = decodeURIComponent(await page.evaluate(() => window.__vpaOpenedShareUrl));
-  expect(opened).toContain("https://share.example/r/abcdefghijklmnop");
-  expect(opened).not.toContain("#vpa-challenge=");
+    .toContain("https://twitter.com/intent/tweet?");
+  const opened = new URL(await page.evaluate(() => window.__vpaOpenedShareUrl));
+  expect(`${opened.origin}${opened.pathname}`).toBe("https://twitter.com/intent/tweet");
+  expect(opened.searchParams.get("url")).toBe("https://share.example/r/abcdefghijklmnop");
+  expect(opened.searchParams.get("hashtags")).toBe("VoicePresentationAnalyzer");
+  expect(opened.toString()).not.toContain("#vpa-challenge=");
   expect(runtimeErrors).toEqual([]);
   await page.evaluate(() => { window.__vpaOpenedShareUrl = ""; });
   await page.locator('[data-share-platform="threads"]').click();

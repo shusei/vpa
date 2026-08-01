@@ -1,24 +1,26 @@
 import { onInferenceDone } from "../app.js?v=20260801-sharefix1";
 import { getCurrentLocale, onLocaleChange, t } from "../js/i18n.js";
 import { evaluateAdvancedExperience } from "./advanced-evaluator.js";
-import { createChallengeUrl } from "./challenge-link.js";
+import { createChallengeUrl } from "./challenge-link.js?v=20260801-xnative1";
 import {
   getPublicShareResult,
   openPublicPlatformShare,
-} from "./public-share.js?v=20260801-appopen1";
+} from "./public-share.js?v=20260801-xnative1";
 import {
   buildShareTargets,
   buildShareUrl,
   createShareCardBlob,
   downloadBlob,
   shareWithSystem,
-} from "./share-card.js?v=20260801-appopen1";
+} from "./share-card.js?v=20260801-xnative1";
 
 let lastAnalysis = null;
 let lastResult = null;
 let renderedAnalysisId = 0;
 const resultListeners = new Set();
 const resultChallenges = new WeakMap();
+const preparedXShareResults = new WeakSet();
+const preparingXShareResults = new WeakSet();
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -204,7 +206,15 @@ function shareChallenge(result) {
   if (!result || typeof result !== "object") return null;
   let challenge = resultChallenges.get(result);
   if (!challenge) {
-    challenge = createChallengeUrl(result);
+    try {
+      challenge = createChallengeUrl(result);
+    } catch {
+      const fallbackUrl = String(window.VPA_PUBLIC_APP_URL || buildShareUrl());
+      challenge = {
+        payload: { id: globalThis.crypto?.randomUUID?.() || `share-${Date.now()}` },
+        url: new URL(fallbackUrl).toString(),
+      };
+    }
     resultChallenges.set(result, challenge);
   }
   return challenge;
@@ -219,6 +229,27 @@ async function publicShareFor(result) {
     formatted: formatAdvancedResult(result),
     result,
   });
+}
+
+async function prepareXShare(result) {
+  if (!result?.ready || preparedXShareResults.has(result) || preparingXShareResults.has(result)) return;
+  preparingXShareResults.add(result);
+  try {
+    await publicShareFor(result);
+  } catch (error) {
+    console.error("[advanced-experiment] X share prewarm failed", error);
+  } finally {
+    preparingXShareResults.delete(result);
+    preparedXShareResults.add(result);
+    if (result === lastResult) {
+      const xButton = resultPanel.querySelector('[data-share-platform="x"]');
+      if (xButton) xButton.disabled = false;
+    }
+  }
+}
+
+export function prepareAdvancedXShare() {
+  if (lastResult?.ready) void prepareXShare(lastResult);
 }
 
 export async function createResultCard(result = lastResult, { shareUrl = buildShareUrl() } = {}) {
@@ -386,6 +417,7 @@ export function renderAnalysis(analysis, { notify = true } = {}) {
     ? `<span class="advanced-experience__flag">${escapeHtml(t("experiment.advanced.contradiction"))}</span>`
     : "";
   const disabled = result.ready ? "" : "disabled";
+  const xDisabled = result.ready && preparedXShareResults.has(result) ? "" : "disabled";
   resultPanel.innerHTML = `
     <div class="advanced-experience__head">
       <div>
@@ -427,7 +459,7 @@ export function renderAnalysis(analysis, { notify = true } = {}) {
         ${escapeHtml(t("experiment.advanced.share.primary"))}
       </button>
       <div class="advanced-share__platforms" aria-label="${escapeHtml(t("experiment.advanced.share.platformAria"))}">
-        <button type="button" data-share-platform="x" ${disabled}>X</button>
+        <button type="button" data-share-platform="x" ${xDisabled}>X</button>
         <button type="button" data-share-platform="threads" ${disabled}>Threads</button>
         <button type="button" data-share-platform="line" ${disabled}>LINE</button>
       </div>
@@ -441,6 +473,9 @@ export function renderAnalysis(analysis, { notify = true } = {}) {
   `;
   resultPanel.hidden = false;
   bindShareActions(result);
+  if (result.ready && document.documentElement.getAttribute("data-experience") === "professional") {
+    queueMicrotask(() => prepareXShare(result));
+  }
   if (notify) {
     track("advanced_result_view", {
       confidence: result.confidence.key,

@@ -1,13 +1,14 @@
 import { getCurrentLocale, t } from "../js/i18n.js";
-import { buildShareTargets } from "./share-card.js?v=20260801-appopen1";
+import { buildShareTargets } from "./share-card.js?v=20260801-xnative1";
 import {
   isShareServiceConfigured,
   publishShareResult,
 } from "./share-service.js?v=20260801-sharefix1";
 import { createSocialPreviewBlob } from "./social-preview-card.js?v=20260801-sharefix1";
-import { navigate, prefersCurrentTab } from "./share-navigation.js?v=20260801-appopen1";
+import { navigate, prefersCurrentTab } from "./share-navigation.js?v=20260801-xnative1";
 
-let publishedShareCache = null;
+const publishedShareCache = new Map();
+const failedShareCacheKeys = new Set();
 
 function labels() {
   return {
@@ -39,8 +40,9 @@ function createPendingWindow(windowLike) {
 
 function cacheResult(cacheKey, promise) {
   promise.then((result) => {
-    if (publishedShareCache?.key === cacheKey && publishedShareCache.promise === promise) {
-      publishedShareCache.result = result;
+    const cacheEntry = publishedShareCache.get(cacheKey);
+    if (cacheEntry?.promise === promise) {
+      cacheEntry.result = result;
     }
   }).catch(() => {
     // The caller handles publication errors and clears a failed cache entry.
@@ -56,8 +58,10 @@ function shareCacheKey(challenge) {
 
 async function publish({ analysis, challenge, formatted, result }) {
   const cacheKey = shareCacheKey(challenge);
-  if (publishedShareCache?.key === cacheKey) return publishedShareCache.promise;
+  const cached = publishedShareCache.get(cacheKey);
+  if (cached) return cached.promise;
 
+  failedShareCacheKeys.delete(cacheKey);
   const promise = (async () => {
     const cardLabels = labels();
     const theme = document.documentElement.getAttribute("data-faction") === "light"
@@ -89,12 +93,13 @@ async function publish({ analysis, challenge, formatted, result }) {
       },
     });
   })();
-  publishedShareCache = { key: cacheKey, promise, result: null };
+  publishedShareCache.set(cacheKey, { promise, result: null });
   cacheResult(cacheKey, promise);
   try {
     return await promise;
   } catch (error) {
-    if (publishedShareCache?.promise === promise) publishedShareCache = null;
+    if (publishedShareCache.get(cacheKey)?.promise === promise) publishedShareCache.delete(cacheKey);
+    failedShareCacheKeys.add(cacheKey);
     throw error;
   }
 }
@@ -124,17 +129,23 @@ export async function openPublicPlatformShare({
   })[platform];
   if (!fallbackTarget) return { method: "unsupported" };
   const currentTab = prefersCurrentTab(windowLike);
+  const cacheKey = shareCacheKey(challenge);
   if (!isShareServiceConfigured(windowLike)) {
     navigate(null, fallbackTarget, windowLike, { currentTab, platform });
     return { method: "unconfigured" };
   }
-  if (publishedShareCache?.key === shareCacheKey(challenge) && publishedShareCache.result) {
+  if (failedShareCacheKeys.has(cacheKey)) {
+    navigate(null, fallbackTarget, windowLike, { currentTab, platform });
+    return { method: "fallback" };
+  }
+  const cached = publishedShareCache.get(cacheKey);
+  if (cached?.result) {
     const target = buildShareTargets({
       caption: formatted.caption,
-      url: publishedShareCache.result.url,
+      url: cached.result.url,
     })[platform];
     navigate(null, target, windowLike, { currentTab, platform });
-    return { method: "public-result", url: publishedShareCache.result.url };
+    return { method: "public-result", url: cached.result.url };
   }
 
   const popup = currentTab ? null : createPendingWindow(windowLike);
@@ -160,5 +171,6 @@ export async function openPublicPlatformShare({
 }
 
 export function resetPublicShareCache() {
-  publishedShareCache = null;
+  publishedShareCache.clear();
+  failedShareCacheKeys.clear();
 }

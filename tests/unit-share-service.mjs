@@ -65,7 +65,7 @@ test("mobile sharing navigates the current tab without opening an empty tab", ()
   const currentTab = shareNavigation.prefersCurrentTab(windowLike);
   assert.equal(currentTab, true);
   const universalTargets = [
-    ["x", "https://x.com/intent/post?text=VPA"],
+    ["x", "https://twitter.com/intent/tweet?text=VPA"],
     ["threads", "https://www.threads.com/intent/post?text=VPA"],
     ["line", "https://line.me/R/share?text=VPA"],
   ];
@@ -73,19 +73,18 @@ test("mobile sharing navigates the current tab without opening an empty tab", ()
     assert.equal(shareNavigation.buildAppFirstTarget({ platform, target, windowLike }), target);
   });
   assert.equal(
-    shareNavigation.navigate(null, "https://x.com/intent/post?text=VPA", windowLike, { currentTab, platform: "x" }),
+    shareNavigation.navigate(null, "https://twitter.com/intent/tweet?text=VPA", windowLike, { currentTab, platform: "x" }),
     "current-tab",
   );
-  assert.deepEqual(assigned, ["https://x.com/intent/post?text=VPA"]);
+  assert.deepEqual(assigned, ["https://twitter.com/intent/tweet?text=VPA"]);
   assert.deepEqual(opened, []);
 });
 
-test("Android sharing targets each installed app before its signed-out web composer", () => {
+test("Android sharing preserves X App Links while targeting verified LINE and Threads apps", () => {
   const windowLike = {
     navigator: { userAgent: "Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Mobile" },
   };
   const cases = [
-    ["x", "https://x.com/intent/post?text=VPA", "com.twitter.android"],
     ["threads", "https://www.threads.com/intent/post?text=VPA", "com.instagram.barcelona"],
     ["line", "https://line.me/R/share?text=VPA", "jp.naver.line.android"],
   ];
@@ -97,13 +96,19 @@ test("Android sharing targets each installed app before its signed-out web compo
     assert.ok(appTarget.includes(`S.browser_fallback_url=${encodeURIComponent(target)}`));
   });
 
+  const xTarget = "https://twitter.com/intent/tweet?text=VPA";
+  const xAppTarget = shareNavigation.buildAppFirstTarget({ platform: "x", target: xTarget, windowLike });
+  assert.equal(xAppTarget, xTarget);
+  assert.ok(!xAppTarget.startsWith("intent://"));
+  assert.ok(!xAppTarget.includes("package=com.twitter.android"));
+
   const assigned = [];
   const navigationWindow = {
     ...windowLike,
     location: { assign: (url) => assigned.push(url) },
     open: () => { throw new Error("Android app sharing must not open a browser tab"); },
   };
-  shareNavigation.navigate(null, cases[2][1], navigationWindow, { currentTab: true, platform: "line" });
+  shareNavigation.navigate(null, cases[1][1], navigationWindow, { currentTab: true, platform: "line" });
   assert.ok(assigned[0].includes("package=jp.naver.line.android"));
 });
 

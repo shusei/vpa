@@ -583,13 +583,17 @@ html[data-faction="dark"] .quick-experience {
   text-align:left;
   transition:transform .18s ease, box-shadow .18s ease, filter .18s ease;
 }
-.quick-share-shortcuts__buttons button:hover {
+.quick-share-shortcuts__buttons button:not(:disabled):hover {
   transform:translateY(-2px);
   box-shadow:0 14px 30px var(--platform-shadow), inset 0 1px rgba(255,255,255,.18);
   filter:saturate(1.06);
 }
-.quick-share-shortcuts__buttons button:active {
+.quick-share-shortcuts__buttons button:not(:disabled):active {
   transform:translateY(0) scale(.985);
+}
+.quick-share-shortcuts__buttons button:disabled {
+  cursor:wait;
+  opacity:.55;
 }
 .quick-share-shortcuts__buttons button[data-quick-platform="x"] {
   --platform-a:#080a0c;

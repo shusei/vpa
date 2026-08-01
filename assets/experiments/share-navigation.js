@@ -1,7 +1,6 @@
 const ANDROID_APP_PACKAGES = Object.freeze({
   line: "jp.naver.line.android",
   threads: "com.instagram.barcelona",
-  x: "com.twitter.android",
 });
 export function prefersCurrentTab(windowLike) {
   const navigatorLike = windowLike?.navigator || {};

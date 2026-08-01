@@ -112,7 +112,7 @@
   <link rel="stylesheet" href="assets/css/components.css" />
   <link rel="stylesheet" href="assets/css/overlays.css" />
   <link rel="stylesheet" href="assets/css/experiments.css?v=20260801-socialtrim1" />
-  <link rel="stylesheet" href="assets/css/quick-experience.css?v=20260801-socialtrim1" />
+  <link rel="stylesheet" href="assets/css/quick-experience.css?v=20260801-xnative1" />
   <script type="importmap">
   {
     "imports": {
@@ -593,11 +593,13 @@
   <script>
     window.ONNX_MODEL_ID = 'prithivMLmods/Common-Voice-Gender-Detection-ONNX';
     window.VPA_EXPERIMENT_LOCALES = ['ja'];
+    window.VPA_PUBLIC_APP_URL = window.VPA_PUBLIC_APP_URL
+      ?? 'https://shusei.github.io/vpa/';
     window.VPA_SHARE_SERVICE_ORIGIN = window.VPA_SHARE_SERVICE_ORIGIN
-      ?? 'https://vpa-share.evelynjoellelin.workers.dev';
+      ?? (['127.0.0.1', 'localhost'].includes(location.hostname) ? '' : 'https://vpa-share.evelynjoellelin.workers.dev');
   </script>
   <script type="module" src="assets/app.js?v=20260801-lineexternal1"></script>
-  <script type="module" src="assets/experiments/experience-shell.js?v=20260801-appopen1"></script>
+  <script type="module" src="assets/experiments/experience-shell.js?v=20260801-xnative1"></script>
 </body>
 
 </html>

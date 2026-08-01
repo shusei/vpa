@@ -36,11 +36,15 @@ function toBlob(canvas) {
 
 export function buildShareTargets({ caption, url }) {
   const combined = buildShareText(caption, url);
-  const xText = `${combined}\n#VoicePresentationAnalyzer`;
+  const xParams = new URLSearchParams({
+    hashtags: "VoicePresentationAnalyzer",
+    text: caption,
+    url,
+  });
   return {
     line: `https://line.me/R/share?text=${encodeURIComponent(combined)}`,
     threads: `https://www.threads.com/intent/post?text=${encodeURIComponent(combined)}`,
-    x: `https://x.com/intent/post?text=${encodeURIComponent(xText)}`,
+    x: `https://twitter.com/intent/tweet?${xParams.toString()}`,
   };
 }
 

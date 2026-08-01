@@ -12,6 +12,7 @@ async function openDevelopmentPage(page, { shareServiceOrigin = "", ...runtimeOp
   await installDeterministicRuntime(page, runtimeOptions);
   await page.addInitScript((origin) => {
     window.VPA_SHARE_SERVICE_ORIGIN = origin;
+    window.VPA_PUBLIC_APP_URL = "";
   }, shareServiceOrigin);
   await page.goto("/dev.html");
   await expect.poll(() => page.evaluate(() => Boolean(
@@ -399,8 +400,12 @@ test("result page offers only the three verified direct sharing platforms", asyn
   expect(lineTarget.searchParams.get("text")).toContain("#vpa-challenge=");
   await page.locator('[data-quick-platform="x"]').click();
   await expect.poll(() => page.evaluate(() => window.__vpaOpenedShareUrl)).toContain(
-    "https://x.com/intent/post?text=",
+    "https://twitter.com/intent/tweet?",
   );
+  const xTarget = new URL(await page.evaluate(() => window.__vpaOpenedShareUrl));
+  expect(xTarget.searchParams.get("url")).toContain("#vpa-challenge=");
+  expect(xTarget.searchParams.get("hashtags")).toBe("VoicePresentationAnalyzer");
+  expect(xTarget.toString()).not.toContain("package=com.twitter.android");
   await expect(page.locator('[data-quick-platform="facebook"], [data-quick-platform="tiktok"], [data-quick-platform="instagram"]')).toHaveCount(0);
   expect(runtimeErrors).toEqual([]);
 });

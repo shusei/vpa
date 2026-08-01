@@ -12,10 +12,10 @@ const expectedMeta = [
   '<meta name="twitter:card" content="summary_large_image"',
   '<meta name="twitter:image" content="https://shusei.github.io/vpa/ogp.png"',
   'assets/css/experiments.css?v=20260801-launch1',
-  'assets/css/quick-experience.css?v=20260801-launch1',
+  'assets/css/quick-experience.css?v=20260801-xnative1',
   "window.VPA_EXPERIMENT_LOCALES = ['ja'];",
   'https://vpa-share.evelynjoellelin.workers.dev',
-  'assets/experiments/experience-shell.js?v=20260801-launch1',
+  'assets/experiments/experience-shell.js?v=20260801-xnative1',
 ];
 for (const token of expectedMeta) {
   assert.ok(html.includes(token), `Missing social metadata: ${token}`);

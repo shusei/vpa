@@ -129,7 +129,10 @@ export function decodeChallenge(encoded) {
 export function createChallengeUrl(result, locationLike = window.location) {
   const payload = createChallengePayload(result);
   if (!payload) throw new TypeError("result cannot create a challenge");
-  const url = new URL(locationLike.href);
+  const configuredBase = locationLike === globalThis.location
+    ? String(globalThis.VPA_PUBLIC_APP_URL || "").trim()
+    : "";
+  const url = new URL(configuredBase || locationLike.href);
   url.search = "";
   url.hash = `${HASH_KEY}=${encodeChallenge(payload)}`;
   return {
