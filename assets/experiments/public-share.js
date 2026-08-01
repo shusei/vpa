@@ -5,6 +5,7 @@ import {
   publishShareResult,
 } from "./share-service.js?v=20260801-sharefix1";
 import { createSocialPreviewBlob } from "./social-preview-card.js?v=20260801-sharefix1";
+import { navigate, prefersCurrentTab } from "./share-navigation.js?v=20260801-blanktab1";
 
 let publishedShareCache = null;
 
@@ -34,18 +35,6 @@ function createPendingWindow(windowLike) {
     // Navigation still works if the placeholder document cannot be styled.
   }
   return popup;
-}
-
-function navigate(popup, target, windowLike) {
-  if (popup) {
-    try {
-      popup.location.replace(target);
-      return;
-    } catch {
-      // Fall back to a second user-agent navigation below.
-    }
-  }
-  windowLike.open(target, "_blank", "noopener,noreferrer");
 }
 
 function cacheResult(cacheKey, promise) {
@@ -129,22 +118,26 @@ export async function openPublicPlatformShare({
   result,
   windowLike = window,
 }) {
-  if (!isShareServiceConfigured(windowLike)) return { method: "unconfigured" };
   const fallbackTarget = buildShareTargets({
     caption: formatted.caption,
     url: challenge.url,
   })[platform];
   if (!fallbackTarget) return { method: "unsupported" };
+  const currentTab = prefersCurrentTab(windowLike);
+  if (!isShareServiceConfigured(windowLike)) {
+    navigate(null, fallbackTarget, windowLike, { currentTab });
+    return { method: "unconfigured" };
+  }
   if (publishedShareCache?.key === shareCacheKey(challenge) && publishedShareCache.result) {
     const target = buildShareTargets({
       caption: formatted.caption,
       url: publishedShareCache.result.url,
     })[platform];
-    windowLike.open(target, "_blank", "noopener,noreferrer");
+    navigate(null, target, windowLike, { currentTab });
     return { method: "public-result", url: publishedShareCache.result.url };
   }
 
-  const popup = createPendingWindow(windowLike);
+  const popup = currentTab ? null : createPendingWindow(windowLike);
   try {
     const publicShare = await getPublicShareResult({
       analysis,
@@ -157,11 +150,11 @@ export async function openPublicPlatformShare({
       caption: formatted.caption,
       url: publicShare.url,
     })[platform];
-    navigate(popup, target, windowLike);
+    navigate(popup, target, windowLike, { currentTab });
     return { method: "public-result", url: publicShare.url };
   } catch (error) {
     console.error("[public-share] result publishing failed", error);
-    navigate(popup, fallbackTarget, windowLike);
+    navigate(popup, fallbackTarget, windowLike, { currentTab });
     return { error, method: "fallback" };
   }
 }

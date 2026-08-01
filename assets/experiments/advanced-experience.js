@@ -5,7 +5,7 @@ import { createChallengeUrl } from "./challenge-link.js";
 import {
   getPublicShareResult,
   openPublicPlatformShare,
-} from "./public-share.js?v=20260801-sharefix1";
+} from "./public-share.js?v=20260801-blanktab1";
 import {
   buildShareTargets,
   buildShareUrl,
@@ -316,16 +316,13 @@ async function openPlatform(platform, result) {
   });
   const target = targets[platform];
   if (!target) return;
-  const publicShare = await openPublicPlatformShare({
+  await openPublicPlatformShare({
     analysis: lastAnalysis,
     challenge,
     formatted,
     platform,
     result,
   });
-  if (publicShare.method === "unconfigured" || publicShare.method === "unsupported") {
-    window.open(target, "_blank", "noopener,noreferrer");
-  }
   setShareStatus("experiment.advanced.share.opened");
   track("share_platform_selected", {
     platform,

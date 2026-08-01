@@ -30,7 +30,7 @@ import {
   getPublicShareResult,
   openPublicPlatformShare,
   resetPublicShareCache,
-} from "./public-share.js?v=20260801-platformshare1";
+} from "./public-share.js?v=20260801-blanktab1";
 import { aggregateStandardResults } from "./standard-result.js";
 import { analyzeVoiceQuality } from "./voice-quality-metrics.js";
 
@@ -832,16 +832,13 @@ async function openQuickPlatform(platform) {
   });
   const target = targets[platform];
   if (!target) return;
-  const publicShare = await openPublicPlatformShare({
+  await openPublicPlatformShare({
     analysis: latestAnalysis,
     challenge,
     formatted,
     platform,
     result: latestResult,
   });
-  if (publicShare.method === "unconfigured" || publicShare.method === "unsupported") {
-    window.open(target, "_blank", "noopener,noreferrer");
-  }
   track("share_platform_selected", {
     mode: "quick",
     platform,
