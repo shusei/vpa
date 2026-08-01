@@ -45,7 +45,6 @@ export function createDynamicCardController({
       progress: 0,
       shareUrlPromise: null,
       statusKey: "",
-      targetPlatform: "",
     };
   }
 
@@ -121,9 +120,7 @@ export function createDynamicCardController({
         `}
         <div class="quick-dynamic-actions">
           <button type="button" class="quick-primary" data-dynamic-share>
-            ${escapeHtml(t(state.targetPlatform === "tiktok"
-              ? "experiment.quick.dynamic.shareTikTok"
-              : "experiment.quick.dynamic.share"))}
+            ${escapeHtml(t("experiment.quick.dynamic.share"))}
           </button>
           <button type="button" class="quick-secondary" data-dynamic-download>
             ${escapeHtml(t("experiment.quick.dynamic.download"))}
@@ -183,11 +180,10 @@ export function createDynamicCardController({
     `;
   }
 
-  async function open(result, { targetPlatform = "" } = {}) {
+  async function open(result) {
     const audioUrl = getAudioUrl();
     if (!audioUrl || !result?.ready) return;
     const requestId = ++generationId;
-    state.targetPlatform = targetPlatform;
     state.open = true;
     state.phase = "loading";
     state.errorKey = "";

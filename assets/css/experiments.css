@@ -333,14 +333,35 @@ html[data-faction="dark"] .advanced-experience {
   font-size:1rem !important;
   box-shadow:0 12px 26px color-mix(in oklab, var(--accent-2) 26%, transparent);
 }
-.advanced-share__platforms,
+.advanced-share__platforms {
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:9px;
+}
+.advanced-share__platforms button {
+  min-height:48px;
+  color:#fff;
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 9px 20px rgba(12,20,24,.14), inset 0 1px rgba(255,255,255,.13);
+  transition:transform .18s ease, filter .18s ease;
+}
+.advanced-share__platforms button:hover {
+  transform:translateY(-2px);
+  filter:saturate(1.06);
+}
+.advanced-share__platforms button[data-share-platform="x"] {
+  background:linear-gradient(145deg, #080a0c, #26313a);
+}
+.advanced-share__platforms button[data-share-platform="threads"] {
+  background:linear-gradient(145deg, #241b25, #624253);
+}
+.advanced-share__platforms button[data-share-platform="line"] {
+  background:linear-gradient(145deg, #06c755, #078f43);
+}
 .advanced-share__fallbacks {
   display:flex;
   flex-wrap:wrap;
   gap:8px;
-}
-.advanced-share__platforms button {
-  flex:1 1 94px;
 }
 .advanced-share__hint {
   margin:0;

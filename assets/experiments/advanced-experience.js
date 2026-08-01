@@ -12,7 +12,7 @@ import {
   createShareCardBlob,
   downloadBlob,
   shareWithSystem,
-} from "./share-card.js?v=20260801-sharefix1";
+} from "./share-card.js?v=20260801-socialtrim1";
 
 let lastAnalysis = null;
 let lastResult = null;
@@ -337,9 +337,6 @@ function bindShareActions(result) {
   resultPanel.querySelector("[data-share-primary]")?.addEventListener("click", () => {
     handleSystemShare(result);
   });
-  resultPanel.querySelector("[data-share-instagram]")?.addEventListener("click", () => {
-    handleSystemShare(result);
-  });
   resultPanel.querySelector("[data-share-download]")?.addEventListener("click", async () => {
     await downloadShareCard(result);
   });
@@ -436,8 +433,6 @@ export function renderAnalysis(analysis, { notify = true } = {}) {
         <button type="button" data-share-platform="x" ${disabled}>X</button>
         <button type="button" data-share-platform="threads" ${disabled}>Threads</button>
         <button type="button" data-share-platform="line" ${disabled}>LINE</button>
-        <button type="button" data-share-platform="facebook" ${disabled}>Facebook</button>
-        <button type="button" data-share-instagram ${disabled}>IG</button>
       </div>
       <p class="advanced-share__hint">${escapeHtml(t("experiment.advanced.share.platformHint"))}</p>
       <div class="advanced-share__fallbacks">

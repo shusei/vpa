@@ -68,7 +68,7 @@ test("professional experience renders advanced result and creates a local share 
   expect(Object.keys(ageEvents[0]).filter((key) => privateKeys.includes(key))).toEqual([]);
   await expect(page.getByRole("button", { name: "分享圖片＋文字（推薦）" })).toBeEnabled();
   await expect(page.locator(".advanced-share__hint")).toContainText(
-    "X／Threads／LINE／Facebook 會直接分享個人化結果圖、文字與短連結",
+    "X／Threads／LINE 會直接開啟發文頁",
   );
 
   const blob = await page.evaluate(async () => {
@@ -123,6 +123,9 @@ test("professional X sharing publishes the personalized public result", async ({
     };
   }, fixture);
 
+  await expect(page.locator("[data-share-platform]")).toHaveCount(3);
+  await expect(page.locator('[data-share-platform="facebook"], [data-share-instagram]')).toHaveCount(0);
+
   await page.locator('[data-share-platform="x"]').click();
   await expect.poll(() => page.evaluate(() => window.__vpaOpenedShareUrl || ""))
     .toContain("https://twitter.com/intent/tweet?");
@@ -130,6 +133,14 @@ test("professional X sharing publishes the personalized public result", async ({
   expect(opened).toContain("https://share.example/r/abcdefghijklmnop");
   expect(opened).not.toContain("#vpa-challenge=");
   expect(runtimeErrors).toEqual([]);
+  await page.evaluate(() => { window.__vpaOpenedShareUrl = ""; });
+  await page.locator('[data-share-platform="threads"]').click();
+  await expect.poll(() => page.evaluate(() => window.__vpaOpenedShareUrl || ""))
+    .toContain("https://www.threads.com/intent/post?text=");
+  const threadsOpened = decodeURIComponent(await page.evaluate(() => window.__vpaOpenedShareUrl));
+  expect(threadsOpened).toContain("https://share.example/r/abcdefghijklmnop");
+  expect(threadsOpened).not.toContain("#vpa-challenge=");
+
 });
 
 test("age refusal keeps the strict presentation result and sharing available", async ({ page }) => {

@@ -242,11 +242,6 @@ const shareTargets = buildShareTargets({
 assert.match(shareTargets.x, /^https:\/\/twitter\.com\/intent\/tweet\?/);
 assert.match(shareTargets.threads, /^https:\/\/www\.threads\.com\/intent\/post\?/);
 assert.match(shareTargets.line, /^https:\/\/social-plugins\.line\.me\/lineit\/share\?/);
-assert.match(shareTargets.facebook, /^https:\/\/www\.facebook\.com\/sharer\/sharer\.php\?/);
-const facebookTarget = new URL(shareTargets.facebook);
-assert.equal(facebookTarget.searchParams.get("u"), shareUrl);
-assert.equal(facebookTarget.searchParams.get("quote"), "VPA score 72%");
-assert.equal(facebookTarget.searchParams.get("display"), "popup");
 assert.ok(Object.values(shareTargets).every((target) => target.includes(encodeURIComponent(shareUrl))));
 const lineTarget = new URL(shareTargets.line);
 assert.equal(lineTarget.searchParams.get("text"), "VPA score 72%");
@@ -545,8 +540,6 @@ const quickTranslationKeys = [
   "share.shareTitle",
   "share.shared",
   "share.system",
-  "share.tiktokNeedsAudio",
-  "share.tiktokReady",
   "share.title",
   "start",
   "standard.audioDefault",

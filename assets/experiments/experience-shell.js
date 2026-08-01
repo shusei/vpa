@@ -10,14 +10,14 @@ import {
   createResultCard,
   formatAdvancedResult,
   onAdvancedResult,
-} from "./advanced-experience.js?v=20260801-sharefix1";
+} from "./advanced-experience.js?v=20260801-socialtrim1";
 import { shareResultFiles } from "./audio-share.js?v=20260801-sharefix1";
 import {
   compareChallenge,
   createChallengeUrl,
   readChallenge,
 } from "./challenge-link.js";
-import { createDynamicCardController } from "./dynamic-card-controller.js?v=20260801-platformshare1";
+import { createDynamicCardController } from "./dynamic-card-controller.js?v=20260801-socialtrim1";
 import {
   getDailyPromptId,
   getStandardPromptId,
@@ -25,14 +25,13 @@ import {
   STANDARD_PROMPT_IDS,
   STANDARD_TEST_ID,
 } from "./quick-prompts.js";
-import { buildShareTargets, downloadBlob } from "./share-card.js?v=20260801-platformshare1";
+import { buildShareTargets, downloadBlob } from "./share-card.js?v=20260801-socialtrim1";
 import {
   getPublicShareResult,
   openPublicPlatformShare,
   resetPublicShareCache,
 } from "./public-share.js?v=20260801-platformshare1";
 import { aggregateStandardResults } from "./standard-result.js";
-import { isShareServiceConfigured } from "./share-service.js?v=20260801-sharefix1";
 import { analyzeVoiceQuality } from "./voice-quality-metrics.js";
 
 const EXPERIENCE_KEY = "vpa::experiment.experience";
@@ -56,7 +55,6 @@ let analysisTimeoutId = null;
 let shareOpen = false;
 let dynamicAudioOptIn = false;
 let shareStatusKey = "";
-let facebookShareReady = false;
 let currentChallenge = null;
 let standardStep = 0;
 let standardRuns = [];
@@ -414,7 +412,7 @@ function shareComposerMarkup(result) {
 }
 
 function shareShortcutMarkup() {
-  const platforms = ["x", "threads", "line", "facebook", "tiktok"];
+  const platforms = ["x", "threads", "line"];
   return `
     <section class="quick-share-shortcuts" aria-label="${escapeHtml(t("experiment.quick.share.directTitle"))}">
       <div class="quick-share-shortcuts__copy">
@@ -423,9 +421,15 @@ function shareShortcutMarkup() {
       </div>
       <div class="quick-share-shortcuts__buttons">
         ${platforms.map((platform) => `
-          <button type="button" data-quick-platform="${platform}" ${platform === "facebook" && isShareServiceConfigured() && !facebookShareReady ? "disabled aria-busy=\"true\"" : ""}
+          <button type="button" data-quick-platform="${platform}"
             aria-label="${escapeHtml(t("experiment.quick.share.directAria", { platform }))}">
-            ${platform === "x" ? "X" : platform === "line" ? "LINE" : platform[0].toUpperCase() + platform.slice(1)}
+            <span class="quick-share-shortcuts__mark" aria-hidden="true">
+              ${platform === "x" ? "X" : platform === "line" ? "LINE" : "@"}
+            </span>
+            <span class="quick-share-shortcuts__label">
+              ${platform === "x" ? "X" : platform === "line" ? "LINE" : "Threads"}
+            </span>
+            <span class="quick-share-shortcuts__arrow" aria-hidden="true">&#8599;</span>
           </button>
         `).join("")}
       </div>
@@ -819,30 +823,6 @@ async function copyChallengeLink() {
 }
 
 async function openQuickPlatform(platform) {
-  if (platform === "tiktok") {
-    const hasAudio = Boolean(recorderCtl.getLastRecordingUrl());
-    shareOpen = true;
-    dynamicAudioOptIn = hasAudio;
-    dynamicCard.reset();
-    shareStatusKey = hasAudio
-      ? "experiment.quick.share.tiktokReady"
-      : "experiment.quick.share.tiktokNeedsAudio";
-    renderQuickExperience();
-    if (latestResult?.ready) void prewarmPublicShare();
-    if (hasAudio && latestResult?.ready) {
-      dynamicCard.open(latestResult, { targetPlatform: "tiktok" });
-      track("audio_share_opt_in", {
-        enabled: true,
-        source: "tiktok_shortcut",
-      });
-    }
-    track("share_platform_selected", {
-      mode: "quick",
-      platform,
-      score_band: Math.floor(latestResult.score / 10) * 10,
-    });
-    return;
-  }
   const challenge = ensureChallenge();
   if (!challenge || !latestResult) return;
   const formatted = formatAdvancedResult(latestResult);
@@ -888,12 +868,6 @@ async function prewarmPublicShare() {
     await resolvePublicShareUrl(latestResult, challenge);
   } catch (error) {
     console.error("[quick-share] short URL prewarm failed", error);
-  }
-  facebookShareReady = true;
-  const facebookButton = quickExperience.querySelector('[data-quick-platform="facebook"]');
-  if (facebookButton) {
-    facebookButton.disabled = false;
-    facebookButton.removeAttribute("aria-busy");
   }
 }
 
@@ -944,11 +918,9 @@ function finalizeQuickResult(result) {
   dynamicCard.reset();
   resetPublicShareCache();
   latestResult = result;
-  facebookShareReady = false;
   quickStage = "result";
   saveLatestResult(result);
   renderQuickExperience();
-  if (result.ready) void prewarmPublicShare();
   track("quick_test_completed", {
     mode: result.quickTest?.mode || "daily",
     ready: result.ready,
@@ -1017,9 +989,7 @@ onAdvancedResult(({ analysis, result }) => {
 onLocaleChange(() => {
   dynamicCard.reset();
   resetPublicShareCache();
-  facebookShareReady = false;
   renderAll();
-  if (latestResult?.ready) void prewarmPublicShare();
 });
 
 document.documentElement.setAttribute("data-experience", currentExperience);

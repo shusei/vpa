@@ -370,7 +370,7 @@ test("challenge link carries only summary data and compares the next result", as
   expect(runtimeErrors).toEqual([]);
 });
 
-test("result page offers direct social sharing and starts TikTok video creation", async ({ page }) => {
+test("result page offers only the three verified direct sharing platforms", async ({ page }) => {
   const runtimeErrors = captureRuntimeErrors(page);
   await openDevelopmentPage(page);
   await page.evaluate(async (analysis) => {
@@ -383,7 +383,7 @@ test("result page offers direct social sharing and starts TikTok video creation"
     };
   }, fixture);
 
-  await expect(page.locator("[data-quick-platform]")).toHaveCount(5);
+  await expect(page.locator("[data-quick-platform]")).toHaveCount(3);
   await page.locator('[data-quick-platform="threads"]').click();
   await expect.poll(() => page.evaluate(() => window.__vpaOpenedShareUrl)).toContain(
     "https://www.threads.com/intent/post?text=",
@@ -397,18 +397,15 @@ test("result page offers direct social sharing and starts TikTok video creation"
   const lineTarget = new URL(await page.evaluate(() => window.__vpaOpenedShareUrl));
   expect(lineTarget.searchParams.get("text")?.length).toBeGreaterThan(10);
   expect(lineTarget.searchParams.get("url")).toContain("#vpa-challenge=");
-
-
-  await page.locator('[data-quick-platform="tiktok"]').click();
-  await expect(page.locator("[data-quick-audio]")).toBeChecked();
-  await expect(page.locator("[data-quick-system-share]")).toHaveCount(0);
-  await expect(page.locator(".quick-dynamic-card")).toBeVisible();
-  await expect(page.locator(".quick-dynamic-loading, .quick-dynamic-progress, .quick-dynamic-output"))
-    .toBeVisible();
+  await page.locator('[data-quick-platform="x"]').click();
+  await expect.poll(() => page.evaluate(() => window.__vpaOpenedShareUrl)).toContain(
+    "https://twitter.com/intent/tweet?",
+  );
+  await expect(page.locator('[data-quick-platform="facebook"], [data-quick-platform="tiktok"], [data-quick-platform="instagram"]')).toHaveCount(0);
   expect(runtimeErrors).toEqual([]);
 });
 
-test("direct Facebook and LINE sharing publish a personalized image result with copy", async ({ page }) => {
+test("direct LINE sharing publishes a personalized image result with copy", async ({ page }) => {
   let uploadedRequest;
   await page.route("https://share.example/api/shares", async (route) => {
     uploadedRequest = route.request();
@@ -433,28 +430,11 @@ test("direct Facebook and LINE sharing publish a personalized image result with 
         writeText: async (value) => { window.__vpaCopiedText = String(value); },
       },
     });
-    window.__vpaOpenedShareUrls = [];
     window.open = (url) => {
       if (String(url) !== "about:blank") window.__vpaOpenedShareUrl = String(url);
-      window.__vpaOpenedShareUrls.push(String(url));
       return null;
     };
   }, fixture);
-
-  const facebookButton = page.locator('[data-quick-platform="facebook"]');
-  await expect(facebookButton).toBeEnabled();
-  await facebookButton.click();
-  await expect.poll(() => page.evaluate(() => window.__vpaOpenedShareUrl || ""))
-    .toContain("https://www.facebook.com/sharer/sharer.php?");
-  const facebookTarget = new URL(await page.evaluate(() => window.__vpaOpenedShareUrl));
-  expect(facebookTarget.searchParams.get("u")).toBe("https://share.example/r/abcdefghijklmnop");
-  expect(facebookTarget.searchParams.get("quote")?.length).toBeGreaterThan(10);
-  expect(facebookTarget.searchParams.get("display")).toBe("popup");
-  expect(await page.evaluate(() => window.__vpaOpenedShareUrls)).not.toContain("about:blank");
-  await page.evaluate(() => {
-    window.__vpaOpenedShareUrl = "";
-    window.__vpaOpenedShareUrls = [];
-  });
 
   await page.locator('[data-quick-platform="line"]').click();
   await expect.poll(() => page.evaluate(() => window.__vpaOpenedShareUrl || ""))
@@ -557,8 +537,8 @@ test("dynamic video keeps a full untrimmed 30 second recording", async ({ page }
     window.vpaAdvancedExperience.renderAnalysis(analysis);
   }, fixture);
 
-  await page.locator('[data-quick-platform="tiktok"]').click();
-  await expect(page.locator("[data-quick-audio]")).toBeChecked();
+  await page.locator("[data-quick-share]").click();
+  await page.locator("[data-quick-audio]").check();
   await expect(page.locator(".quick-dynamic-editor")).toHaveCount(0);
   await expect(page.locator("[data-dynamic-start], [data-dynamic-end]")).toHaveCount(0);
   const video = page.locator(".quick-dynamic-output video");
@@ -575,7 +555,6 @@ test("dynamic video keeps a full untrimmed 30 second recording", async ({ page }
   await expect(page.locator("[data-dynamic-preview-play]")).toHaveCount(0);
   expect(media.videoTracks).toBe(1);
   expect(runtimeErrors).toEqual([]);
-  await expect(page.locator("[data-dynamic-share]")).toHaveText("\u5206\u4eab\u5230 TikTok");
 });
 test("dynamic voice card exports the full recording and preserves the fallback chain", async ({ page }) => {
   const runtimeErrors = captureRuntimeErrors(page);
