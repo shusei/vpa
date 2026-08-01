@@ -11,6 +11,11 @@ const expectedMeta = [
   '<meta property="og:image:height" content="630"',
   '<meta name="twitter:card" content="summary_large_image"',
   '<meta name="twitter:image" content="https://shusei.github.io/vpa/ogp.png"',
+  'assets/css/experiments.css?v=20260801-launch1',
+  'assets/css/quick-experience.css?v=20260801-launch1',
+  "window.VPA_EXPERIMENT_LOCALES = ['ja'];",
+  'https://vpa-share.evelynjoellelin.workers.dev',
+  'assets/experiments/experience-shell.js?v=20260801-launch1',
 ];
 for (const token of expectedMeta) {
   assert.ok(html.includes(token), `Missing social metadata: ${token}`);
@@ -21,5 +26,7 @@ assert.deepEqual([...png.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
 assert.equal(png.readUInt32BE(16), 1200);
 assert.equal(png.readUInt32BE(20), 630);
 assert.ok(png.length < 5_000_000, "Social preview image must remain below 5 MB");
+assert.ok(!html.includes("__APP_VERSION__"), "Production entry must not contain a cache placeholder");
+assert.match(html, /document\.documentElement\.setAttribute\("data-experience", experience\)/);
 
-console.log("social preview metadata and 1200x630 PNG checks passed");
+console.log("production entry, social metadata, and 1200x630 PNG checks passed");

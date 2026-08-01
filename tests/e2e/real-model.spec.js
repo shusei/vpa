@@ -11,6 +11,7 @@ test("real remote model completes a production WASM inference", async ({ page })
       localStorage.setItem("vpa.locale", "zh-Hant");
       localStorage.setItem("vpa.onboardTipDone", "1");
       localStorage.setItem("vpa.themeTipDone", "1");
+      localStorage.setItem("vpa::experiment.experience", "professional");
     } catch { }
     Object.defineProperty(Navigator.prototype, "gpu", {
       configurable: true,
@@ -24,7 +25,7 @@ test("real remote model completes a production WASM inference", async ({ page })
   await page.goto("/");
   await expect(page.locator("#playBtn")).toBeAttached();
   await page.locator("#fileInput").setInputFiles(resolve("tests/.generated-media/tone.mp3"));
-  const analysis = await waitForAnalysis(page);
+  const analysis = await waitForAnalysis(page, 0, { timeout: 300_000 });
 
   expect(analysis.device).toBe("wasm");
   expect(analysis.probabilities.feminine).toBeGreaterThanOrEqual(0);
@@ -41,6 +42,7 @@ test("real remote model completes a production WebGPU inference when available",
       localStorage.setItem("vpa.locale", "zh-Hant");
       localStorage.setItem("vpa.onboardTipDone", "1");
       localStorage.setItem("vpa.themeTipDone", "1");
+      localStorage.setItem("vpa::experiment.experience", "professional");
     } catch { }
   });
   await page.route("https://www.googletagmanager.com/gtag/js**", async (route) => {
@@ -53,7 +55,7 @@ test("real remote model completes a production WebGPU inference when available",
   test.skip(!hasWebGPU, "The current Chromium environment does not expose WebGPU.");
 
   await page.locator("#fileInput").setInputFiles(resolve("tests/.generated-media/tone.mp3"));
-  const analysis = await waitForAnalysis(page);
+  const analysis = await waitForAnalysis(page, 0, { timeout: 300_000 });
 
   expect(analysis.device).toBe("webgpu");
   expect(analysis.probabilities.feminine + analysis.probabilities.masculine).toBeCloseTo(1, 5);

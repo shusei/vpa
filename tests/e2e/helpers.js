@@ -78,13 +78,16 @@ export function captureRuntimeErrors(page) {
 
 export async function openProductionPage(page, options) {
   await installDeterministicRuntime(page, options);
+  await page.addInitScript(() => {
+    localStorage.setItem("vpa::experiment.experience", "professional");
+  });
   await page.goto("/");
   await expect(page.locator("#playBtn")).toBeAttached();
 }
 
-export async function waitForAnalysis(page, previousAnalysisId = 0) {
+export async function waitForAnalysis(page, previousAnalysisId = 0, { timeout = 60_000 } = {}) {
   await expect.poll(async () => page.evaluate(() => window.vpaLatestAnalysis?.analysisId || 0), {
-    timeout: 60_000,
+    timeout,
   }).toBeGreaterThan(previousAnalysisId);
   return page.evaluate(() => window.vpaLatestAnalysis);
 }
