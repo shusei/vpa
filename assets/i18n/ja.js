@@ -128,6 +128,12 @@ const advanced = {
 const quick = {
   analyzing: "声の印象を分析しています",
   analyzingHint: "モデルと音響分析はブラウザ内で処理されます。少しお待ちください。",
+  embeddedFast: {
+    analyzingHint: "SNS向け高速音響分析を端末内で実行中です。大型モデルのダウンロードも音声のアップロードもありません。",
+    body: "X／Threads 内でもそのまま測定できます。音高・共鳴・F2／F3を端末内で高速採点します。",
+    external: "完全版モデルを使う場合は、右上または右下の「⋯」／共有メニューから「ブラウザで開く」または「Safariで開く」を選んでください。",
+    title: "SNS向け高速チャレンジが有効です",
+  },
   challenge: {
     beat: "女性的な傾向が {{difference}} ポイント高くなりました！",
     behind: "女性的な傾向が {{difference}} ポイント低い結果です。もう一度試してみましょう。",
@@ -682,6 +688,7 @@ export default {
     analyzeStreamDone: "分析完了（分割処理）",
     analyzeStreamFailed: "分割分析に失敗しました",
     analyzeWholeDone: "分析完了",
+    embeddedFastDone: "完了（SNS向け高速音響分析）",
     analyzeWholeOOM: "メモリが不足したため、分割推論へ切り替えます",
     analyzeWholeFailed: "分析に失敗しました",
     analyzeStream: "分析中（分割、window={{win}}秒／step={{step}}秒）｜{{reason}}｜{{progress}}%｜経過 {{elapsed}}",

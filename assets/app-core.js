@@ -1,6 +1,7 @@
 // ===== Transformers pipeline =====
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
 
+import { estimateAcousticPresentation } from "./js/acoustic-fast-path.js?v=20260801-socialacoustic1";
 import { initI18n, t, getLocaleValue, onLocaleChange } from "./js/i18n.js";
 import {
   analyzeWhole as sharedAnalyzeWhole,
@@ -91,9 +92,10 @@ import { detectThreadCount as sharedDetectThreadCount } from "./js/thread-count.
 import { installEmbeddedBrowserGuard } from "./js/embedded-browser.js?v=20260801-challenge-direct1";
 import {
   mobileInferenceMaxSec,
+  shouldUseEmbeddedAcousticFastPath,
   shouldUseMobileFastPath,
   selectRepresentativeSamples,
-} from "./js/inference-sampling.js?v=20260801-mobilefast1";
+} from "./js/inference-sampling.js?v=20260801-socialacoustic1";
 import { pickStreamStrategy as sharedPickStreamStrategy } from "./js/stream-strategy.js";
 import { finishStreamStats as sharedFinishStreamStats } from "./js/stats-core.js";
 import { createStatsOrchestration } from "./js/stats-orchestration.js";
@@ -405,6 +407,7 @@ const recordingFlowController = createRecordingFlowController({
   pickSupportedMime: () => sharedPickSupportedMime(),
   prepareAnalysis: () => (
     shouldUseMobileFastPath(embeddedBrowserContext)
+      && !shouldUseEmbeddedAcousticFastPath(embeddedBrowserContext)
       ? analysisEngineBridge.preloadPipeline()
       : null
   ),
@@ -535,6 +538,14 @@ const analysisFlowController = createAnalysisFlowController({
     analysisEngineBridge.analyzeStreamed(float32, sr, durationSec, reason, token),
   analyzeWhole: (float32, sr, durationSec, token) =>
     analysisEngineBridge.analyzeWhole(float32, sr, durationSec, token),
+  analyzeWithoutModel: () => {
+    if (!shouldUseEmbeddedAcousticFastPath(embeddedBrowserContext)) return false;
+    const estimate = estimateAcousticPresentation(pitchRuntimeCore.offlineFeatureStore);
+    analysisSession.setCurrentDevice(estimate.source);
+    render(estimate.feminine, estimate.masculine);
+    setStatus(t("status.embeddedFastDone"));
+    return true;
+  },
   decodeSmartToFloat32: (blobOrFile, targetSR) =>
     analysisEngineBridge.decodeSmartToFloat32(blobOrFile, targetSR),
   finishAnalysisRun: (token) => analysisSession.finishAnalysisRun(token, () => {

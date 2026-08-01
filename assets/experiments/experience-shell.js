@@ -1,4 +1,4 @@
-import { recorderCtl } from "../app.js?v=20260801-sharefix1";
+import { recorderCtl } from "../app.js?v=20260801-socialacoustic1";
 import { registerDecodedAudioAnalyzer } from "../js/analysis-flow.js";
 import {
   getCurrentLocale,
@@ -11,7 +11,7 @@ import {
   formatAdvancedResult,
   onAdvancedResult,
   prepareAdvancedXShare,
-} from "./advanced-experience.js?v=20260801-xnative1";
+} from "./advanced-experience.js?v=20260801-socialacoustic1";
 import { shareResultFiles } from "./audio-share.js?v=20260801-sharefix1";
 import {
   compareChallenge,
@@ -214,6 +214,25 @@ function challengeBanner() {
   `;
 }
 
+function isEmbeddedSocialBrowser() {
+  const context = window.vpaEmbeddedBrowser;
+  return Boolean(
+    context?.embedded
+    && (context.app === "x" || context.app === "threads"),
+  );
+}
+
+function embeddedFastNotice() {
+  if (!isEmbeddedSocialBrowser()) return "";
+  return `
+    <aside class="quick-embedded-fast" data-embedded-fast-notice>
+      <strong>${escapeHtml(t("experiment.quick.embeddedFast.title"))}</strong>
+      <span>${escapeHtml(t("experiment.quick.embeddedFast.body"))}</span>
+      <small>${escapeHtml(t("experiment.quick.embeddedFast.external"))}</small>
+    </aside>
+  `;
+}
+
 function latestResultMarkup() {
   const saved = readLatestResult();
   if (!saved) {
@@ -256,6 +275,7 @@ function dailyLandingMarkup() {
   return `
     <section class="quick-landing" data-quick-stage="idle">
       ${challengeBanner()}
+      ${embeddedFastNotice()}
       <div class="quick-landing__hero">
         <span class="quick-eyebrow">${escapeHtml(t("experiment.quick.eyebrow"))}</span>
         <h1>${escapeHtml(t("experiment.quick.title"))}</h1>
@@ -283,6 +303,7 @@ function standardLandingMarkup() {
   return `
     <section class="quick-landing quick-standard" data-quick-stage="idle">
       ${challengeBanner()}
+      ${embeddedFastNotice()}
       <div class="quick-landing__hero">
         <span class="quick-eyebrow">${escapeHtml(t("experiment.quick.standard.progress", {
           current: standardStep + 1,
@@ -316,6 +337,9 @@ function progressMarkup() {
     : isRecording
       ? "experiment.quick.recording"
       : "experiment.quick.analyzing";
+  const analyzingHintKey = isEmbeddedSocialBrowser()
+    ? "experiment.quick.embeddedFast.analyzingHint"
+    : "experiment.quick.analyzingHint";
   return `
     <section class="quick-progress" data-quick-stage="${quickStage}">
       <div class="quick-progress__orb" aria-hidden="true">
@@ -324,7 +348,7 @@ function progressMarkup() {
       <span class="quick-eyebrow">${escapeHtml(t("experiment.quick.eyebrow"))}</span>
       <h1>${escapeHtml(t(statusKey))}</h1>
       <strong class="quick-progress__timer" data-quick-timer>${isRecording ? "00:00" : "···"}</strong>
-      <p>${escapeHtml(t(isRecording ? "experiment.quick.recordingHint" : "experiment.quick.analyzingHint"))}</p>
+      <p>${escapeHtml(t(isRecording ? "experiment.quick.recordingHint" : analyzingHintKey))}</p>
       ${isRecording || quickStage === "requesting"
         ? `<div class="quick-progress__prompt">${escapeHtml(activePromptText())}</div>`
         : ""}

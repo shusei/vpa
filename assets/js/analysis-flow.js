@@ -47,6 +47,7 @@ export function createAnalysisFlowController(deps) {
   const {
     analyzeStreamed,
     analyzeWhole,
+    analyzeWithoutModel = async () => false,
     decodeSmartToFloat32,
     finishAnalysisRun,
     finishStreamStats,
@@ -112,6 +113,19 @@ export function createAnalysisFlowController(deps) {
       });
       if (!isAnalysisActive(token)) return;
       setAnalysisExtensions(extensions);
+
+      const completedWithoutModel = await analyzeWithoutModel({
+        durationSec,
+        sampleRate: sr,
+        samples: float32,
+        source,
+        token,
+      });
+      if (!isAnalysisActive(token)) return;
+      if (completedWithoutModel) {
+        finishStreamStats();
+        return;
+      }
 
       const inferenceSelection = prepareInferenceSamples({
         durationSec,

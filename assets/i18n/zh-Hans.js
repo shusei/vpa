@@ -133,6 +133,12 @@ export default {
     quick: {
       analyzing: "正在读取你的声音印象",
       analyzingHint: "模型与声学分析都在浏览器本地完成，请稍候片刻。",
+      embeddedFast: {
+        analyzingHint: "正在使用社交平台快速声学分析，无需下载大型模型，声音不会上传。",
+        body: "留在 X／Threads 也能直接测试；系统会用音高、共鸣与 F2／F3 在本机快速评分。",
+        external: "想运行完整模型：点右上或右下的“⋯”／分享菜单，再选“在浏览器”或“在 Safari 中打开”。",
+        title: "社交平台快速挑战已启用",
+      },
       challenge: {
         beat: "你的女性化倾向高出 {{difference}} 个百分点！",
         behind: "你的女性化倾向低了 {{difference}} 个百分点，再试一次看看。",
@@ -658,6 +664,7 @@ export default {
     modelReady: "模型就绪（device: {{device}}）",
     analyzeWhole: "分析中（整段）｜音频 {{duration}}｜已用 {{elapsed}}",
     analyzeWholeDone: "完成（整段）",
+    embeddedFastDone: "完成（社交平台快速声学分析）",
     analyzeWholeOOM: "侦测到内存不足，自动改流式分段",
     analyzeWholeFailed: "分析失败（整段）",
     analyzeStream: "分析中（流式处理；win={{win}}s/step={{step}}s）｜{{reason}}｜{{progress}}%｜已用 {{elapsed}}",

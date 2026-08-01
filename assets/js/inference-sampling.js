@@ -8,6 +8,13 @@ export function shouldUseMobileFastPath(context) {
     || context?.platform === "mobile";
 }
 
+export function shouldUseEmbeddedAcousticFastPath(context) {
+  return Boolean(
+    context?.embedded
+    && (context.app === "x" || context.app === "threads"),
+  );
+}
+
 export function mobileInferenceMaxSec(context) {
   if (context?.app === "line") return LINE_INFERENCE_MAX_SEC;
   if (context?.embedded) return EMBEDDED_INFERENCE_MAX_SEC;

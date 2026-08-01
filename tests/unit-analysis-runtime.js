@@ -13,12 +13,14 @@ Object.defineProperty(globalThis, "navigator", {
 
 const { analyzeStreamed, analyzeWhole, runStreamedWithWindow } = await import("../assets/js/analysis-core.js");
 const { createAnalysisFlowController } = await import("../assets/js/analysis-flow.js");
+const { estimateAcousticPresentation } = await import("../assets/js/acoustic-fast-path.js");
 const { createAnalysisEngineBridge } = await import("../assets/js/analysis-engine-bridge.js");
 const { ensurePipeline } = await import("../assets/js/model-core.js");
 const { detectEmbeddedBrowser, openExternalBrowser } = await import("../assets/js/embedded-browser.js");
 const {
   mobileInferenceMaxSec,
   selectRepresentativeSamples,
+  shouldUseEmbeddedAcousticFastPath,
   shouldUseMobileFastPath,
 } = await import("../assets/js/inference-sampling.js");
 const { pickStreamStrategy } = await import("../assets/js/stream-strategy.js");
@@ -159,6 +161,49 @@ test("mobile browsers use device-appropriate representative inference windows", 
   assert.equal(shouldUseMobileFastPath({ embedded: false, platform: "ios" }), true);
   assert.equal(shouldUseMobileFastPath({ embedded: false, platform: "android" }), true);
   assert.equal(shouldUseMobileFastPath({ embedded: false, platform: "desktop" }), false);
+});
+
+test("embedded acoustic fast path is limited to X and Threads webviews", () => {
+  assert.equal(shouldUseEmbeddedAcousticFastPath({ app: "x", embedded: true }), true);
+  assert.equal(shouldUseEmbeddedAcousticFastPath({ app: "threads", embedded: true }), true);
+  assert.equal(shouldUseEmbeddedAcousticFastPath({ app: "line", embedded: true }), false);
+  assert.equal(shouldUseEmbeddedAcousticFastPath({ app: "x", embedded: false }), false);
+});
+
+test("local acoustic estimate separates representative feminine and masculine features", () => {
+  function makeStore({ pitch, f2, f3, energy }) {
+    const frameCount = 120;
+    return {
+      energy: Array.from({ length: frameCount }, () => energy),
+      formants: Array.from({ length: frameCount }, () => [600, f2, f3]),
+      frameSec: 0.05,
+      pitchConfidence: Array(frameCount).fill(0.92),
+      pitchProcessed: Array(frameCount).fill(pitch),
+      voiced: Array(frameCount).fill(true),
+    };
+  }
+
+  const feminine = estimateAcousticPresentation(makeStore({
+    energy: [0.15, 0.55, 0.3],
+    f2: 2400,
+    f3: 3600,
+    pitch: 220,
+  }));
+  const masculine = estimateAcousticPresentation(makeStore({
+    energy: [0.75, 0.2, 0.05],
+    f2: 1300,
+    f3: 2400,
+    pitch: 130,
+  }));
+  const empty = estimateAcousticPresentation({});
+
+  assert.equal(feminine.ready, true);
+  assert.ok(feminine.feminine > 0.7);
+  assert.equal(masculine.ready, true);
+  assert.ok(masculine.feminine < 0.35);
+  assert.equal(empty.ready, false);
+  assert.equal(empty.feminine, 0.5);
+  assert.ok(Math.abs(feminine.feminine + feminine.masculine - 1) < 1e-12);
 });
 
 test("background model preload is deduplicated and reused", async () => {
@@ -520,6 +565,58 @@ test("embedded fast inference leaves full audio available to acoustic analysis",
   assert.equal(whole[1], selected);
   assert.equal(whole[2], 16_000);
   assert.equal(whole[3], 8);
+});
+
+test("analysis flow can finish from local acoustics without loading the model", async () => {
+  const calls = [];
+  const controller = createAnalysisFlowController({
+    analyzeStreamed: async () => calls.push("streamed"),
+    analyzeWhole: async () => calls.push("whole"),
+    analyzeWithoutModel: async (context) => {
+      calls.push(["acoustic", context.samples]);
+      return true;
+    },
+    decodeSmartToFloat32: async () => ({
+      durationSec: 2,
+      float32: new Float32Array(32_000),
+      sr: 16_000,
+    }),
+    finishAnalysisRun: () => calls.push("finish"),
+    finishStreamStats: () => calls.push("stats"),
+    fmtSec: String,
+    isAnalysisActive: () => true,
+    MAX_WHOLE_SEC: 150,
+    maybeApplyAdaptiveVAD: () => null,
+    microYield: async () => { },
+    notifyInferenceListeners: () => { },
+    offlineExtractStreamMetrics: () => calls.push("offline"),
+    prepareInferenceSamples: () => {
+      calls.push("prepare");
+      return null;
+    },
+    runDecodedAudioAnalyzers: async () => {
+      calls.push("extensions");
+      return {};
+    },
+    setPlaybackSource: () => { },
+    setStatus: () => { },
+    startAnalysisRun: () => 1,
+    t: translate,
+    TARGET_SR: 16_000,
+    updatePlaybackAvailability: () => { },
+    WARN_LONG_SEC: 180,
+  });
+
+  await controller.handleFileOrBlob(new Blob(), "recording");
+
+  assert.deepEqual(calls.map((entry) => Array.isArray(entry) ? entry[0] : entry), [
+    "offline",
+    "extensions",
+    "acoustic",
+    "stats",
+    "finish",
+  ]);
+  assert.equal(calls.some((entry) => entry === "whole" || entry === "streamed" || entry === "prepare"), false);
 });
 
 test("analysis flow warns only above the 180 second boundary", async () => {

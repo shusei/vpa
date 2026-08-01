@@ -55,11 +55,32 @@ test.describe("iOS social app challenge browser", () => {
 
     await expect(page.locator("[data-embedded-browser-guard]")).toHaveCount(0);
     await expect(page.locator("[data-quick-record]")).toBeVisible();
+    await expect(page.locator("[data-embedded-fast-notice]")).toContainText("社群快速挑戰");
+    await expect(page.locator("[data-embedded-fast-notice]")).toContainText("Safari");
     await expect.poll(() => page.evaluate(() => window.vpaEmbeddedBrowser)).toMatchObject({
       app: "x",
       embedded: true,
       platform: "ios",
     });
+  });
+
+  test("finishes a challenge locally without downloading the large model", async ({ page }) => {
+    await installDeterministicRuntime(page);
+    await page.goto("/dev.html#vpa-challenge=abc");
+
+    await page.locator("[data-quick-record]").click();
+    await expect(page.locator('[data-quick-stage="recording"]')).toBeVisible({
+      timeout: 30_000,
+    });
+    await page.waitForTimeout(1200);
+    await page.locator("[data-quick-record]").click();
+    await expect(page.locator('[data-quick-stage="result"]')).toBeVisible({
+      timeout: 60_000,
+    });
+
+    expect(await page.evaluate(() => window.__vpaPipelineCalls?.length || 0)).toBe(0);
+    expect(await page.evaluate(() => window.__vpaInferenceCalls?.length || 0)).toBe(0);
+    expect(await page.evaluate(() => window.vpaLatestAnalysis?.device)).toBe("acoustic-social-1");
   });
 
   test("does not show a fake one-tap Safari button on ordinary pages", async ({ page }) => {
@@ -71,5 +92,36 @@ test.describe("iOS social app challenge browser", () => {
     await expect(guard.locator("[data-embedded-browser-open]")).toHaveCount(0);
     await expect(guard.locator("[data-embedded-browser-copy]")).toBeVisible();
     await expect(guard.locator("[data-embedded-browser-close]")).toBeVisible();
+  });
+});
+test.describe("iOS Threads challenge browser", () => {
+  test.use({
+    userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Barcelona 335.0.0",
+    viewport: { height: 844, width: 390 },
+  });
+
+  test("uses the same local fast challenge path", async ({ page }) => {
+    await installDeterministicRuntime(page);
+    await page.goto("/dev.html#vpa-challenge=abc");
+
+    await expect(page.locator("[data-embedded-browser-guard]")).toHaveCount(0);
+    await expect(page.locator("[data-embedded-fast-notice]")).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.vpaEmbeddedBrowser)).toMatchObject({
+      app: "threads",
+      embedded: true,
+      platform: "ios",
+    });
+
+    await page.locator("[data-quick-record]").click();
+    await expect(page.locator('[data-quick-stage="recording"]')).toBeVisible({
+      timeout: 30_000,
+    });
+    await page.waitForTimeout(1200);
+    await page.locator("[data-quick-record]").click();
+    await expect(page.locator('[data-quick-stage="result"]')).toBeVisible({
+      timeout: 60_000,
+    });
+    expect(await page.evaluate(() => window.__vpaPipelineCalls?.length || 0)).toBe(0);
+    expect(await page.evaluate(() => window.vpaLatestAnalysis?.device)).toBe("acoustic-social-1");
   });
 });

@@ -133,6 +133,12 @@ export default {
     quick: {
       analyzing: "Reading your voice impression",
       analyzingHint: "The model and acoustic analysis run locally in your browser. This may take a moment.",
+      embeddedFast: {
+        analyzingHint: "Using fast local acoustic analysis—no large model download and no audio upload.",
+        body: "You can test directly inside X or Threads. Pitch, resonance, and F2/F3 are scored locally.",
+        external: "For the full model, open the top- or bottom-corner menu (…) or Share, then choose Open in browser or Open in Safari.",
+        title: "Social quick challenge is on",
+      },
       challenge: {
         beat: "Your feminine tendency is {{difference}} percentage points higher!",
         behind: "Your feminine tendency is {{difference}} percentage points lower. Try another take.",
@@ -671,6 +677,7 @@ export default {
     modelReady: "Model ready (device: {{device}})",
     analyzeWhole: "Analyzing (full clip) | length {{duration}} | elapsed {{elapsed}}",
     analyzeWholeDone: "Finished (full clip)",
+    embeddedFastDone: "Finished (social quick acoustic analysis)",
     analyzeWholeOOM: "Ran low on memory, switching to streaming windows",
     analyzeWholeFailed: "Analysis failed (full clip)",
     analyzeStream: "Analyzing (streaming; win={{win}}s/step={{step}}s) | {{reason}} | {{progress}}% | elapsed {{elapsed}}",

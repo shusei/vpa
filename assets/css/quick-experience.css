@@ -278,6 +278,26 @@ html[data-faction="dark"] .quick-experience {
   color:var(--quick-muted);
   font-size:.75rem;
 }
+.quick-embedded-fast {
+  display:grid;
+  gap:5px;
+  padding:14px 16px;
+  border:1px solid color-mix(in oklab, var(--quick-accent) 55%, var(--quick-border));
+  border-radius:16px;
+  color:var(--quick-ink);
+  background:color-mix(in oklab, var(--quick-surface) 86%, var(--quick-accent) 14%);
+}
+.quick-embedded-fast strong {
+  font-size:.9rem;
+}
+.quick-embedded-fast span,
+.quick-embedded-fast small {
+  color:var(--quick-muted);
+  line-height:1.55;
+}
+.quick-embedded-fast small {
+  font-size:.75rem;
+}
 .quick-progress {
   align-self:center;
   justify-items:center;
