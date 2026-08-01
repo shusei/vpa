@@ -7,6 +7,20 @@ test.describe("embedded mobile browser guard", () => {
     viewport: { height: 844, width: 390 },
   });
 
+  test("opens LINE links with the external-browser directive", async ({ page }) => {
+    await installDeterministicRuntime(page);
+    await page.goto("/dev.html?source=line#record");
+
+    const guard = page.locator("[data-embedded-browser-guard]");
+    await expect(guard).toBeVisible();
+    await page.locator("[data-embedded-browser-open]").click();
+    await expect(page).toHaveURL(/openExternalBrowser=1/);
+    const externalUrl = new URL(page.url());
+    expect(externalUrl.searchParams.get("source")).toBe("line");
+    expect(externalUrl.hash).toBe("#record");
+    await expect(guard).toBeVisible();
+  });
+
   test("warns before recording and enables constrained local inference", async ({ page }) => {
     await installDeterministicRuntime(page);
     await page.goto("/dev.html");

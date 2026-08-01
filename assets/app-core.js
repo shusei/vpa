@@ -88,7 +88,7 @@ import {
   isDivergent as sharedIsDivergent,
 } from "./js/summary-helpers.js";
 import { detectThreadCount as sharedDetectThreadCount } from "./js/thread-count.js";
-import { installEmbeddedBrowserGuard } from "./js/embedded-browser.js?v=20260801-multiappopen1";
+import { installEmbeddedBrowserGuard } from "./js/embedded-browser.js?v=20260801-lineexternal1";
 import {
   mobileInferenceMaxSec,
   shouldUseMobileFastPath,

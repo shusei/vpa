@@ -100,7 +100,19 @@ function androidBrowserIntent(url) {
     const scheme = target.protocol.slice(0, -1);
     const data = `${target.host}${target.pathname}${target.search}`;
     const fallback = encodeURIComponent(target.toString());
-    return `intent://${data}#Intent;scheme=${scheme};action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;S.browser_fallback_url=${fallback};end`;
+    return `intent://${data}#Intent;scheme=${scheme};package=com.android.chrome;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;S.browser_fallback_url=${fallback};end`;
+  } catch {
+    return "";
+  }
+}
+
+function lineExternalBrowserUrl(url) {
+  try {
+    const target = new URL(url);
+    if (target.protocol !== "https:" && target.protocol !== "http:") return "";
+    if (target.searchParams.get("openExternalBrowser") === "1") return "";
+    target.searchParams.set("openExternalBrowser", "1");
+    return target.toString();
   } catch {
     return "";
   }
@@ -124,6 +136,17 @@ export async function openExternalBrowser({
     }
   } catch (error) {
     console.warn("[external-browser] LIFF open failed; using platform fallback.", error);
+  }
+
+  if (context?.app === "line") {
+    const externalUrl = lineExternalBrowserUrl(url);
+    if (externalUrl && typeof locationLike?.assign === "function") {
+      locationLike.assign(externalUrl);
+      return { method: "line-external-query", opened: true };
+    }
+    if (context.platform === "ios") {
+      return { method: "line-external-unavailable", opened: false };
+    }
   }
 
   if (context?.platform === "android") {
@@ -186,6 +209,7 @@ export function installEmbeddedBrowserGuard({
   }
 
   const copy = COPY[localeKey(documentLike, navigatorLike)];
+  const lineExternalUrl = context.app === "line" ? lineExternalBrowserUrl(locationLike?.href) : "";
   const element = documentLike.createElement("aside");
   element.dataset.embeddedBrowserGuard = context.app;
   element.setAttribute("role", "alert");
@@ -213,29 +237,45 @@ export function installEmbeddedBrowserGuard({
   body.textContent = copy.body;
   const actions = documentLike.createElement("div");
   actions.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;margin-top:12px";
-  const openButton = documentLike.createElement("button");
-  openButton.type = "button";
+  const openButton = documentLike.createElement(lineExternalUrl ? "a" : "button");
+  if (lineExternalUrl) {
+    openButton.href = lineExternalUrl;
+    openButton.target = "_self";
+    openButton.setAttribute("role", "button");
+  } else {
+    openButton.type = "button";
+  }
+  openButton.dataset.embeddedBrowserOpen = "";
   openButton.textContent = copy.open;
-  openButton.style.cssText = "border:0;border-radius:999px;padding:9px 14px;background:#f2c978;color:#17272c;font:700 14px system-ui";
+  openButton.style.cssText = "display:inline-block;border:0;border-radius:999px;padding:9px 14px;background:#f2c978;color:#17272c;text-decoration:none;font:700 14px system-ui";
   const copyButton = documentLike.createElement("button");
   copyButton.type = "button";
+  copyButton.dataset.embeddedBrowserCopy = "";
   copyButton.textContent = copy.copy;
   copyButton.style.cssText = "border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:8px 13px;background:transparent;color:#fff;font:700 14px system-ui";
   const closeButton = documentLike.createElement("button");
   closeButton.type = "button";
+  closeButton.dataset.embeddedBrowserClose = "";
   closeButton.textContent = copy.close;
   closeButton.style.cssText = "border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:8px 13px;background:transparent;color:#fff;font:700 14px system-ui";
 
-  openButton.addEventListener("click", async () => {
-    openButton.disabled = true;
-    openButton.textContent = copy.opening;
-    const response = await openExternalBrowser({ context, locationLike, windowLike });
-    if (!response.opened) {
-      body.textContent = copy.failed;
-      openButton.disabled = false;
-      openButton.textContent = copy.open;
-    }
-  });
+  if (lineExternalUrl) {
+    openButton.addEventListener("click", () => {
+      openButton.setAttribute("aria-busy", "true");
+      openButton.textContent = copy.opening;
+    });
+  } else {
+    openButton.addEventListener("click", async () => {
+      openButton.disabled = true;
+      openButton.textContent = copy.opening;
+      const response = await openExternalBrowser({ context, locationLike, windowLike });
+      if (!response.opened) {
+        body.textContent = copy.failed;
+        openButton.disabled = false;
+        openButton.textContent = copy.open;
+      }
+    });
+  }
   copyButton.addEventListener("click", async () => {
     if (await copyCurrentUrl({ documentLike, locationLike, navigatorLike })) {
       copyButton.textContent = copy.copied;

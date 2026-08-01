@@ -76,7 +76,7 @@ test("detects social app browsers used on Android and iPhone", () => {
     assert.equal(result.app, expectedApp);
   });
 });
-test("external browser opening prefers LIFF and falls back to Android intent", async () => {
+test("external browser opening prefers LIFF and uses LINE's external-browser query", async () => {
   let liffOptions = null;
   const liffResult = await openExternalBrowser({
     context: { app: "line", embedded: true, platform: "ios" },
@@ -89,14 +89,38 @@ test("external browser opening prefers LIFF and falls back to Android intent", a
   assert.equal(liffResult.method, "liff");
   assert.deepEqual(liffOptions, { external: true, url: "https://example.com/dev.html" });
 
+  let lineAssigned = "";
+  const lineResult = await openExternalBrowser({
+    context: { app: "line", embedded: true, platform: "ios" },
+    liffLike: null,
+    locationLike: {
+      assign: (value) => { lineAssigned = value; },
+      href: "https://example.com/dev.html?mode=quick#result",
+    },
+  });
+  assert.equal(lineResult.method, "line-external-query");
+  const lineUrl = new URL(lineAssigned);
+  assert.equal(lineUrl.searchParams.get("openExternalBrowser"), "1");
+  assert.equal(lineUrl.searchParams.get("mode"), "quick");
+  assert.equal(lineUrl.hash, "#result");
+
+  const rejectedRetry = await openExternalBrowser({
+    context: { app: "line", embedded: true, platform: "ios" },
+    liffLike: null,
+    locationLike: { href: lineAssigned },
+  });
+  assert.equal(rejectedRetry.method, "line-external-unavailable");
+  assert.equal(rejectedRetry.opened, false);
+
   let assigned = "";
   const androidResult = await openExternalBrowser({
-    context: { app: "line", embedded: true, platform: "android" },
+    context: { app: "instagram", embedded: true, platform: "android" },
     liffLike: null,
     locationLike: { assign: (value) => { assigned = value; }, href: "https://example.com/dev.html" },
   });
   assert.equal(androidResult.method, "android-intent");
   assert.ok(assigned.startsWith("intent://example.com/dev.html#Intent;"));
+  assert.ok(assigned.includes("package=com.android.chrome"));
 });
 test("embedded inference samples start, middle, and end without changing the recording", () => {
   const originalSamples = Float32Array.from({ length: 200 }, (_value, index) => index);
