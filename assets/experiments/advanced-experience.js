@@ -1,5 +1,5 @@
-import { onInferenceDone } from "../app.js?v=20260802-nav1";
-import { getCurrentLocale, onLocaleChange, t } from "../js/i18n.js?v=20260802-author3";
+import { onInferenceDone } from "../app.js?v=20260802-standard1";
+import { getCurrentLocale, onLocaleChange, t } from "../js/i18n.js?v=20260802-standard1";
 import { evaluateAdvancedExperience } from "./advanced-evaluator.js";
 import { createChallengeUrl } from "./challenge-link.js?v=20260801-xnative1";
 import {

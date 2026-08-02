@@ -1,17 +1,17 @@
-import { recorderCtl } from "../app.js?v=20260802-nav1";
+import { recorderCtl } from "../app.js?v=20260802-standard1";
 import { registerDecodedAudioAnalyzer } from "../js/analysis-flow.js";
 import {
   getCurrentLocale,
   onLocaleChange,
   setLocale,
   t,
-} from "../js/i18n.js?v=20260802-author3";
+} from "../js/i18n.js?v=20260802-standard1";
 import {
   createResultCard,
   formatAdvancedResult,
   onAdvancedResult,
   prepareAdvancedXShare,
-} from "./advanced-experience.js?v=20260802-nav1";
+} from "./advanced-experience.js?v=20260802-standard1";
 import { shareResultFiles } from "./audio-share.js?v=20260801-sharefix1";
 import {
   compareChallenge,
@@ -25,7 +25,7 @@ import {
   promptTranslationKey,
   STANDARD_PROMPT_IDS,
   STANDARD_TEST_ID,
-} from "./quick-prompts.js";
+} from "./quick-prompts.js?v=20260802-standard1";
 import { buildShareTargets, downloadBlob } from "./share-card.js?v=20260801-xnative1";
 import {
   getPublicShareResult,
@@ -751,8 +751,8 @@ function bindQuickControls() {
       returnToDailyTest();
     });
   });
-  quickExperience.querySelector("[data-quick-standard-next]")?.addEventListener("click", () => {
-    continueStandardTest();
+  quickExperience.querySelector("[data-quick-standard-next]")?.addEventListener("click", async () => {
+    await continueStandardTest();
   });
   quickExperience.querySelectorAll("[data-quick-platform]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -862,7 +862,7 @@ function returnToDailyTest() {
   track("daily_test_selected", { prompt_id: dailyPromptId });
 }
 
-function continueStandardTest() {
+async function continueStandardTest() {
   if (quickTestMode !== "standard") return;
   standardStep = standardRuns.length;
   if (!getStandardPromptId(standardStep)) return;
@@ -876,6 +876,7 @@ function continueStandardTest() {
   resetQuickXShareState();
   currentChallenge = null;
   renderQuickExperience();
+  await toggleQuickRecording();
 }
 
 function updateQuickTimer() {

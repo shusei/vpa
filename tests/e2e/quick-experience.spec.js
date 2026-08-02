@@ -265,8 +265,8 @@ test("three-line standard test runs the production path three times and uses the
     });
   }
 
+  await page.locator("[data-quick-record]").click();
   for (let step = 1; step <= 3; step += 1) {
-    await page.locator("[data-quick-record]").click();
     await expect(page.locator('[data-quick-stage="recording"]')).toBeVisible({
       timeout: 30_000,
     });
@@ -280,7 +280,8 @@ test("three-line standard test runs the production path three times and uses the
       });
       await expect(page.locator(".quick-standard-scores span")).toHaveCount(step);
       await page.locator("[data-quick-standard-next]").click();
-      await expect(page.locator(".quick-prompt > span")).toContainText(`${step + 1} / 3`);
+      await expect(page.locator('[data-quick-stage="recording"]')).toBeVisible({ timeout: 30_000 });
+      await expect(page.locator(".quick-progress__label")).toContainText(`${step + 1} / 3`);
     }
   }
 

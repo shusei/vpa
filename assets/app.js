@@ -1,1 +1,1 @@
-export * from "./app-core.js?v=20260802-nav1";
+export * from "./app-core.js?v=20260802-standard1";

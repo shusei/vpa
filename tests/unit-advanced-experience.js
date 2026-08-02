@@ -30,9 +30,11 @@ import {
   DAILY_PROMPT_IDS,
   getDailyPromptId,
   getStandardPromptId,
+  getStandardPromptIds,
   promptTranslationKey,
   STANDARD_PROMPT_IDS,
   STANDARD_TEST_ID,
+  STANDARD_PROMPT_SETS,
 } from "../assets/experiments/quick-prompts.js";
 import {
   aggregateStandardResults,
@@ -126,6 +128,15 @@ assert.equal(promptMorning, promptEvening);
 assert.notEqual(promptMorning, promptNextDay);
 assert.equal(DAILY_PROMPT_IDS.length, 10);
 assert.equal(STANDARD_PROMPT_IDS.length, 3);
+assert.equal(STANDARD_PROMPT_SETS.length, 3);
+const standardMorning = getStandardPromptIds(new Date(2026, 6, 31, 1, 0));
+const standardEvening = getStandardPromptIds(new Date(2026, 6, 31, 23, 59));
+const standardNextDay = getStandardPromptIds(new Date(2026, 7, 1, 0, 1));
+assert.deepEqual(standardMorning, standardEvening);
+assert.notDeepEqual(standardMorning, standardNextDay);
+assert.equal(standardMorning.length, 3);
+assert.deepEqual(standardMorning.map((_, index) =>
+  getStandardPromptId(index, new Date(2026, 6, 31))), standardMorning);
 assert.deepEqual(
   STANDARD_PROMPT_IDS.map((_, index) => getStandardPromptId(index)),
   STANDARD_PROMPT_IDS,
