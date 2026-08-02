@@ -232,6 +232,12 @@ test("quick recording delegates to the production recording and analysis path", 
   await expect.poll(() => page.locator("#playback").evaluate((audio) => audio.currentTime))
     .toBeGreaterThan(0);
 
+
+  await refine.locator("[data-quick-retry]").click();
+  await expect(page.locator('[data-quick-stage="recording"]')).toBeVisible({ timeout: 30_000 });
+  await page.locator("[data-quick-record]").click();
+  await expect(page.locator('[data-quick-stage="result"]')).toBeVisible({ timeout: 60_000 });
+
   expect(await page.evaluate(() => window.vpaExperience.getLatestAnalysis()?.analysisId || 0))
     .toBeGreaterThan(0);
   expect(await page.evaluate(() => window.__vpaInferenceCalls?.length || 0))
@@ -324,7 +330,7 @@ test("Japanese browser language becomes the default locale and a saved choice wi
 
   await expect(page.locator("html")).toHaveAttribute("lang", "ja");
   await expect(page.locator(".quick-landing h1")).toHaveText("あなたの声は、どんな印象？");
-  await expect(page.locator("[data-quick-locale]")).toHaveValue("ja");
+  await expect(page.locator("[data-quick-locale-toggle]")).toHaveText("日");
   if (process.env.VPA_JA_CAPTURE) {
     await page.screenshot({
       fullPage: true,
@@ -332,13 +338,14 @@ test("Japanese browser language becomes the default locale and a saved choice wi
     });
   }
 
-  await page.locator("[data-quick-locale]").selectOption("zh-Hant");
+  await page.locator("[data-quick-locale-toggle]").click();
+  await page.locator('[data-quick-locale="zh-Hant"]').click();
   await expect(page.locator(".quick-landing h1")).toHaveText("你的聲音，給人什麼印象？");
   expect(await page.evaluate(() => localStorage.getItem("vpa.locale"))).toBe("zh-Hant");
 
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-Hant");
-  await expect(page.locator("[data-quick-locale]")).toHaveValue("zh-Hant");
+  await expect(page.locator("[data-quick-locale-toggle]")).toHaveText("繁");
 
   expect(await page.evaluate(async () => {
     const { i18nInternals } = await import("/assets/js/i18n.js");
@@ -346,7 +353,8 @@ test("Japanese browser language becomes the default locale and a saved choice wi
       .map((locale) => i18nInternals.mapCandidateLocale(locale));
   })).toEqual(["zh-Hant", "zh-Hans", "en", "ja", null]);
 
-  await page.locator("[data-quick-locale]").selectOption("ja");
+  await page.locator("[data-quick-locale-toggle]").click();
+  await page.locator('[data-quick-locale="ja"]').click();
   await page.locator('#experienceNav [data-experience-target="professional"]').click();
   await page.locator("#practiceToggle").click();
   await expect(page.locator("#practiceList")).toContainText("すみません、少しお時間をいただけますか。");
@@ -382,8 +390,10 @@ test("challenge link carries only summary data and compares the next result", as
   ]);
   expect(challenge.payload.schema).toBe(3);
   expect(challenge.payload.testMode).toBe("daily");
+  await page.evaluate(() => localStorage.setItem("vpa::experiment.experience", "professional"));
 
   await page.goto(challenge.url);
+  await expect(page.locator("html")).toHaveAttribute("data-experience", "quick");
   await page.reload();
   await expect(page.locator(".quick-challenge-invite")).toContainText(`${challenge.payload.score}`);
   expect(await page.evaluate(() => window.vpaExperience.getLatestResult())).toBe(null);

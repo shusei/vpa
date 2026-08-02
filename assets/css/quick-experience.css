@@ -102,15 +102,74 @@ html[data-faction="dark"] .quick-experience {
   background:var(--quick-action);
   box-shadow:0 7px 18px var(--quick-shadow);
 }
-.experience-nav__locale select {
-  min-height:38px;
-  max-width:150px;
-  padding:6px 30px 6px 10px;
+.experience-nav__locale {
+  position:relative;
+}
+.experience-nav__locale-toggle {
+  display:grid;
+  place-items:center;
+  width:38px;
+  height:38px;
+  padding:0;
   border:1px solid var(--quick-border);
-  border-radius:11px;
+  border-radius:12px;
   color:var(--quick-ink);
-  background:var(--quick-surface);
-  font-weight:700;
+  background:color-mix(in oklab, var(--quick-surface) 90%, var(--quick-accent-2) 10%);
+  box-shadow:0 5px 14px color-mix(in oklab, var(--quick-shadow) 58%, transparent);
+  font:800 .94rem "Segoe UI", "Noto Sans TC", sans-serif;
+  letter-spacing:.01em;
+  cursor:pointer;
+  transition:transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.experience-nav__locale-toggle:hover {
+  transform:translateY(-1px);
+  border-color:color-mix(in oklab, var(--quick-accent-2) 56%, var(--quick-border));
+}
+.experience-nav__locale-toggle:focus-visible {
+  outline:3px solid color-mix(in oklab, var(--quick-accent-2) 45%, transparent);
+  outline-offset:2px;
+}
+.experience-nav__locale-toggle[aria-expanded="true"] {
+  color:var(--quick-action-ink);
+  background:var(--quick-action);
+  box-shadow:0 7px 18px var(--quick-shadow);
+}
+.experience-nav__locale-menu {
+  position:absolute;
+  z-index:30;
+  top:calc(100% + 9px);
+  right:0;
+  display:grid;
+  min-width:148px;
+  padding:7px;
+  border:1px solid var(--quick-border);
+  border-radius:14px;
+  background:color-mix(in oklab, var(--quick-surface) 94%, transparent);
+  box-shadow:0 16px 36px var(--quick-shadow);
+  backdrop-filter:blur(18px);
+}
+.experience-nav__locale-menu[hidden] {
+  display:none;
+}
+.experience-nav__locale-menu button {
+  min-height:38px;
+  padding:8px 11px;
+  border:0;
+  border-radius:9px;
+  color:var(--quick-ink);
+  background:transparent;
+  font:750 .86rem "Segoe UI", "Noto Sans TC", sans-serif;
+  text-align:left;
+  cursor:pointer;
+}
+.experience-nav__locale-menu button:hover,
+.experience-nav__locale-menu button:focus-visible {
+  outline:none;
+  background:var(--quick-surface-strong);
+}
+.experience-nav__locale-menu button[aria-checked="true"] {
+  color:var(--quick-action-ink);
+  background:var(--quick-action);
 }
 .quick-experience {
   position:relative;
@@ -1069,10 +1128,11 @@ html[data-experience="professional"] #quickExperience {
 }
 @media (max-width: 640px) {
   .experience-nav {
-    grid-template-columns:auto 1fr;
-    gap:9px;
+    grid-template-columns:auto minmax(0, 1fr) auto;
+    gap:7px;
     width:calc(100% - 24px);
     margin-top:12px;
+    padding:7px 8px;
   }
   .experience-nav__locale {
     grid-column:1/-1;
@@ -1084,6 +1144,29 @@ html[data-experience="professional"] #quickExperience {
   .experience-nav__modes button {
     padding:7px 8px;
     font-size:.82rem;
+  }
+  .experience-nav__brand {
+    width:38px;
+    height:38px;
+    border-radius:12px;
+    font-size:.86rem;
+  }
+  .experience-nav__modes {
+    min-width:0;
+    padding:3px;
+  }
+  .experience-nav__locale {
+    grid-column:auto;
+  }
+  .experience-nav__locale-toggle {
+    width:36px;
+    height:36px;
+    border-radius:11px;
+  }
+  .experience-nav__modes button {
+    min-height:34px;
+    padding:6px 5px;
+    font-size:.78rem;
   }
   .quick-experience__container {
     width:calc(100% - 28px);

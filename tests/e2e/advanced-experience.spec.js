@@ -16,6 +16,7 @@ async function openDevelopmentPage(page) {
   await installDeterministicRuntime(page);
   await page.goto("/dev.html");
   await expect(page.locator("#playBtn")).toBeAttached();
+  await expect(page.locator(".player")).toBeHidden();
   await expect.poll(() => page.evaluate(() => Boolean(window.vpaAdvancedExperience))).toBe(true);
   await expect.poll(() => page.evaluate(() => Boolean(window.vpaExperience))).toBe(true);
 }

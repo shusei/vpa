@@ -75,6 +75,8 @@ export function createUIStateControls(deps) {
     const playBtn = getPlayBtn();
     if (!playBtn) return;
     const hasSource = getHasPlaybackSource();
+    const player = playBtn.closest(".player");
+    if (player) player.hidden = !hasSource;
     const disable = !hasSource || getIsRecording() || getBusy();
     if (disable) {
       playBtn.setAttribute("disabled", "true");

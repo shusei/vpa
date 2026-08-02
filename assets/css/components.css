@@ -540,6 +540,10 @@ body.recording .status {
   box-shadow: 0 10px 30px rgba(0, 0, 0, .15);
 }
 
+.player[hidden] {
+  display: none;
+}
+
 #playBtn {
   appearance: none;
   border: 0;

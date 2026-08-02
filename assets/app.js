@@ -1,1 +1,1 @@
-export * from "./app-core.js?v=20260801-socialacoustic1";
+export * from "./app-core.js?v=20260802-nav1";

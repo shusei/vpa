@@ -2,7 +2,7 @@
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
 
 import { estimateAcousticPresentation } from "./js/acoustic-fast-path.js?v=20260801-socialacoustic1";
-import { initI18n, t, getLocaleValue, onLocaleChange } from "./js/i18n.js";
+import { initI18n, t, getLocaleValue, onLocaleChange } from "./js/i18n.js?v=20260802-author3";
 import {
   analyzeWhole as sharedAnalyzeWhole,
   analyzeStreamed as sharedAnalyzeStreamed,
@@ -66,7 +66,7 @@ import {
   stopPlayback as sharedStopPlayback,
   playLastRecording as sharedPlayLastRecording,
   setPlaybackSource as sharedSetPlaybackSource,
-} from "./js/player-ui.js";
+} from "./js/player-ui.js?v=20260802-nav1";
 import { createPlayerSessionController } from "./js/player-session.js";
 import { createPitchProfileController } from "./js/pitch-profile.js";
 import { createPitchRuntimeCore } from "./js/pitch-runtime-core.js";
@@ -101,7 +101,7 @@ import { finishStreamStats as sharedFinishStreamStats } from "./js/stats-core.js
 import { createStatsOrchestration } from "./js/stats-orchestration.js";
 import { maybeApplyAdaptiveVAD as sharedMaybeApplyAdaptiveVAD } from "./js/vad-adaptive.js";
 import { bindMainUIEvents as sharedBindMainUIEvents } from "./js/ui-events.js";
-import { createUIStateControls } from "./js/ui-state-controls.js";
+import { createUIStateControls } from "./js/ui-state-controls.js?v=20260802-nav1";
 
 import {
   recordBtn,

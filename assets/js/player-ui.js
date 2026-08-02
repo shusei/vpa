@@ -5,6 +5,7 @@ export function ensurePlayerUI(state, deps) {
 
   const wrap = document.createElement("div");
   wrap.className = "player";
+  wrap.hidden = true;
 
   const btn = document.createElement("button");
   btn.id = "playBtn";

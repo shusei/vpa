@@ -32,7 +32,8 @@ test.describe("Public landing page", () => {
     await expect(page.locator("#experienceNav")).toBeVisible();
     await expect(page.locator("[data-quick-record]")).toBeVisible();
     await expect(page.locator(".quick-standard-cta")).toBeVisible();
-    await expect(page.locator("[data-quick-locale]")).toBeVisible();
+    await expect(page.locator("[data-quick-locale-toggle]")).toBeVisible();
+    await expect(page.locator("[data-quick-locale-toggle]")).toHaveText("繁");
     await expect(page.locator(".quick-footer")).toBeVisible();
   });
 

@@ -1,17 +1,17 @@
-import { recorderCtl } from "../app.js?v=20260801-socialacoustic1";
+import { recorderCtl } from "../app.js?v=20260802-nav1";
 import { registerDecodedAudioAnalyzer } from "../js/analysis-flow.js";
 import {
   getCurrentLocale,
   onLocaleChange,
   setLocale,
   t,
-} from "../js/i18n.js";
+} from "../js/i18n.js?v=20260802-author3";
 import {
   createResultCard,
   formatAdvancedResult,
   onAdvancedResult,
   prepareAdvancedXShare,
-} from "./advanced-experience.js?v=20260802-pitch1";
+} from "./advanced-experience.js?v=20260802-nav1";
 import { shareResultFiles } from "./audio-share.js?v=20260801-sharefix1";
 import {
   compareChallenge,
@@ -180,17 +180,37 @@ const dynamicCard = createDynamicCardController({
   track,
 });
 
-function localeOptions() {
+function localeChoices() {
   return [
-    ["zh-Hant", t("topbar.localeNames.zhHant")],
-    ["zh-Hans", t("topbar.localeNames.zhHans")],
-    ["en", t("topbar.localeNames.en")],
-    ["ja", t("topbar.localeNames.ja")],
-  ].map(([value, label]) => `
-    <option value="${value}" ${getCurrentLocale() === value ? "selected" : ""}>
-      ${escapeHtml(label)}
-    </option>
-  `).join("");
+    ["zh-Hant", "繁", t("topbar.localeNames.zhHant")],
+    ["zh-Hans", "简", t("topbar.localeNames.zhHans")],
+    ["en", "EN", t("topbar.localeNames.en")],
+    ["ja", "日", t("topbar.localeNames.ja")],
+  ];
+}
+
+function localeMenuMarkup() {
+  const currentLocale = getCurrentLocale();
+  const choices = localeChoices();
+  const current = choices.find(([value]) => value === currentLocale) || choices[0];
+  return `
+    <div class="experience-nav__locale">
+      <button type="button" class="experience-nav__locale-toggle" data-quick-locale-toggle
+        aria-haspopup="menu" aria-expanded="false"
+        aria-label="${escapeHtml(`${t("experiment.quick.localeLabel")}：${current[2]}`)}">
+        <span aria-hidden="true">${escapeHtml(current[1])}</span>
+      </button>
+      <div class="experience-nav__locale-menu" data-quick-locale-menu role="menu"
+        aria-label="${escapeHtml(t("experiment.quick.localeLabel"))}" hidden>
+        ${choices.map(([value, , label]) => `
+          <button type="button" data-quick-locale="${value}" role="menuitemradio"
+            aria-checked="${currentLocale === value}">
+            ${escapeHtml(label)}
+          </button>
+        `).join("")}
+      </div>
+    </div>
+  `;
 }
 
 function renderExperienceNav() {
@@ -205,12 +225,7 @@ function renderExperienceNav() {
         ${escapeHtml(t("experiment.experience.professional"))}
       </button>
     </div>
-    <label class="experience-nav__locale">
-      <span class="sr-only">${escapeHtml(t("experiment.quick.localeLabel"))}</span>
-      <select data-quick-locale aria-label="${escapeHtml(t("experiment.quick.localeLabel"))}">
-        ${localeOptions()}
-      </select>
-    </label>
+    ${localeMenuMarkup()}
   `;
   bindCommonControls(experienceNav);
 }
@@ -671,18 +686,52 @@ function bindCommonControls(root) {
       setExperience(button.getAttribute("data-experience-target"));
     });
   });
-  root.querySelector("[data-quick-locale]")?.addEventListener("change", async (event) => {
-    await setLocale(event.target.value);
-    track("locale_selected", { locale: event.target.value });
+  const localeToggle = root.querySelector("[data-quick-locale-toggle]");
+  const localeMenu = root.querySelector("[data-quick-locale-menu]");
+  localeToggle?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const willOpen = localeMenu?.hidden !== false;
+    if (localeMenu) localeMenu.hidden = !willOpen;
+    localeToggle.setAttribute("aria-expanded", String(willOpen));
+  });
+  root.querySelectorAll("[data-quick-locale]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const locale = button.getAttribute("data-quick-locale");
+      if (!locale) return;
+      if (localeMenu) localeMenu.hidden = true;
+      localeToggle?.setAttribute("aria-expanded", "false");
+      await setLocale(locale);
+      track("locale_selected", { locale });
+    });
   });
 }
+
+document.addEventListener("click", (event) => {
+  const localeRoot = event.target.closest?.(".experience-nav__locale");
+  if (localeRoot) return;
+  const localeMenu = experienceNav.querySelector("[data-quick-locale-menu]");
+  const localeToggle = experienceNav.querySelector("[data-quick-locale-toggle]");
+  if (localeMenu) localeMenu.hidden = true;
+  localeToggle?.setAttribute("aria-expanded", "false");
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  const localeMenu = experienceNav.querySelector("[data-quick-locale-menu]");
+  const localeToggle = experienceNav.querySelector("[data-quick-locale-toggle]");
+  if (!localeMenu || localeMenu.hidden) return;
+  localeMenu.hidden = true;
+  localeToggle?.setAttribute("aria-expanded", "false");
+  localeToggle?.focus();
+});
 
 function bindQuickControls() {
   quickExperience.querySelectorAll("[data-quick-record]").forEach((button) => {
     button.addEventListener("click", () => toggleQuickRecording());
   });
-  quickExperience.querySelector("[data-quick-retry]")?.addEventListener("click", () => {
+  quickExperience.querySelector("[data-quick-retry]")?.addEventListener("click", async () => {
     resetQuickTest();
+    await toggleQuickRecording();
   });
   quickExperience.querySelector("[data-quick-replay]")?.addEventListener("click", async (event) => {
     const button = event.currentTarget;

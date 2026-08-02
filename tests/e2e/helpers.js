@@ -91,6 +91,7 @@ export async function openProductionPage(page, options) {
   });
   await page.goto("/");
   await expect(page.locator("#playBtn")).toBeAttached();
+  await expect(page.locator(".player")).toBeHidden();
 }
 
 export async function waitForAnalysis(page, previousAnalysisId = 0, { timeout = 60_000 } = {}) {
