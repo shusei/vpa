@@ -543,19 +543,35 @@ function resultMarkup() {
         ` : `<strong class="quick-result__unavailable">—</strong>`}
         <small>${escapeHtml(t(scoreKey))}</small>
       </div>
-      ${recorderCtl.hasLastRecording ? `
-        <button type="button" class="quick-result__replay" data-quick-replay
-          aria-label="${escapeHtml(t("player.replayHintAria"))}">
-          <span class="quick-result__replay-icon" aria-hidden="true">▶</span>
-          <span class="quick-result__replay-copy">
-            <small>${escapeHtml(t("player.replayHintPrefix"))}</small>
-            <strong>${escapeHtml(t("player.replayHintAction"))}</strong>
-          </span>
-          <span class="quick-result__replay-wave" aria-hidden="true">
-            <i></i><i></i><i></i><i></i><i></i>
-          </span>
-        </button>
-      ` : ""}
+      <section class="quick-result__refine" aria-labelledby="quick-refine-title" data-quick-refine>
+        <header class="quick-result__refine-head">
+          <span>${escapeHtml(t("experiment.quick.refine.eyebrow"))}</span>
+          <strong id="quick-refine-title">${escapeHtml(t("experiment.quick.refine.title"))}</strong>
+        </header>
+        <div class="quick-result__refine-actions">
+          ${recorderCtl.hasLastRecording ? `
+            <button type="button" class="quick-result__refine-action quick-result__refine-action--replay"
+              aria-label="${escapeHtml(t("player.replayHintAria"))}" data-quick-replay>
+              <span class="quick-result__refine-icon quick-result__refine-icon--play" aria-hidden="true">▶</span>
+              <span class="quick-result__refine-copy">
+                <small>${escapeHtml(t("experiment.quick.refine.replayHint"))}</small>
+                <strong>${escapeHtml(t("player.replayHintAction"))}</strong>
+              </span>
+              <span class="quick-result__replay-wave" aria-hidden="true">
+                <i></i><i></i><i></i><i></i><i></i>
+              </span>
+            </button>
+          ` : ""}
+          <button type="button" class="quick-result__refine-action quick-result__refine-action--retry"
+            aria-label="${escapeHtml(t("experiment.quick.refine.retryAria"))}" data-quick-retry>
+            <span class="quick-result__refine-icon" aria-hidden="true">↻</span>
+            <span class="quick-result__refine-copy">
+              <small>${escapeHtml(t("experiment.quick.refine.retryHint"))}</small>
+              <strong>${escapeHtml(t("experiment.quick.retry"))}</strong>
+            </span>
+          </button>
+        </div>
+      </section>
       ${ready ? standardSummaryMarkup(result) : ""}
       ${ready ? `
         <div class="quick-result__identity">
@@ -591,9 +607,6 @@ function resultMarkup() {
       <div class="quick-result__actions">
         <button type="button" class="quick-primary" data-quick-share ${ready ? "" : "disabled"}>
           ${escapeHtml(t("experiment.quick.share.open"))}
-        </button>
-        <button type="button" class="quick-secondary" data-quick-retry>
-          ${escapeHtml(t("experiment.quick.retry"))}
         </button>
         ${isStandard ? `
           <button type="button" class="quick-link" data-quick-daily>

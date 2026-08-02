@@ -211,6 +211,13 @@ export default {
       recording: "Listening to your voice",
       recordingHint: "Keep a natural volume and stop after you finish the sentence.",
       requesting: "Preparing the microphone",
+      refine: {
+        eyebrow: "PERFECT YOUR TAKE",
+        replayHint: "Hear this take",
+        retryAria: "Test again and try for a higher score",
+        retryHint: "Aim even higher",
+        title: "Polish your best result",
+      },
       retry: "Test again",
       reveal: {
         age: "Experimental voice-age impression",

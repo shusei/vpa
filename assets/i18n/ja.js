@@ -206,6 +206,13 @@ const quick = {
   recording: "あなたの声を聴いています",
   recordingHint: "自然な音量を保ち、読み終えたら停止してください。",
   requesting: "マイクを準備しています",
+  refine: {
+    eyebrow: "PERFECT YOUR TAKE",
+    replayHint: "今回の声を聴く",
+    retryAria: "もう一度測って、さらに高いスコアを目指す",
+    retryHint: "さらに高得点へ",
+    title: "納得できる結果に磨き上げる",
+  },
   retry: "もう一度測る",
   reveal: {
     age: "実験的な声年齢の印象",

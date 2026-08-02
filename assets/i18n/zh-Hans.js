@@ -211,6 +211,13 @@ export default {
       recording: "正在聆听你的声音",
       recordingHint: "保持自然音量，读完句子后按下停止。",
       requesting: "正在准备麦克风",
+      refine: {
+        eyebrow: "PERFECT YOUR TAKE",
+        replayHint: "听听这次",
+        retryAria: "重新测试并挑战更高分",
+        retryHint: "挑战更高分",
+        title: "打磨出最满意的成绩",
+      },
       retry: "再测一次",
       reveal: {
         age: "实验性声音年龄印象",

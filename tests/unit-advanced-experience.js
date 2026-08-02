@@ -619,6 +619,7 @@ const intentionalJapaneseMatches = [
   "experiment.quick.dynamic.brand",
   "experiment.quick.dynamic.eyebrow",
   "experiment.quick.eyebrow",
+  "experiment.quick.refine.eyebrow",
   "experiment.quick.reveal.eyebrow",
   "hero.title",
   "meta.title",

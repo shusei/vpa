@@ -76,6 +76,9 @@ test("quick and professional experiences share one analysis result", async ({ pa
   await expect(page.locator(".quick-result__pitch")).toContainText("代表音高");
   await expect(page.locator(".quick-result__pitch-value")).toContainText("232.8");
   await expect(page.locator(".quick-result__pitch-value")).toContainText("Hz");
+  await expect(page.locator("[data-quick-refine]")).toContainText("打磨出最滿意的成績");
+  await expect(page.locator("[data-quick-refine] [data-quick-retry]")).toBeVisible();
+  await expect(page.locator(".quick-result__actions [data-quick-retry]")).toHaveCount(0);
 
   await page.locator('.quick-result [data-experience-target="professional"]').click();
   await expect(page.locator("html")).toHaveAttribute("data-experience", "professional");
@@ -211,6 +214,9 @@ test("quick recording delegates to the production recording and analysis path", 
   await expect(page.locator('[data-quick-stage="result"]')).toBeVisible({ timeout: 60_000 });
 
   const replay = page.locator("[data-quick-replay]");
+  const refine = page.locator("[data-quick-refine]");
+  await expect(refine).toBeVisible();
+  await expect(refine.locator("[data-quick-retry]")).toContainText("再測一次");
   await expect(replay).toBeVisible();
   await expect(replay).toContainText("立即重播");
   await replay.click();
