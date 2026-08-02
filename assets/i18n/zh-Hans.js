@@ -617,7 +617,7 @@ export default {
       '</ul>',
       '</section>',
       '<div class="help-author">',
-      '<img src="assets/avatar-evelyn.jpg" alt="公子姐的作者照片" class="help-author-img" loading="lazy" />',
+      '<img src="assets/avatar-evelyn.jpg?v=20260802-author2" alt="公子姐的作者照片" class="help-author-img" loading="lazy" />',
       '<div class="help-author-text">',
       '<h4>关于作者：公子姐</h4>',
       '<p>不管是写代码还是练伪音，都是一条充满探索的路。<br>如果您对 VPA 有任何建议，或想交流声音训练的心得，欢迎来我的 Instagram 找我！</p>',
@@ -634,6 +634,7 @@ export default {
   },
   footer: {
     note: "Demo only．模型倾向分数仅供自我练习参考",
+    easterEggAria: "开启彩蛋",
   },
   player: {
     play: "▶︎ 播放刚才的声音",

@@ -639,7 +639,16 @@ function renderQuickExperience() {
           : quickStage === "standard-next"
             ? standardCheckpointMarkup()
             : progressMarkup()}
-      <footer class="quick-footer">${escapeHtml(t("experiment.quick.footer"))}</footer>
+      <footer class="quick-footer">
+        <span>${escapeHtml(t("experiment.quick.footer"))}</span>
+        <button type="button" class="footer-author-shortcut" data-author-shortcut
+          aria-label="${escapeHtml(t("footer.easterEggAria"))}">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="8" r="4"></circle>
+            <path d="M4 21c0-5 3.6-8 8-8s8 3 8 8"></path>
+          </svg>
+        </button>
+      </footer>
     </div>
   `;
   bindCommonControls(quickExperience);

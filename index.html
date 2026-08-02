@@ -128,9 +128,9 @@
   <link rel="stylesheet" href="assets/css/base.css" />
   <link rel="stylesheet" href="assets/css/layout.css" />
   <link rel="stylesheet" href="assets/css/components.css" />
-  <link rel="stylesheet" href="assets/css/overlays.css?v=20260802-author1" />
+  <link rel="stylesheet" href="assets/css/overlays.css?v=20260802-author2" />
   <link rel="stylesheet" href="assets/css/experiments.css?v=20260802-pitch1" />
-  <link rel="stylesheet" href="assets/css/quick-experience.css?v=20260802-refine1" />
+  <link rel="stylesheet" href="assets/css/quick-experience.css?v=20260802-author2" />
   <script type="importmap">
   {
     "imports": {
@@ -605,6 +605,14 @@
   <footer class="footer">
     <div class="container">
       <small data-i18n="footer.note">Demo only．模型傾向分數僅供自我練習參考</small>
+      <button type="button" class="footer-author-shortcut" data-author-shortcut
+        aria-label="開啟彩蛋"
+        data-i18n-attrs="aria-label:footer.easterEggAria">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="8" r="4"></circle>
+          <path d="M4 21c0-5 3.6-8 8-8s8 3 8 8"></path>
+        </svg>
+      </button>
     </div>
   </footer>
 
@@ -615,8 +623,8 @@
     window.VPA_SHARE_SERVICE_ORIGIN = window.VPA_SHARE_SERVICE_ORIGIN
       ?? 'https://vpa-share.evelynjoellelin.workers.dev';
   </script>
-  <script type="module" src="assets/app.js?v=20260801-socialacoustic1"></script>
-  <script type="module" src="assets/experiments/experience-shell.js?v=20260802-refine1"></script>
+  <script type="module" src="assets/app.js?v=20260802-author2"></script>
+  <script type="module" src="assets/experiments/experience-shell.js?v=20260802-author2"></script>
 </body>
 
 </html>

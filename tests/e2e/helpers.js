@@ -57,6 +57,14 @@ export async function installDeterministicRuntime(page, {
     });
   });
 
+  await page.route("https://cdn.buymeacoffee.com/**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "image/svg+xml",
+      body: `<svg xmlns="http://www.w3.org/2000/svg" width="180" height="42" viewBox="0 0 180 42"><rect width="180" height="42" rx="21" fill="#ffdd00"/></svg>`,
+    });
+  });
+
   if (mockAnalytics) {
     await page.route("https://www.googletagmanager.com/gtag/js**", async (route) => {
       await route.fulfill({ status: 200, contentType: "text/javascript", body: "" });

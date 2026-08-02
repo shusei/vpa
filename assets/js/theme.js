@@ -196,6 +196,7 @@ function initOnboardingTip() {
 
 function initHelpOverlay() {
   if (!helpBtn || !helpOverlay) return;
+  let returnFocus = helpBtn;
   const focusClose = () => {
     const closeBtn = helpOverlay.querySelector(".help-close");
     closeBtn?.focus?.();
@@ -206,7 +207,7 @@ function initHelpOverlay() {
     helpOverlay.setAttribute("hidden", "");
     helpBtn.setAttribute("aria-expanded", "false");
     document.body.classList.remove("help-open");
-    helpBtn.focus?.();
+    returnFocus?.focus?.();
   };
   const scrollTop = () => {
     const dialog = helpOverlay.querySelector(".help-dialog");
@@ -216,6 +217,11 @@ function initHelpOverlay() {
     } else {
       dialog.scrollTop = 0;
     }
+  };
+  const scrollAuthorIntoView = () => {
+    const author = helpOverlay.querySelector(".help-author");
+    if (!author) return;
+    author.scrollIntoView({ block: "center" });
   };
   const ensureCloseButtons = () => {
     helpOverlay.querySelectorAll(".help-close").forEach((btn) => {
@@ -237,7 +243,8 @@ function initHelpOverlay() {
       topButtons.add(btn);
     });
   };
-  const open = () => {
+  const open = (trigger = helpBtn, target = null) => {
+    returnFocus = trigger;
     try { localStorage.setItem(HELP_KEY, "1"); } catch { }
     dismissOnboardTip(true);
     ensureCloseButtons();
@@ -245,13 +252,23 @@ function initHelpOverlay() {
     helpOverlay.removeAttribute("hidden");
     helpBtn.setAttribute("aria-expanded", "true");
     document.body.classList.add("help-open");
-    requestAnimationFrame(() => { focusClose(); });
+    requestAnimationFrame(() => {
+      focusClose();
+      if (target === "author") requestAnimationFrame(scrollAuthorIntoView);
+    });
   };
 
   helpBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     const isOpen = !helpOverlay.hasAttribute("hidden");
-    if (isOpen) close(); else open();
+    if (isOpen) close(); else open(helpBtn);
+  });
+  document.addEventListener("click", (event) => {
+    const trigger = event.target.closest?.("[data-author-shortcut]");
+    if (!trigger) return;
+    event.preventDefault();
+    event.stopPropagation();
+    open(trigger, "author");
   });
   helpOverlay.addEventListener("click", (e) => {
     if (e.target === helpOverlay) {

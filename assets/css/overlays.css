@@ -403,6 +403,32 @@ body.help-open {
   line-height: 1;
 }
 
+.help-close {
+  width: auto;
+  min-width: 54px;
+  padding: 0 15px;
+  gap: 8px;
+  border: 2px solid rgba(255, 255, 255, .88);
+  background: linear-gradient(135deg, #e11d48, #be123c);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 900;
+  box-shadow: 0 12px 30px rgba(190, 18, 60, .34), 0 0 0 3px rgba(190, 18, 60, .12);
+}
+
+.help-close::after {
+  content: attr(aria-label);
+  font-size: .78rem;
+  font-weight: 850;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.help-close:hover {
+  color: #fff;
+  background: linear-gradient(135deg, #f43f5e, #be123c);
+}
+
 .help-footer {
   margin-top: 18px;
   font-size: 13px;
@@ -466,6 +492,54 @@ kbd {
   color: color-mix(in oklab, var(--text) 70%, var(--muted) 30%);
   padding: 30px 0;
   text-align: center;
+}
+
+.footer .container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.footer-author-shortcut {
+  appearance: none;
+  width: 32px;
+  height: 32px;
+  padding: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in oklab, currentColor 30%, transparent);
+  border-radius: 999px;
+  color: inherit;
+  background: color-mix(in oklab, var(--panel) 68%, transparent);
+  opacity: .68;
+  cursor: pointer;
+  transition: opacity .16s ease, transform .16s ease, color .16s ease, border-color .16s ease;
+}
+
+.footer-author-shortcut svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.footer-author-shortcut:hover {
+  opacity: 1;
+  color: var(--ink);
+  border-color: color-mix(in oklab, var(--accent-2) 58%, currentColor);
+  transform: translateY(-2px);
+}
+
+.footer-author-shortcut:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
 }
 
 .spinner {

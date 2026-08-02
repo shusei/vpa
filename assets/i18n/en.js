@@ -628,7 +628,7 @@ export default {
       '</ul>',
       '</section>',
       '<div class="help-author">',
-      '<img src="assets/avatar-evelyn.jpg" alt="Portrait of Gongzi Jie" class="help-author-img" loading="lazy" />',
+      '<img src="assets/avatar-evelyn.jpg?v=20260802-author2" alt="Portrait of Gongzi Jie" class="help-author-img" loading="lazy" />',
       '<div class="help-author-text">',
       '<h4>About the Author: Gongzi Jie</h4>',
       '<p>Whether coding or voice training, it’s all about the journey of exploration.<br>If you have feedback on VPA or want to chat about voice training, feel free to connect with me on Instagram!</p>',
@@ -646,6 +646,7 @@ export default {
   },
   footer: {
     note: "Demo only. Model tendencies are for personal practice feedback",
+    easterEggAria: "Open the easter egg",
   },
   player: {
     play: "▶︎ Play the last take",

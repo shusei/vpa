@@ -34,4 +34,19 @@ test.describe("Voice Manual Overlay", () => {
     await expect(overlay).toBeHidden();
     await expect(guideBtn).toBeFocused();
   });
+
+  test("footer author shortcut opens the author card and restores focus on close", async ({ page }) => {
+    const shortcut = page.locator("[data-author-shortcut]:visible");
+    const overlay = page.locator("#helpOverlay");
+
+    await shortcut.scrollIntoViewIfNeeded();
+    await shortcut.click();
+    await expect(overlay).toBeVisible();
+    await expect(page.locator(".help-author")).toBeInViewport();
+    await expect(page.locator("#helpOverlay .help-close")).toBeVisible();
+
+    await page.locator("#helpOverlay .help-close").click();
+    await expect(overlay).toBeHidden();
+    await expect(shortcut).toBeFocused();
+  });
 });

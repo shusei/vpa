@@ -637,7 +637,7 @@ export default {
       "</ul>",
       "</section>",
       '<div class="help-author">',
-      '<img src="assets/avatar-evelyn.jpg" alt="Gongzi Jie の作者ポートレート" class="help-author-img" loading="lazy" />',
+      '<img src="assets/avatar-evelyn.jpg?v=20260802-author2" alt="Gongzi Jie の作者ポートレート" class="help-author-img" loading="lazy" />',
       '<div class="help-author-text">',
       "<h4>作者：Gongzi Jie</h4>",
       "<p>コーディングもボイストレーニングも、探究を続ける過程を大切にしています。<br>VPA へのご意見やボイストレーニングについてのお話は、Instagram からお気軽にどうぞ。</p>",
@@ -655,6 +655,7 @@ export default {
   },
   footer: {
     note: "デモ用途です。モデルの傾向スコアは個人練習の参考としてご利用ください",
+    easterEggAria: "隠し要素を開く",
   },
   player: {
     ariaPause: "再生を一時停止",

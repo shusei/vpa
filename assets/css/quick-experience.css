@@ -1043,6 +1043,11 @@ html[data-faction="dark"] .quick-experience {
   color:var(--quick-muted);
   font-size:.74rem;
   text-align:center;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:8px;
 }
 html[data-experience="quick"] body > .hero,
 html[data-experience="quick"] body > #dropZone,
