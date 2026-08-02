@@ -149,16 +149,75 @@ html[data-faction="dark"] .advanced-experience {
   color:color-mix(in oklab, #d97706 76%, var(--experiment-ink) 24%);
 }
 .advanced-experience__identity {
-  gap:5px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  align-content:center;
+  gap:12px;
 }
-.advanced-experience__identity span {
+.advanced-experience__identity-item {
+  display:grid;
+  align-content:center;
+  gap:5px;
+  min-width:0;
+}
+.advanced-experience__identity span,
+.advanced-experience__pitch > small {
   margin-top:6px;
   color:var(--experiment-muted);
   font-size:.78rem;
   font-weight:750;
 }
-.advanced-experience__identity strong {
+.advanced-experience__identity-item strong {
   font-size:clamp(1.15rem, 3vw, 1.55rem);
+}
+.advanced-experience__pitch {
+  position:relative;
+  grid-column:1/-1;
+  display:grid;
+  gap:5px;
+  overflow:hidden;
+  padding:14px 16px;
+  border:1px solid color-mix(in oklab, var(--accent-2) 38%, var(--experiment-subtle));
+  border-radius:17px;
+  background:linear-gradient(135deg,
+    color-mix(in oklab, var(--experiment-card) 78%, var(--accent-2) 22%),
+    color-mix(in oklab, var(--experiment-card) 90%, var(--accent-1) 10%));
+}
+.advanced-experience__pitch-heading {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.advanced-experience__pitch strong {
+  display:flex;
+  align-items:baseline;
+  gap:7px;
+  color:var(--experiment-emphasis);
+  font-family:Georgia, "Noto Serif TC", serif;
+  line-height:1;
+}
+.advanced-experience__pitch strong b {
+  font-size:clamp(1.75rem, 4vw, 2.35rem);
+}
+.advanced-experience__pitch strong small {
+  color:var(--experiment-muted);
+  font:850 .78rem "Segoe UI", "Noto Sans TC", sans-serif;
+  letter-spacing:.08em;
+}
+.advanced-experience__pitch > small {
+  margin:0;
+  line-height:1.4;
+}
+.advanced-experience__pitch-wave i {
+  background:linear-gradient(to top, var(--accent-2), var(--accent-1));
+}
+.advanced-experience__pitch-wave i:nth-child(2),
+.advanced-experience__pitch-wave i:nth-child(4) {
+  height:13px;
+}
+.advanced-experience__pitch-wave i:nth-child(3) {
+  height:18px;
 }
 .advanced-experience__components {
   display:grid;
@@ -391,6 +450,9 @@ html[data-faction="dark"] .advanced-experience {
   .advanced-experience__head,
   .advanced-experience__hero {
     display:grid;
+    grid-template-columns:1fr;
+  }
+  .advanced-experience__identity {
     grid-template-columns:1fr;
   }
   .advanced-experience__confidence {

@@ -68,7 +68,9 @@ async function publish({ analysis, challenge, formatted, result }) {
       ? "light"
       : "dark";
     const locale = getCurrentLocale();
-    const pitchHz = Number(analysis?.pitch?.stats?.med);
+    const resultPitchHz = Number(result?.pitchHz);
+    const analysisPitchHz = Number(analysis?.pitch?.stats?.med);
+    const pitchHz = Number.isFinite(resultPitchHz) ? resultPitchHz : analysisPitchHz;
     const imageBlob = await createSocialPreviewBlob({
       formatted,
       labels: cardLabels,

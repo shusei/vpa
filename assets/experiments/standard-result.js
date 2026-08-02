@@ -113,6 +113,7 @@ export function aggregateStandardResults(results) {
     components[key] = median(results.map((result) => result.components?.[key]));
   });
   const confidenceScore = median(results.map((result) => result.confidence?.score));
+  const pitchHz = median(results.map((result) => result.pitchHz));
   const spread = Math.max(...scores) - Math.min(...scores);
   const version = results.every((result) => result.version === reference.version)
     ? `${reference.version}.standard3`
@@ -134,6 +135,7 @@ export function aggregateStandardResults(results) {
       reference.insightKey,
     ),
     insufficientReasons: [],
+    pitchHz,
     ready: true,
     score,
     standard: {

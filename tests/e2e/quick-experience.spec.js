@@ -73,12 +73,16 @@ test("quick and professional experiences share one analysis result", async ({ pa
   }, fixture);
   await expect(page.locator(".quick-result__feminine strong")).toHaveText(`${result.score}%`);
   await expect(page.locator(".quick-result__masculine strong")).toHaveText(`${100 - result.score}%`);
+  await expect(page.locator(".quick-result__pitch")).toContainText("代表音高");
+  await expect(page.locator(".quick-result__pitch-value")).toContainText("232.8");
+  await expect(page.locator(".quick-result__pitch-value")).toContainText("Hz");
 
   await page.locator('.quick-result [data-experience-target="professional"]').click();
   await expect(page.locator("html")).toHaveAttribute("data-experience", "professional");
   await expect(page.locator("body > .hero")).toBeVisible();
   await expect(page.locator("#advancedExperience")).toBeVisible();
   await expect(page.locator(".advanced-experience__score strong")).toHaveText(`${result.score}%`);
+  await expect(page.locator(".advanced-experience__pitch strong")).toContainText("232.8");
   expect(await page.evaluate(() => window.__vpaInferenceCalls?.length || 0)).toBe(0);
 
   await page.locator('#experienceNav [data-experience-target="quick"]').click();

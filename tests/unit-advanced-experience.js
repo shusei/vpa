@@ -141,6 +141,7 @@ const standardInputs = [64, 81, 72].map((score, index) => ({
     pitch: [0.62, 0.88, 0.74][index],
     strict: score / 100,
   },
+  pitchHz: [210.2, 238.6, 226.4][index],
   score,
   voiceAge: {
     ...reference.voiceAge,
@@ -160,6 +161,7 @@ assert.equal(standardResult.voiceAge.max, 28);
 assert.equal(standardResult.voiceAge.ready, true);
 assert.equal(standardResult.voiceAge.version, reference.voiceAge.version);
 assert.equal(standardResult.components.pitch, 0.74);
+assert.equal(standardResult.pitchHz, 226.4);
 assert.equal(standardResult.version, `${reference.version}.standard3`);
 const standardAgeMissing = structuredClone(standardInputs);
 standardAgeMissing[1].voiceAge.ready = false;

@@ -34,6 +34,8 @@ test("professional experience renders advanced result and creates a local share 
   expect(result.score).toBeLessThan(100);
   await expect(page.locator("#advancedExperience")).toBeVisible();
   await expect(page.locator(".advanced-experience__score strong")).toHaveText(`${result.score}%`);
+  await expect(page.locator(".advanced-experience__pitch")).toContainText("代表音高");
+  await expect(page.locator(".advanced-experience__pitch strong")).toContainText("232.8");
   await expect(page.locator("#advancedExperience").getByText("聲音年齡印象", { exact: true }))
     .toBeVisible();
   await expect(page.getByRole("heading", { name: "聲音年齡 2.0 證據" })).toBeVisible();

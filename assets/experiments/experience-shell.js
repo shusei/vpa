@@ -11,7 +11,7 @@ import {
   formatAdvancedResult,
   onAdvancedResult,
   prepareAdvancedXShare,
-} from "./advanced-experience.js?v=20260801-socialacoustic1";
+} from "./advanced-experience.js?v=20260802-pitch1";
 import { shareResultFiles } from "./audio-share.js?v=20260801-sharefix1";
 import {
   compareChallenge,
@@ -31,8 +31,8 @@ import {
   getPublicShareResult,
   openPublicPlatformShare,
   resetPublicShareCache,
-} from "./public-share.js?v=20260801-xnative1";
-import { aggregateStandardResults } from "./standard-result.js";
+} from "./public-share.js?v=20260802-pitch1";
+import { aggregateStandardResults } from "./standard-result.js?v=20260802-pitch1";
 import { analyzeVoiceQuality } from "./voice-quality-metrics.js";
 
 const EXPERIENCE_KEY = "vpa::experiment.experience";
@@ -80,6 +80,19 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function pitchMedianHz(analysis) {
+  const value = Number(analysis?.pitch?.stats?.med);
+  return Number.isFinite(value) ? value : NaN;
+}
+
+function withPitchResult(result, analysis) {
+  const stored = Number(result?.pitchHz);
+  return {
+    ...result,
+    pitchHz: Number.isFinite(stored) ? stored : pitchMedianHz(analysis),
+  };
 }
 
 function readExperience() {
@@ -500,6 +513,9 @@ function resultMarkup() {
     : "experiment.quick.reveal.singleScore";
   const feminine = ready ? Math.max(0, Math.min(100, Math.round(result.score))) : null;
   const masculine = ready ? 100 - feminine : null;
+  const pitchHz = Number(result.pitchHz);
+  const pitchText = Number.isFinite(pitchHz) ? pitchHz.toFixed(1) : "—";
+  const pitchHintKey = isStandard ? "pitchStandardHint" : "pitchSingleHint";
   return `
     <section class="quick-result" data-quick-stage="result">
       ${comparisonMarkup(result)}
@@ -530,6 +546,17 @@ function resultMarkup() {
       ${ready ? standardSummaryMarkup(result) : ""}
       ${ready ? `
         <div class="quick-result__identity">
+          <article class="quick-result__pitch" aria-label="${escapeHtml(t("experiment.quick.reveal.pitchAria", { value: pitchText }))}">
+            <div class="quick-result__pitch-head">
+              <span>${escapeHtml(t("experiment.quick.reveal.pitch"))}</span>
+              <span class="quick-result__pitch-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+            </div>
+            <strong class="quick-result__pitch-value">
+              <b>${escapeHtml(pitchText)}</b>
+              <small>Hz</small>
+            </strong>
+            <small class="quick-result__pitch-hint">${escapeHtml(t(`experiment.quick.reveal.${pitchHintKey}`))}</small>
+          </article>
           <article>
             <span>${escapeHtml(t("experiment.quick.reveal.age"))}</span>
             <strong>${escapeHtml(formatted.age)}</strong>
@@ -991,6 +1018,7 @@ onAdvancedResult(({ analysis, result }) => {
   if (quickTestMode === "standard" && quickStage !== "analyzing") return;
   clearTimers();
   latestAnalysis = analysis;
+  const resultWithPitch = withPitchResult(result, analysis);
   quickErrorKey = "";
   quickStartedAt = 0;
   shareOpen = false;
@@ -999,9 +1027,9 @@ onAdvancedResult(({ analysis, result }) => {
   currentChallenge = null;
 
   if (quickTestMode === "standard") {
-    if (!result.ready) {
+    if (!resultWithPitch.ready) {
       finalizeQuickResult({
-        ...result,
+        ...resultWithPitch,
         quickTest: {
           mode: "standard",
           promptId: STANDARD_TEST_ID,
@@ -1009,9 +1037,9 @@ onAdvancedResult(({ analysis, result }) => {
       });
       return;
     }
-    standardRuns.push(result);
+    standardRuns.push(resultWithPitch);
     track("standard_test_step_completed", {
-      score_band: Math.floor(result.score / 10) * 10,
+      score_band: Math.floor(resultWithPitch.score / 10) * 10,
       standard_step: standardRuns.length,
     });
     if (standardRuns.length < STANDARD_PROMPT_IDS.length) {
@@ -1032,7 +1060,7 @@ onAdvancedResult(({ analysis, result }) => {
   }
 
   finalizeQuickResult({
-    ...result,
+    ...resultWithPitch,
     quickTest: {
       mode: "daily",
       promptId: dailyPromptId,

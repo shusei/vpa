@@ -5,7 +5,7 @@ import { createChallengeUrl } from "./challenge-link.js?v=20260801-xnative1";
 import {
   getPublicShareResult,
   openPublicPlatformShare,
-} from "./public-share.js?v=20260801-xnative1";
+} from "./public-share.js?v=20260802-pitch1";
 import {
   buildShareTargets,
   buildShareUrl,
@@ -29,6 +29,11 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function pitchMedianHz(analysis) {
+  const value = Number(analysis?.pitch?.stats?.med);
+  return Number.isFinite(value) ? value : NaN;
 }
 
 function track(eventName, params = {}) {
@@ -407,9 +412,13 @@ function notifyResultListeners(analysis, result) {
 
 export function renderAnalysis(analysis, { notify = true } = {}) {
   lastAnalysis = analysis;
-  lastResult = evaluateAdvancedExperience(analysis);
+  lastResult = {
+    ...evaluateAdvancedExperience(analysis),
+    pitchHz: pitchMedianHz(analysis),
+  };
   const result = lastResult;
   const scoreText = result.ready ? `${result.score}%` : "—";
+  const pitchText = Number.isFinite(result.pitchHz) ? result.pitchHz.toFixed(1) : "—";
   const insufficient = result.ready
     ? ""
     : `<p class="advanced-experience__warning">${escapeHtml(t("experiment.advanced.insufficient"))}</p>`;
@@ -436,10 +445,22 @@ export function renderAnalysis(analysis, { notify = true } = {}) {
         ${contradiction}
       </div>
       <div class="advanced-experience__identity">
-        <span>${escapeHtml(t("experiment.advanced.voiceAge.title"))}</span>
-        <strong>${escapeHtml(ageValue(result))}</strong>
-        <span>${escapeHtml(t("experiment.advanced.archetype.title"))}</span>
-        <strong>${escapeHtml(archetypeValue(result))}</strong>
+        <div class="advanced-experience__identity-item">
+          <span>${escapeHtml(t("experiment.advanced.voiceAge.title"))}</span>
+          <strong>${escapeHtml(ageValue(result))}</strong>
+        </div>
+        <div class="advanced-experience__identity-item">
+          <span>${escapeHtml(t("experiment.advanced.archetype.title"))}</span>
+          <strong>${escapeHtml(archetypeValue(result))}</strong>
+        </div>
+        <div class="advanced-experience__pitch" aria-label="${escapeHtml(t("experiment.advanced.pitchAria", { value: pitchText }))}">
+          <div class="advanced-experience__pitch-heading">
+            <span>${escapeHtml(t("experiment.advanced.pitchMedian"))}</span>
+            <span class="advanced-experience__pitch-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+          </div>
+          <strong><b>${escapeHtml(pitchText)}</b><small>Hz</small></strong>
+          <small>${escapeHtml(t("experiment.advanced.pitchMedianHint"))}</small>
+        </div>
       </div>
     </div>
     <div class="advanced-experience__components">
