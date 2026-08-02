@@ -543,6 +543,19 @@ function resultMarkup() {
         ` : `<strong class="quick-result__unavailable">—</strong>`}
         <small>${escapeHtml(t(scoreKey))}</small>
       </div>
+      ${recorderCtl.hasLastRecording ? `
+        <button type="button" class="quick-result__replay" data-quick-replay
+          aria-label="${escapeHtml(t("player.replayHintAria"))}">
+          <span class="quick-result__replay-icon" aria-hidden="true">▶</span>
+          <span class="quick-result__replay-copy">
+            <small>${escapeHtml(t("player.replayHintPrefix"))}</small>
+            <strong>${escapeHtml(t("player.replayHintAction"))}</strong>
+          </span>
+          <span class="quick-result__replay-wave" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i>
+          </span>
+        </button>
+      ` : ""}
       ${ready ? standardSummaryMarkup(result) : ""}
       ${ready ? `
         <div class="quick-result__identity">
@@ -648,6 +661,14 @@ function bindQuickControls() {
   });
   quickExperience.querySelector("[data-quick-retry]")?.addEventListener("click", () => {
     resetQuickTest();
+  });
+  quickExperience.querySelector("[data-quick-replay]")?.addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    recorderCtl.stopPlayback();
+    const played = await recorderCtl.playLast();
+    button.disabled = false;
+    track("quick_replay_clicked", { played: Boolean(played) });
   });
   quickExperience.querySelectorAll("[data-quick-standard]").forEach((button) => {
     button.addEventListener("click", () => {

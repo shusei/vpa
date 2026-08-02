@@ -210,6 +210,22 @@ test("quick recording delegates to the production recording and analysis path", 
   await page.locator("[data-quick-record]").click();
   await expect(page.locator('[data-quick-stage="result"]')).toBeVisible({ timeout: 60_000 });
 
+  const replay = page.locator("[data-quick-replay]");
+  await expect(replay).toBeVisible();
+  await expect(replay).toContainText("立即重播");
+  await replay.click();
+  await expect.poll(() => page.locator("#playback").evaluate((audio) => ({
+    muted: audio.muted,
+    paused: audio.paused,
+    volume: audio.volume,
+  }))).toMatchObject({
+    muted: false,
+    paused: false,
+    volume: 1,
+  });
+  await expect.poll(() => page.locator("#playback").evaluate((audio) => audio.currentTime))
+    .toBeGreaterThan(0);
+
   expect(await page.evaluate(() => window.vpaExperience.getLatestAnalysis()?.analysisId || 0))
     .toBeGreaterThan(0);
   expect(await page.evaluate(() => window.__vpaInferenceCalls?.length || 0))
