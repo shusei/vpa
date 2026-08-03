@@ -278,7 +278,7 @@ const quick = {
     private: "音声共有は初期状態でオフ",
     strict: "厳密な総合評価",
   },
-  viewProfessional: "プロ向け分析を詳しく見る",
+  viewProfessional: "詳細分析を詳しく見る",
 };
 
 export default {
