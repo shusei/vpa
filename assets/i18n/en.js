@@ -130,7 +130,7 @@ export default {
     },
     experience: {
       aria: "Choose experience mode",
-      professional: "Professional analysis",
+      professional: "Advanced analysis",
       quick: "Quick test",
     },
     quick: {
@@ -283,7 +283,7 @@ export default {
         private: "Audio sharing off by default",
         strict: "Strict composite score",
       },
-      viewProfessional: "View full professional analysis",
+      viewProfessional: "View full advanced analysis",
     },
   },
   ui: {
@@ -620,11 +620,11 @@ export default {
       '<div class="term-card"><h4>Liaison ratio</h4><p>How smoothly voiced segments connect; low scores mean phrases may feel choppy.</p></div>',
       '<div class="term-card"><h4>SNR</h4><p>Signal-to-noise ratio. Higher values mean cleaner captures and more reliable analysis.</p></div>',
       '</div>',
-      '<h4>Sources, ethics, and safety</h4>',
+      '<h4>Sources, ethics, and disclaimer</h4>',
       '<ul>',
-      '<li><strong>Sources:</strong> distilled from speech therapy resonance work, trans voice curricula, and community warm-ups focused on repeatable sensations.</li>',
-      '<li><strong>Ethics:</strong> the tendency score reflects vocal presentation—not gender identity, medical, or legal status.</li>',
-      '<li><strong>Safety:</strong> stay within comfortable volume and natural breathing; stop if you feel pain, hoarseness, or fatigue and seek professional guidance.</li>',
+      '<li><strong>Purpose & sources:</strong> Metrics draw from speech therapy resonance exercises and vocal technique materials for self-exploration and practice only, not medical diagnosis.</li>',
+      '<li><strong>Ethics & privacy:</strong> Tendency scores provide experimental algorithmic feedback and do not define gender identity or official status. All audio remains local to your device.</li>',
+      '<li><strong>Safety note:</strong> Maintain comfortable volume and natural breathing. If you experience vocal strain, pain, or hoarseness, rest immediately; consult a qualified medical specialist or speech-language pathologist if symptoms persist.</li>',
       '</ul>',
       '</section>',
       '<div class="help-author">',
