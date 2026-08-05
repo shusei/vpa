@@ -293,9 +293,23 @@ html[data-faction="dark"] .quick-experience {
   display:inline-flex;
   align-items:center;
   justify-content:center;
+  gap:8px;
   cursor:pointer;
   user-select:none;
   -webkit-tap-highlight-color:transparent;
+  transition:background .15s, border-color .15s, opacity .15s;
+}
+.quick-upload-label:hover {
+  background:var(--quick-surface-hover, color-mix(in oklab, var(--quick-surface) 80%, transparent));
+  border-color:var(--quick-ink);
+}
+.quick-upload-label:active {
+  opacity:.75;
+}
+.quick-upload-icon {
+  font-size:1.05rem;
+  line-height:1;
+  flex-shrink:0;
 }
 .quick-file-input {
   position:absolute;
