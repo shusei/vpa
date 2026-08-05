@@ -4,6 +4,17 @@
 
 本專案遵循 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/) 格式，並實施 [語意化版本 (Semantic Versioning)](https://semver.org/lang/zh-TW/)。
 
+## [1.2.0] - 2026-08-05
+
+### 變更與校正 (Changed & Refactored)
+- **科學誠實度與多語系文案安全重構**:
+  - 全面優化英、繁中、簡中、日文（en / zh-Hant / zh-Hans / ja）自然母語表達，確保符合專業聲學倫理與各國語境。
+  - 將共鳴頻譜標籤由器官定位名稱（胸腔/面罩/頭腔）修訂為客觀聲學能量帶 (`低頻能量` / `中頻能量` / `高頻能量`)。
+  - 將「下一個挑戰」與自動建議調整為無壓力的客觀聲學觀察與放鬆探索提示，避免機械式開出發聲處方。
+  - 調整 `falsettoContrast` 為 `metricMismatch` (指標分歧)，並強化所有介面之實驗性聲學說明與發聲安全提醒。
+
+---
+
 ## [1.1.2] - 2026-08-05
 
 ### 新增 (Added)
