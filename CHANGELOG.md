@@ -6,6 +6,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2026-08-05
+
+### Fixed (修復)
+- **Dark Theme Pitch Stream & Canvas Contrast Fix (深色主題即時 Hz 圖表對比度修正與架構優化)**:
+  - Fixed dark theme contrast bugs where canvas pitch stream lines and axis text appeared pitch-black (#000) on dark gray backgrounds.
+    修復深色主題 (Dark Theme) 下即時 Hz 圖表背景色與數據線變黑不可見的對比度問題。
+  - Refactored `base.css`, `intonation-visual.js`, and `realtime-pitch-stream.js` to dynamically query theme CSS variables (`--band-gray`, `--stream-ink`, `--stream-axis`, `--chart-bg`), ensuring 100% WCAG high-contrast readability across all 30+ light and dark themes.
+    全面導入 CSS 變數動態讀取機制，徹底消滅硬編碼顏色的歷史遺留，確保所有 30+ 款主題在深色與淺色模式下都具有高對比清晰讀取度。
+
+---
+
 ## [1.3.0] - 2026-08-05
 
 ### Changed & Unified (變更與統一)

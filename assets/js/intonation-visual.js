@@ -24,9 +24,18 @@ export function drawIntonationCurve(canvas, intonation, deps = {}) {
     canvas.height = Math.max(1, Math.round(height * DPR));
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = "#f8f8f8";
+    const styles = typeof window !== "undefined" ? getComputedStyle(document.documentElement) : null;
+    const isDark = document.documentElement.getAttribute("data-faction") === "dark";
+    const bgFill = styles?.getPropertyValue("--chart-bg")?.trim() || (isDark ? "#0f172a" : "#f8f8f8");
+    const gridStroke = styles?.getPropertyValue("--chart-grid")?.trim() || (isDark ? "rgba(255,255,255,.16)" : "rgba(0,0,0,.08)");
+    const streamInk = styles?.getPropertyValue("--stream-ink")?.trim() || (isDark ? "#38bdf8" : "rgba(239,93,168,0.85)");
+    const rawDotFill = isDark ? "rgba(255,255,255,.45)" : "rgba(60,60,60,0.22)";
+    const shadeFillMute = isDark ? "rgba(255,255,255,.14)" : "rgba(110,110,110,0.24)";
+    const shadeFillNorm = isDark ? "rgba(255,255,255,.07)" : "rgba(110,110,110,0.12)";
+
+    ctx.fillStyle = bgFill;
     ctx.fillRect(0, 0, width, height);
-    ctx.strokeStyle = "rgba(0,0,0,.08)";
+    ctx.strokeStyle = gridStroke;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, height - 18);
@@ -46,12 +55,12 @@ export function drawIntonationCurve(canvas, intonation, deps = {}) {
       const x0 = projectX(Math.max(minT, start));
       const x1 = projectX(Math.min(maxT, end));
       if (x1 <= x0) return;
-      ctx.fillStyle = type === "mute" ? "rgba(110,110,110,0.24)" : "rgba(110,110,110,0.12)";
+      ctx.fillStyle = type === "mute" ? shadeFillMute : shadeFillNorm;
       ctx.fillRect(x0, 10, x1 - x0, height - 30);
     });
 
     if (showIntonationRawPoints && rawPts.length) {
-      ctx.fillStyle = "rgba(60,60,60,0.22)";
+      ctx.fillStyle = rawDotFill;
       rawPts.forEach(({ t, hz }) => {
         const x = projectX(t);
         const y = projectY(Math.max(PS_MIN_HZ, Math.min(PS_MAX_HZ, hz)));
@@ -61,7 +70,7 @@ export function drawIntonationCurve(canvas, intonation, deps = {}) {
       });
     }
 
-    ctx.strokeStyle = "rgba(239,93,168,0.85)";
+    ctx.strokeStyle = streamInk;
     ctx.lineWidth = 2;
     ctx.beginPath();
     let drawing = false;

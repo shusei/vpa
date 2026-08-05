@@ -74,18 +74,29 @@ a:hover {
       color-mix(in oklab, #fff 6%, var(--accent-2) 94%) 100%);
   --hero-title-color: transparent;
 
-  /* Pitch bands */
-  --band-gray: color-mix(in oklab, var(--panel) 60%, #999 40%);
-  --band-blue: #bfe7ff;
-  --band-pink: #ffd1dc;
-  --band-lilac: #e2d5ff;
-  --stream-ink: color-mix(in oklab, #000 10%, var(--ink) 90%);
+  /* Pitch bands & Chart tokens (Default) */
+  --band-gray: #eef0f4;
+  --band-blue: #d0ebff;
+  --band-pink: #ffd6e0;
+  --band-lilac: #e8ddff;
+  --stream-ink: #111827;
+  --stream-axis: #4b5563;
+  --chart-bg: #f8fafc;
+  --chart-grid: rgba(0, 0, 0, 0.12);
 }
 
-/* ---------- Faction-based Hero（light: 實色；dark: 漸層） ---------- */
+/* ---------- Faction-based Hero & Stream Chart Theme Tokens ---------- */
 html[data-faction="light"] {
   --hero-title-bg: none;
   --hero-title-color: color-mix(in oklab, var(--ink) 92%, var(--accent-1) 8%);
+  --band-gray: #eef0f4;
+  --band-blue: #d0ebff;
+  --band-pink: #ffd6e0;
+  --band-lilac: #e8ddff;
+  --stream-ink: #111827;
+  --stream-axis: #4b5563;
+  --chart-bg: #f8fafc;
+  --chart-grid: rgba(0, 0, 0, 0.12);
 }
 
 html[data-faction="dark"] {
@@ -103,7 +114,14 @@ html[data-faction="dark"] {
   --topbar-icon-bg-1: color-mix(in oklab, var(--panel) 62%, var(--accent-2) 38%);
   --topbar-icon-bg-2: color-mix(in oklab, var(--panel) 48%, var(--accent-1) 52%);
   --topbar-icon-border: color-mix(in oklab, var(--panel-border) 40%, var(--accent-2) 60%);
-  --stream-axis: #000;
+  --band-gray: #1b212c;
+  --band-blue: #15325b;
+  --band-pink: #4a1c28;
+  --band-lilac: #321c47;
+  --stream-ink: #38bdf8;
+  --stream-axis: #cbd5e1;
+  --chart-bg: #0f172a;
+  --chart-grid: rgba(255, 255, 255, 0.18);
 }
 
 /* ---------- 主題（完整列表；未特別覆蓋時沿用 base token 也能運作） ---------- */

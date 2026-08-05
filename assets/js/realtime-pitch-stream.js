@@ -120,10 +120,12 @@ export function createRealtimePitchStreamController(deps) {
     }
     function drawBands() {
       const styles = getComputedStyle(document.documentElement);
-      const cGray = styles.getPropertyValue("--band-gray") || "#ddd";
-      const cBlue = styles.getPropertyValue("--band-blue") || "#bfe7ff";
-      const cPink = styles.getPropertyValue("--band-pink") || "#ffd1dc";
-      const cLilac = styles.getPropertyValue("--band-lilac") || "#e2d5ff";
+      const isDark = document.documentElement.getAttribute("data-faction") === "dark";
+      const cGray = styles.getPropertyValue("--band-gray")?.trim() || (isDark ? "#1b212c" : "#eef0f4");
+      const cBlue = styles.getPropertyValue("--band-blue")?.trim() || (isDark ? "#15325b" : "#d0ebff");
+      const cPink = styles.getPropertyValue("--band-pink")?.trim() || (isDark ? "#4a1c28" : "#ffd6e0");
+      const cLilac = styles.getPropertyValue("--band-lilac")?.trim() || (isDark ? "#321c47" : "#e8ddff");
+      const cGrid = styles.getPropertyValue("--chart-grid")?.trim() || (isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,.08)");
       const w = pitchCanvas.width, h = pitchCanvas.height;
 
       // 區帶：灰(50–85) / 藍(85–165) / 灰(165–180) / 粉(180–310) / 灰(310–450) / 淡紫(450–600)
@@ -135,7 +137,7 @@ export function createRealtimePitchStreamController(deps) {
       ctx.fillStyle = cLilac; ctx.fillRect(0, 0, w, yOf(450));
 
       // 網格線
-      ctx.strokeStyle = "rgba(0,0,0,.08)"; ctx.lineWidth = 1 * DPR;
+      ctx.strokeStyle = cGrid; ctx.lineWidth = 1 * DPR;
       [50, 85, 165, 180, 310, 450, PS_MAX_HZ].forEach(f => { const y = yOf(f); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); });
     }
 
@@ -146,8 +148,9 @@ export function createRealtimePitchStreamController(deps) {
       drawBands();
 
       const styles = getComputedStyle(document.documentElement);
+      const isDark = document.documentElement.getAttribute("data-faction") === "dark";
       ctx.lineWidth = 2 * DPR;
-      ctx.strokeStyle = styles.getPropertyValue("--stream-ink") || "#222";
+      ctx.strokeStyle = styles.getPropertyValue("--stream-ink")?.trim() || (isDark ? "#38bdf8" : "#111827");
 
       // 往右跑：最右是最新
       const stepX = 3 * DPR;
@@ -163,7 +166,7 @@ export function createRealtimePitchStreamController(deps) {
       }
       ctx.stroke();
 
-      const axisColor = styles.getPropertyValue("--stream-axis") || styles.getPropertyValue("--muted") || "rgba(0,0,0,.5)";
+      const axisColor = styles.getPropertyValue("--stream-axis")?.trim() || (isDark ? "#cbd5e1" : "#4b5563");
       const axisFont = (styles.getPropertyValue("--font-ui") || "sans-serif").trim() || "sans-serif";
       const axisFontSize = 11 * DPR;
       const axisTicks = [PS_MAX_HZ, 500, 450, 400, 350, 300, 250, 200, 150, 100, 50];
