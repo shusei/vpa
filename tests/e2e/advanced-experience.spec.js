@@ -289,6 +289,8 @@ test("advanced experiment text keeps accessible contrast across every theme", as
         ["--experiment-active-ink", "--experiment-active-b"],
         ["--experiment-emphasis", "--experiment-bg-a"],
         ["--experiment-emphasis", "--experiment-card"],
+        ["--stream-ink", "--band-gray"],
+        ["--stream-axis", "--band-gray"],
       ].map(([foregroundToken, backgroundToken]) => ({
         backgroundToken,
         foregroundToken,

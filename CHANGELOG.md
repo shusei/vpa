@@ -6,6 +6,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - 2026-08-05
+
+### Added & Verified (新增與驗證)
+- **E2E Pitch Stream Contrast Assertion Suite (Playwright E2E 即時圖表高對比度自動化檢驗清單)**:
+  - Added `--stream-ink` and `--stream-axis` tokens to Playwright's automated contrast ratio test across all 30+ light and dark themes. Verified 100% PASS with 0 contrast violations.
+    將即時圖表數據線 (`--stream-ink`) 與刻度文字 (`--stream-axis`) 正式加入 Playwright 瀏覽器自動化審查，全系統 30+ 款主題 100% 乾淨通過 41 項 E2E 測試。
+
+---
+
 ## [1.3.1] - 2026-08-05
 
 ### Fixed (修復)
