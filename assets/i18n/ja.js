@@ -146,9 +146,10 @@ const quick = {
     tied: "女性的な傾向の割合が同じになりました！",
   },
   errors: {
-    analysisTimeout: "分析に時間がかかりすぎました。静かな場所でもう一度録音してください。",
-    recordingFailed: "録音を開始できません。ブラウザのマイク権限を確認してください。",
+    analysisTimeout: "解析に時間がかかりすぎています。静かな場所で再試行してください。",
+    recordingFailed: "マイクが検出されません。接続を確認するか、「📁 音声ファイルをアップロード」をお試しください。",
   },
+  uploadFile: "📁 音声ファイルをアップロード",
   dynamic: {
     audioFailed: "今回の録音を読み込めませんでした。録音し直してもう一度お試しください。",
     brand: "VPA / VOICE CARD",

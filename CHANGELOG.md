@@ -6,6 +6,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.3] - 2026-08-05
+
+### Added & Fixed (新增與修復)
+- **PC No-Microphone User Experience & Fast Timeout (無麥克風桌機體驗優化與快速逾時處理)**:
+  - Added a prominent **"📁 Upload Audio File (📁 上傳音訊檔案)"** action button in Quick Experience landing pages, allowing PC users without microphones to immediately select MP3/M4A/WAV audio files for analysis.
+    在快速測試首頁新增「📁 上傳音訊檔案」按鈕，讓沒有麥克風的電腦使用者能直接選取 MP3/M4A/WAV 語音進行分析，免去設備限制。
+  - Reduced microphone initialization wait timeout from 30 seconds down to 4 seconds, presenting immediate clear error prompts and alternative upload guidance instead of freezing.
+    將麥克風請求逾時從 30 秒縮短至 4 秒，若無麥克風或權限拒絕能立即提示親切的引導說明，不再出現畫面假死僵住現象。
+
+---
+
 ## [1.3.2] - 2026-08-05
 
 ### Added & Verified (新增與驗證)

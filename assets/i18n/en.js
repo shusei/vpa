@@ -151,9 +151,10 @@ export default {
         tied: "Your feminine tendency percentages are the same!",
       },
       errors: {
-        analysisTimeout: "Analysis took too long. Move to a quiet space and record again.",
-        recordingFailed: "Recording could not start. Check your browser microphone permission.",
+        analysisTimeout: "Analysis timed out. Please retry in a quiet environment.",
+        recordingFailed: "No microphone detected! Check your microphone connection or click '📁 Upload Audio File' to analyze audio.",
       },
+      uploadFile: "📁 Upload Audio File",
       dynamic: {
         audioFailed: "This recording could not be read. Record a new take and try again.",
         brand: "VPA / VOICE CARD",

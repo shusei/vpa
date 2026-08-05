@@ -152,8 +152,9 @@ export default {
       },
       errors: {
         analysisTimeout: "分析等待時間過長，請回到安靜環境後重新錄製。",
-        recordingFailed: "無法開始錄音，請確認瀏覽器的麥克風權限。",
+        recordingFailed: "未檢測到麥克風！請確認麥克風已連接，或點選【📁 上傳音訊檔案】進行測試。",
       },
+      uploadFile: "📁 上傳音訊檔案",
       dynamic: {
         audioFailed: "無法讀取這次錄音，請重新錄製後再試。",
         brand: "VPA / VOICE CARD",

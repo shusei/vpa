@@ -314,6 +314,9 @@ function dailyLandingMarkup() {
       <button type="button" class="quick-primary" data-quick-record>
         ${escapeHtml(t("experiment.quick.start"))}
       </button>
+      <button type="button" class="quick-link" data-quick-upload>
+        ${escapeHtml(t("experiment.quick.uploadFile"))}
+      </button>
       <button type="button" class="quick-link quick-standard-cta" data-quick-standard>
         ${escapeHtml(t("experiment.quick.standard.cta"))}
       </button>
@@ -344,6 +347,9 @@ function standardLandingMarkup() {
       ${quickErrorKey ? `<p class="quick-error" role="alert">${escapeHtml(t(quickErrorKey))}</p>` : ""}
       <button type="button" class="quick-primary" data-quick-record>
         ${escapeHtml(t("experiment.quick.start"))}
+      </button>
+      <button type="button" class="quick-link" data-quick-upload>
+        ${escapeHtml(t("experiment.quick.uploadFile"))}
       </button>
       <button type="button" class="quick-link" data-quick-daily>
         ${escapeHtml(t("experiment.quick.standard.backDaily"))}
@@ -735,6 +741,11 @@ function bindQuickControls() {
   quickExperience.querySelectorAll("[data-quick-record]").forEach((button) => {
     button.addEventListener("click", () => toggleQuickRecording());
   });
+  quickExperience.querySelectorAll("[data-quick-upload]").forEach((button) => {
+    button.addEventListener("click", () => {
+      document.getElementById("audioFile")?.click();
+    });
+  });
   quickExperience.querySelector("[data-quick-retry]")?.addEventListener("click", async () => {
     resetQuickTest();
     await toggleQuickRecording();
@@ -961,7 +972,7 @@ async function toggleQuickRecording() {
     standard_step: quickTestMode === "standard" ? standardStep + 1 : undefined,
   });
   recordButton.click();
-  const started = await waitForRecordingState(true, 30000);
+  const started = await waitForRecordingState(true, 4000);
   if (!started) {
     quickStage = "idle";
     quickErrorKey = "experiment.quick.errors.recordingFailed";
