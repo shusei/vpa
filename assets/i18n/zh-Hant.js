@@ -152,7 +152,7 @@ export default {
       },
       errors: {
         analysisTimeout: "分析等待時間過長，請回到安靜環境後重新錄製。",
-        recordingFailed: "未檢測到麥克風！請確認麥克風已連接，或點選【📁 上傳音訊檔案】進行測試。",
+        recordingFailed: "未檢測到麥克風！請確認麥克風已連接，或點選「上傳音訊檔案」進行測試。",
       },
       uploadFile: "上傳音訊檔案",
       or: "或",

@@ -152,7 +152,7 @@ export default {
       },
       errors: {
         analysisTimeout: "Analysis timed out. Please retry in a quiet environment.",
-        recordingFailed: "No microphone detected! Check your microphone connection or click '📁 Upload Audio File' to analyze audio.",
+        recordingFailed: "No microphone detected! Check your microphone connection or click ‘Upload Audio File’ to analyze audio.",
       },
       uploadFile: "Upload Audio File",
       or: "or",
