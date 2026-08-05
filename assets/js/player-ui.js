@@ -131,6 +131,22 @@ export function stopPlayback(state, deps) {
   deps.updatePlayerCopy(false);
 }
 
+export function pausePlayback(state, deps) {
+  try {
+    if (state.audioEl && !state.audioEl.paused) {
+      state.audioEl.pause();
+    }
+  } catch (e) {
+    console.error("[pausePlayback]", e);
+  }
+  deps.updatePlayerCopy(false);
+}
+
+export function isPlaying(state) {
+  return !!(state.audioEl && !state.audioEl.paused);
+}
+
+
 export async function playLastRecording(state, deps) {
   if (!state.audioEl || !state.audioEl.src) return false;
   try {

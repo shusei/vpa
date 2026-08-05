@@ -64,6 +64,8 @@ import {
   ensurePlayerUI as sharedEnsurePlayerUI,
   setupExportButton as sharedSetupExportButton,
   stopPlayback as sharedStopPlayback,
+  pausePlayback as sharedPausePlayback,
+  isPlaying as sharedIsPlaying,
   playLastRecording as sharedPlayLastRecording,
   setPlaybackSource as sharedSetPlaybackSource,
 } from "./js/player-ui.js?v=20260802-standard1";
@@ -190,6 +192,8 @@ const VOLUME_DISPLAY_MODE = "relative";
 const MEDIA_RECORDER_DATA_TIMEOUT_MS = 5000;
 const playerSessionController = createPlayerSessionController({
   sharedEnsurePlayerUI,
+  sharedIsPlaying,
+  sharedPausePlayback,
   sharedPlayLastRecording,
   sharedSetPlaybackSource,
   sharedSetupExportButton,
@@ -238,11 +242,21 @@ export const recorderCtl = {
   get isRecording() { return analysisSession.getIsRecording(); },
   get busy() { return analysisSession.getBusy(); },
   get hasLastRecording() { return playerSessionController.hasLastRecording(); },
+  get isPlaying() { return playerSessionController.isPlaying(); },
+  getAudioEl: () => playerSessionController.getAudioEl(),
   getLastRecordingUrl: () => playerSessionController.getLastRecordingUrl(),
   start: () => recordingFlowController.startRecording(),
   stop: () => recordingFlowController.stopRecording(),
   stopPlayback: () => playerSessionController.stopPlayback(),
+  pausePlayback: () => playerSessionController.pausePlayback(),
   playLast: () => playerSessionController.playLastRecording(),
+  togglePlayback: () => {
+    if (playerSessionController.isPlaying()) {
+      playerSessionController.pausePlayback();
+      return false;
+    }
+    return playerSessionController.playLastRecording();
+  },
 };
 
 const uiStateControls = createUIStateControls({

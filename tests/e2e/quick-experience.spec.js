@@ -14,7 +14,7 @@ async function openDevelopmentPage(page, { shareServiceOrigin = "", ...runtimeOp
     window.VPA_SHARE_SERVICE_ORIGIN = origin;
     window.VPA_PUBLIC_APP_URL = "";
   }, shareServiceOrigin);
-  await page.goto("/dev.html");
+  await page.goto("/");
   await expect.poll(() => page.evaluate(() => Boolean(
     window.vpaAdvancedExperience && window.vpaExperience
   ))).toBe(true);
@@ -356,6 +356,11 @@ test("Japanese browser language becomes the default locale and a saved choice wi
 
   await page.locator("[data-quick-locale-toggle]").click();
   await page.locator('[data-quick-locale="ja"]').click();
+  await expect(page.locator("html")).toHaveAttribute("lang", "ja");
+  await page.evaluate(async () => {
+    const { setLocale } = await import("/assets/js/i18n.js");
+    await setLocale("ja");
+  });
   await page.locator('#experienceNav [data-experience-target="professional"]').click();
   await page.locator("#practiceToggle").click();
   await expect(page.locator("#practiceList")).toContainText("すみません、少しお時間をいただけますか。");

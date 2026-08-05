@@ -1,14 +1,17 @@
 import zhHant from "../i18n/zh-Hant.js?v=20260802-standard1";
 
 const STORAGE_KEY = "vpa.locale";
-const BASE_LOCALES = ["zh-Hant", "zh-Hans", "en"];
-const EXPERIMENTAL_LOCALES = typeof window !== "undefined" && Array.isArray(window.VPA_EXPERIMENT_LOCALES)
-  ? window.VPA_EXPERIMENT_LOCALES
-  : [];
-const SUPPORTED_LOCALES = Array.from(new Set([
-  ...BASE_LOCALES,
-  ...EXPERIMENTAL_LOCALES.filter((locale) => locale === "ja"),
-]));
+const BASE_LOCALES = ["zh-Hant", "zh-Hans", "en", "ja"];
+function getSupportedLocales() {
+  const experimental = typeof window !== "undefined" && Array.isArray(window.VPA_EXPERIMENT_LOCALES)
+    ? window.VPA_EXPERIMENT_LOCALES
+    : [];
+  return Array.from(new Set([
+    ...BASE_LOCALES,
+    ...experimental.filter((locale) => locale === "ja"),
+  ]));
+}
+
 const LOADERS = {
   "zh-Hans": () => import("../i18n/zh-Hans.js?v=20260802-standard1"),
   en: () => import("../i18n/en.js?v=20260802-standard1"),
@@ -95,7 +98,7 @@ function mapCandidateLocale(candidate) {
   if (lower.startsWith("en")) {
     return "en";
   }
-  if (lower.startsWith("ja") && SUPPORTED_LOCALES.includes("ja")) {
+  if (lower.startsWith("ja") && getSupportedLocales().includes("ja")) {
     return "ja";
   }
   return null;
@@ -104,7 +107,7 @@ function mapCandidateLocale(candidate) {
 function detectPreferredLocale() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved && SUPPORTED_LOCALES.includes(saved)) {
+    if (saved && getSupportedLocales().includes(saved)) {
       return saved;
     }
   } catch {
@@ -137,7 +140,8 @@ async function loadDictionary(locale) {
 }
 
 async function internalSetLocale(locale, persist = true) {
-  const target = SUPPORTED_LOCALES.includes(locale) ? locale : "en";
+  const supported = getSupportedLocales();
+  const target = supported.includes(locale) ? locale : "en";
   if (target === currentLocale && dictionary) {
     applyDomTranslations();
     return currentLocale;
@@ -154,13 +158,13 @@ async function internalSetLocale(locale, persist = true) {
     }
   }
   applyDomTranslations();
-  listeners.forEach((fn) => {
+  for (const fn of listeners) {
     try {
-      fn(currentLocale);
+      await fn(currentLocale);
     } catch (err) {
       console.error("[i18n] listener error", err);
     }
-  });
+  }
   return currentLocale;
 }
 
@@ -210,7 +214,7 @@ export async function setLocale(locale) {
 export const i18nInternals = {
   detectPreferredLocale,
   mapCandidateLocale,
-  supportedLocales: [...SUPPORTED_LOCALES],
+  get supportedLocales() { return getSupportedLocales(); },
 };
 
 applyDomTranslations();

@@ -368,12 +368,18 @@ function progressMarkup() {
   const analyzingHintKey = isEmbeddedSocialBrowser()
     ? "experiment.quick.embeddedFast.analyzingHint"
     : "experiment.quick.analyzingHint";
+  const eyebrowLabel = quickTestMode === "standard"
+    ? t("experiment.quick.standard.progress", {
+      current: standardStep + 1,
+      total: STANDARD_PROMPT_IDS.length,
+    })
+    : t("experiment.quick.eyebrow");
   return `
     <section class="quick-progress" data-quick-stage="${quickStage}">
       <div class="quick-progress__orb" aria-hidden="true">
         <span></span><span></span><span></span>
       </div>
-      <span class="quick-eyebrow">${escapeHtml(t("experiment.quick.eyebrow"))}</span>
+      <span class="quick-eyebrow quick-progress__label">${escapeHtml(eyebrowLabel)}</span>
       <h1>${escapeHtml(t(statusKey))}</h1>
       <strong class="quick-progress__timer" data-quick-timer>${isRecording ? "00:00" : "···"}</strong>
       <p>${escapeHtml(t(isRecording ? "experiment.quick.recordingHint" : analyzingHintKey))}</p>
@@ -566,11 +572,11 @@ function resultMarkup() {
         <div class="quick-result__refine-actions">
           ${recorderCtl.hasLastRecording ? `
             <button type="button" class="quick-result__refine-action quick-result__refine-action--replay"
-              aria-label="${escapeHtml(t("player.replayHintAria"))}" data-quick-replay>
-              <span class="quick-result__refine-icon quick-result__refine-icon--play" aria-hidden="true">▶</span>
+              aria-label="${escapeHtml(t(recorderCtl.isPlaying ? "player.ariaPause" : "player.replayHintAria"))}" data-quick-replay>
+              <span class="quick-result__refine-icon quick-result__refine-icon--play" aria-hidden="true">${recorderCtl.isPlaying ? "⏸" : "▶"}</span>
               <span class="quick-result__refine-copy">
                 <small>${escapeHtml(t("experiment.quick.refine.replayHint"))}</small>
-                <strong>${escapeHtml(t("player.replayHintAction"))}</strong>
+                <strong>${escapeHtml(t(recorderCtl.isPlaying ? "player.pause" : "player.replayHintAction"))}</strong>
               </span>
               <span class="quick-result__replay-wave" aria-hidden="true">
                 <i></i><i></i><i></i><i></i><i></i>
@@ -733,14 +739,40 @@ function bindQuickControls() {
     resetQuickTest();
     await toggleQuickRecording();
   });
+  const updateQuickReplayUI = () => {
+    const replayBtn = quickExperience.querySelector("[data-quick-replay]");
+    if (!replayBtn) return;
+    const active = Boolean(recorderCtl.isPlaying);
+    const iconEl = replayBtn.querySelector(".quick-result__refine-icon");
+    const titleEl = replayBtn.querySelector(".quick-result__refine-copy strong");
+    if (iconEl) iconEl.textContent = active ? "⏸" : "▶";
+    if (titleEl) titleEl.textContent = t(active ? "player.pause" : "player.replayHintAction");
+    replayBtn.setAttribute("aria-label", t(active ? "player.ariaPause" : "player.replayHintAria"));
+  };
+
   quickExperience.querySelector("[data-quick-replay]")?.addEventListener("click", async (event) => {
     const button = event.currentTarget;
     button.disabled = true;
-    recorderCtl.stopPlayback();
-    const played = await recorderCtl.playLast();
+    let played = false;
+    if (recorderCtl.isPlaying) {
+      recorderCtl.pausePlayback();
+    } else {
+      played = await recorderCtl.playLast();
+    }
     button.disabled = false;
+    updateQuickReplayUI();
     track("quick_replay_clicked", { played: Boolean(played) });
   });
+
+  const audioEl = recorderCtl.getAudioEl?.();
+  if (audioEl) {
+    audioEl.removeEventListener("play", updateQuickReplayUI);
+    audioEl.removeEventListener("pause", updateQuickReplayUI);
+    audioEl.removeEventListener("ended", updateQuickReplayUI);
+    audioEl.addEventListener("play", updateQuickReplayUI);
+    audioEl.addEventListener("pause", updateQuickReplayUI);
+    audioEl.addEventListener("ended", updateQuickReplayUI);
+  }
   quickExperience.querySelectorAll("[data-quick-standard]").forEach((button) => {
     button.addEventListener("click", () => {
       startStandardTest();

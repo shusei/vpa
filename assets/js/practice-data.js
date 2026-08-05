@@ -20,12 +20,15 @@ export async function loadPracticeData(locale = "zh-Hant") {
   const key = normalizeLocale(locale);
   const paths = [
     `assets/data/practice/${key}.json`,
-    "assets/data/practice/zh-Hant.json"
+    "assets/data/practice/zh-Hant.json",
   ];
   for (const path of paths) {
     try {
-      const res = await fetch(path, { cache: "no-cache" });
-      if (!res?.ok) continue;
+      const res = await fetch(path);
+      if (!res?.ok) {
+        console.error("[practice-data] fetch not ok for path:", path, "status:", res?.status);
+        continue;
+      }
       const data = await res.json();
       if (data && typeof data === "object") {
         return {
@@ -35,7 +38,7 @@ export async function loadPracticeData(locale = "zh-Hant") {
         };
       }
     } catch (error) {
-      console.warn("[practice] load failed", path, error);
+      console.error("[practice-data] load error", path, error);
     }
   }
   return { ...FALLBACK };

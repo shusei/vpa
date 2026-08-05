@@ -9,7 +9,7 @@ test.describe("embedded mobile browser guard", () => {
 
   test("opens LINE links with the external-browser directive", async ({ page }) => {
     await installDeterministicRuntime(page);
-    await page.goto("/dev.html?source=line#record");
+    await page.goto("/?source=line#record");
 
     const guard = page.locator("[data-embedded-browser-guard]");
     await expect(guard).toBeVisible();
@@ -23,7 +23,7 @@ test.describe("embedded mobile browser guard", () => {
 
   test("warns before recording and enables constrained local inference", async ({ page }) => {
     await installDeterministicRuntime(page);
-    await page.goto("/dev.html");
+    await page.goto("/");
 
     const guard = page.locator("[data-embedded-browser-guard]");
     await expect(guard).toBeVisible();
@@ -51,7 +51,7 @@ test.describe("iOS social app challenge browser", () => {
 
   test("opens a challenge immediately without an unusable external-browser prompt", async ({ page }) => {
     await installDeterministicRuntime(page);
-    await page.goto("/dev.html#vpa-challenge=abc");
+    await page.goto("/#vpa-challenge=abc");
 
     await expect(page.locator("[data-embedded-browser-guard]")).toHaveCount(0);
     await expect(page.locator("[data-quick-record]")).toBeVisible();
@@ -67,7 +67,7 @@ test.describe("iOS social app challenge browser", () => {
 
   test("finishes a challenge locally without downloading the large model", async ({ page }) => {
     await installDeterministicRuntime(page);
-    await page.goto("/dev.html#vpa-challenge=abc");
+    await page.goto("/#vpa-challenge=abc");
 
     await page.locator("[data-quick-record]").click();
     await expect(page.locator('[data-quick-stage="recording"]')).toBeVisible({
@@ -86,7 +86,7 @@ test.describe("iOS social app challenge browser", () => {
 
   test("does not show a fake one-tap Safari button on ordinary pages", async ({ page }) => {
     await installDeterministicRuntime(page);
-    await page.goto("/dev.html");
+    await page.goto("/");
 
     const guard = page.locator("[data-embedded-browser-guard]");
     await expect(guard).toBeVisible();
@@ -103,7 +103,7 @@ test.describe("iOS Threads challenge browser", () => {
 
   test("uses the same local fast challenge path", async ({ page }) => {
     await installDeterministicRuntime(page);
-    await page.goto("/dev.html#vpa-challenge=abc");
+    await page.goto("/#vpa-challenge=abc");
 
     await expect(page.locator("[data-embedded-browser-guard]")).toHaveCount(0);
     await expect(page.locator("[data-embedded-fast-notice]")).toBeVisible();

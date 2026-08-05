@@ -1,6 +1,8 @@
 export function createPlayerSessionController(deps) {
   const {
     sharedEnsurePlayerUI,
+    sharedIsPlaying,
+    sharedPausePlayback,
     sharedPlayLastRecording,
     sharedSetPlaybackSource,
     sharedSetupExportButton,
@@ -60,6 +62,20 @@ export function createPlayerSessionController(deps) {
     sharedStopPlayback(state, { updatePlayerCopy });
   }
 
+  function pausePlayback() {
+    if (sharedPausePlayback) {
+      sharedPausePlayback(state, { updatePlayerCopy });
+    } else if (state.audioEl && !state.audioEl.paused) {
+      state.audioEl.pause();
+      updatePlayerCopy(false);
+    }
+  }
+
+  function isPlaying() {
+    if (sharedIsPlaying) return sharedIsPlaying(state);
+    return !!(state.audioEl && !state.audioEl.paused);
+  }
+
   async function playLastRecording() {
     return sharedPlayLastRecording(state, { updatePlayerCopy });
   }
@@ -98,6 +114,8 @@ export function createPlayerSessionController(deps) {
     getPlayBtn,
     hasLastRecording,
     hasPlaybackSource,
+    isPlaying,
+    pausePlayback,
     playLastRecording,
     setPlaybackSource,
     setupExportButton,
@@ -105,3 +123,4 @@ export function createPlayerSessionController(deps) {
     updatePlayerCopy,
   };
 }
+
