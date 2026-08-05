@@ -116,29 +116,45 @@ html[data-faction="dark"] .advanced-experience {
   font-weight:750;
 }
 .advanced-experience__hero {
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) minmax(220px, 1fr);
+  gap:16px;
   margin:20px 0;
 }
+.advanced-experience__score,
 .advanced-experience__identity {
-  display:grid;
-  grid-template-columns:repeat(3, minmax(0, 1fr));
-  align-content:center;
-  gap:16px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
   padding:22px 26px;
   border:1px solid var(--experiment-subtle);
   border-radius:24px;
   background:var(--experiment-card);
   backdrop-filter:blur(10px);
 }
+.advanced-experience__score-label {
+  color:var(--experiment-muted);
+  font-size:.85rem;
+  font-weight:850;
+  margin-bottom:6px;
+}
+.advanced-experience__score-number {
+  font-family:Georgia, "Noto Serif TC", serif;
+  font-size:clamp(3.5rem, 9vw, 5.5rem);
+  line-height:.95;
+  color:var(--experiment-emphasis);
+}
+.advanced-experience__identity {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  align-content:center;
+  gap:12px;
+}
 .advanced-experience__identity-item {
   display:grid;
   align-content:center;
   gap:5px;
   min-width:0;
-}
-.advanced-experience__score-val {
-  color:var(--experiment-emphasis);
-  font-family:Georgia, "Noto Serif TC", serif;
-  font-size:clamp(1.35rem, 3.5vw, 1.85rem);
 }
 .advanced-experience__identity span,
 .advanced-experience__pitch > small {

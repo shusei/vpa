@@ -6,6 +6,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-08-05
+
+### Changed & Unified (變更與統一)
+- **Single Authoritative Score UI in Professional Mode (專業進階模式單一權威評分介面)**:
+  - Hidden the redundant legacy basic meter (`#meter`) in Professional Mode to eliminate percentage confusion (no competing or duplicate % displays on screen).
+    在進階專業模式中隱藏舊版基礎雙向儀表 (`#meter`)，解決畫面上同時出現 3 個相異百分比（Feminine % / Masculine % / 進階嚴格分數 %）的混淆問題。
+  - Maintained 100% of underlying raw model inference, binary probabilities, telemetry, and JSON data exports untouched.
+    100% 完整保留底層神經網絡推論、原始機率分布、Telemetry 數據與 JSON 匯出邏輯，資料零抹除。
+  - Simplified the score label to clean **Feminine Tendency (女性化傾向)**, removing technical jargon ("Strict Score / 進階嚴格分析").
+    將分數標籤簡化為客觀直觀的「女性化傾向」，去除「進階嚴格分析」等硬核用語。
+
+---
+
 ## [1.2.2] - 2026-08-05
 
 ### Fixed & Refactored (修復與優化)

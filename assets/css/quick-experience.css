@@ -1114,8 +1114,9 @@ html[data-experience="quick"] body > #uploadFab,
 html[data-experience="quick"] body > .footer {
   display:none !important;
 }
-html[data-experience="professional"] #quickExperience {
-  display:none;
+html[data-experience="professional"] #quickExperience,
+html[data-experience="professional"] #meter {
+  display:none !important;
 }
 @keyframes quick-pulse {
   0%, 100% { transform:scale(.92); opacity:.66; }

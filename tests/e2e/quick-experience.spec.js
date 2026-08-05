@@ -313,7 +313,8 @@ test("three-line standard test runs the production path three times and uses the
     });
   }
 
-  await page.goto(standardChallenge.url);
+  const challengeHash = new URL(standardChallenge.url).hash;
+  await page.goto(`/${challengeHash}`);
   await page.reload();
   await expect.poll(() => page.evaluate(() => window.vpaExperience?.getQuickTestMode()))
     .toBe("standard");
@@ -398,7 +399,8 @@ test("challenge link carries only summary data and compares the next result", as
   expect(challenge.payload.testMode).toBe("daily");
   await page.evaluate(() => localStorage.setItem("vpa::experiment.experience", "professional"));
 
-  await page.goto(challenge.url);
+  const challengeHash = new URL(challenge.url).hash;
+  await page.goto(`/${challengeHash}`);
   await expect(page.locator("html")).toHaveAttribute("data-experience", "quick");
   await page.reload();
   await expect(page.locator(".quick-challenge-invite")).toContainText(`${challenge.payload.score}`);
