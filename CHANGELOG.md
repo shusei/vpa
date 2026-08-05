@@ -6,6 +6,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.6] - 2026-08-05
+
+### Fixed (修復)
+- **Quick Experience Mobile File Picker (快速測試手機原生檔案選單修復)**:
+  - Removed `hidden` attribute from `<input type="file">` elements inside landing page labels — `hidden` equals `display:none` which iOS Safari ignores entirely when activating via a `<label>`.
+    移除快速測試首頁 `<label>` 內的 `<input type="file">` 上的 `hidden` 屬性。`hidden` 等同 `display:none`，iOS Safari 對此類 input 完全不觸發，即使有 `<label for>` 關聯也無效。
+  - Removed `pointer-events:none` from `.quick-file-input` CSS — this was blocking all touch events from reaching the input through the label on mobile devices.
+    移除 `.quick-file-input` CSS 中的 `pointer-events:none`，該屬性阻擋了所有觸控事件穿透至 input，導致手機點擊 label 時 input 完全收不到信號。
+  - Both fixes together allow iOS Safari and Android Chrome to correctly present the native "Photo Library / Video / Choose File" three-option picker.
+    兩項修復合力確保 iOS Safari 與 Android Chrome 能正確彈出「照片圖庫 / 錄影 / 選擇檔案」三選項原生選單。
+  - 42 Playwright E2E tests pass.
+
+---
+
 ## [1.3.5] - 2026-08-05
 
 ### Fixed (修復)

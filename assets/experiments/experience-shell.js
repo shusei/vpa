@@ -317,7 +317,7 @@ function dailyLandingMarkup() {
       </button>
       <label class="quick-link quick-upload-label" for="quickFileInput">
         ${escapeHtml(t("experiment.quick.uploadFile"))}
-        <input type="file" id="quickFileInput" accept="audio/*,video/*,.m4a,.mp3,.wav,.mp4,.mov" class="quick-file-input" hidden />
+        <input type="file" id="quickFileInput" accept="audio/*,video/*,.m4a,.mp3,.wav,.mp4,.mov" class="quick-file-input" />
       </label>
       <button type="button" class="quick-link quick-standard-cta" data-quick-standard>
         ${escapeHtml(t("experiment.quick.standard.cta"))}
@@ -352,7 +352,7 @@ function standardLandingMarkup() {
       </button>
       <label class="quick-link quick-upload-label" for="quickFileInputStandard">
         ${escapeHtml(t("experiment.quick.uploadFile"))}
-        <input type="file" id="quickFileInputStandard" accept="audio/*,video/*,.m4a,.mp3,.wav,.mp4,.mov" class="quick-file-input" hidden />
+        <input type="file" id="quickFileInputStandard" accept="audio/*,video/*,.m4a,.mp3,.wav,.mp4,.mov" class="quick-file-input" />
       </label>
       <button type="button" class="quick-link" data-quick-daily>
         ${escapeHtml(t("experiment.quick.standard.backDaily"))}

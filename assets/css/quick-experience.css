@@ -306,7 +306,6 @@ html[data-faction="dark"] .quick-experience {
   overflow:hidden;
   clip:rect(0,0,0,0);
   border:0;
-  pointer-events:none;
 }
 .quick-standard-cta {
   min-height:34px;
