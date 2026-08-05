@@ -439,12 +439,11 @@ export function renderAnalysis(analysis, { notify = true } = {}) {
     </div>
     ${insufficient}
     <div class="advanced-experience__hero">
-      <div class="advanced-experience__score">
-        <strong>${scoreText}</strong>
-        <span>${escapeHtml(t("experiment.advanced.strictScore"))}</span>
-        ${contradiction}
-      </div>
       <div class="advanced-experience__identity">
+        <div class="advanced-experience__identity-item">
+          <span>${escapeHtml(t("experiment.advanced.strictScore"))}</span>
+          <strong class="advanced-experience__score-val">${scoreText} ${contradiction}</strong>
+        </div>
         <div class="advanced-experience__identity-item">
           <span>${escapeHtml(t("experiment.advanced.voiceAge.title"))}</span>
           <strong>${escapeHtml(ageValue(result))}</strong>

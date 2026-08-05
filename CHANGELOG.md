@@ -6,6 +6,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-08-05
+
+### Fixed & Refactored (修復與優化)
+- **Advanced Hero UI Layout Optimization (進階模式英雄卡視覺優化)**:
+  - Unified the duplicate 7rem giant percentage block into a sleek, balanced 3-column identity card alongside Voice Age, Character Archetype, and Pitch Median. Eliminates visual clutter while enhancing hierarchy.
+    將進階模式過往重複的大數字百分比塊重構整合至 3 欄式聲音身份卡，去除視覺雜亂與重複壓迫感，整體介面更加精緻優雅。
+
+---
+
 ## [1.2.1] - 2026-08-05
 
 ### Added & Changed (新增與變更)

@@ -116,43 +116,18 @@ html[data-faction="dark"] .advanced-experience {
   font-weight:750;
 }
 .advanced-experience__hero {
-  display:grid;
-  grid-template-columns:minmax(0, 1.1fr) minmax(240px, .9fr);
-  gap:16px;
-  margin:24px 0;
+  margin:20px 0;
 }
-.advanced-experience__score,
 .advanced-experience__identity {
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  min-height:190px;
-  padding:20px 24px;
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  align-content:center;
+  gap:16px;
+  padding:22px 26px;
   border:1px solid var(--experiment-subtle);
   border-radius:24px;
   background:var(--experiment-card);
   backdrop-filter:blur(10px);
-}
-.advanced-experience__score strong {
-  font-family:Georgia, "Noto Serif TC", serif;
-  font-size:clamp(4rem, 13vw, 7rem);
-  line-height:.9;
-  color:var(--experiment-emphasis);
-}
-.advanced-experience__score > span:not(.advanced-experience__flag) {
-  margin-top:10px;
-  font-weight:850;
-}
-.advanced-experience__flag {
-  align-self:flex-start;
-  margin-top:14px;
-  color:color-mix(in oklab, #d97706 76%, var(--experiment-ink) 24%);
-}
-.advanced-experience__identity {
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  align-content:center;
-  gap:12px;
 }
 .advanced-experience__identity-item {
   display:grid;
@@ -160,9 +135,14 @@ html[data-faction="dark"] .advanced-experience {
   gap:5px;
   min-width:0;
 }
+.advanced-experience__score-val {
+  color:var(--experiment-emphasis);
+  font-family:Georgia, "Noto Serif TC", serif;
+  font-size:clamp(1.35rem, 3.5vw, 1.85rem);
+}
 .advanced-experience__identity span,
 .advanced-experience__pitch > small {
-  margin-top:6px;
+  margin-top:2px;
   color:var(--experiment-muted);
   font-size:.78rem;
   font-weight:750;
