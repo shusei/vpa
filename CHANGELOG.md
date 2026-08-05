@@ -4,6 +4,13 @@
 
 本專案遵循 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/) 格式，並實施 [語意化版本 (Semantic Versioning)](https://semver.org/lang/zh-TW/)。
 
+## [1.1.2] - 2026-08-05
+
+### 新增 (Added)
+- **GitHub Shields 質感徽章**: 於 README 頂端新增 MIT License、WebGPU Accelerated、Privacy 100% Local 與 GitHub Release 即時動態徽章。
+
+---
+
 ## [1.1.1] - 2026-08-05
 
 ### 新增 (Added)

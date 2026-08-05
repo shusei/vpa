@@ -2,6 +2,11 @@
 
 > **Languages:** [English](./README.md) | [繁體中文](./README.zh-Hant.md) | [簡體中文](./README.zh-Hans.md) | [日本語](./README.ja.md)
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![WebGPU Accelerated](https://img.shields.io/badge/WebGPU-Accelerated-blue.svg)](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API)
+[![Privacy First](https://img.shields.io/badge/Privacy-100%25%20Local-brightgreen.svg)](#)
+[![GitHub Release](https://img.shields.io/github/v/release/shusei/vpa.svg?color=orange)](https://github.com/shusei/vpa/releases)
+
 ---
 
 > 100% 瀏覽器端推論的聲音呈現分析與練習工具，從錄音或上傳的語音片段中推估女性化 (Feminine) / 男性化 (Masculine) 呈現傾向，提供快速挑戰測試、句庫練習、即時聲學監控、動態卡片分享與進階統計摘要。

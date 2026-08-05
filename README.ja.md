@@ -2,6 +2,11 @@
 
 > **Languages:** [English](./README.md) | [繁體中文](./README.zh-Hant.md) | [簡體中文](./README.zh-Hans.md) | [日本語](./README.ja.md)
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![WebGPU Accelerated](https://img.shields.io/badge/WebGPU-Accelerated-blue.svg)](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API)
+[![Privacy First](https://img.shields.io/badge/Privacy-100%25%20Local-brightgreen.svg)](#)
+[![GitHub Release](https://img.shields.io/github/v/release/shusei/vpa.svg?color=orange)](https://github.com/shusei/vpa/releases)
+
 ---
 
 > 100% ブラウザ内ローカル推論の音声印象分析・発声練習ツール。録音またはアップロードした音声からフェミニン (Feminine) / マスキュリン (Masculine) の声の印象をリアルタイムに推定し、スピードテスト、フレーズ練習、フォルマント監視、動的結果カード共有、詳細統計レポートを提供します。

@@ -2,6 +2,11 @@
 
 > **Languages:** [English](./README.md) | [繁體中文](./README.zh-Hant.md) | [簡體中文](./README.zh-Hans.md) | [日本語](./README.ja.md)
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![WebGPU Accelerated](https://img.shields.io/badge/WebGPU-Accelerated-blue.svg)](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API)
+[![Privacy First](https://img.shields.io/badge/Privacy-100%25%20Local-brightgreen.svg)](#)
+[![GitHub Release](https://img.shields.io/github/v/release/shusei/vpa.svg?color=orange)](https://github.com/shusei/vpa/releases)
+
 ---
 
 > A 100% privacy-first, in-browser voice impression and acoustic analysis tool. Evaluates feminine / masculine voice impression tendencies, provides quick test challenges, practice drawers, real-time acoustic pitch & formant tracking, dynamic voice card sharing, and advanced analytics.
