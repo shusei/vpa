@@ -4,6 +4,11 @@
 
 本專案遵循 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/) 格式，並實施 [語意化版本 (Semantic Versioning)](https://semver.org/lang/zh-TW/)。
 
+## [1.1.1] - 2026-08-05
+
+### 新增 (Added)
+- **多語系 README 文件**: 建立 `README.md` (English)、`README.zh-Hant.md` (繁體中文)、`README.zh-Hans.md` (簡體中文) 與 `README.ja.md` (日本語)，並於頂端新增跨語言快捷切換列。
+
 ---
 
 ## [1.1.0] - 2026-08-05
