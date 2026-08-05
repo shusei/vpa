@@ -314,9 +314,10 @@ function dailyLandingMarkup() {
       <button type="button" class="quick-primary" data-quick-record>
         ${escapeHtml(t("experiment.quick.start"))}
       </button>
-      <button type="button" class="quick-link" data-quick-upload>
+      <label class="quick-link quick-upload-label" for="quickFileInput">
         ${escapeHtml(t("experiment.quick.uploadFile"))}
-      </button>
+        <input type="file" id="quickFileInput" accept="audio/*,video/*,.m4a,.mp3,.wav,.mp4,.mov" class="quick-file-input" hidden />
+      </label>
       <button type="button" class="quick-link quick-standard-cta" data-quick-standard>
         ${escapeHtml(t("experiment.quick.standard.cta"))}
       </button>
@@ -348,9 +349,10 @@ function standardLandingMarkup() {
       <button type="button" class="quick-primary" data-quick-record>
         ${escapeHtml(t("experiment.quick.start"))}
       </button>
-      <button type="button" class="quick-link" data-quick-upload>
+      <label class="quick-link quick-upload-label" for="quickFileInputStandard">
         ${escapeHtml(t("experiment.quick.uploadFile"))}
-      </button>
+        <input type="file" id="quickFileInputStandard" accept="audio/*,video/*,.m4a,.mp3,.wav,.mp4,.mov" class="quick-file-input" hidden />
+      </label>
       <button type="button" class="quick-link" data-quick-daily>
         ${escapeHtml(t("experiment.quick.standard.backDaily"))}
       </button>
@@ -741,10 +743,22 @@ function bindQuickControls() {
   quickExperience.querySelectorAll("[data-quick-record]").forEach((button) => {
     button.addEventListener("click", () => toggleQuickRecording());
   });
-  quickExperience.querySelectorAll("[data-quick-upload]").forEach((button) => {
-    button.addEventListener("click", () => {
-      document.getElementById("audioFile")?.click();
-    });
+  const handleQuickFileInput = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    quickStage = "analyzing";
+    renderQuickExperience();
+    try {
+      await handleFileOrBlob(file, "upload");
+    } catch (err) {
+      console.error("[quick-upload] failed", err);
+      quickStage = "idle";
+      quickErrorKey = "experiment.quick.errors.recordingFailed";
+      renderQuickExperience();
+    }
+  };
+  quickExperience.querySelectorAll("#quickFileInput, #quickFileInputStandard").forEach((input) => {
+    input.addEventListener("change", handleQuickFileInput);
   });
   quickExperience.querySelector("[data-quick-retry]")?.addEventListener("click", async () => {
     resetQuickTest();

@@ -289,6 +289,25 @@ html[data-faction="dark"] .quick-experience {
   text-decoration:underline;
   text-underline-offset:4px;
 }
+.quick-upload-label {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.quick-file-input {
+  position:absolute;
+  width:1px;
+  height:1px;
+  margin:-1px;
+  padding:0;
+  overflow:hidden;
+  clip:rect(0,0,0,0);
+  border:0;
+  pointer-events:none;
+}
 .quick-standard-cta {
   min-height:34px;
   margin-top:-10px;

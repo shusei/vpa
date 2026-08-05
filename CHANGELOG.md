@@ -6,6 +6,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.4] - 2026-08-05
+
+### Fixed (修復)
+- **Mobile Touch File Upload Compatibility (行動端觸控原生檔案選擇器修復與相容性強化)**:
+  - Replaced script-driven hidden input clicks (`document.getElementById("fileInput").click()`) with native `<label for="fileInput">` elements across all landing templates and FAB floating buttons (`#uploadFab`).
+    將所有上傳按鈕與右下角 ⬆︎ 按鈕重構為原生 `<label for="fileInput">` 標籤，徹底解決 iOS Safari / Android Chrome / LINE 內建瀏覽器阻擋腳本觸發 `.click()` 導致點擊沒反應的問題。
+  - Verified 100% PASS across 41 Playwright E2E browser tests.
+    通過 41 項 Playwright 瀏覽器自動化 E2E 測試。
+
+---
+
 ## [1.3.3] - 2026-08-05
 
 ### Added & Fixed (新增與修復)
