@@ -289,27 +289,57 @@ html[data-faction="dark"] .quick-experience {
   text-decoration:underline;
   text-underline-offset:4px;
 }
+.quick-actions {
+  display:grid;
+  gap:0;
+}
+.quick-actions__or {
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  align-items:center;
+  gap:10px;
+  margin:4px 0;
+  color:var(--quick-muted);
+  font-size:.76rem;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.quick-actions__or > span:first-child,
+.quick-actions__or > span:last-child {
+  height:1px;
+  background:var(--quick-border);
+}
 .quick-upload-label {
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  gap:8px;
+  gap:7px;
+  min-height:44px;
+  padding:10px 16px;
+  border-radius:14px;
+  border:1.5px dashed var(--quick-border);
+  color:var(--quick-muted);
+  background:transparent;
+  font:750 .9rem "Segoe UI", "Noto Sans TC", sans-serif;
   cursor:pointer;
   user-select:none;
   -webkit-tap-highlight-color:transparent;
-  transition:background .15s, border-color .15s, opacity .15s;
+  transition:color .18s, border-color .18s, background .18s;
 }
 .quick-upload-label:hover {
-  background:var(--quick-surface-hover, color-mix(in oklab, var(--quick-surface) 80%, transparent));
-  border-color:var(--quick-ink);
+  color:var(--quick-ink);
+  border-color:color-mix(in oklab, var(--quick-accent-2) 70%, var(--quick-border));
+  background:color-mix(in oklab, var(--quick-accent-2) 7%, transparent);
 }
 .quick-upload-label:active {
-  opacity:.75;
+  opacity:.7;
 }
 .quick-upload-icon {
-  font-size:1.05rem;
+  font-size:1rem;
   line-height:1;
   flex-shrink:0;
+  opacity:.7;
 }
 .quick-file-input {
   position:absolute;

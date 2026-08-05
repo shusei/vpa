@@ -149,7 +149,8 @@ const quick = {
     analysisTimeout: "解析に時間がかかりすぎています。静かな場所で再試行してください。",
     recordingFailed: "マイクが検出されません。接続を確認するか、「📁 音声ファイルをアップロード」をお試しください。",
   },
-  uploadFile: "📁 音声ファイルをアップロード",
+  uploadFile: "音声ファイルをアップロード",
+  or: "または",
   dynamic: {
     audioFailed: "今回の録音を読み込めませんでした。録音し直してもう一度お試しください。",
     brand: "VPA / VOICE CARD",

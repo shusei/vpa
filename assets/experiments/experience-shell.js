@@ -312,14 +312,19 @@ function dailyLandingMarkup() {
       </div>
       ${promptMarkup()}
       ${quickErrorKey ? `<p class="quick-error" role="alert">${escapeHtml(t(quickErrorKey))}</p>` : ""}
-      <button type="button" class="quick-primary" data-quick-record>
-        ${escapeHtml(t("experiment.quick.start"))}
-      </button>
-      <label class="quick-secondary quick-upload-label" for="quickFileInput">
-        <span class="quick-upload-icon" aria-hidden="true">⬆︎</span>
-        ${escapeHtml(t("experiment.quick.uploadFile"))}
-        <input type="file" id="quickFileInput" accept="audio/*,video/*,.m4a,.mp3,.wav,.mp4,.mov" class="quick-file-input" />
-      </label>
+      <div class="quick-actions">
+        <button type="button" class="quick-primary" data-quick-record>
+          ${escapeHtml(t("experiment.quick.start"))}
+        </button>
+        <div class="quick-actions__or" aria-hidden="true">
+          <span></span><span>${escapeHtml(t("experiment.quick.or"))}</span><span></span>
+        </div>
+        <label class="quick-upload-label" for="quickFileInput">
+          <span class="quick-upload-icon" aria-hidden="true">⬆︎</span>
+          ${escapeHtml(t("experiment.quick.uploadFile"))}
+          <input type="file" id="quickFileInput" accept="audio/*,video/*,.m4a,.mp3,.wav,.mp4,.mov" class="quick-file-input" />
+        </label>
+      </div>
       <button type="button" class="quick-link quick-standard-cta" data-quick-standard>
         ${escapeHtml(t("experiment.quick.standard.cta"))}
       </button>
@@ -348,14 +353,19 @@ function standardLandingMarkup() {
       </div>
       ${promptMarkup({ showProgress: true })}
       ${quickErrorKey ? `<p class="quick-error" role="alert">${escapeHtml(t(quickErrorKey))}</p>` : ""}
-      <button type="button" class="quick-primary" data-quick-record>
-        ${escapeHtml(t("experiment.quick.start"))}
-      </button>
-      <label class="quick-secondary quick-upload-label" for="quickFileInputStandard">
-        <span class="quick-upload-icon" aria-hidden="true">⬆︎</span>
-        ${escapeHtml(t("experiment.quick.uploadFile"))}
-        <input type="file" id="quickFileInputStandard" accept="audio/*,video/*,.m4a,.mp3,.wav,.mp4,.mov" class="quick-file-input" />
-      </label>
+      <div class="quick-actions">
+        <button type="button" class="quick-primary" data-quick-record>
+          ${escapeHtml(t("experiment.quick.start"))}
+        </button>
+        <div class="quick-actions__or" aria-hidden="true">
+          <span></span><span>${escapeHtml(t("experiment.quick.or"))}</span><span></span>
+        </div>
+        <label class="quick-upload-label" for="quickFileInputStandard">
+          <span class="quick-upload-icon" aria-hidden="true">⬆︎</span>
+          ${escapeHtml(t("experiment.quick.uploadFile"))}
+          <input type="file" id="quickFileInputStandard" accept="audio/*,video/*,.m4a,.mp3,.wav,.mp4,.mov" class="quick-file-input" />
+        </label>
+      </div>
       <button type="button" class="quick-link" data-quick-daily>
         ${escapeHtml(t("experiment.quick.standard.backDaily"))}
       </button>

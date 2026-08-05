@@ -154,7 +154,8 @@ export default {
         analysisTimeout: "Analysis timed out. Please retry in a quiet environment.",
         recordingFailed: "No microphone detected! Check your microphone connection or click '📁 Upload Audio File' to analyze audio.",
       },
-      uploadFile: "📁 Upload Audio File",
+      uploadFile: "Upload Audio File",
+      or: "or",
       dynamic: {
         audioFailed: "This recording could not be read. Record a new take and try again.",
         brand: "VPA / VOICE CARD",
