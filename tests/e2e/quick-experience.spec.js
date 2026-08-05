@@ -814,4 +814,15 @@ test.describe("mobile quick experience", () => {
     }
     expect(runtimeErrors).toEqual([]);
   });
+
+  test("quick experience file upload immediately analyzes and presents the result card", async ({ page }) => {
+    const runtimeErrors = captureRuntimeErrors(page);
+    await openDevelopmentPage(page);
+
+    await page.locator("#quickFileInput").setInputFiles(resolve("tests/.generated-media/tone.mp3"));
+
+    await expect(page.locator(".quick-result")).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator(".quick-result__pitch-value")).toBeVisible();
+    expect(runtimeErrors).toEqual([]);
+  });
 });

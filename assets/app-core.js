@@ -250,6 +250,7 @@ export const recorderCtl = {
   stopPlayback: () => playerSessionController.stopPlayback(),
   pausePlayback: () => playerSessionController.pausePlayback(),
   playLast: () => playerSessionController.playLastRecording(),
+  handleFileOrBlob: (fileOrBlob, source = "upload") => analysisFlowController.handleFileOrBlob(fileOrBlob, source),
   togglePlayback: () => {
     if (playerSessionController.isPlaying()) {
       playerSessionController.pausePlayback();

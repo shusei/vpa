@@ -6,6 +6,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.5] - 2026-08-05
+
+### Fixed (修復)
+- **Quick Experience Upload Analysis Flow & E2E Test (快速測試上傳解碼推論與結果跳轉修復)**:
+  - Exported `recorderCtl.handleFileOrBlob` in `assets/app-core.js` and fixed `ReferenceError` when processing uploaded audio files in `assets/experiments/experience-shell.js`.
+    在 `assets/app-core.js` 的 `recorderCtl` 補齊暴露 `handleFileOrBlob` 方法，徹底解決快速測試選擇語音檔案後拋出 `ReferenceError: handleFileOrBlob is not defined` 導致無法進行分析的嚴重大錯。
+  - Added `isQuickUpload` state flag so uploading MP3/M4A/WAV files in Quick Experience mode immediately transitions to `"analyzing"` and presents the complete result card upon completion.
+    新增 `isQuickUpload` 狀態，使快速測試選取語音檔案後會立即轉入「分析中」畫面，並於解碼推論完成後直接彈出最終女性/男性傾向、音高與角色結果卡。
+  - Added dedicated E2E automated test in `tests/e2e/quick-experience.spec.js`, passing 100% across all 42 Playwright browser tests.
+    在 `tests/e2e/quick-experience.spec.js` 補上針對「快速測試上傳音檔」的全新 Playwright E2E 自動化測試案例並全數通過。
+
+---
+
 ## [1.3.4] - 2026-08-05
 
 ### Fixed (修復)

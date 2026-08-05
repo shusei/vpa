@@ -61,6 +61,7 @@ let quickXShareReady = false;
 let currentChallenge = null;
 let standardStep = 0;
 let standardRuns = [];
+let isQuickUpload = false;
 
 function resetQuickXShareState() {
   quickXSharePreparing = false;
@@ -746,12 +747,14 @@ function bindQuickControls() {
   const handleQuickFileInput = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    isQuickUpload = true;
     quickStage = "analyzing";
     renderQuickExperience();
     try {
-      await handleFileOrBlob(file, "upload");
+      await recorderCtl.handleFileOrBlob(file, "upload");
     } catch (err) {
       console.error("[quick-upload] failed", err);
+      isQuickUpload = false;
       quickStage = "idle";
       quickErrorKey = "experiment.quick.errors.recordingFailed";
       renderQuickExperience();
@@ -759,6 +762,13 @@ function bindQuickControls() {
   };
   quickExperience.querySelectorAll("#quickFileInput, #quickFileInputStandard").forEach((input) => {
     input.addEventListener("change", handleQuickFileInput);
+  });
+  document.getElementById("fileInput")?.addEventListener("change", () => {
+    if (currentExperience === "quick") {
+      isQuickUpload = true;
+      quickStage = "analyzing";
+      renderQuickExperience();
+    }
   });
   quickExperience.querySelector("[data-quick-retry]")?.addEventListener("click", async () => {
     resetQuickTest();
@@ -1165,7 +1175,9 @@ function finalizeQuickResult(result) {
 }
 
 onAdvancedResult(({ analysis, result }) => {
-  if (quickTestMode === "standard" && quickStage !== "analyzing") return;
+  const wasQuickUpload = isQuickUpload;
+  isQuickUpload = false;
+  if (quickTestMode === "standard" && quickStage !== "analyzing" && !wasQuickUpload) return;
   clearTimers();
   latestAnalysis = analysis;
   const resultWithPitch = withPitchResult(result, analysis);
@@ -1176,7 +1188,7 @@ onAdvancedResult(({ analysis, result }) => {
   shareStatusKey = "";
   currentChallenge = null;
 
-  if (quickTestMode === "standard") {
+  if (quickTestMode === "standard" && !wasQuickUpload) {
     if (!resultWithPitch.ready) {
       finalizeQuickResult({
         ...resultWithPitch,
@@ -1212,8 +1224,8 @@ onAdvancedResult(({ analysis, result }) => {
   finalizeQuickResult({
     ...resultWithPitch,
     quickTest: {
-      mode: "daily",
-      promptId: dailyPromptId,
+      mode: quickTestMode,
+      promptId: quickTestMode === "standard" ? STANDARD_TEST_ID : dailyPromptId,
     },
   });
 });
