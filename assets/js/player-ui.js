@@ -43,8 +43,10 @@ export function ensurePlayerUI(state, deps) {
   wrap.appendChild(hint);
   wrap.appendChild(audio);
 
+  const startWrapEl = container.querySelector(".start-wrap");
   const tipEl = container.querySelector(".callout");
-  if (tipEl) container.insertBefore(wrap, tipEl);
+  if (startWrapEl) startWrapEl.insertAdjacentElement("afterend", wrap);
+  else if (tipEl) container.insertBefore(wrap, tipEl);
   else container.appendChild(wrap);
 
   state.playBtn = btn;

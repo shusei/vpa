@@ -6,6 +6,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.7] - 2026-08-06
+
+### Improved & Fixed (優化與修復)
+- **i18n Fallback Alignment Across Locales (多語系 Key 全全面對齊與退回機制優化)**:
+  - Optimized fallback key resolution in `assets/js/advanced-summary-render.js`. In advanced section view, fully aligned key references across `en`, `ja`, `zh-Hans`, and `zh-Hant` dictionaries to eliminate unformatted English fallback text leaks.
+    優化 `assets/js/advanced-summary-render.js` 中的 fallback 讀取邏輯。在切換至「進階面板（Advanced Section）」時，徹底補強 `en`、`ja`、`zh-Hans` 與 `zh-Hant` 的欄位 key 尋址，消滅偶發出現英文備援硬編碼文字的問題。
+- **Replay Loop Ergonomics & Player Positioning (重播播放器位置上移與極速練習迴圈)**:
+  - Relocated the `.player` playback container (`▶︎ Play last take`) directly below the primary `.start-wrap` recording controls.
+    將聲音重播區塊 (`.player` / `▶︎ 播放剛才的聲音`) 調整掛載於錄音控制區 (`.start-wrap`) 的正下方。
+  - Practice loops ("Record -> Replay -> Re-record") are now fully accessible without scrolling the viewport on desktop or mobile devices.
+    使用者進行「錄音 ➔ 重播回聽 ➔ 再次錄音」高頻率偽音練習時，無需再滑動畫面，大幅升級練習效率與手感。
+
+---
+
 ## [1.3.6] - 2026-08-05
 
 ### Fixed (修復)
