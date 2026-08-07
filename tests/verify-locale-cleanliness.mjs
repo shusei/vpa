@@ -1,9 +1,56 @@
 import fs from 'node:fs';
 import path from 'node:path';
+
+// Minimal DOM mock required by i18n.js
+const mockElement = {
+  getAttribute: () => null,
+  setAttribute: () => {},
+  querySelectorAll: () => [],
+  querySelector: () => null,
+};
+
+global.document = {
+  querySelectorAll: () => [],
+  querySelector: () => null,
+  getElementById: () => null,
+  documentElement: {
+    setAttribute: () => {},
+    getAttribute: (attr) => (attr === 'lang' ? 'en' : null),
+  },
+  body: mockElement,
+  title: '',
+};
+global.window = global;
+global.localStorage = { getItem: () => 'en', setItem: () => {} };
+
 import zhHant from '../assets/i18n/zh-Hant.js';
 import zhHans from '../assets/i18n/zh-Hans.js';
 import en from '../assets/i18n/en.js';
 import ja from '../assets/i18n/ja.js';
+
+import { t, setLocale } from '../assets/js/i18n.js';
+import { bandOf } from '../assets/js/summary-helpers.js';
+import { createFocusHelpers } from '../assets/js/focus-insights.js';
+import { computeAdvancedSummary } from '../assets/js/advanced-summary-core.js';
+import {
+  averageFinite,
+  averageEnergy,
+  summarizeBreathiness,
+  buildEligibleFrameMask,
+  categorizeBrightness,
+  detectVoiceLeaning,
+  normalizeResonanceBands,
+  describeResonanceFromEnergy,
+  categorizeTilt,
+  categorizeBreathiness,
+  makeFormantHint,
+  summarizeFormantTrends,
+  buildFormantTrendDisplay,
+  analyzeVowelFocus,
+  analyzeSpeechRate,
+  analyzeConnectedSpeech,
+  analyzeIntonation,
+} from '../assets/js/advanced-metrics.js';
 
 console.log('=== [Locale Cleanliness & Coverage Regression Test] ===');
 
@@ -71,23 +118,19 @@ if (chineseInEn.length > 0) {
 const htmlPath = path.resolve('index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
 
-// Match standalone HTML tags with Chinese text
 const tagRegex = /<([a-z1-6]+)([^>]*)>([^<]*[\u4e00-\u9fa5][^<]*)<\/\1>/gi;
 let match;
 const missingI18nTags = [];
 while ((match = tagRegex.exec(html)) !== null) {
   const [full, tagName, attrs, text] = match;
-  // If tag has data-i18n/html/attrs, it is safe
   if (attrs.includes('data-i18n') || attrs.includes('data-i18n-html') || attrs.includes('data-i18n-attrs')) {
     continue;
   }
   if (['script', 'style', 'option'].includes(tagName.toLowerCase())) continue;
 
-  // Check if this tag is inside an ancestor that has data-i18n-html
   const tagPos = match.index;
   const contentBefore = html.slice(Math.max(0, tagPos - 500), tagPos);
   const containerMatch = contentBefore.match(/data-i18n-html="[^"]*"/g);
-  // If wrapped inside data-i18n-html container, the container will replace it dynamically
   if (containerMatch && contentBefore.lastIndexOf('data-i18n-html') > contentBefore.lastIndexOf('</div>')) {
     continue;
   }
@@ -102,8 +145,94 @@ if (missingI18nTags.length > 0) {
   console.log(`✅ [PASS] All static HTML tags with text in index.html are 100% bound with data-i18n attributes.`);
 }
 
+// Step 4: Dynamic Analysis Metrics Evaluation in EN Mode
+await setLocale('en');
+
+const mockStore = {
+  duration: 10,
+  frameSec: 0.05,
+  pitchProcessed: new Array(200).fill(220),
+  pitchRaw: new Array(200).fill(220),
+  pitchConfidence: new Array(200).fill(0.9),
+  voiced: new Array(200).fill(true),
+  db: new Array(200).fill(65),
+  formants: new Array(200).fill([400, 1800, 2800]),
+  tilt: new Array(200).fill(-12),
+  breathiness: new Array(200).fill(0.12),
+  energy: new Array(200).fill([0.2, 0.5, 0.3]),
+};
+
+const advDeps = {
+  analyzeConnectedSpeech,
+  analyzeIntonation,
+  analyzeSpeechRate,
+  analyzeVowelFocus,
+  averageEnergy,
+  averageFinite,
+  buildEligibleFrameMask,
+  categorizeBreathiness,
+  categorizeBrightness,
+  categorizeTilt,
+  describeResonanceFromEnergy,
+  detectVoiceLeaning,
+  FORMANT_CONFIDENCE_THRESHOLD: 0.5,
+  FORMANT_MAX_GAP_FRAMES: 8,
+  lastPf: 0.7,
+  lastPm: 0.3,
+  makeStats: (arr) => ({ avg: 220, med: 220, p05: 190, p95: 240, sd: 10 }),
+  offlineFeatureStore: mockStore,
+  percentileSorted: (arr, p) => 50,
+  PS_INTERVAL_MS: 50,
+  summarizeBreathiness,
+  summarizeFormantTrends,
+};
+
+const advSummary = computeAdvancedSummary(advDeps);
+const advJson = JSON.stringify(advSummary || {});
+const advChinese = advJson.match(/[\u4e00-\u9fa5]+/g);
+
+const { buildFocusInsights, renderFocusBlock } = createFocusHelpers({
+  fmt1: (v) => String(v),
+  getSummaryText: () => en.summary,
+  summaryString: (key, params) => t('summary.' + key, params),
+  t: t,
+});
+
+const focus = buildFocusInsights({
+  band: bandOf(220, { t, PS_MAX_HZ: 600 }),
+  stabilityKey: 'wide',
+  stabilityLabel: t('summary.stability.wide'),
+  spread: 85,
+  snr: 10,
+  snrDisplay: '10 dB',
+  snrKey: 'noisy',
+  snrLabel: t('summary.snrTags.noisy'),
+  diverge: true,
+  trendLabel: t('realtime.meter.feminine'),
+  advSummary,
+  voicedHintKey: 'low',
+  voicedHintLabel: t('summary.voicedHint.low'),
+});
+
+const focusJson = JSON.stringify(focus || {});
+const focusChinese = focusJson.match(/[\u4e00-\u9fa5]+/g);
+
+let dynamicErrors = 0;
+if (advChinese) {
+  console.error('❌ [FAIL] Chinese text found in EN mode computeAdvancedSummary output:', advChinese);
+  dynamicErrors++;
+}
+if (focusChinese) {
+  console.error('❌ [FAIL] Chinese text found in EN mode Focus Insights output:', focusChinese);
+  dynamicErrors++;
+}
+
+if (dynamicErrors === 0) {
+  console.log('✅ [PASS] Dynamic Analysis Metrics & Focus Insights in EN mode are 100% free of Chinese characters.');
+}
+
 // Final assertion
-if (keyErrors > 0 || chineseInEn.length > 0 || missingI18nTags.length > 0) {
+if (keyErrors > 0 || chineseInEn.length > 0 || missingI18nTags.length > 0 || dynamicErrors > 0) {
   console.error('\n❌ Locale Cleanliness Test Failed!');
   process.exit(1);
 } else {

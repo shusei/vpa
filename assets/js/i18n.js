@@ -41,7 +41,7 @@ function interpolate(template, params = {}) {
   });
 }
 
-function applyDomTranslations(root = document) {
+function applyDomTranslations(root = (typeof document !== "undefined" ? document : null)) {
   if (!root) return;
 
   root.querySelectorAll("[data-i18n]").forEach((el) => {

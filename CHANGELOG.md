@@ -6,6 +6,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.9] - 2026-08-08
+
+### Fixed & Hardened (根源修復與多語系卡片防護)
+- **Eliminated Cached Chinese Analysis Metrics Leak (`assets/js/advanced-metrics.js`) (徹底消滅動態分析卡片殘留中文 Root Cause)**:
+  - Removed stale `analysisText()` top-level module closure references across all 10 analysis categorizers (`categorizeBrightness`, `describeResonanceFromEnergy`, `categorizeTilt`, `categorizeBreathiness`, `makeFormantHint`, `buildFormantTrendDisplay`, `analyzeVowelFocus`, `analyzeSpeechRate`, `analyzeConnectedSpeech`, `analyzeIntonation`).
+    重構 `assets/js/advanced-metrics.js` 中所有 10 個音訊分析估算函式，移除原先在模組頂層快取的 `analysisText()` 閉包，改為 100% 直連 `t()` 動態多語系尋址。
+  - Prevents initial module imports from capturing stale Traditional Chinese text closures, guaranteeing that dynamic Focus Cards and Advanced Analysis Metrics render 100% in English when switched to English mode.
+    徹底解決模組初始化時誤扣繁體中文字典閉包的深層 bug，確保切換至英文模式後，動態產出的重點建議卡與進階指標卡片 100% 呈現為純英文。
+
+- **Enhanced Dynamic Locale Cleanliness Regression Test (`npm run test:locale`) (升級自動化語系潔淨度模擬斷言)**:
+  - Added Step 4 to `tests/verify-locale-cleanliness.mjs` to dynamically execute `computeAdvancedSummary` and `buildFocusInsights` in EN mode and assert 0 CJK Chinese characters in generated card labels, hints, displays, and severity titles.
+    在 `tests/verify-locale-cleanliness.mjs` 補齊第四階段動態分析測試，於 EN 模式下直接執行音訊分析與重點卡片生成，強制斷言產出之所有動態內文、標題與建議 0% 含有中文字元。
+
+---
+
 ## [1.3.8] - 2026-08-08
 
 ### Fixed & Automated (修復與自動化測試)

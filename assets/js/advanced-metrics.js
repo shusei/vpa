@@ -1,5 +1,5 @@
 import { EPS } from "./constants.js";
-import { t, getLocaleValue } from "./i18n.js";
+import { t } from "./i18n.js";
 import {
   PS_INTERVAL_MS,
   CONFIDENCE_INCLUDE_THRESHOLD,
@@ -8,8 +8,6 @@ import {
   percentileSorted,
   computeIntonationMetrics,
 } from "./pitch-shared.js";
-
-const analysisText = () => getLocaleValue("analysis");
 
 export function averageFinite(arr, mask) {
   const values = Array.isArray(arr) ? arr : [];
@@ -158,12 +156,10 @@ export function buildEligibleFrameMask(store, { minConfidence = FORMANT_CONFIDEN
 }
 
 export function categorizeBrightness({ f3Stats, tilt, breath, leaning } = {}) {
-  const brightnessText = analysisText()?.brightness;
   if (!Number.isFinite(f3Stats?.med)) {
-    const insufficient = brightnessText?.insufficient;
     return {
-      label: insufficient?.label || t("analysis.brightness.insufficient.label"),
-      hint: insufficient?.hint || t("analysis.brightness.insufficient.hint"),
+      label: t("analysis.brightness.insufficient.label"),
+      hint: t("analysis.brightness.insufficient.hint"),
       key: "insufficient",
     };
   }
@@ -182,20 +178,13 @@ export function categorizeBrightness({ f3Stats, tilt, breath, leaning } = {}) {
   } else if (z >= BRIGHTNESS_SPARKLE_Z) {
     key = "sparkle";
   }
-  // Masculine-leaning：避免「甜」「閃」等性別暗示字眼
   let lookupKey = key;
   if (leaning === "masculine") {
     if (key === "sweet") lookupKey = "sweetMasculine";
     else if (key === "sparkle") lookupKey = "sparkleMasculine";
   }
-  let entry = brightnessText?.[lookupKey];
-  if (!entry && lookupKey !== key) entry = brightnessText?.[key];
-  const label = entry?.label
-    || t(`analysis.brightness.${lookupKey}.label`)
-    || (lookupKey !== key ? t(`analysis.brightness.${key}.label`) : "");
-  const hint = entry?.hint
-    || t(`analysis.brightness.${lookupKey}.hint`)
-    || (lookupKey !== key ? t(`analysis.brightness.${key}.hint`) : "");
+  const label = t(`analysis.brightness.${lookupKey}.label`) || t(`analysis.brightness.${key}.label`);
+  const hint = t(`analysis.brightness.${lookupKey}.hint`) || t(`analysis.brightness.${key}.hint`);
   return { label, hint, key, zScore: z };
 }
 
@@ -237,14 +226,13 @@ export function describeResonanceFromEnergy(energy) {
   const validCount = hasAggregate ? (Number.isFinite(energy.validCount) ? energy.validCount : 0) : 0;
 
   const insufficientEntry = () => {
-    const insufficient = analysisText()?.resonanceBalance?.insufficient;
     return {
-      label: insufficient?.label || t("analysis.resonanceBalance.insufficient.label"),
-      hint: insufficient?.hint || t("analysis.resonanceBalance.insufficient.hint"),
+      label: t("analysis.resonanceBalance.insufficient.label"),
+      hint: t("analysis.resonanceBalance.insufficient.hint"),
       pct: pctFallback,
       total: 0,
       coverage: hasAggregate ? coverage : NaN,
-      display: insufficient?.label || t("analysis.resonanceBalance.insufficient.label"),
+      display: t("analysis.resonanceBalance.insufficient.label"),
     };
   };
 
@@ -277,9 +265,8 @@ export function describeResonanceFromEnergy(energy) {
     key = "headBright";
   }
 
-  const entry = analysisText()?.resonanceBalance?.[key];
-  const label = entry?.label || t(`analysis.resonanceBalance.${key}.label`);
-  let hint = entry?.hint || t(`analysis.resonanceBalance.${key}.hint`);
+  const label = t(`analysis.resonanceBalance.${key}.label`);
+  let hint = t(`analysis.resonanceBalance.${key}.hint`);
   let display = label;
   if (hasAggregate && Number.isFinite(coverage)) {
     const coverageKey = coverage < RESONANCE_COVERAGE_GOOD ? "coverageLowHint" : "coverageHint";
@@ -305,29 +292,26 @@ export function describeResonanceFromEnergy(energy) {
 
 export function categorizeTilt(tilt) {
   if (!Number.isFinite(tilt)) {
-    const insufficient = analysisText()?.tilt?.insufficient;
     return {
-      label: insufficient?.label || t("analysis.tilt.insufficient.label"),
-      hint: insufficient?.hint || t("analysis.tilt.insufficient.hint"),
+      label: t("analysis.tilt.insufficient.label"),
+      hint: t("analysis.tilt.insufficient.hint"),
     };
   }
   let key = "bright";
   if (tilt >= 7.5) key = "warm";
   else if (tilt >= 4.5) key = "gentleWarm";
   else if (tilt >= -1) key = "balanced";
-  const entry = analysisText()?.tilt?.[key];
   return {
-    label: entry?.label || t(`analysis.tilt.${key}.label`),
-    hint: entry?.hint || t(`analysis.tilt.${key}.hint`),
+    label: t(`analysis.tilt.${key}.label`),
+    hint: t(`analysis.tilt.${key}.hint`),
   };
 }
 
 export function categorizeBreathiness(val, ctx = {}) {
   if (!Number.isFinite(val)) {
-    const insufficient = analysisText()?.breathiness?.insufficient;
     return {
-      label: insufficient?.label || t("analysis.breathiness.insufficient.label"),
-      hint: insufficient?.hint || t("analysis.breathiness.insufficient.hint"),
+      label: t("analysis.breathiness.insufficient.label"),
+      hint: t("analysis.breathiness.insufficient.hint"),
     };
   }
   const snr = Number.isFinite(ctx.snr) ? ctx.snr : NaN;
@@ -346,23 +330,21 @@ export function categorizeBreathiness(val, ctx = {}) {
     else key = styleEligible ? "style" : "airy";
   }
 
-  const entry = analysisText()?.breathiness?.[key];
   return {
-    label: entry?.label || t(`analysis.breathiness.${key}.label`),
-    hint: entry?.hint || t(`analysis.breathiness.${key}.hint`),
+    label: t(`analysis.breathiness.${key}.label`),
+    hint: t(`analysis.breathiness.${key}.hint`),
     key,
   };
 }
 
 export function makeFormantHint(label, value, low, high) {
-  const rangeLabels = analysisText()?.formant?.rangeLabels || {};
-  const labelName = rangeLabels[label] || t(`analysis.formant.rangeLabels.${label}`);
+  const labelName = t(`analysis.formant.rangeLabels.${label}`);
   const labelWithName = `${label}（${labelName || label}）`;
   if (!Number.isFinite(value)) {
     return t("analysis.formant.insufficient", { label: labelWithName });
   }
-  const lowHint = analysisText()?.formant?.low?.[label] || t(`analysis.formant.low.${label}`);
-  const highHint = analysisText()?.formant?.high?.[label] || t(`analysis.formant.high.${label}`);
+  const lowHint = t(`analysis.formant.low.${label}`);
+  const highHint = t(`analysis.formant.high.${label}`);
   if (value < low) {
     const msg = t("analysis.formant.lowMessage", { label: labelWithName, hint: lowHint });
     return msg || `${labelWithName} ${lowHint}`;
@@ -432,8 +414,7 @@ export function summarizeFormantTrends(store, statsBundle, options = {}) {
 }
 
 export function buildFormantTrendDisplay(trendKey, coverage, hasAggregate) {
-  const trendLabels = analysisText()?.formant?.trendLabels;
-  const baseRaw = (trendLabels && trendLabels[trendKey]) || t(`analysis.formant.trendLabels.${trendKey}`);
+  const baseRaw = t(`analysis.formant.trendLabels.${trendKey}`);
   const base = baseRaw || "—";
   if (!hasAggregate || !Number.isFinite(coverage) || coverage <= 0) {
     return base;
@@ -459,11 +440,10 @@ export function analyzeVowelFocus(store, maskInfo) {
   }
 
   if (!mask || !mask.length) {
-    const insufficient = analysisText()?.vowelFocus?.insufficient;
     return {
       ratio: NaN,
-      label: insufficient?.label || t("analysis.vowelFocus.insufficient.label"),
-      hint: insufficient?.hint || t("analysis.vowelFocus.insufficient.hint"),
+      label: t("analysis.vowelFocus.insufficient.label"),
+      hint: t("analysis.vowelFocus.insufficient.hint"),
     };
   }
 
@@ -480,21 +460,19 @@ export function analyzeVowelFocus(store, maskInfo) {
   }
   const ratio = voiced ? focus / voiced : NaN;
   if (!Number.isFinite(ratio)) {
-    const insufficient = analysisText()?.vowelFocus?.insufficient;
     return {
       ratio: NaN,
-      label: insufficient?.label || t("analysis.vowelFocus.insufficient.label"),
-      hint: insufficient?.hint || t("analysis.vowelFocus.insufficient.hint"),
+      label: t("analysis.vowelFocus.insufficient.label"),
+      hint: t("analysis.vowelFocus.insufficient.hint"),
     };
   }
   let key = "weak";
   if (ratio >= 0.5) key = "strong";
   else if (ratio >= 0.3) key = "medium";
-  const entry = analysisText()?.vowelFocus?.[key];
   return {
     ratio,
-    label: entry?.label || t(`analysis.vowelFocus.${key}.label`),
-    hint: entry?.hint || t(`analysis.vowelFocus.${key}.hint`),
+    label: t(`analysis.vowelFocus.${key}.label`),
+    hint: t(`analysis.vowelFocus.${key}.hint`),
   };
 }
 
@@ -502,12 +480,11 @@ export function analyzeSpeechRate(store) {
   const hopSec = store.frameSec || (PS_INTERVAL_MS / 1000);
   const n = store.db.length;
   if (!n) {
-    const insufficient = analysisText()?.speechRate?.insufficient;
     return {
       syllPerSec: NaN,
       wordsPerMin: NaN,
-      label: insufficient?.label || t("analysis.speechRate.insufficient.label"),
-      hint: insufficient?.hint || t("analysis.speechRate.insufficient.hint"),
+      label: t("analysis.speechRate.insufficient.label"),
+      hint: t("analysis.speechRate.insufficient.hint"),
       key: "insufficient",
     };
   }
@@ -531,35 +508,32 @@ export function analyzeSpeechRate(store) {
   const syllPerSec = peaks / Math.max(duration, EPS);
   const wordsPerMin = syllPerSec > 0 ? (syllPerSec / 1.5) * 60 : NaN;
   if (!Number.isFinite(syllPerSec) || syllPerSec <= 0) {
-    const insufficient = analysisText()?.speechRate?.insufficient;
     return {
       syllPerSec: NaN,
       wordsPerMin: NaN,
-      label: insufficient?.label || t("analysis.speechRate.insufficient.label"),
-      hint: insufficient?.hint || t("analysis.speechRate.insufficient.hint"),
+      label: t("analysis.speechRate.insufficient.label"),
+      hint: t("analysis.speechRate.insufficient.hint"),
       key: "insufficient",
     };
   }
   let key = "fast";
   if (syllPerSec < 2.2) key = "tooSlow";
   else if (syllPerSec <= 4.2) key = "balanced";
-  const entry = analysisText()?.speechRate?.[key];
   return {
     syllPerSec,
     wordsPerMin,
-    label: entry?.label || t(`analysis.speechRate.${key}.label`),
-    hint: entry?.hint || t(`analysis.speechRate.${key}.hint`),
+    label: t(`analysis.speechRate.${key}.label`),
+    hint: t(`analysis.speechRate.${key}.hint`),
     key,
   };
 }
 
 export function analyzeConnectedSpeech(voicedArr, hopSec) {
   if (!Array.isArray(voicedArr) || !voicedArr.length) {
-    const insufficient = analysisText()?.liaison?.insufficient;
     return {
       ratio: NaN,
-      label: insufficient?.label || t("analysis.liaison.insufficient.label"),
-      hint: insufficient?.hint || t("analysis.liaison.insufficient.hint"),
+      label: t("analysis.liaison.insufficient.label"),
+      hint: t("analysis.liaison.insufficient.hint"),
     };
   }
   let segments = 0;
@@ -588,21 +562,19 @@ export function analyzeConnectedSpeech(voicedArr, hopSec) {
   const shortGaps = gaps.filter(g => g <= 0.16).length;
   const ratio = totalBreaks ? shortGaps / totalBreaks : (segments > 0 ? 1 : NaN);
   if (!Number.isFinite(ratio)) {
-    const insufficient = analysisText()?.liaison?.insufficient;
     return {
       ratio: NaN,
-      label: insufficient?.label || t("analysis.liaison.insufficient.label"),
-      hint: insufficient?.hint || t("analysis.liaison.insufficient.hint"),
+      label: t("analysis.liaison.insufficient.label"),
+      hint: t("analysis.liaison.insufficient.hint"),
     };
   }
   let key = "weak";
   if (ratio >= 0.7) key = "strong";
   else if (ratio >= 0.4) key = "medium";
-  const entry = analysisText()?.liaison?.[key];
   return {
     ratio,
-    label: entry?.label || t(`analysis.liaison.${key}.label`),
-    hint: entry?.hint || t(`analysis.liaison.${key}.hint`),
+    label: t(`analysis.liaison.${key}.label`),
+    hint: t(`analysis.liaison.${key}.hint`),
   };
 }
 
@@ -618,16 +590,15 @@ export function analyzeIntonation(data, hopSec) {
   const slopeCount = Number(metrics.slopeSampleCount) || 0;
 
   if (slopeCount < 3) {
-    const insufficient = analysisText()?.intonation?.insufficient;
     return {
       points: [],
       rawPoints,
       shadedRanges,
       slope: NaN,
-      slopeLabel: insufficient?.slopeLabel || t("analysis.intonation.insufficient.slopeLabel"),
-      hint: insufficient?.slopeHint || t("analysis.intonation.insufficient.slopeHint"),
+      slopeLabel: t("analysis.intonation.insufficient.slopeLabel"),
+      hint: t("analysis.intonation.insufficient.slopeHint"),
       range: NaN,
-      rangeHint: insufficient?.rangeHint || "",
+      rangeHint: "",
       minHz: NaN,
       maxHz: NaN,
     };
@@ -638,16 +609,14 @@ export function analyzeIntonation(data, hopSec) {
   let slopeKey = "flat";
   if (slope > 12) slopeKey = "rising";
   else if (slope < -12) slopeKey = "falling";
-  const slopeEntry = analysisText()?.intonation?.slope?.[slopeKey];
-  const slopeLabel = slopeEntry?.label || t(`analysis.intonation.slope.${slopeKey}.label`);
-  const slopeHint = slopeEntry?.hint || t(`analysis.intonation.slope.${slopeKey}.hint`);
+  const slopeLabel = t(`analysis.intonation.slope.${slopeKey}.label`);
+  const slopeHint = t(`analysis.intonation.slope.${slopeKey}.hint`);
 
   let rangeKey = "narrow";
   if (validRange >= 90) rangeKey = "rich";
   else if (validRange >= 50) rangeKey = "medium";
-  const rangeEntry = analysisText()?.intonation?.range?.[rangeKey];
-  const rangeHint = rangeEntry?.hint || t(`analysis.intonation.range.${rangeKey}.hint`);
-  const rangeLabel = rangeEntry?.label || t(`analysis.intonation.range.${rangeKey}.label`);
+  const rangeHint = t(`analysis.intonation.range.${rangeKey}.hint`);
+  const rangeLabel = t(`analysis.intonation.range.${rangeKey}.label`);
   const hint = `${slopeHint} ${rangeHint}`.trim();
 
   return {

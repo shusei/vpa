@@ -1,4 +1,4 @@
-export const RAW_MODEL_ID = (window.ONNX_MODEL_ID || "prithivMLmods/Common-Voice-Gender-Detection-ONNX");
+export const RAW_MODEL_ID = ((typeof window !== "undefined" && window.ONNX_MODEL_ID) || "prithivMLmods/Common-Voice-Gender-Detection-ONNX");
 export const MODEL_ID = String(RAW_MODEL_ID).trim().replace(/^\{+|\}+$/g, "");
 
 export const TARGET_SR       = 16000;
@@ -16,4 +16,4 @@ export const VAD_MIN_SEG_MS      = 200;
 export const VAD_MIN_VOICED_SEC  = 2;
 export const VAD_SILENCE_RATIO_TO_APPLY = 0.15;
 
-export const IS_SAFARI = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+export const IS_SAFARI = typeof navigator !== "undefined" ? /^((?!chrome|android).)*safari/i.test(navigator.userAgent || "") : false;
