@@ -6,6 +6,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.3] - 2026-08-08
+
+### Fixed & Automated (自動化升版與快取刷新工具 `bump-version.mjs`)
+- **Automated Version Bumping & Cache-Busting Pipeline (`scripts/bump-version.mjs`) (自動化 Cache-Busting 與升版管線)**:
+  - Added zero-dependency CLI script `scripts/bump-version.mjs` and package script `npm run bump`.
+    新增零依賴自動化升版腳本 `scripts/bump-version.mjs` 與 `npm run bump` 指令。
+  - Automatically updates `package.json` version, updates all 15 cache-busting query tags across HTML, CSS, and ESM imports (`?v=X.Y.Z`), and syncs test white-lists in a single execution.
+    自動化同步更新 `package.json` 版本號，並一鍵更新全站 15 個 HTML、CSS、ESM `import` 引用點之 `?v=X.Y.Z` 標籤與測試白名單。
+
+- **Agent Rule Enforcer (`AGENTS.md`) (發布規範層面防護)**:
+  - Enforced Cache-Busting tag updates as a strict mandatory rule in `AGENTS.md` for all future automated release workflows.
+    在 `AGENTS.md` 權威專案規範中，將「強刷手機快取 (Cache-Busting)」列為每一次自動 Commit & Push 時必執行的強制步驟。
+
+---
+
 ## [1.4.2] - 2026-08-08
 
 ### Fixed & Cache-Busted (全面強制強刷手機端快取 Cache-Busting)

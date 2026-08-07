@@ -1,4 +1,4 @@
-import { buildShareText } from "./audio-share.js?v=1.4.2-20260808";
+import { buildShareText } from "./audio-share.js?v=1.4.3";
 
 function roundedRect(ctx, x, y, width, height, radius) {
   const safeRadius = Math.min(radius, width / 2, height / 2);

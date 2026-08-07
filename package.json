@@ -1,6 +1,6 @@
 {
   "name": "vpa",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "private": true,
   "type": "module",
   "scripts": {
@@ -19,7 +19,8 @@
     "test:e2e": "node tests/helpers/generate-media-fixtures.mjs && playwright test",
     "test:e2e:ui": "node tests/helpers/generate-media-fixtures.mjs && playwright test --ui",
     "regression": "node scripts/run-regression.js",
-    "fetch:ffmpeg": "node scripts/download-ffmpeg-assets.mjs"
+    "fetch:ffmpeg": "node scripts/download-ffmpeg-assets.mjs",
+    "bump": "node scripts/bump-version.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",

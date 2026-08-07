@@ -68,6 +68,7 @@
   3. **自動同步更新檔案**：
      - 更新 `package.json` 中的 `version` 欄位。
      - 更新 `CHANGELOG.md`，新增對應版號的標題與條目摘要。
+     - **【強制執行 Cache-Busting 破除手機快取】**：同步更新 `index.html`、`dev.html`、`assets/app.js`、`assets/js/i18n.js` 與所有 ESM/CSS 匯入檔尾的 `?v=X.Y.Z` 標記（亦可執行 `node scripts/bump-version.mjs` 自動刷新），100% 杜絕手機 Safari、Chrome 與 WebViews 的離線硬碟快取！
   4. **自動撰寫完整 Commit**：包含明確標題 (Title) 與詳細內文說明 (Body)。
   5. **自動打 Tag 並 Push**：執行 `git tag vX.Y.Z` 並執行 `git push origin main --tags` 確保 GitHub Release Workflow 100% 自動觸發。
 
