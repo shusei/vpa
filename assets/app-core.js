@@ -548,6 +548,16 @@ const statsOrchestrationController = createStatsOrchestration({
   t,
 });
 
+onLocaleChange(() => {
+  if (analysisSession.getLastPf() != null || pitchRuntimeCore.pitchPostState.count > 0) {
+    try {
+      statsOrchestrationController.finishStreamStats();
+    } catch (e) {
+      console.error("[app] failed to re-render stats on locale change", e);
+    }
+  }
+});
+
 const analysisFlowController = createAnalysisFlowController({
   analyzeStreamed: (float32, sr, durationSec, reason, token) =>
     analysisEngineBridge.analyzeStreamed(float32, sr, durationSec, reason, token),

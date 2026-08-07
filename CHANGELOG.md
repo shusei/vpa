@@ -6,6 +6,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-08-08
+
+### Fixed & Verified (中間動態分析卡片重繪修復與 100% 驗證)
+- **Dynamic Mid-Section Analysis Cards Re-rendering (`assets/app-core.js`) (中間動態分析卡片語言切換時即時重繪修復)**:
+  - Registered `onLocaleChange` callback in `assets/app-core.js` to automatically invoke `statsOrchestrationController.finishStreamStats()` whenever active analysis results exist.
+    在 `assets/app-core.js` 中註冊 `onLocaleChange` 監聽器，當使用者在 Topbar 點擊切換語言且畫面上已存在分析結果時，自動調用 `finishStreamStats()` 重新繪製。
+  - Dynamically re-renders Focus Insights cards, Formant Trend cards, Voice Age, Voice Quality, and Intonation curves using the active target locale dictionary, guaranteeing 100% English rendering when switching to English mode.
+    使用目標語言字典 100% 重新生成中間那塊的重點建議卡、Formant 傾向卡、聲音年齡、聲音質地與語調曲線，徹底解決進階分析中間面板文字不隨切換語言變動的 Root Cause。
+
+- **DOM Structure i18n Unification (`index.html`) (移除 DOM 父層 data-i18n-html 洗掉子節點問題)**:
+  - Removed container-level `data-i18n-html` attributes on `<details>` sections in `index.html`, allowing granular child elements (`<summary>`, `<li>`, `<p>`) to be translated precisely without parent innerHTML collisions.
+    移除 `index.html` 下方 8 個 `<details>` 父容器上粗暴覆蓋的 `data-i18n-html` 屬性，使內部獨立標題與列表節點可進行 100% 精準多語系替換。
+  - Verified 100% pass across unit tests, locale cleanliness tests, zero-dependency Node DOM switch verification, and Playwright E2E suites.
+    全數通過單元測試、語系潔淨度測試、原生 DOM 動態切換驗證腳本與 Playwright E2E 測試。
+
+---
+
 ## [1.4.0] - 2026-08-08
 
 ### Fixed & Enhanced (選單層級修復與早期語系閃爍防護)
