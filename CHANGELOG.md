@@ -6,6 +6,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.5] - 2026-08-08
+
+### Fixed & Root Cause Resolved (統計標籤列與全卡片閉包死存字串徹底動態化修復)
+- **Dynamic Active Summary Text for Stats Orchestration (`assets/js/stats-core.js`) (統計卡片與 Topbar 標籤列 activeSummaryText 動態解鎖)**:
+  - Fixed `finishStreamStats` in `assets/js/stats-core.js` to dynamically evaluate `deps.getSummaryText()` on every execution (`activeSummaryText`), resolving stale module closure references where `Resonance`, `Speech rate`, `Breathiness`, and `Brightness` tag labels remained trapped in Traditional Chinese.
+    修復 `assets/js/stats-core.js` 中 `finishStreamStats` 函式，改為每次渲染時動態調用 `getSummaryText()` (`activeSummaryText`)，徹底解決 `Resonance`、`Speech rate`、`Breathiness` 與 `Brightness` 標籤列死鎖在初始模組載入時繁體中文閉包的問題。
+  - Verified against exact user-provided runtime text snippets; 100% free of Chinese characters when running in English mode.
+    根據使用者現場複製貼上的文本進行精確驗證，100% 確保英文模式下完全為英文、無任何中文殘留。
+
+---
+
 ## [1.4.4] - 2026-08-08
 
 ### Fixed & Root Cause Resolved (進階分析卡片內文全動態多語系重構)

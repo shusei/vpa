@@ -45,6 +45,8 @@ export function finishStreamStats(deps) {
     wireAdvancedIntonation,
   } = deps;
 
+  const activeSummaryText = (typeof deps.getSummaryText === "function" ? deps.getSummaryText() : null) || summaryText || {};
+
   try {
     const statsEl = document.getElementById("streamStats");
     const pfVal = Number.isFinite(lastPf) ? lastPf : 0;
@@ -54,7 +56,7 @@ export function finishStreamStats(deps) {
 
     const headerHTML = `
       <div class="insight-header">
-        <span class="badge">${summaryText?.badge || t("summary.badge")}</span>
+        <span class="badge">${activeSummaryText?.badge || t("summary.badge")}</span>
         <div class="tags"></div>
       </div>
     `;
@@ -112,7 +114,7 @@ export function finishStreamStats(deps) {
       else if (spread >= 40) stabilityKey = "moderate";
     }
     const stabilityLabel = isFinite(spread)
-      ? (summaryText?.stability?.[stabilityKey] || t(`summary.stability.${stabilityKey}`))
+      ? (activeSummaryText?.stability?.[stabilityKey] || t(`summary.stability.${stabilityKey}`))
       : "—";
 
     let snrKey = null;
@@ -120,7 +122,7 @@ export function finishStreamStats(deps) {
       snrKey = snr >= 20 ? "quiet" : snr >= 12 ? "ok" : "noisy";
     }
     const snrLabel = snrKey
-      ? (summaryText?.snrTags?.[snrKey] || t(`summary.snrTags.${snrKey}`))
+      ? (activeSummaryText?.snrTags?.[snrKey] || t(`summary.snrTags.${snrKey}`))
       : "—";
 
     let volSigmaKey = null;
@@ -128,13 +130,13 @@ export function finishStreamStats(deps) {
       volSigmaKey = volStats.sd < 6 ? "steady" : volStats.sd <= 12 ? "moderate" : "wide";
     }
     const volSigmaLabel = volSigmaKey
-      ? (summaryText?.volumeVariation?.[volSigmaKey] || t(`summary.volumeVariation.${volSigmaKey}`))
+      ? (activeSummaryText?.volumeVariation?.[volSigmaKey] || t(`summary.volumeVariation.${volSigmaKey}`))
       : "—";
 
     // 指標分歧（模型傾向 vs 音高常見區）
     const diverge = isDivergent(pitchStats.med, lastPf, lastPm);
     const divergeBadge = diverge
-      ? (summaryText?.divergenceBadge || t("summary.divergenceBadge"))
+      ? (activeSummaryText?.divergenceBadge || t("summary.divergenceBadge"))
       : "";
 
     // 取樣覆蓋率（錄音期間有聲點比例）
@@ -176,17 +178,17 @@ export function finishStreamStats(deps) {
       : "";
 
     const envNote = (isFinite(snr) && snr < 12)
-      ? (summaryText?.envNoteHtml || t("summary.envNoteHtml"))
+      ? (activeSummaryText?.envNoteHtml || t("summary.envNoteHtml"))
       : "";
 
     const voicedNote = voicedHintKey
       ? `<p class="subline" style="margin:4px 0 0">${t(`summary.voicedHint.${voicedHintKey}`)}</p>`
       : "";
 
-    const volumeModeNoteText = summaryText?.volumeRelativeNote || t("summary.volumeRelativeNote");
+    const volumeModeNoteText = activeSummaryText?.volumeRelativeNote || t("summary.volumeRelativeNote");
 
-    const statsLabels = summaryText?.statsLabels || {};
-    const statsHints = summaryText?.statsHints || {};
+    const statsLabels = activeSummaryText?.statsLabels || {};
+    const statsHints = activeSummaryText?.statsHints || {};
     const statsRows = [
       { key: "pitchAvg", value: `${fmt1(pitchStats.avg)}Hz` },
       { key: "pitchMed", value: `${fmt1(pitchStats.med)}Hz` },
