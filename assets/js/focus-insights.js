@@ -25,7 +25,7 @@ export function createFocusHelpers(deps) {
     const entries = [];
 
     const severityText = (level) => severityLabels[level] || t(`summary.focus.severity.${level}`);
-    const practiceLabel = (key) => ctaLabels[key] || t(`summary.focus.cta.${key}`);
+    const practiceLabel = (key) => t(`summary.focus.cta.${key}`) || ctaLabels[key] || "Practice";
     const practiceCategoryFor = (key) => PRACTICE_CATEGORY_BRIDGE[key] || null;
 
     const push = (key, severity, score, params = {}, practiceKey = null) => {
@@ -82,7 +82,7 @@ export function createFocusHelpers(deps) {
     }
 
     const breathKey = advSummary?.breathinessKey;
-    const breathLabel = advSummary?.breathinessLabel;
+    const breathLabel = breathKey ? t(`analysis.breathiness.${breathKey}.label`) : (advSummary?.breathinessLabel || "");
     if (breathLabel && breathKey) {
       if (breathKey === "tooAiry" || breathKey === "airy") {
         const severity = breathKey === "tooAiry" ? "high" : "medium";
@@ -94,7 +94,8 @@ export function createFocusHelpers(deps) {
     }
 
     const vowelRatio = Number(advSummary?.vowelFocusRatio);
-    const vowelLabel = advSummary?.vowelLabel || null;
+    const vowelKey = Number.isFinite(vowelRatio) ? (vowelRatio >= 0.5 ? "strong" : vowelRatio >= 0.3 ? "medium" : "weak") : null;
+    const vowelLabel = vowelKey ? t(`analysis.vowelFocus.${vowelKey}.label`) : (advSummary?.vowelLabel || null);
     if (Number.isFinite(vowelRatio) && vowelLabel && vowelRatio < 0.32) {
       const severity = vowelRatio < 0.2 ? "high" : "medium";
       const score = vowelRatio < 0.2 ? 80 : 69;
@@ -102,11 +103,14 @@ export function createFocusHelpers(deps) {
     }
 
     const speechRate = advSummary?.speechRate;
-    if (speechRate?.label && speechRate?.key) {
+    const speechRateLabel = speechRate?.key && speechRate.key !== "insufficient"
+      ? t(`analysis.speechRate.${speechRate.key}.label`)
+      : (speechRate?.label || null);
+    if (speechRateLabel && speechRate?.key) {
       if (speechRate.key === "fast") {
-        push("speechFast", "medium", 64, { label: speechRate.label }, "pace");
+        push("speechFast", "medium", 64, { label: speechRateLabel }, "pace");
       } else if (speechRate.key === "tooSlow") {
-        push("speechSlow", "medium", 62, { label: speechRate.label }, "pace");
+        push("speechSlow", "medium", 62, { label: speechRateLabel }, "pace");
       }
     }
 

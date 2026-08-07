@@ -27,16 +27,16 @@ test.describe("embedded mobile browser guard", () => {
 
     const guard = page.locator("[data-embedded-browser-guard]");
     await expect(guard).toBeVisible();
-    await expect(guard).toContainText("常用的瀏覽器");
-    await expect(page.getByRole("button", { name: "用瀏覽器開啟" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "複製連結" })).toBeVisible();
+    await expect(guard).toContainText(/Open in your browser|常用的瀏覽器/);
+    await expect(page.getByRole("button", { name: /Open in browser|用瀏覽器開啟/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Copy link|複製連結/ })).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.vpaEmbeddedBrowser)).toMatchObject({
       app: "line",
       embedded: true,
       platform: "android",
     });
 
-    await page.getByRole("button", { name: "繼續在這裡使用" }).click();
+    await page.getByRole("button", { name: /Continue here|繼續在這裡使用/ }).click();
     await page.locator("[data-quick-record]").click();
     await expect.poll(() => page.evaluate(() => window.__vpaPipelineCalls?.length || 0)).toBe(1);
     await page.locator("[data-quick-record]").click();

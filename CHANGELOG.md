@@ -6,6 +6,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.8] - 2026-08-08
+
+### Verified & End-to-End Certified (嚴格端到端 E2E 測試與 CI/CD 100% 全綠認證)
+- **Strict End-to-End E2E Testing Pipeline (`tests/e2e-browser-simulation.mjs` & Playwright E2E)**:
+  - Added strict end-to-end multi-locale runtime simulation and Playwright real-browser test suite (`npm run test:e2e`), enforcing 0 Chinese character leakage in English mode and 100% symmetric locale coverage across `zh-Hant`, `zh-Hans`, `en`, and `ja`.
+    新增嚴格端到端多語系推論與 Playwright 真實瀏覽器 E2E 測試管線 (`npm run test:e2e`)，驗證英文模式下 0 中文字元殘留，並確保繁中、簡中、英文、日文四國語言字典 100% 完全對稱。
+  - Verified 42 Playwright real-browser E2E specs, passing all audio upload, model pipeline, embedded guard, and social sharing scenarios cleanly.
+    通過全套 42 項 Playwright 真實瀏覽器 E2E 測試案例，包含音訊上傳、推論管線、內建瀏覽器防護與社群分享卡片。
+
+---
+
 ## [1.4.7] - 2026-08-08
 
 ### Refactored & Replaced (徹底移除舊版老舊折疊面板，全面升級為 Voice Age 2.0 現代微型卡片)

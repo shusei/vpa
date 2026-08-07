@@ -294,9 +294,17 @@ export function finishStreamStats(deps) {
     if (advSummary) {
       const resonanceTag = advSummary.resonanceDisplay || advSummary.resonanceLabel;
       if (resonanceTag) resonanceTagLabel = summaryString("tags.resonance", { label: resonanceTag });
-      if (advSummary.speechRateLabel) speechRateTagLabel = summaryString("tags.speechRate", { label: advSummary.speechRateLabel });
-      if (advSummary.breathinessLabel) breathinessTagLabel = summaryString("tags.breathiness", { label: advSummary.breathinessLabel });
-      if (advSummary.brightnessLabel) brightnessTagLabel = summaryString("tags.brightness", { label: advSummary.brightnessLabel });
+      const spKey = advSummary.speechRate?.key;
+      const spLabel = spKey && spKey !== "insufficient" ? t(`analysis.speechRate.${spKey}.label`) : (advSummary.speechRateLabel || advSummary.speechRate?.label);
+      if (spLabel) speechRateTagLabel = summaryString("tags.speechRate", { label: spLabel });
+
+      const brKey = advSummary.breathinessKey;
+      const brLabel = brKey ? t(`analysis.breathiness.${brKey}.label`) : advSummary.breathinessLabel;
+      if (brLabel) breathinessTagLabel = summaryString("tags.breathiness", { label: brLabel });
+
+      const bgKey = advSummary.brightnessKey;
+      const bgLabel = bgKey ? t(`analysis.brightness.${bgKey}.label`) : advSummary.brightnessLabel;
+      if (bgLabel) brightnessTagLabel = summaryString("tags.brightness", { label: bgLabel });
     }
 
     const summaryTags = {

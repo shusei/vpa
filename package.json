@@ -1,11 +1,13 @@
 {
   "name": "vpa",
-  "version": "1.4.7",
+  "version": "1.4.8",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "http-server -p 8080 -c-1",
-    "test": "npm run test:share-worker && npm run test:unit && npm run test:voice-age && npm run test:locale && npm run test:syntax && npm run test:markup && npm run test:ffmpeg && npm run test:decode && npm run test:phrases && npm run test:social",
+    "test": "npm run test:share-worker && npm run test:unit && npm run test:voice-age && npm run test:locale && npm run test:strict-locale && npm run test:e2e && npm run test:syntax && npm run test:markup && npm run test:ffmpeg && npm run test:decode && npm run test:phrases && npm run test:social",
+    "test:strict-locale": "node tests/strict-end-to-end-localization.mjs",
+    "test:e2e": "node tests/helpers/generate-media-fixtures.mjs && playwright test",
     "test:share-worker": "node --test cloudflare/share-worker/test/share-worker.test.mjs tests/unit-share-service.mjs tests/unit-dynamic-video.mjs",
     "test:unit": "node tests/unit-pitch-shared.js && node tests/unit-analysis-runtime.js && node tests/unit-analysis-telemetry.js && node tests/unit-voice-quality.js && node tests/unit-advanced-experience.js",
     "test:voice-age": "node tests/verify-voice-age-calibration.mjs",
@@ -16,7 +18,6 @@
     "test:decode": "node tests/verify-multichannel-mix.mjs",
     "test:phrases": "node tests/verify-phrases-core36.js",
     "test:social": "node tests/verify-social-preview.mjs",
-    "test:e2e": "node tests/helpers/generate-media-fixtures.mjs && playwright test",
     "test:e2e:ui": "node tests/helpers/generate-media-fixtures.mjs && playwright test --ui",
     "regression": "node scripts/run-regression.js",
     "fetch:ffmpeg": "node scripts/download-ffmpeg-assets.mjs",

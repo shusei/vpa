@@ -285,6 +285,42 @@ function renderAdvancedSummary(summary, context = {}) {
       </div>
       ${beginnerHighlights}
 
+      <div class="advanced-grid advanced-grid--three" style="margin-top: 16px;">
+        <!-- Formant & Resonance Card -->
+        <article class="adv-card modern-card" title="${escapeAttr(f1Hint)}">
+          <div class="k">${escapeHtml(titleFormant)}</div>
+          <div class="v" style="font-size: 1.25rem; font-weight: 700; margin: 4px 0;">F1 ${f1Val}Hz · F2 ${f2Val}Hz · F3 ${f3Val}Hz</div>
+          <div class="sub-label" style="font-size: 0.85rem; opacity: 0.85; margin-bottom: 6px;">${escapeHtml(labelResonance)}: ${escapeHtml(resonanceDisplay)}</div>
+          <div class="hint" style="font-size: 0.85rem; line-height: 1.4;">${safeHint(f1Hint)}</div>
+        </article>
+
+        <!-- Intonation & Speech Card -->
+        <article class="adv-card modern-card">
+          <div class="k">${escapeHtml(titleIntonation)}</div>
+          <div class="v" style="font-size: 1.25rem; font-weight: 700; margin: 4px 0;">${escapeHtml(I.slopeLabel || "—")}</div>
+          <div class="sub-label" style="font-size: 0.85rem; opacity: 0.85; margin-bottom: 6px;">${escapeHtml(labelSpeechRate)}: ${escapeHtml(speechRateDisplay)}</div>
+          <div class="hint" style="font-size: 0.85rem; line-height: 1.4;">${safeHint(I.slopeHint || speechRateHint)}</div>
+        </article>
+
+        <!-- Vowel Focus & Breathiness Card -->
+        <article class="adv-card modern-card">
+          <div class="k">${escapeHtml(titleVowel)}</div>
+          <div class="v" style="font-size: 1.25rem; font-weight: 700; margin: 4px 0;">${escapeHtml(brightnessDisplay)}</div>
+          <div class="sub-label" style="font-size: 0.85rem; opacity: 0.85; margin-bottom: 6px;">${escapeHtml(labelBreathiness)}: ${escapeHtml(breathDisplay)} · ${escapeHtml(labelVowelFocus)}: ${escapeHtml(vowelDisplay || "—")}</div>
+          <div class="hint" style="font-size: 0.85rem; line-height: 1.4;">${safeHint(brightnessHint || breathinessHint)}</div>
+        </article>
+      </div>
+
+      <div class="intonation-wrap" style="margin-top: 16px;">
+        <canvas id="intonationCanvas" class="intonation-canvas" aria-label="${escapeAttr(t("analysis.advanced.canvasAria") || "Intonation curve")}"></canvas>
+        <div class="intonation-legend">
+          <label><input id="toggleRawDots" type="checkbox" /> ${escapeHtml(t("analysis.advanced.intonationLegend.show") || "Show raw dots")}</label>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
   return {
     resolveIntonationData,
     beginnerText,
