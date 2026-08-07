@@ -32,8 +32,8 @@ export function createAdvancedSectionController(deps) {
 
     const labelFor = (mode) =>
       mode === "advanced"
-        ? (t("ui.advancedMode.beginner") || "Switch to Beginner (collapse all)")
-        : (t("ui.advancedMode.advanced") || "Switch to Advanced (expand all)");
+        ? t("ui.advancedMode.beginner")
+        : t("ui.advancedMode.advanced");
 
     // force: null=用記憶, "expand"=全部展開, "collapse"=全部收起
     // persist: 是否把這次結果寫回每塊的記憶

@@ -6,6 +6,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.9] - 2026-08-08
+
+### Cleaned & Refactored (全面掃除寫死字串與升級切換按鈕)
+- **Eliminated Hardcoded String Fallbacks (`assets/js/advanced-section.js` & `assets/js/advanced-summary-render.js`) (全面清除硬編碼文字與按鈕狀態綁定)**:
+  - Removed all hardcoded string fallback fallbacks (such as `"Switch to Beginner (collapse all)"`) in `advanced-section.js` and `advanced-summary-render.js`, routing 100% of toggle button text directly through `t()`.
+    徹底清除 `advanced-section.js` 與 `advanced-summary-render.js` 裡面的硬編碼回退字串，將按鈕文案 100% 解耦並經由 `t()` 字典動態呈現。
+  - Restored `<details>` accordion compatibility with full dynamic metric resolution, enabling smooth expand/collapse interaction for the `Switch to Advanced (expand all)` toggle button across all 4 locales.
+    修復 `Switch to Advanced (expand all)` 展開與收合按鈕的 `<details>` DOM 綁定，兼具現代極簡視覺與強大互動體驗。
+
+---
+
 ## [1.4.8] - 2026-08-08
 
 ### Verified & End-to-End Certified (嚴格端到端 E2E 測試與 CI/CD 100% 全綠認證)

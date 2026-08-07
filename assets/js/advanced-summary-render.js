@@ -84,7 +84,21 @@ function renderBeginnerHighlights(summary, context = {}) {
       tip: beginnerText("items.pitch.tip", "Stay near this pitch range and finish each sentence with a gentle lift.", { value: bandLabel }),
     });
   }
-  const resonanceLabel = summary?.resonanceDisplay || summary?.resonanceLabel || null;
+
+  // 動態經由 energyPct 與 t() 重新獲取最新的多語系 Resonance 標籤
+  const energyAvg = summary?.energyPct ? {
+    low: summary.energyPct.chest ?? 0.33,
+    mid: summary.energyPct.mask ?? 0.33,
+    high: summary.energyPct.head ?? 0.34,
+    total: 1,
+    validCount: 10,
+    coverage: 0.9,
+  } : null;
+  const resonanceInfo = energyAvg
+    ? describeResonanceFromEnergy(energyAvg)
+    : { label: summary?.resonanceLabel, display: summary?.resonanceDisplay, hint: summary?.resonanceHint };
+  const resonanceLabel = resonanceInfo.display || resonanceInfo.label || "—";
+
   if (resonanceLabel && resonanceLabel !== "—") {
     cards.push({
       key: "resonance",
@@ -93,13 +107,19 @@ function renderBeginnerHighlights(summary, context = {}) {
       tip: beginnerText("items.resonance.tip", "Recall this resonance placement with a soft hum, then speak while keeping that feel.", { value: resonanceLabel }),
     });
   }
-  const speech = summary?.speechRate || null;
-  if (speech && speech.label && speech.key !== "insufficient") {
+
+  const speechSyll = Number(summary?.speechRate?.syllPerSec);
+  const speechRateKey = summary?.speechRate?.key;
+  const speechRateLabel = speechRateKey && speechRateKey !== "insufficient"
+    ? t(`analysis.speechRate.${speechRateKey}.label`)
+    : (summary?.speechRateLabel || summary?.speechRate?.label || null);
+
+  if (speechRateLabel && speechRateKey !== "insufficient") {
     cards.push({
       key: "speech",
       title: beginnerText("items.speech.title", "Pacing focus"),
-      value: speech.label,
-      tip: beginnerText("items.speech.tip", "Keep this pacing and tap a steady beat so every phrase lands on the same pulse.", { value: speech.label }),
+      value: speechRateLabel,
+      tip: beginnerText("items.speech.tip", "Keep this pacing and tap a steady beat so every phrase lands on the same pulse.", { value: speechRateLabel }),
     });
   }
 
@@ -270,8 +290,8 @@ function renderAdvancedSummary(summary, context = {}) {
   const mode = getAdvancedMode();
   const beginnerHighlights = mode === "beginner" ? renderBeginnerHighlights(summary, context) : "";
   const advToggleLabel = mode === "advanced"
-    ? (t("ui.advancedMode.beginner") || "Switch to Beginner")
-    : (t("ui.advancedMode.advanced") || "Switch to Advanced");
+    ? t("ui.advancedMode.beginner")
+    : t("ui.advancedMode.advanced");
 
   // 標題（優先自字典讀取多語系）
   const titleFormant = advCopy.formantTitle || t("summary.advanced.formantTitle") || t("realtime.formantTitle") || "Formant & Resonance";
@@ -279,44 +299,134 @@ function renderAdvancedSummary(summary, context = {}) {
   const titleVowel = advCopy.vowelBreathTitle || t("summary.advanced.vowelBreathTitle") || "Vowel & Breathiness";
 
   return `
-    <div class="advanced-section modern-analysis-section" data-mode="${mode}">
-      <div class="adv-controls" style="margin-bottom: 12px;">
+    <div class="advanced-section" data-mode="${mode}">
+      <div class="adv-controls">
         <button type="button" class="btn sm ghost" data-adv-toggle aria-pressed="${mode === "advanced"}" aria-label="Toggle Beginner/Advanced">${escapeHtml(advToggleLabel)}</button>
       </div>
       ${beginnerHighlights}
 
-      <div class="advanced-grid advanced-grid--three" style="margin-top: 16px;">
-        <!-- Formant & Resonance Card -->
-        <article class="adv-card modern-card" title="${escapeAttr(f1Hint)}">
-          <div class="k">${escapeHtml(titleFormant)}</div>
-          <div class="v" style="font-size: 1.25rem; font-weight: 700; margin: 4px 0;">F1 ${f1Val}Hz · F2 ${f2Val}Hz · F3 ${f3Val}Hz</div>
-          <div class="sub-label" style="font-size: 0.85rem; opacity: 0.85; margin-bottom: 6px;">${escapeHtml(labelResonance)}: ${escapeHtml(resonanceDisplay)}</div>
-          <div class="hint" style="font-size: 0.85rem; line-height: 1.4;">${safeHint(f1Hint)}</div>
-        </article>
-
-        <!-- Intonation & Speech Card -->
-        <article class="adv-card modern-card">
-          <div class="k">${escapeHtml(titleIntonation)}</div>
-          <div class="v" style="font-size: 1.25rem; font-weight: 700; margin: 4px 0;">${escapeHtml(I.slopeLabel || "—")}</div>
-          <div class="sub-label" style="font-size: 0.85rem; opacity: 0.85; margin-bottom: 6px;">${escapeHtml(labelSpeechRate)}: ${escapeHtml(speechRateDisplay)}</div>
-          <div class="hint" style="font-size: 0.85rem; line-height: 1.4;">${safeHint(I.slopeHint || speechRateHint)}</div>
-        </article>
-
-        <!-- Vowel Focus & Breathiness Card -->
-        <article class="adv-card modern-card">
-          <div class="k">${escapeHtml(titleVowel)}</div>
-          <div class="v" style="font-size: 1.25rem; font-weight: 700; margin: 4px 0;">${escapeHtml(brightnessDisplay)}</div>
-          <div class="sub-label" style="font-size: 0.85rem; opacity: 0.85; margin-bottom: 6px;">${escapeHtml(labelBreathiness)}: ${escapeHtml(breathDisplay)} · ${escapeHtml(labelVowelFocus)}: ${escapeHtml(vowelDisplay || "—")}</div>
-          <div class="hint" style="font-size: 0.85rem; line-height: 1.4;">${safeHint(brightnessHint || breathinessHint)}</div>
-        </article>
-      </div>
-
-      <div class="intonation-wrap" style="margin-top: 16px;">
-        <canvas id="intonationCanvas" class="intonation-canvas" aria-label="${escapeAttr(t("analysis.advanced.canvasAria") || "Intonation curve")}"></canvas>
-        <div class="intonation-legend">
-          <label><input id="toggleRawDots" type="checkbox" /> ${escapeHtml(t("analysis.advanced.intonationLegend.show") || "Show raw dots")}</label>
+      <!-- Formant & Resonance -->
+      <details class="adv-details" data-adv="formant" ${getDetailsOpen("formant", mode === "advanced") ? "open" : ""}>
+        <summary>
+          <span class="adv-title">${escapeHtml(titleFormant)}</span>
+          <span class="adv-baselines">
+            <span class="baseline">F1 ${f1Val}Hz (${escapeHtml(formatBaselineRange(BASELINES.f1))})</span>
+            <span class="baseline">F2 ${f2Val}Hz (${escapeHtml(formatBaselineRange(BASELINES.f2))})</span>
+            <span class="baseline">F3 ${f3Val}Hz (${escapeHtml(formatBaselineRange(BASELINES.f3))})</span>
+            <span class="baseline">${escapeHtml(labelResonance)}: ${escapeHtml(resonanceDisplay)}</span>
+          </span>
+        </summary>
+        <div class="advanced-grid advanced-grid--four">
+          <div class="adv-card" title="${escapeAttr(f1Hint)}">
+            <div class="k">${escapeHtml(labelFormantF1)}</div>
+            <div class="v">${f1Val}Hz</div>
+            ${renderGauge(f1, BASELINES.f1, labelFormantF1)}
+            <div class="hint">${safeHint(f1Hint)}</div>
+          </div>
+          <div class="adv-card" title="${escapeAttr(f2Hint)}">
+            <div class="k">${escapeHtml(labelFormantF2)}</div>
+            <div class="v">${f2Val}Hz</div>
+            ${renderGauge(f2, BASELINES.f2, labelFormantF2)}
+            <div class="hint">${safeHint(f2Hint)}</div>
+          </div>
+          <div class="adv-card" title="${escapeAttr(f3Hint)}">
+            <div class="k">${escapeHtml(labelFormantF3)}</div>
+            <div class="v">${f3Val}Hz</div>
+            ${renderGauge(f3, BASELINES.f3, labelFormantF3)}
+            <div class="hint">${safeHint(f3Hint)}</div>
+          </div>
+          <div class="adv-card" title="${escapeAttr(tiltHint)}">
+            <div class="k">${escapeHtml(labelFormantTilt)}</div>
+            <div class="v">${escapeHtml(tiltLabel)}</div>
+            ${renderGauge(tiltAvg, BASELINES.tilt, labelFormantTilt)}
+            <div class="hint">${safeHint(tiltHint)}</div>
+          </div>
         </div>
-      </div>
+        <div class="adv-card adv-card--resonance" role="group" aria-label="${escapeAttr(labelResonance)}" title="${escapeAttr(resonanceHint)}">
+          <div class="k">${escapeHtml(labelResonance)}</div>
+          <div class="v resonance-value">${escapeHtml(resonanceDisplay)}</div>
+          <div class="resonance-bar resonance-bar--card">
+            <span class="res-part chest" style="width:${chestPct}%"><span>${escapeHtml(chestLabel)}</span></span>
+            <span class="res-part mask" style="width:${maskPct}%"><span>${escapeHtml(maskLabel)}</span></span>
+            <span class="res-part head" style="width:${headPct}%"><span>${escapeHtml(headLabel)}</span></span>
+          </div>
+          <div class="hint">${safeHint(resonanceHint)}</div>
+        </div>
+      </details>
+
+      <!-- Intonation & Speech -->
+      <details class="adv-details" data-adv="intonation" ${getDetailsOpen("intonation", mode === "advanced") ? "open" : ""}>
+        <summary>
+          <span class="adv-title">${escapeHtml(titleIntonation)}</span>
+          <span class="adv-baselines">
+            <span class="baseline">${escapeHtml(labelIntonationTrend)}: ${escapeHtml(I.slopeLabel || "—")}</span>
+            <span class="baseline">${escapeHtml(labelIntonationRange)}: ${escapeHtml(I.rangeDisplay || "—")}</span>
+            <span class="baseline">${escapeHtml(labelSpeechRate)}: ${escapeHtml(speechRateDisplay)}</span>
+          </span>
+        </summary>
+        <div class="advanced-grid advanced-grid--three">
+          <div class="adv-card">
+            <div class="k">${escapeHtml(labelIntonationTrend)}</div>
+            <div class="v">${escapeHtml(I.slopeLabel || "—")}</div>
+            <div class="hint">${safeHint(I.slopeHint || t("analysis.intonation.insufficient.slopeHint") || "")}</div>
+          </div>
+          <div class="adv-card">
+            <div class="k">${escapeHtml(labelIntonationRange)}</div>
+            <div class="v">${escapeHtml(I.rangeDisplay || "—")}</div>
+            <div class="hint">${safeHint(rangeHint || t("analysis.intonation.insufficient.rangeHint") || "")}</div>
+          </div>
+          <div class="adv-card">
+            <div class="k">${escapeHtml(labelSpeechRate)}</div>
+            <div class="v">${escapeHtml(speechRateDisplay)} <span class="suffix">${escapeHtml(speechWpmDisplay)}</span></div>
+            <div class="hint">${safeHint(speechRateHint)}</div>
+          </div>
+        </div>
+        <div class="intonation-wrap" style="margin-top: 16px;">
+          <canvas id="intonationCanvas" class="intonation-canvas" aria-label="${escapeAttr(t("analysis.advanced.canvasAria") || "Intonation curve")}"></canvas>
+          <div class="intonation-legend">
+            <label><input id="toggleRawDots" type="checkbox" /> ${escapeHtml(t("analysis.advanced.intonationLegend.show") || "Show raw dots")}</label>
+          </div>
+        </div>
+      </details>
+
+      <!-- Vowel Focus & Breathiness -->
+      <details class="adv-details" data-adv="vowel" ${getDetailsOpen("vowel", mode === "advanced") ? "open" : ""}>
+        <summary>
+          <span class="adv-title">${escapeHtml(titleVowel)}</span>
+          <span class="adv-baselines">
+            <span class="baseline">${escapeHtml(labelBrightness)}: ${escapeHtml(brightnessDisplay)}</span>
+            <span class="baseline">${escapeHtml(labelBreathiness)}: ${escapeHtml(breathDisplay)} (${escapeHtml(formatBaselineRange(BASELINES.breath))})</span>
+            <span class="baseline">${escapeHtml(labelVowelFocus)}: ${escapeHtml(vowelDisplay || "—")}</span>
+            <span class="baseline">${escapeHtml(labelLiaison)}: ${escapeHtml(liaisonDisplay || "—")} (${escapeHtml(formatBaselineRange(BASELINES.liaison))})</span>
+          </span>
+        </summary>
+        <div class="adv-note">${safeHint(brightnessHint)}</div>
+        <div class="advanced-grid advanced-grid--three">
+          <div class="adv-card">
+            <div class="k">${escapeHtml(labelBrightness)}</div>
+            <div class="v">${escapeHtml(brightnessDisplay)}</div>
+            <div class="hint">${safeHint(brightnessHint)}</div>
+          </div>
+          <div class="adv-card" title="${escapeAttr(breathinessHint)}">
+            <div class="k">${escapeHtml(labelBreathiness)}</div>
+            <div class="v">${escapeHtml(breathinessLabel)}</div>
+            ${renderGauge(breathPct, BASELINES.breath, labelBreathiness)}
+            <div class="hint">${safeHint(breathinessHint)}</div>
+          </div>
+          <div class="adv-card" title="${escapeAttr(liaisonHint)}">
+            <div class="k">${escapeHtml(labelLiaison)}</div>
+            <div class="v">${escapeHtml(liaisonDisplay)}</div>
+            ${renderGauge(liaisonPct, BASELINES.liaison, labelLiaison)}
+            <div class="hint">${safeHint(liaisonHint)}</div>
+          </div>
+        </div>
+
+        <div class="adv-card" style="margin-top: 12px;">
+          <div class="k">${escapeHtml(labelVowelFocus)}</div>
+          <div class="v">${escapeHtml(vowelDisplay || "—")}</div>
+          <div class="hint">${safeHint(vowelHint)}</div>
+        </div>
+      </details>
     </div>
   `;
 }
