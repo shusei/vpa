@@ -1,38 +1,38 @@
-import { recorderCtl } from "../app.js?v=20260802-standard1";
+import { recorderCtl } from "../app.js?v=1.4.2-20260808";
 import { registerDecodedAudioAnalyzer } from "../js/analysis-flow.js";
 import {
   getCurrentLocale,
   onLocaleChange,
   setLocale,
   t,
-} from "../js/i18n.js?v=20260802-standard1";
+} from "../js/i18n.js?v=1.4.2-20260808";
 import {
   createResultCard,
   formatAdvancedResult,
   onAdvancedResult,
   prepareAdvancedXShare,
-} from "./advanced-experience.js?v=20260802-standard1";
-import { shareResultFiles } from "./audio-share.js?v=20260801-sharefix1";
+} from "./advanced-experience.js?v=1.4.2-20260808";
+import { shareResultFiles } from "./audio-share.js?v=1.4.2-20260808";
 import {
   compareChallenge,
   createChallengeUrl,
   readChallenge,
-} from "./challenge-link.js?v=20260801-xnative1";
-import { createDynamicCardController } from "./dynamic-card-controller.js?v=20260801-socialtrim1";
+} from "./challenge-link.js?v=1.4.2-20260808";
+import { createDynamicCardController } from "./dynamic-card-controller.js?v=1.4.2-20260808";
 import {
   getDailyPromptId,
   getStandardPromptId,
   promptTranslationKey,
   STANDARD_PROMPT_IDS,
   STANDARD_TEST_ID,
-} from "./quick-prompts.js?v=20260802-standard1";
-import { buildShareTargets, downloadBlob } from "./share-card.js?v=20260801-xnative1";
+} from "./quick-prompts.js?v=1.4.2-20260808";
+import { buildShareTargets, downloadBlob } from "./share-card.js?v=1.4.2-20260808";
 import {
   getPublicShareResult,
   openPublicPlatformShare,
   resetPublicShareCache,
-} from "./public-share.js?v=20260802-pitch1";
-import { aggregateStandardResults } from "./standard-result.js?v=20260802-pitch1";
+} from "./public-share.js?v=1.4.2-20260808";
+import { aggregateStandardResults } from "./standard-result.js?v=1.4.2-20260808";
 import { analyzeVoiceQuality } from "./voice-quality-metrics.js";
 
 const EXPERIENCE_KEY = "vpa::experiment.experience";

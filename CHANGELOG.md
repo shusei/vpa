@@ -6,6 +6,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.2] - 2026-08-08
+
+### Fixed & Cache-Busted (全面強制強刷手機端快取 Cache-Busting)
+- **Universal Mobile Asset Cache-Busting (`?v=1.4.2-20260808`) (手機端強快取打破與強刷修復)**:
+  - Updated query version tags (`?v=...`) across all 14 core HTML, CSS, and JS import entrypoints to `?v=1.4.2-20260808`.
+    將全站 14 個核心 `index.html`、CSS 與 JS `import` 引用點之 query 版本標記全面升級至 `?v=1.4.2-20260808`。
+  - Forces mobile Safari, Chrome, and embedded webviews to purge old HTTP disk caches and immediately fetch fresh JS/CSS modules upon page refresh.
+    強制 iOS Safari、Android Chrome 與 App 內建 WebViews 徹底作廢舊有的 HTTP 磁碟快取，在重新整理頁面時 100% 強制下載最新版本的腳本與樣式檔，徹底解決手機端手動刷網頁一直卡在舊版快取的問題。
+
+---
+
 ## [1.4.1] - 2026-08-08
 
 ### Fixed & Verified (中間動態分析卡片重繪修復與 100% 驗證)
