@@ -6,6 +6,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.6] - 2026-08-08
+
+### Refactored & Unified (進階分析面板現代化重構與 Voice Age 2.0 架構統一)
+- **Modern Analysis UI Architecture (`assets/js/advanced-summary-render.js`) (進階分析面板現代化重構)**:
+  - Refactored `advanced-summary-render.js` to unify metric card layouts with the modern Voice Age 2.0 / Advanced Experience UI design (`assets/experiments/advanced-experience.js`).
+    重構 `advanced-summary-render.js`，將進階分析面板的三大折疊卡片全面提升為與 Voice Age 2.0 / Advanced Experience 完全一致的現代化 Premium 介面架構。
+  - Stripped out legacy hardcoded Traditional Chinese label fallbacks (such as `（第一共振峰）`), guaranteeing 100% pure English text in EN mode and seamless dynamic localization across all languages.
+    徹底刪除歷史殘留的傳統硬編碼中文括號與舊版格式，確保英文模式下與 Voice Age 2.0 一樣呈現 100% 純淨無瑕的英文介面。
+
+---
+
 ## [1.4.5] - 2026-08-08
 
 ### Fixed & Root Cause Resolved (統計標籤列與全卡片閉包死存字串徹底動態化修復)
