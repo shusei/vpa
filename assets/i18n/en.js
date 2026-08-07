@@ -26,6 +26,88 @@ const warmupStepsHtml = [
 ].join("");
 
 export default {
+
+  chips: {
+    localInference: "On-device AI",
+    realtimeMonitoring: "Live monitoring",
+    statsAndSummary: "Stats & Insights",
+    themes30: "30+ Themes"
+  },
+  help: {
+    title: "Voice Presentation Analyzer Guide",
+    subtitle: "Inference runs 100% inside your browser—ideal for practice and vocal exploration. Here is an overview of key features and controls.",
+    quickStart: {
+      title: "Quick Start (New here?)",
+      step1: "Press <b>🎙️ Record</b> and speak naturally for 5–10 seconds, or click <b>⬆︎</b> to upload an audio/video file.",
+      step2: "Watch the real-time <b>Hz Stream (Pitch)</b> and <b>Formant / Resonance</b> monitors while recording.",
+      step3: "Playback your recording, view the Feminine/Masculine perception meters, stats, and personalized coaching summary.",
+      step4: "First time? Click <b>❓</b> anytime for this guide, or dismiss the top tip banner to start."
+    },
+    interface: {
+      title: "UI & Live Monitoring",
+      guideTitle: "❓ Guide:",
+      guideDesc: "Quick reference for features and usage scenarios. Press <kbd>Esc</kbd> to close.",
+      recordTitle: "Record button:",
+      recordDesc: "Triggers MediaRecorder with live status updates. Automatically analyzes when stopped.",
+      hzTitle: "Hz Stream (Pitch):",
+      hzDesc: "Active during recording; tracks pitch (50–600 Hz) and volume contours with calibrated axes.",
+      formantTitle: "Formants & Resonance:",
+      formantDesc: "Estimates F1–F3, breathiness, and chest/mask/head energy distribution in real time.",
+      statsTitle: "Stats card:",
+      statsDesc: "Combines pitch/volume percentiles, noise floor, SNR, and actionable vocal feedback.",
+      themeTitle: "Themes:",
+      themeDesc: "Use the gear icon to switch between Auto, Light, Dark, and 30+ tailored colorways."
+    },
+    modelOverview: {
+      title: "Model Overview",
+      nameLabel: "Name:",
+      archLabel: "Architecture:",
+      labelsLabel: "Output Space:",
+      datasetLabel: "Training Data:",
+      datasetValue: "Mozilla Common Voice and speech corpora (primarily English speech)",
+      licenseLabel: "License:",
+      licenseValue: "Apache-2.0 (Model weights); code licensed per repository license"
+    },
+    accuracy: {
+      title: "Accuracy (Developer Evaluation)",
+      note: "Note: Evaluated offline under author benchmark distribution. Real-world results vary with environment, language, and singing."
+    },
+    methods: {
+      title: "Technical Implementation",
+      engineTitle: "Inference Engine:",
+      preprocessTitle: "Preprocessing:",
+      realtimeTitle: "Live Monitoring:",
+      streamStrategyTitle: "Long Audio Strategy:",
+      vadTitle: "Adaptive VAD:",
+      rawAudioNote: "Preserves raw audio integrity",
+      aggregationTitle: "Aggregation & Stats:",
+      privacyTitle: "Privacy & Memory:"
+    },
+    ethics: {
+      title: "Intended Use & Ethics",
+      position: "Purpose: Personal practice feedback, educational demo, labeling aid, research prototype.",
+      warning: "Not a gender identity, medical, or legal classification tool.",
+      doNot: "Do not use for discrimination, exclusion, or automated decision-making."
+    },
+    compatibility: {
+      title: "Compatibility & Performance",
+      webgpu: "Enable WebGPU for faster inference",
+      format: "Formats: audio/*, .m4a, .mp3, .wav, .mp4, .mov (audio track extracted).",
+      fallback: "Fallback: WebAudio decoding seamlessly falls back to ffmpeg.wasm."
+    },
+    version: {
+      title: "Version & Licensing",
+      versionLabel: "Version:",
+      updateLabel: "Updated:",
+      licenseLabel: "License:",
+      sourceLabel: "Source code:"
+    }
+  },
+  guide: {
+    title: "Feminine Voice Manual",
+    tagline: "Vocal training isn't about changing who you are—it's about adding a versatile expression tool you can freely command."
+  }
+,
   locale: "en",
   experiment: {
     advanced: {

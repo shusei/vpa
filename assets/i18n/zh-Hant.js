@@ -26,6 +26,88 @@ const warmupStepsHtml = [
 ].join("");
 
 export default {
+
+  chips: {
+    localInference: "本地推論",
+    realtimeMonitoring: "即時監控",
+    statsAndSummary: "統計＋簡評",
+    themes30: "30+ 主題"
+  },
+  help: {
+    title: "Voice Presentation Analyzer 使用指南",
+    subtitle: "本工具在瀏覽器端完成推論，適合自我練習或教學示範。以下整理常見操作與每個面板的重點。",
+    quickStart: {
+      title: "快速開始（第一次使用先看這裡）",
+      step1: "按下上方的 <b>🎙️ 開始錄音</b>，以平常說話聲調錄 5–10 秒；或點右下角 <b>⬆︎</b> 上傳 mp3 / m4a / mp4 / mov。",
+      step2: "錄音期間會顯示 <b>Hz Stream（音高走勢）</b> 與 <b>Formant（共振峰）/ Resonance（共鳴）</b> 即時監控；停止後等候模型分析。",
+      step3: "完成後可播放剛剛那段、查看女性化 / 男性化儀表、統計卡與一行簡評。",
+      step4: "第一次用？點右上角的 <b>❓</b> 查看圖解指南，或關閉上方提示泡泡繼續。"
+    },
+    interface: {
+      title: "介面導覽與即時監控",
+      guideTitle: "❓ 使用指南：",
+      guideDesc: "整理快速開始、面板解說與常見錄音情境，支援鍵盤 <kbd>Esc</kbd> 關閉。",
+      recordTitle: "錄音鍵：",
+      recordDesc: "支援 MediaRecorder 並顯示狀態提示；停止後自動進入解碼與推論流程。",
+      hzTitle: "Hz Stream（音高走勢）：",
+      hzDesc: "僅在錄音期間顯示，追蹤 50–600 Hz 音高與音量；左右刻度標示 Hz，統計會沿用錄音及上傳抽樣。",
+      formantTitle: "Formant（共振峰）/ Resonance（共鳴）：",
+      formantDesc: "同步估計 F1–F3、氣聲比例與共鳴分佈，協助判讀聲音質地。",
+      statsTitle: "統計卡：",
+      statsDesc: "整合 Pitch / Volume 百分位數、環境噪音、SNR 與傾向簡評，可對照練習成果。",
+      themeTitle: "主題設定：",
+      themeDesc: "齒輪可切換 Auto / 淺色 / 深色，以及多種預設配色。"
+    },
+    modelOverview: {
+      title: "模型概覽",
+      nameLabel: "名稱：",
+      archLabel: "架構：",
+      labelsLabel: "標籤空間：",
+      datasetLabel: "來源資料：",
+      datasetValue: "Mozilla Common Voice 等語料（以英語朗讀為主）",
+      licenseLabel: "授權：",
+      licenseValue: "Apache-2.0（模型）；本頁程式碼依你的 repo 授權"
+    },
+    accuracy: {
+      title: "準確度（開發者報告）",
+      note: "說明：上述為作者資料分佈下的離線評估；不同語言、環境、內容（唱歌）可能與此有落差。"
+    },
+    methods: {
+      title: "方法簡述（本頁實作）",
+      engineTitle: "推論引擎：",
+      preprocessTitle: "前處理：",
+      realtimeTitle: "錄音與即時監控：",
+      streamStrategyTitle: "長檔策略：",
+      vadTitle: "自適應 VAD：",
+      rawAudioNote: "不改變原始音訊",
+      aggregationTitle: "聚合與統計：",
+      privacyTitle: "隱私與資源管理："
+    },
+    ethics: {
+      title: "用途定位與倫理提醒",
+      position: "定位：自我練習回饋、教學示範、資料標註輔助、研究原型。",
+      warning: "不是性別認同、醫療或法律判定",
+      doNot: "請勿：用於歧視、排除、或任何影響權益的自動決策。"
+    },
+    compatibility: {
+      title: "相容性與效能",
+      webgpu: "開啟 WebGPU 更快",
+      format: "格式：audio/*、.m4a、.mp3、.wav、.mp4、.mov（影片僅取音軌）。",
+      fallback: "備援：WebAudio 解不動時自動落到 ffmpeg.wasm，轉完即釋放記憶體。"
+    },
+    version: {
+      title: "版本與授權",
+      versionLabel: "版本：",
+      updateLabel: "更新：",
+      licenseLabel: "授權：",
+      sourceLabel: "原始碼："
+    }
+  },
+  guide: {
+    title: "女聲訓練手冊",
+    tagline: "聲音訓練不是要改變你原本的性格，而是讓你多一種可以自由運用的表達工具。"
+  }
+,
   locale: "zh-Hant",
   experiment: {
     advanced: {

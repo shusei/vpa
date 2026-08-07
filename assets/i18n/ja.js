@@ -284,6 +284,88 @@ const quick = {
 };
 
 export default {
+
+  chips: {
+    localInference: "ローカルAI解析",
+    realtimeMonitoring: "リアルタイム監視",
+    statsAndSummary: "統計・総合分析",
+    themes30: "30+ テーマ"
+  },
+  help: {
+    title: "Voice Presentation Analyzer 使い方ガイド",
+    subtitle: "推論はすべてブラウザ内で処理されます。自主練習やデモに最適です。以下に主要機能の使い方をまとめました。",
+    quickStart: {
+      title: "クイックスタート（はじめての方へ）",
+      step1: "「<b>🎙️ 録音開始</b>」を押し、5〜10秒ほど自然に話すか、右下の <b>⬆︎</b> から音声/動画ファイルをアップロードしてください。",
+      step2: "録音中は <b>Hz Stream（ピッチ推移）</b> と <b>フォルマント/共鳴</b> がリアルタイムで表示されます。",
+      step3: "録音終了後、音声の再生、女性的/男性的傾向メーター、統計カード、アドバイスを確認できます。",
+      step4: "使い方を確認したい時は右上「<b>❓</b>」をいつでもタップしてください。"
+    },
+    interface: {
+      title: "UIガイドとリアルタイム監視",
+      guideTitle: "❓ ガイド：",
+      guideDesc: "機能一覧とおすすめの使用手順をまとめています。<kbd>Esc</kbd> キーで閉じられます。",
+      recordTitle: "録音ボタン：",
+      recordDesc: "MediaRecorder を呼び出しステータスを表示。停止後に自動解析を行います。",
+      hzTitle: "Hz Stream（ピッチ）：",
+      hzDesc: "録音中にピッチ（50–600 Hz）と音量をリアルタイム追跡します。",
+      formantTitle: "フォルマントと共鳴：",
+      formantDesc: "F1–F3、息っぽさ、胸/前置/頭部共鳴のエネルギーバランスを同時に推計します。",
+      statsTitle: "統計カード：",
+      statsDesc: "ピッチ/音量のパーセンタイル、環境ノイズ、SNR、声の傾向アドバイスを表示します。",
+      themeTitle: "テーマ設定：",
+      themeDesc: "歯車アイコンから Auto / ライト / ダーク、および30種類以上の配色を切り替えられます。"
+    },
+    modelOverview: {
+      title: "モデル概要",
+      nameLabel: "名前：",
+      archLabel: "アーキテクチャ：",
+      labelsLabel: "出力空間：",
+      datasetLabel: "学習データ：",
+      datasetValue: "Mozilla Common Voice などの音声を主体に使用",
+      licenseLabel: "ライセンス：",
+      licenseValue: "Apache-2.0（モデル）；コードは本リポジトリのライセンスに準拠"
+    },
+    accuracy: {
+      title: "精度（開発者レポート）",
+      note: "注：上記はオフライン評価結果です。発話言語、録音環境、歌唱などの条件により異なる場合があります。"
+    },
+    methods: {
+      title: "技術実装の概要",
+      engineTitle: "推論エンジン：",
+      preprocessTitle: "前処理：",
+      realtimeTitle: "録音とリアルタイム監視：",
+      streamStrategyTitle: "長尺ファイル戦略：",
+      vadTitle: "適応型 VAD：",
+      rawAudioNote: "元音声を変更しません",
+      aggregationTitle: "集計と統計：",
+      privacyTitle: "プライバシーとメモリ："
+    },
+    ethics: {
+      title: "用途の定義と注意事項",
+      position: "目的：練習フィードバック、教育デモ、データアノテーション、研究プロトタイプ。",
+      warning: "性別認同、医療、法的判断を行うものではありません。",
+      doNot: "差別、排除、権益に影響する自動決定には使用しないでください。"
+    },
+    compatibility: {
+      title: "互換性とパフォーマンス",
+      webgpu: "WebGPU 有効化でさらに高速",
+      format: "対応形式：audio/*, .m4a, .mp3, .wav, .mp4, .mov（動画は音声トラックのみ使用）。",
+      fallback: "フォールバック：WebAudio でデコードできない場合は自動で ffmpeg.wasm にフォールバックします。"
+    },
+    version: {
+      title: "バージョンとライセンス",
+      versionLabel: "バージョン：",
+      updateLabel: "更新：",
+      licenseLabel: "ライセンス：",
+      sourceLabel: "ソースコード："
+    }
+  },
+  guide: {
+    title: "女性声トレーニングマニュアル",
+    tagline: "ボイストレーニングは本来の個性を変えるものではなく、自由に使える表現ツールを増やすためのものです。"
+  }
+,
   ...en,
   locale: "ja",
   experiment: {

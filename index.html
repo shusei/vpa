@@ -304,8 +304,8 @@
 
       <h1 class="hero-title" data-i18n="hero.title">Voice Presentation Analyzer</h1>
       <p class="sub" data-i18n-html="hero.subtitleHtml">
-        在瀏覽器本地推論，搭配即時音高與共鳴監控，掌握聲線被模型感知的女性化 / 男性化傾向。<span class="chip">本地推論</span><span class="chip">即時監控</span><span
-          class="chip">統計＋簡評</span><span class="chip">30+ 主題</span>
+        在瀏覽器本地推論，搭配即時音高與共鳴監控，掌握聲線被模型感知的女性化 / 男性化傾向。<span class="chip" data-i18n="chips.localInference">本地推論</span><span class="chip" data-i18n="chips.realtimeMonitoring">即時監控</span><span
+          class="chip" data-i18n="chips.statsAndSummary">統計＋簡評</span><span class="chip" data-i18n="chips.themes30">30+ 主題</span>
       </p>
     </div>
   </header>
@@ -472,99 +472,99 @@
 
     <section class="info">
       <details open data-i18n-html="info.quickStartHtml">
-        <summary>快速開始（第一次使用先看這裡）</summary>
+        <summary data-i18n="help.quickStart.title">快速開始（第一次使用先看這裡）</summary>
         <ul class="bullets">
-          <li>按下上方的 <b>🎙️ 開始錄音</b>，以平常說話聲調錄 5–10 秒；或點右下角 <b>⬆︎</b> 上傳 mp3 / m4a / mp4 / mov。</li>
-          <li>錄音期間會顯示 <b>Hz Stream（音高走勢）</b> 與 <b>Formant（共振峰）/ Resonance（共鳴）</b> 即時監控；停止後等候模型分析。</li>
-          <li>完成後可播放剛剛那段、查看女性化 / 男性化儀表、統計卡與一行簡評。</li>
-          <li>第一次用？點右上角的 <b>❓</b> 查看圖解指南，或關閉上方提示泡泡繼續。</li>
+          <li data-i18n-html="help.quickStart.step1">按下上方的 <b>🎙️ 開始錄音</b>，以平常說話聲調錄 5–10 秒；或點右下角 <b>⬆︎</b> 上傳 mp3 / m4a / mp4 / mov。</li>
+          <li data-i18n-html="help.quickStart.step2">錄音期間會顯示 <b>Hz Stream（音高走勢）</b> 與 <b>Formant（共振峰）/ Resonance（共鳴）</b> 即時監控；停止後等候模型分析。</li>
+          <li data-i18n="help.quickStart.step3">完成後可播放剛剛那段、查看女性化 / 男性化儀表、統計卡與一行簡評。</li>
+          <li data-i18n-html="help.quickStart.step4">第一次用？點右上角的 <b>❓</b> 查看圖解指南，或關閉上方提示泡泡繼續。</li>
         </ul>
       </details>
 
       <details data-i18n-html="info.interfaceHtml">
-        <summary>介面導覽與即時監控</summary>
+        <summary data-i18n="help.interface.title">介面導覽與即時監控</summary>
         <ul class="bullets">
-          <li><b>❓ 使用指南：</b>整理快速開始、面板解說與常見錄音情境，支援鍵盤 <kbd>Esc</kbd> 關閉。</li>
-          <li><b>錄音鍵：</b>支援 MediaRecorder 並顯示狀態提示；停止後自動進入解碼與推論流程。</li>
-          <li><b>Hz Stream（音高走勢）：</b>僅在錄音期間顯示，追蹤 50–600 Hz 音高與音量；左右刻度標示 Hz，統計會沿用錄音及上傳抽樣。</li>
-          <li><b>Formant（共振峰）/ Resonance（共鳴）：</b>同步估計 F1–F3、氣聲比例與共鳴分佈，協助判讀聲音質地。</li>
-          <li><b>統計卡：</b>整合 Pitch / Volume 百分位數、環境噪音、SNR 與傾向簡評，可對照練習成果。</li>
-          <li><b>主題設定：</b>齒輪可切換 Auto / 淺色 / 深色派並記住每派最後一次的主題。</li>
+          <li><b data-i18n="help.interface.guideTitle">❓ 使用指南：</b>整理快速開始、面板解說與常見錄音情境，支援鍵盤 <kbd>Esc</kbd> 關閉。</li>
+          <li><b data-i18n="help.interface.recordTitle">錄音鍵：</b>支援 MediaRecorder 並顯示狀態提示；停止後自動進入解碼與推論流程。</li>
+          <li><b data-i18n="help.interface.hzTitle">Hz Stream（音高走勢）：</b>僅在錄音期間顯示，追蹤 50–600 Hz 音高與音量；左右刻度標示 Hz，統計會沿用錄音及上傳抽樣。</li>
+          <li><b data-i18n="help.interface.formantTitle">Formant（共振峰）/ Resonance（共鳴）：</b>同步估計 F1–F3、氣聲比例與共鳴分佈，協助判讀聲音質地。</li>
+          <li><b data-i18n="help.interface.statsTitle">統計卡：</b>整合 Pitch / Volume 百分位數、環境噪音、SNR 與傾向簡評，可對照練習成果。</li>
+          <li><b data-i18n="help.interface.themeTitle">主題設定：</b>齒輪可切換 Auto / 淺色 / 深色派並記住每派最後一次的主題。</li>
         </ul>
       </details>
 
       <details data-i18n-html="info.modelHtml">
-        <summary>模型概覽</summary>
+        <summary data-i18n="help.modelOverview.title">模型概覽</summary>
         <div class="kv">
-          <div>名稱：</div>
+          <div data-i18n="help.modelOverview.nameLabel">名稱：</div>
           <div><a href="https://huggingface.co/prithivMLmods/Common-Voice-Gender-Detection" target="_blank"
               rel="noopener">Common-Voice-Gender-Detection</a>（ONNX）</div>
-          <div>架構：</div>
+          <div data-i18n="help.modelOverview.archLabel">架構：</div>
           <div>Wav2Vec2（<a href="https://arxiv.org/pdf/2006.11477" target="_blank" rel="noopener">Self-Supervised
               Learning for Speech Recognition</a>）</div>
-          <div>標籤空間：</div>
+          <div data-i18n="help.modelOverview.labelsLabel">標籤空間：</div>
           <div>二分類（<code>female</code> / <code>male</code>）</div>
-          <div>來源資料：</div>
-          <div>Mozilla Common Voice 等語料（以英語朗讀為主）</div>
-          <div>授權：</div>
-          <div>Apache-2.0（模型）；本頁程式碼依你的 repo 授權</div>
+          <div data-i18n="help.modelOverview.datasetLabel">來源資料：</div>
+          <div data-i18n="help.modelOverview.datasetValue">Mozilla Common Voice 等語料（以英語朗讀為主）</div>
+          <div data-i18n="help.modelOverview.licenseLabel">授權：</div>
+          <div data-i18n="help.modelOverview.licenseValue">Apache-2.0（模型）；本頁程式碼依你的 repo 授權</div>
           <div>DOI：</div>
           <div><a href="https://doi.org/10.57967/hf/5684" target="_blank" rel="noopener">10.57967/hf/5684</a></div>
         </div>
       </details>
 
       <details data-i18n-html="info.accuracyHtml">
-        <summary>準確度（開發者報告）</summary>
+        <summary data-i18n="help.accuracy.title">準確度（開發者報告）</summary>
         <ul class="bullets" style="margin-top:6px;">
           <li>整體準確率：<b>98.46%</b>（6545 筆）</li>
           <li>female：precision <b>0.9705</b>、recall <b>0.9916</b>、F1 <b>0.9809</b>（2622 筆）</li>
           <li>male：precision <b>0.9943</b>、recall <b>0.9799</b>、F1 <b>0.9870</b>（3923 筆）</li>
         </ul>
-        <p class="subline">說明：上述為作者資料分佈下的離線評估；不同語言、環境、內容（唱歌）可能與此有落差。</p>
+        <p class="subline" data-i18n="help.accuracy.note">說明：上述為作者資料分佈下的離線評估；不同語言、環境、內容（唱歌）可能與此有落差。</p>
       </details>
 
       <details data-i18n-html="info.methodHtml">
-        <summary>方法簡述（本頁實作）</summary>
+        <summary data-i18n="help.methods.title">方法簡述（本頁實作）</summary>
         <ul class="bullets">
-          <li><b>推論引擎：</b>Transformers.js + ONNX Runtime；優先 WebGPU，無 GPU 時自動回落至 WASM。</li>
-          <li><b>前處理：</b>立體聲混成單聲道並重採樣至 <b>16 kHz</b>。若 WebAudio 解不動，自動改由 ffmpeg.wasm 轉檔。</li>
-          <li><b>錄音與即時監控：</b>MediaRecorder + WebAudio ScriptProcessor，每 50 ms 抽樣 ACF 音高、音量與頻譜特徵。</li>
-          <li><b>長檔策略：</b>≤150 秒直接整段推論；>150 秒依實際推論裝置自動挑選串流視窗與步長（WebGPU：&lt;600 秒 hop 4 秒、視窗 18/12/8/6/4；≥600 秒 hop 6
+          <li><b data-i18n="help.methods.engineTitle">推論引擎：</b>Transformers.js + ONNX Runtime；優先 WebGPU，無 GPU 時自動回落至 WASM。</li>
+          <li><b data-i18n="help.methods.preprocessTitle">前處理：</b>立體聲混成單聲道並重採樣至 <b>16 kHz</b>。若 WebAudio 解不動，自動改由 ffmpeg.wasm 轉檔。</li>
+          <li><b data-i18n="help.methods.realtimeTitle">錄音與即時監控：</b>MediaRecorder + WebAudio ScriptProcessor，每 50 ms 抽樣 ACF 音高、音量與頻譜特徵。</li>
+          <li><b data-i18n="help.methods.streamStrategyTitle">長檔策略：</b>≤150 秒直接整段推論；>150 秒依實際推論裝置自動挑選串流視窗與步長（WebGPU：&lt;600 秒 hop 4 秒、視窗 18/12/8/6/4；≥600 秒 hop 6
             秒、視窗 24/18/12/8/6/4。WASM：&lt;240 秒 hop 3 秒；240–419 秒 hop 3.5 秒；≥420 秒 hop 4 秒，均保留 12/8/6/4 備援）。</li>
-          <li><b>自適應 VAD：</b>長檔偵測靜音，只裁出語音片段再分析；<u>不改變原始音訊</u>。</li>
-          <li><b>聚合與統計：</b>長檔以 log-odds 加權聚合結果；同時保存 Pitch / Volume / Formant / SNR 百分位數供統計卡與簡評。</li>
-          <li><b>隱私與資源管理：</b>推論全在瀏覽器完成，只保留最新一段回放 URL；換檔會釋放快取與 AudioContext。</li>
+          <li><b data-i18n="help.methods.vadTitle">自適應 VAD：</b>長檔偵測靜音，只裁出語音片段再分析；<u data-i18n="help.methods.rawAudioNote">不改變原始音訊</u>。</li>
+          <li><b data-i18n="help.methods.aggregationTitle">聚合與統計：</b>長檔以 log-odds 加權聚合結果；同時保存 Pitch / Volume / Formant / SNR 百分位數供統計卡與簡評。</li>
+          <li><b data-i18n="help.methods.privacyTitle">隱私與資源管理：</b>推論全在瀏覽器完成，只保留最新一段回放 URL；換檔會釋放快取與 AudioContext。</li>
         </ul>
       </details>
 
       <details data-i18n-html="info.ethicsHtml">
-        <summary>用途定位與倫理提醒</summary>
+        <summary data-i18n="help.ethics.title">用途定位與倫理提醒</summary>
         <ul class="bullets">
-          <li>定位：自我練習回饋、教學示範、資料標註輔助、研究原型。</li>
-          <li>限制：此分數是「模型對聲音表現的傾向」，<b>不是性別認同、醫療或法律判定</b>。</li>
-          <li>請勿：用於歧視、排除、或任何影響權益的自動決策。</li>
+          <li data-i18n="help.ethics.position">定位：自我練習回饋、教學示範、資料標註輔助、研究原型。</li>
+          <li>限制：此分數是「模型對聲音表現的傾向」，<b data-i18n="help.ethics.warning">不是性別認同、醫療或法律判定</b>。</li>
+          <li data-i18n="help.ethics.doNot">請勿：用於歧視、排除、或任何影響權益的自動決策。</li>
         </ul>
       </details>
 
       <details data-i18n-html="info.compatHtml">
-        <summary>相容性與效能</summary>
+        <summary data-i18n="help.compatibility.title">相容性與效能</summary>
         <ul class="bullets">
-          <li>瀏覽器：近期 Chrome / Edge / Firefox / Safari；<b>開啟 WebGPU 更快</b>。</li>
-          <li>格式：audio/*、.m4a、.mp3、.wav、.mp4、.mov（影片僅取音軌）。</li>
-          <li>備援：WebAudio 解不動時自動落到 ffmpeg.wasm，轉完即釋放記憶體。</li>
+          <li>瀏覽器：近期 Chrome / Edge / Firefox / Safari；<b data-i18n="help.compatibility.webgpu">開啟 WebGPU 更快</b>。</li>
+          <li data-i18n="help.compatibility.format">格式：audio/*、.m4a、.mp3、.wav、.mp4、.mov（影片僅取音軌）。</li>
+          <li data-i18n="help.compatibility.fallback">備援：WebAudio 解不動時自動落到 ffmpeg.wasm，轉完即釋放記憶體。</li>
         </ul>
       </details>
 
       <details data-i18n-html="info.versionHtml">
-        <summary>版本與授權</summary>
+        <summary data-i18n="help.version.title">版本與授權</summary>
         <div class="kv">
-          <div>版本：</div>
+          <div data-i18n="help.version.versionLabel">版本：</div>
           <div><code id="ver">build</code></div>
-          <div>更新：</div>
+          <div data-i18n="help.version.updateLabel">更新：</div>
           <div><code id="updatedAt">—</code></div>
-          <div>授權：</div>
+          <div data-i18n="help.version.licenseLabel">授權：</div>
           <div>模型 <code>Apache-2.0</code>；網站程式碼依你的 repo 授權</div>
-          <div>原始碼：</div>
+          <div data-i18n="help.version.sourceLabel">原始碼：</div>
           <div><a href="https://github.com/shusei/vpa" target="_blank" rel="noopener">GitHub / vpa</a></div>
         </div>
       </details>
@@ -578,8 +578,8 @@
         <button type="button" id="helpTop" class="help-top" aria-label="回到頁首">⇧</button>
         <button type="button" id="helpClose" class="help-close" aria-label="關閉使用指南">✕</button>
       </div>
-      <h2 id="helpTitle">Voice Presentation Analyzer 使用指南</h2>
-      <p>本工具在瀏覽器端完成推論，適合自我練習或教學示範。以下整理常見操作與每個面板的重點。</p>
+      <h2 id="helpTitle" data-i18n="help.title">Voice Presentation Analyzer 使用指南</h2>
+      <p data-i18n="help.subtitle">本工具在瀏覽器端完成推論，適合自我練習或教學示範。以下整理常見操作與每個面板的重點。</p>
       <!-- 内容省略：翻譯會覆蓋 -->
     </div>
   </div>
@@ -591,7 +591,7 @@
         <button type="button" class="help-top guide-top" aria-label="回到頁首">⇧</button>
         <button type="button" class="help-close guide-close" aria-label="關閉手冊">✕</button>
       </div>
-      <h2 id="guideTitle">女聲訓練手冊</h2>
+      <h2 id="guideTitle" data-i18n="guide.title">女聲訓練手冊</h2>
       <div id="guideContent" class="guide-body">
         <!-- Content injected by manual-ui.js -->
       </div>

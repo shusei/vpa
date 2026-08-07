@@ -1,14 +1,15 @@
 {
   "name": "vpa",
-  "version": "1.3.7",
+  "version": "1.3.8",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "http-server -p 8080 -c-1",
-    "test": "npm run test:share-worker && npm run test:unit && npm run test:voice-age && npm run test:syntax && npm run test:markup && npm run test:ffmpeg && npm run test:decode && npm run test:phrases && npm run test:social",
+    "test": "npm run test:share-worker && npm run test:unit && npm run test:voice-age && npm run test:locale && npm run test:syntax && npm run test:markup && npm run test:ffmpeg && npm run test:decode && npm run test:phrases && npm run test:social",
     "test:share-worker": "node --test cloudflare/share-worker/test/share-worker.test.mjs tests/unit-share-service.mjs tests/unit-dynamic-video.mjs",
     "test:unit": "node tests/unit-pitch-shared.js && node tests/unit-analysis-runtime.js && node tests/unit-analysis-telemetry.js && node tests/unit-voice-quality.js && node tests/unit-advanced-experience.js",
     "test:voice-age": "node tests/verify-voice-age-calibration.mjs",
+    "test:locale": "node tests/verify-locale-cleanliness.mjs",
     "test:syntax": "node --check assets/app.js && node --check assets/app-core.js",
     "test:markup": "node scripts/check-static.js",
     "test:ffmpeg": "node tests/verify-ffmpeg-download.mjs",

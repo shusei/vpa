@@ -6,6 +6,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.8] - 2026-08-08
+
+### Fixed & Automated (修復與自動化測試)
+- **100% Complete i18n Tag Coverage (進階分析與全站 100% 標籤多語言化)**:
+  - Added `data-i18n`, `data-i18n-html`, and `data-i18n-attrs` attributes to all 52 static HTML text elements in `index.html` (including Help Overlay ❓, Voice Guide 📖, chip badges, and model technical details).
+    為 `index.html` 中所有 52 個原本寫死的繁體中文 HTML 標籤（包含使用指南 ❓、訓練手冊 📖、頂部 `.chip` 標籤、模型方法簡述等）全部補齊 `data-i18n` 屬性。
+  - Fully translated Help & Guide overlays into `en`, `ja`, `zh-Hans`, and `zh-Hant` with 100% symmetric 602-key dictionaries across all supported locales, completely resolving Chinese text leakage when viewing Advanced Analysis in English mode.
+    於 `en`、`ja`、`zh-Hans` 與 `zh-Hant` 四個字典中同步補齊使用指南、訓練手冊與標籤鍵值（達 602 個 Key 100% 對稱），徹底解決英文模式下查看進階分析與對話框時出現中文的 Bug。
+
+- **Automated Locale Cleanliness & Contamination Regression Suite (`npm run test:locale`) (自動化語系防污染回歸測試腳本)**:
+  - Introduced `tests/verify-locale-cleanliness.mjs` and integrated `test:locale` directly into the default `npm test` pipeline.
+    建立 `tests/verify-locale-cleanliness.mjs` 並將 `npm run test:locale` 直接納入主測試管線中。
+  - Enforces 3 strict guarantees on every build: 100% symmetric dictionary key coverage, 0 CJK Chinese characters in `en` dictionary values, and 100% `data-i18n` tag binding for all static text nodes in `index.html`.
+    強制在每次建置測試中執行三項嚴格斷言：四語系字典 Key 100% 對稱、`en` 字典絕無中文字元殘留、`index.html` 靜態內文標籤 100% 繫結 `data-i18n`，從機制上 100% 杜絕未來再次發生語系混雜問題。
+  - Verified 100% pass across all unit, locale cleanliness, and 42 Playwright E2E tests.
+    全數通過單元測試、語系潔淨度測試與 42 項 Playwright E2E 瀏覽器測試。
+
+---
+
 ## [1.3.7] - 2026-08-06
 
 ### Improved & Fixed (優化與修復)

@@ -26,6 +26,88 @@ const warmupStepsHtml = [
 ].join("");
 
 export default {
+
+  chips: {
+    localInference: "本地推理",
+    realtimeMonitoring: "实时监控",
+    statsAndSummary: "统计＋简评",
+    themes30: "30+ 主题"
+  },
+  help: {
+    title: "Voice Presentation Analyzer 使用指南",
+    subtitle: "本工具在浏览器端完成推理，适合自我练习或教学示范。以下整理常见操作与每个面板的重点。",
+    quickStart: {
+      title: "快速开始（第一次使用先看这里）",
+      step1: "按下上方的 <b>🎙️ 开始录音</b>，以平常说话声调录 5–10 秒；或点右下角 <b>⬆︎</b> 上传 mp3 / m4a / mp4 / mov。",
+      step2: "录音期间会显示 <b>Hz Stream（音高走势）</b> 与 <b>Formant（共振峰）/ Resonance（共鸣）</b> 实时监控；停止后等候模型分析。",
+      step3: "完成后可播放刚刚那段、查看女性化 / 男性化仪表、统计卡与一行简评。",
+      step4: "第一次用？点右上角的 <b>❓</b> 查看图解指南，或关闭上方提示泡泡继续。"
+    },
+    interface: {
+      title: "界面导览与实时监控",
+      guideTitle: "❓ 使用指南：",
+      guideDesc: "整理快速开始、面板解说与常见录音情境，支持键盘 <kbd>Esc</kbd> 关闭。",
+      recordTitle: "录音键：",
+      recordDesc: "支持 MediaRecorder 并显示状态提示；停止后自动进入解码与推理流程。",
+      hzTitle: "Hz Stream（音高走势）：",
+      hzDesc: "仅在录音期间显示，追踪 50–600 Hz 音高与音量；左右刻度标示 Hz，统计会沿用录音及上传抽样。",
+      formantTitle: "Formant（共振峰）/ Resonance（共鸣）：",
+      formantDesc: "同步估计 F1–F3、气声比例与共鸣分布，协助判读声音质地。",
+      statsTitle: "统计卡：",
+      statsDesc: "整合 Pitch / Volume 百分位数、环境噪音、SNR 与倾向简评，可对照练习成果。",
+      themeTitle: "主题设置：",
+      themeDesc: "齿轮可切换 Auto / 浅色 / 深色，以及多种预设配色。"
+    },
+    modelOverview: {
+      title: "模型概览",
+      nameLabel: "名称：",
+      archLabel: "架构：",
+      labelsLabel: "标签空间：",
+      datasetLabel: "来源数据：",
+      datasetValue: "Mozilla Common Voice 等语料（以英语朗读为主）",
+      licenseLabel: "授权：",
+      licenseValue: "Apache-2.0（模型）；本页代码依你的 repo 授权"
+    },
+    accuracy: {
+      title: "准确度（开发者报告）",
+      note: "说明：上述为作者数据分布下的离线评估；不同语言、环境、内容（唱歌）可能与此有落差。"
+    },
+    methods: {
+      title: "方法简述（本页实现）",
+      engineTitle: "推理引擎：",
+      preprocessTitle: "前处理：",
+      realtimeTitle: "录音与实时监控：",
+      streamStrategyTitle: "长档策略：",
+      vadTitle: "自适应 VAD：",
+      rawAudioNote: "不改变原始音频",
+      aggregationTitle: "聚合与统计：",
+      privacyTitle: "隐私与资源管理："
+    },
+    ethics: {
+      title: "用途定位与伦理提醒",
+      position: "定位：自我练习反馈、教学示范、数据标注辅助、研究原型。",
+      warning: "不是性别认同、医疗或法律判定",
+      doNot: "请勿：用于歧视、排除、或任何影响权益的自动决策。"
+    },
+    compatibility: {
+      title: "兼容性与性能",
+      webgpu: "开启 WebGPU 更快",
+      format: "格式：audio/*、.m4a、.mp3、.wav、.mp4、.mov（视频仅取音轨）。",
+      fallback: "备援：WebAudio 解不动时自动落到 ffmpeg.wasm，转完即释放内存。"
+    },
+    version: {
+      title: "版本与授权",
+      versionLabel: "版本：",
+      updateLabel: "更新：",
+      licenseLabel: "授权：",
+      sourceLabel: "源代码："
+    }
+  },
+  guide: {
+    title: "女声训练手册",
+    tagline: "声音训练不是要改变你原本的性格，而是让你多一种可以自由运用的表达工具。"
+  }
+,
   locale: "zh-Hans",
   experiment: {
     advanced: {
@@ -680,6 +762,7 @@ export default {
     modelDownloading: "下载模型",
     modelReady: "模型就绪（device: {{device}}）",
     analyzeWhole: "分析中（整段）｜音频 {{duration}}｜已用 {{elapsed}}",
+    decodeFailure: "无法解码或分析此音频文件",
     analyzeWholeDone: "完成（整段）",
     embeddedFastDone: "完成（社交平台快速声学分析）",
     analyzeWholeOOM: "侦测到内存不足，自动改流式分段",
