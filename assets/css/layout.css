@@ -206,16 +206,16 @@ main.container {
 
 .lang-menu {
   position: absolute;
-  top: 60px;
-  right: 68px;
-  z-index: 45;
+  top: calc(100% + 8px);
+  right: 12px;
+  z-index: 99999;
   min-width: 180px;
   padding: 12px;
   border-radius: 14px;
   border: 1px solid var(--panel-border);
   background: var(--panel);
   color: var(--ink);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, .26);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .45);
 }
 
 .lang-menu[hidden] {
@@ -358,9 +358,9 @@ html[data-faction="dark"] .hero .chip {
 /* ---------- Theme menu（含三切） ---------- */
 .theme-menu {
   position: absolute;
-  top: 60px;
-  right: 20px;
-  z-index: 40;
+  top: calc(100% + 8px);
+  right: 12px;
+  z-index: 99999;
   width: min(360px, 92vw);
   max-height: 70vh;
   overflow: auto;
@@ -369,7 +369,7 @@ html[data-faction="dark"] .hero .chip {
   border: 1px solid var(--panel-border);
   background: var(--panel);
   color: var(--ink);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, .30);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .45);
 }
 
 .theme-menu[hidden] {

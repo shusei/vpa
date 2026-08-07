@@ -26,6 +26,21 @@
 
   <script>
     (function () {
+      const LS_LOCALE = "vpa::locale";
+      let locale = "zh-Hant";
+      try {
+        const saved = localStorage.getItem(LS_LOCALE);
+        if (saved && ["zh-Hant", "zh-Hans", "en", "ja"].includes(saved)) {
+          locale = saved;
+        } else {
+          const navLang = (navigator.language || "").toLowerCase();
+          if (navLang.startsWith("en")) locale = "en";
+          else if (navLang.startsWith("ja")) locale = "ja";
+          else if (navLang.startsWith("zh-cn") || navLang.startsWith("zh-hans")) locale = "zh-Hans";
+        }
+      } catch {}
+      document.documentElement.setAttribute("lang", locale);
+
       const LS_MODE = "vpa::theme.mode";   // "auto" | "light" | "dark"
       const LS_LIGHT = "vpa::theme.light";  // e.g. "day"
       const LS_DARK = "vpa::theme.dark";   // e.g. "indigo"

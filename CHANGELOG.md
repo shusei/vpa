@@ -6,6 +6,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-08-08
+
+### Fixed & Enhanced (選單層級修復與早期語系閃爍防護)
+- **Locale Menu Z-Index & Overlay Blocking Fix (語言選單層級置頂與橫幅遮擋修復)**:
+  - Elevated `.lang-menu`, `.theme-menu` (`layout.css`), and `.experience-nav__locale-menu` (`quick-experience.css`) `z-index` to `99999` and `999999`, elevating the dropdown menu above all hero banners and floating action cards.
+    將 `.lang-menu`、`.theme-menu` 與 Quick Experience 頂部選單 `.experience-nav__locale-menu` 之 `z-index` 提升至 `99999` 及 `999999`，徹底解決進階分析與快速模式下點選語言選單時被下方橫幅遮擋、無法選取的 CSS Bug。
+
+- **Early Head Locale Detector & Storage Key Sync (早期語系同步偵測與雙 Key 記憶與備援)**:
+  - Added early synchronous locale detection inline script in `index.html` `<head>` to inspect `localStorage` and `navigator.language` before initial HTML render, setting `<html lang="...">` dynamically to eliminate Traditional Chinese FOUC (flash of un-translated content).
+    在 `index.html` 的 `<head>` 頂部加入極速同步 Locale 檢測腳本，在瀏覽器渲染 HTML 前即自動設定 `<html lang="...">` 屬性，徹底消除英文模式開啟時瞬間看到預設繁體中文的殘留閃爍。
+  - Synchronized `vpa.locale` and `vpa::locale` storage keys in `assets/js/i18n.js` to ensure 100% backward and forward compatibility for saved user locale preferences across reloads.
+    在 `assets/js/i18n.js` 中同步讀取與寫入 `vpa.locale` 及 `vpa::locale` 雙儲存鍵，徹底解決舊專案記憶鍵不一致導致頁面重整後跳回預設語言的相容性問題。
+
+---
+
 ## [1.3.9] - 2026-08-08
 
 ### Fixed & Hardened (根源修復與多語系卡片防護)

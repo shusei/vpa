@@ -51,7 +51,7 @@ html[data-faction="dark"] .quick-experience {
 }
 .experience-nav {
   position:relative;
-  z-index:20;
+  z-index:9999;
   display:grid;
   grid-template-columns:auto 1fr auto;
   align-items:center;
@@ -136,7 +136,7 @@ html[data-faction="dark"] .quick-experience {
 }
 .experience-nav__locale-menu {
   position:absolute;
-  z-index:30;
+  z-index:999999;
   top:calc(100% + 9px);
   right:0;
   display:grid;

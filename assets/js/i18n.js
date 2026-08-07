@@ -106,7 +106,7 @@ function mapCandidateLocale(candidate) {
 
 function detectPreferredLocale() {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = localStorage.getItem("vpa.locale") || localStorage.getItem("vpa::locale");
     if (saved && getSupportedLocales().includes(saved)) {
       return saved;
     }
@@ -152,7 +152,8 @@ async function internalSetLocale(locale, persist = true) {
   document.documentElement.setAttribute("lang", target);
   if (persist) {
     try {
-      localStorage.setItem(STORAGE_KEY, target);
+      localStorage.setItem("vpa.locale", target);
+      localStorage.setItem("vpa::locale", target);
     } catch {
       // ignore storage write issues
     }
