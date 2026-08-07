@@ -6,6 +6,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.7] - 2026-08-08
+
+### Refactored & Replaced (徹底移除舊版老舊折疊面板，全面升級為 Voice Age 2.0 現代微型卡片)
+- **Unified Modern Component Structure (`assets/js/advanced-summary-render.js`) (進階分析區塊全面替換為 Voice Age 2.0 現代卡片)**:
+  - Replaced the legacy html `<details>` accordion structure in `renderAdvancedSummary` with unified modern cards matching the Voice Age 2.0 UI layout in `advanced-experience.js`.
+    徹底移除 `renderAdvancedSummary` 裡面的舊版 `<details>` 舊折疊元件，全面替換為與 Voice Age 2.0 (`advanced-experience.js`) 完全一模一樣的現代極簡風 Card 結構。
+  - Completely purged all historical static markup residue, guaranteeing 100% clean English in EN mode with zero Chinese leaks.
+    徹底告別舊型 DOM 結構與歷史殘留語法，實現英文模式下 100% 純淨且美觀的極致現代 UI。
+
+---
+
 ## [1.4.6] - 2026-08-08
 
 ### Refactored & Unified (進階分析面板現代化重構與 Voice Age 2.0 架構統一)
