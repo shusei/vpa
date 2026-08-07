@@ -8,6 +8,7 @@ export function finishStreamStats(deps) {
     computeAdvancedSummary,
     CONFIDENCE_INCLUDE_THRESHOLD,
     currentDevice,
+    describeResonanceFromEnergy,
     drawIntonationCurve,
     EPS,
     escapeAttr,
@@ -15,6 +16,7 @@ export function finishStreamStats(deps) {
     fmt1,
     FORMANT_CONFIDENCE_THRESHOLD,
     FORMANT_MAX_GAP_FRAMES,
+    getSummaryText,
     isDivergent,
     lastPf,
     lastPm,
@@ -45,7 +47,7 @@ export function finishStreamStats(deps) {
     wireAdvancedIntonation,
   } = deps;
 
-  const activeSummaryText = (typeof deps.getSummaryText === "function" ? deps.getSummaryText() : null) || summaryText || {};
+  const activeSummaryText = (typeof getSummaryText === "function" ? getSummaryText() : null) || summaryText || {};
 
   try {
     const statsEl = document.getElementById("streamStats");
@@ -292,8 +294,24 @@ export function finishStreamStats(deps) {
     let breathinessTagLabel = null;
     let brightnessTagLabel = null;
     if (advSummary) {
-      const resonanceTag = advSummary.resonanceDisplay || advSummary.resonanceLabel;
-      if (resonanceTag) resonanceTagLabel = summaryString("tags.resonance", { label: resonanceTag });
+      // 動態重計算 resonance，避免推論時凍結的中文殘留
+      const resonanceTagText = (() => {
+        if (advSummary.energyPct) {
+          try {
+            const desc = deps.describeResonanceFromEnergy?.({
+              low: advSummary.energyPct.chest ?? 0.33,
+              mid: advSummary.energyPct.mask ?? 0.33,
+              high: advSummary.energyPct.head ?? 0.34,
+              total: 1,
+              validCount: 10,
+              coverage: 0.9,
+            });
+            if (desc?.display || desc?.label) return desc.display || desc.label;
+          } catch { }
+        }
+        return advSummary.resonanceDisplay || advSummary.resonanceLabel;
+      })();
+      if (resonanceTagText) resonanceTagLabel = summaryString("tags.resonance", { label: resonanceTagText });
       const spKey = advSummary.speechRate?.key;
       const spLabel = spKey && spKey !== "insufficient" ? t(`analysis.speechRate.${spKey}.label`) : (advSummary.speechRateLabel || advSummary.speechRate?.label);
       if (spLabel) speechRateTagLabel = summaryString("tags.speechRate", { label: spLabel });

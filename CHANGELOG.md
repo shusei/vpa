@@ -6,7 +6,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.10] - 2026-08-08
+
+### Fixed (深層語系凍結根治 & 進階卡片資料完整復原)
+
+- **Root-cause fix: `resonanceDisplay` locale freeze in `stats-core.js`** — The `tags` row (Resonance tag) was reading `advSummary.resonanceDisplay`, which is computed once at inference time and frozen in the recording locale (e.g., Traditional Chinese). On locale switch, the value never updated. Fixed by dynamically re-invoking `describeResonanceFromEnergy` using the stored `energyPct` ratios at render time, so the Resonance tag always reflects the current locale. (`stats-core.js`, `stats-orchestration.js`)
+
+  **根治 Resonance 標籤語系凍結問題** — 標籤列中的共鳴分類標籤（如「頭腔亮度強」）在推論時被凍結進 `advSummary.resonanceDisplay`，語言切換後無法更新。修復方法：在渲染 tags 時改用 `energyPct` 比例即時重新呼叫 `describeResonanceFromEnergy()` 動態計算，確保語言切換後 Resonance 標籤 100% 呈現當前語系。
+
+- **Restored `describeResonanceFromEnergy` and `getSummaryText` dep wiring** — Both were missing from the `finishStreamStats` deps chain (`stats-orchestration.js` → `stats-core.js`), preventing dynamic locale-aware resonance re-computation on every render.
+
+  **補齊 deps 傳遞鏈** — `describeResonanceFromEnergy` 與 `getSummaryText` 從未被正確傳入 `finishStreamStats` 的 deps，現已補齊完整的依賴傳遞路徑。
+
+- **All 42 Playwright E2E specs + strict multi-locale localization tests pass 100%.**
+
+---
+
 ## [1.4.9] - 2026-08-08
+
 
 ### Cleaned & Refactored (全面掃除寫死字串與升級切換按鈕)
 - **Eliminated Hardcoded String Fallbacks (`assets/js/advanced-section.js` & `assets/js/advanced-summary-render.js`) (全面清除硬編碼文字與按鈕狀態綁定)**:

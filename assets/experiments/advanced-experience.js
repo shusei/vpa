@@ -1,18 +1,18 @@
-import { onInferenceDone } from "../app.js?v=1.4.9";
-import { getCurrentLocale, onLocaleChange, t } from "../js/i18n.js?v=1.4.9";
+import { onInferenceDone } from "../app.js?v=1.4.10";
+import { getCurrentLocale, onLocaleChange, t } from "../js/i18n.js?v=1.4.10";
 import { evaluateAdvancedExperience } from "./advanced-evaluator.js";
-import { createChallengeUrl } from "./challenge-link.js?v=1.4.9";
+import { createChallengeUrl } from "./challenge-link.js?v=1.4.10";
 import {
   getPublicShareResult,
   openPublicPlatformShare,
-} from "./public-share.js?v=1.4.9";
+} from "./public-share.js?v=1.4.10";
 import {
   buildShareTargets,
   buildShareUrl,
   createShareCardBlob,
   downloadBlob,
   shareWithSystem,
-} from "./share-card.js?v=1.4.9";
+} from "./share-card.js?v=1.4.10";
 
 let lastAnalysis = null;
 let lastResult = null;
