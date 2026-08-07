@@ -339,7 +339,7 @@ export function categorizeBreathiness(val, ctx = {}) {
 
 export function makeFormantHint(label, value, low, high) {
   const labelName = t(`analysis.formant.rangeLabels.${label}`);
-  const labelWithName = `${label}（${labelName || label}）`;
+  const labelWithName = labelName ? `${label} (${labelName})` : label;
   if (!Number.isFinite(value)) {
     return t("analysis.formant.insufficient", { label: labelWithName });
   }
@@ -624,8 +624,10 @@ export function analyzeIntonation(data, hopSec) {
     rawPoints,
     shadedRanges,
     slope,
+    slopeKey,
     slopeLabel,
     range: validRange,
+    rangeKey,
     rangeLabel,
     hint,
     rangeHint,

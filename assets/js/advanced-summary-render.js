@@ -1,3 +1,12 @@
+import {
+  categorizeTilt,
+  categorizeBreathiness,
+  categorizeBrightness,
+  makeFormantHint,
+  describeResonanceFromEnergy,
+  buildFormantTrendDisplay,
+} from "./advanced-metrics.js";
+
 export function createAdvancedSummaryRenderer(deps) {
   const {
     BASELINES,
@@ -130,14 +139,29 @@ function renderAdvancedSummary(summary, context = {}) {
 
   // Build safe intonation display object to avoid undefined access
   const __Iraw = (typeof resolveIntonationData === "function") ? resolveIntonationData(summary) : null;
+  const intonationTrendKey = summary.intonation?.trendKey || summary.intonation?.trend || summary.intonation?.slopeKey;
+  const slopeLabel = intonationTrendKey
+    ? (t(`analysis.intonation.slope.${intonationTrendKey}.label`) || __Iraw?.slopeLabel || summary.intonation?.slopeLabel || "—")
+    : (__Iraw?.slopeLabel || summary.intonation?.slopeLabel || "—");
+  const slopeHint = intonationTrendKey
+    ? (t(`analysis.intonation.slope.${intonationTrendKey}.hint`) || __Iraw?.slopeHint || summary.intonation?.slopeHint || "")
+    : (__Iraw?.slopeHint || summary.intonation?.slopeHint || "");
+
+  const intonationRangeKey = summary.intonation?.rangeKey;
+  const rangeLabel = intonationRangeKey
+    ? (t(`analysis.intonation.range.${intonationRangeKey}.label`) || __Iraw?.rangeLabel || "—")
+    : (__Iraw?.rangeLabel || "—");
+  const rangeHint = intonationRangeKey
+    ? (t(`analysis.intonation.range.${intonationRangeKey}.hint`) || summary.intonation?.rangeHint || "")
+    : (summary.intonation?.rangeHint || "");
+
   const I = {
     rangeHz: __Iraw?.rangeHz ?? null,
-    rangeLabel: __Iraw?.rangeLabel ?? summary.intonation?.rangeLabel ?? null,
-    rangeDisplay: __Iraw?.rangeDisplay ?? __Iraw?.rangeLabel ?? summary.intonation?.rangeDisplay ?? summary.intonation?.rangeLabel ?? "—",
-    slopeLabel: __Iraw?.slopeLabel ?? summary.intonation?.trendLabel ?? summary.intonation?.slopeLabel ?? summary.intonation?.trend ?? "—",
-    slopeHint: __Iraw?.slopeHint ?? summary.intonation?.slopeHint ?? summary.intonation?.trendHint ?? ""
+    rangeLabel,
+    rangeDisplay: __Iraw?.rangeDisplay ?? rangeLabel ?? "—",
+    slopeLabel,
+    slopeHint
   };
-
 
   // 共鳴比例
   const chestPct = Math.round((summary.energyPct?.chest ?? 0.33) * 100);
@@ -160,27 +184,73 @@ function renderAdvancedSummary(summary, context = {}) {
   const maskLabel = t("realtime.resonance.mask", { value: maskPct }) || `Mask ${maskPct}%`;
   const headLabel = t("realtime.resonance.head", { value: headPct }) || `Head ${headPct}%`;
 
-  // Formants
+  // Formants (100% 動態經由 makeFormantHint 與 buildFormantTrendDisplay 重新翻譯)
   const f1 = Number(summary.formants?.f1?.median);
   const f2 = Number(summary.formants?.f2?.median);
   const f3 = Number(summary.formants?.f3?.median);
-  const f1Val = Number.isFinite(f1) ? fmt1(f1) : (summary.formants?.f1?.display || "—");
-  const f2Val = Number.isFinite(f2) ? fmt1(f2) : (summary.formants?.f2?.display || "—");
-  const f3Val = Number.isFinite(f3) ? fmt1(f3) : (summary.formants?.f3?.display || "—");
-  const f1Hint = summary.formants?.f1?.hint || `F1 ${f1Val}Hz`;
-  const f2Hint = summary.formants?.f2?.hint || `F2 ${f2Val}Hz`;
-  const f3Hint = summary.formants?.f3?.hint || `F3 ${f3Val}Hz`;
+  const f1Trend = summary.formants?.f1?.trend || "insufficient";
+  const f2Trend = summary.formants?.f2?.trend || "insufficient";
+  const f3Trend = summary.formants?.f3?.trend || "insufficient";
+  const f1Cov = summary.formants?.f1?.coverage;
+  const f2Cov = summary.formants?.f2?.coverage;
+  const f3Cov = summary.formants?.f3?.coverage;
 
-  // 其它指標
+  const f1Val = Number.isFinite(f1) ? fmt1(f1) : buildFormantTrendDisplay(f1Trend, f1Cov, Number.isFinite(f1Cov));
+  const f2Val = Number.isFinite(f2) ? fmt1(f2) : buildFormantTrendDisplay(f2Trend, f2Cov, Number.isFinite(f2Cov));
+  const f3Val = Number.isFinite(f3) ? fmt1(f3) : buildFormantTrendDisplay(f3Trend, f3Cov, Number.isFinite(f3Cov));
+  const f1Hint = Number.isFinite(f1) ? makeFormantHint("F1", f1, 170, 420) : makeFormantHint("F1", NaN, 170, 420);
+  const f2Hint = Number.isFinite(f2) ? makeFormantHint("F2", f2, 1450, 2750) : makeFormantHint("F2", NaN, 1450, 2750);
+  const f3Hint = Number.isFinite(f3) ? makeFormantHint("F3", f3, 2400, 3400) : makeFormantHint("F3", NaN, 2400, 3400);
+
+  // 其它指標 (100% 動態調用 categorizer 重新翻譯 Label 與 Hint)
   const tiltAvg = Number(summary.tiltAvg);
+  const tiltInfo = Number.isFinite(tiltAvg) ? categorizeTilt(tiltAvg) : { label: summary.tiltLabel || "—", hint: summary.tiltHint || "" };
+  const tiltLabel = tiltInfo.label || summary.tiltLabel || "—";
+  const tiltHint = tiltInfo.hint || summary.tiltHint || "";
+
   const breathRatio = Number(summary.breathinessAvg);
   const breathPct = Number.isFinite(breathRatio) ? breathRatio * 100 : NaN;
+  const breathInfo = Number.isFinite(breathRatio) ? categorizeBreathiness(breathRatio, { tilt: tiltAvg, brightnessKey: summary.brightnessKey }) : { label: summary.breathinessLabel || "—", hint: summary.breathinessHint || "" };
+  const breathinessLabel = breathInfo.label || summary.breathinessLabel || "—";
+  const breathinessHint = breathInfo.hint || summary.breathinessHint || "";
+
+  const brightnessInfo = categorizeBrightness({ f3Stats: Number.isFinite(f3) ? { med: f3 } : null, tilt: tiltAvg, breath: breathRatio });
+  const brightnessDisplay = brightnessInfo.label || summary.brightnessLabel || "—";
+  const brightnessHint = brightnessInfo.hint || summary.brightnessHint || "";
+
+  const energyAvg = summary.energyPct ? {
+    low: summary.energyPct.chest ?? 0.33,
+    mid: summary.energyPct.mask ?? 0.33,
+    high: summary.energyPct.head ?? 0.34,
+    total: 1,
+    validCount: 10,
+    coverage: 0.9,
+  } : null;
+  const resonanceInfo = energyAvg ? describeResonanceFromEnergy(energyAvg) : { label: summary.resonanceLabel, display: summary.resonanceDisplay, hint: summary.resonanceHint };
+  const resonanceDisplay = resonanceInfo.display || resonanceInfo.label || summary.resonanceDisplay || summary.resonanceLabel || "—";
+  const resonanceHint = resonanceInfo.hint || summary.resonanceHint || "";
+
   const speechSyll = Number(summary.speechRate?.syllPerSec);
   const speechWpm = Number(summary.speechRate?.wordsPerMin);
+  const speechRateKey = summary.speechRate?.key;
+  const speechRateHint = speechRateKey && speechRateKey !== "insufficient"
+    ? t(`analysis.speechRate.${speechRateKey}.hint`)
+    : (summary.speechRateHint || "");
+
   const liaisonRatio = Number(summary.liaisonRatio);
   const liaisonPct = Number.isFinite(liaisonRatio) ? liaisonRatio * 100 : NaN;
-  const brightnessDisplay = summary.brightnessLabel || "—";
-  const brightnessHint = summary.brightnessHint || "";
+  const liaisonKey = Number.isFinite(liaisonRatio) ? (liaisonRatio >= 0.7 ? "strong" : liaisonRatio >= 0.4 ? "medium" : "weak") : null;
+  const liaisonInfo = liaisonKey ? { label: t(`analysis.liaison.${liaisonKey}.label`), hint: t(`analysis.liaison.${liaisonKey}.hint`) } : { label: "—", hint: "" };
+  const liaisonDisplay = Number.isFinite(liaisonPct) ? (liaisonInfo.label + " · " + summaryString("percentSuffix", { value: Math.round(liaisonPct) })) : "—";
+  const liaisonHint = liaisonInfo.hint || summary.liaisonHint || "";
+
+  const vowelRatio = summary.vowelFocusRatio;
+  const vowelKey = Number.isFinite(vowelRatio) ? (vowelRatio >= 0.5 ? "strong" : vowelRatio >= 0.3 ? "medium" : "weak") : null;
+  const vowelInfo = vowelKey ? { label: t(`analysis.vowelFocus.${vowelKey}.label`), hint: t(`analysis.vowelFocus.${vowelKey}.hint`) } : { label: summary.vowelLabel || "—", hint: summary.vowelHint || "" };
+  const vowelDisplay = vowelInfo.label + (Number.isFinite(vowelRatio)
+    ? " · " + summaryString("percentSuffix", { value: Math.round(vowelRatio * 100) }) : "");
+  const vowelHint = vowelInfo.hint || summary.vowelHint || "";
+
   const labelBrightness = labelFormantBright;
   const labelBreathiness = advVowelCards.breathiness || t("summary.advanced.vowelCards.breathiness") || t("analysis.breathiness.title") || "Breathiness";
   const labelLiaison = advIntonationCards.liaison || t("summary.advanced.intonationCards.liaison") || t("analysis.liaison.title") || "Liaison";
@@ -195,9 +265,6 @@ function renderAdvancedSummary(summary, context = {}) {
     : "";
   const percentSuffix = (value) => summaryString("percentSuffix", { value }) || `${value}%`;
   const breathDisplay = Number.isFinite(breathPct) ? percentSuffix(Math.round(breathPct)) : "—";
-  const liaisonDisplay = Number.isFinite(liaisonPct) ? percentSuffix(Math.round(liaisonPct)) : "";
-  const vowelDisplay = (summary.vowelLabel || "—") + (Number.isFinite(summary.vowelFocusRatio)
-    ? " · " + percentSuffix(Math.round(summary.vowelFocusRatio * 100)) : "");
   const safeHint = (s) => s ? escapeHtml(s) : "&nbsp;";
 
   const mode = getAdvancedMode();
@@ -226,7 +293,7 @@ function renderAdvancedSummary(summary, context = {}) {
             <span class="baseline">F1 ${f1Val}Hz (${escapeHtml(formatBaselineRange(BASELINES.f1))})</span>
             <span class="baseline">F2 ${f2Val}Hz (${escapeHtml(formatBaselineRange(BASELINES.f2))})</span>
             <span class="baseline">F3 ${f3Val}Hz (${escapeHtml(formatBaselineRange(BASELINES.f3))})</span>
-            <span class="baseline">${escapeHtml(labelResonance)}: ${escapeHtml(summary.resonanceDisplay || summary.resonanceLabel || "—")}</span>
+            <span class="baseline">${escapeHtml(labelResonance)}: ${escapeHtml(resonanceDisplay)}</span>
           </span>
         </summary>
         <div class="advanced-grid advanced-grid--four">
@@ -248,22 +315,22 @@ function renderAdvancedSummary(summary, context = {}) {
             ${renderGauge(f3, BASELINES.f3, labelFormantF3)}
             <div class="hint">${safeHint(f3Hint)}</div>
           </div>
-          <div class="adv-card" title="${escapeAttr(summary.tiltHint || "")}">
+          <div class="adv-card" title="${escapeAttr(tiltHint)}">
             <div class="k">${escapeHtml(labelFormantTilt)}</div>
-            <div class="v">${summary.tiltLabel || "—"}</div>
+            <div class="v">${escapeHtml(tiltLabel)}</div>
             ${renderGauge(tiltAvg, BASELINES.tilt, labelFormantTilt)}
-            <div class="hint">${safeHint(summary.tiltHint)}</div>
+            <div class="hint">${safeHint(tiltHint)}</div>
           </div>
         </div>
-        <div class="adv-card adv-card--resonance" role="group" aria-label="${escapeAttr(labelResonance)}" title="${escapeAttr(summary.resonanceHint || "")}">
+        <div class="adv-card adv-card--resonance" role="group" aria-label="${escapeAttr(labelResonance)}" title="${escapeAttr(resonanceHint)}">
           <div class="k">${escapeHtml(labelResonance)}</div>
-          <div class="v resonance-value">${escapeHtml(summary.resonanceDisplay || summary.resonanceLabel || "—")}</div>
+          <div class="v resonance-value">${escapeHtml(resonanceDisplay)}</div>
           <div class="resonance-bar resonance-bar--card">
             <span class="res-part chest" style="width:${chestPct}%"><span>${escapeHtml(chestLabel)}</span></span>
             <span class="res-part mask" style="width:${maskPct}%"><span>${escapeHtml(maskLabel)}</span></span>
             <span class="res-part head" style="width:${headPct}%"><span>${escapeHtml(headLabel)}</span></span>
           </div>
-          <div class="hint">${safeHint(summary.resonanceHint)}</div>
+          <div class="hint">${safeHint(resonanceHint)}</div>
         </div>
       </details>
 
@@ -287,13 +354,13 @@ function renderAdvancedSummary(summary, context = {}) {
 <div class="adv-card">
   <div class="k">${escapeHtml(labelIntonationRange)}</div>
   <div class="v">${escapeHtml(I.rangeDisplay || "—")}</div>
-  <div class="hint">${escapeHtml(summary.intonation?.rangeHint || "")}</div>
+  <div class="hint">${escapeHtml(rangeHint || t("analysis.intonation.insufficient.rangeHint") || "")}</div>
 </div>
 
 <div class="adv-card">
   <div class="k">${escapeHtml(labelSpeechRate)}</div>
   <div class="v">${escapeHtml(speechRateDisplay)} <span class="suffix">${escapeHtml(speechWpmDisplay)}</span></div>
-  <div class="hint">${escapeHtml(summary.speechRateHint || "")}</div>
+  <div class="hint">${safeHint(speechRateHint)}</div>
 </div>
 
     <div class="intonation-wrap">
@@ -322,24 +389,24 @@ function renderAdvancedSummary(summary, context = {}) {
             <div class="v">${escapeHtml(brightnessDisplay)}</div>
             <div class="hint">${safeHint(brightnessHint)}</div>
           </div>
-          <div class="adv-card" title="${escapeAttr(summary.breathinessHint || "")}">
+          <div class="adv-card" title="${escapeAttr(breathinessHint)}">
             <div class="k">${escapeHtml(labelBreathiness)}</div>
-            <div class="v">${escapeHtml(summary.breathinessLabel || "—")}</div>
+            <div class="v">${escapeHtml(breathinessLabel)}</div>
             ${renderGauge(breathPct, BASELINES.breath, labelBreathiness)}
-            <div class="hint">${safeHint(summary.breathinessHint)}</div>
+            <div class="hint">${safeHint(breathinessHint)}</div>
           </div>
-          <div class="adv-card" title="${escapeAttr(summary.liaisonHint || "")}">
+          <div class="adv-card" title="${escapeAttr(liaisonHint)}">
             <div class="k">${escapeHtml(labelLiaison)}</div>
-            <div class="v">${escapeHtml(liaisonDisplay || "—")}</div>
+            <div class="v">${escapeHtml(liaisonDisplay)}</div>
             ${renderGauge(liaisonPct, BASELINES.liaison, labelLiaison)}
-            <div class="hint">${safeHint(summary.liaisonHint)}</div>
+            <div class="hint">${safeHint(liaisonHint)}</div>
           </div>
         </div>
 
         <div class="adv-card">
           <div class="k">${escapeHtml(labelVowelFocus)}</div>
           <div class="v">${escapeHtml(vowelDisplay || "—")}</div>
-          <div class="hint">${safeHint(summary.vowelHint)}</div>
+          <div class="hint">${safeHint(vowelHint)}</div>
         </div>
       </details>
     </div>

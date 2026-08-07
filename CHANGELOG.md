@@ -6,7 +6,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.4.3] - 2026-08-08
+## [1.4.4] - 2026-08-08
+
+### Fixed & Root Cause Resolved (進階分析卡片內文全動態多語系重構)
+- **Dynamic Render for Formant & Resonance Cards (`assets/js/advanced-summary-render.js`) (進階分析卡片 Hint 與 Label 徹底解鎖多語系動態翻譯)**:
+  - Refactored `renderAdvancedSummary` to dynamically compute `f1Hint`, `f2Hint`, `f3Hint`, `tiltLabel`, `tiltHint`, `resonanceDisplay`, `resonanceHint`, `breathinessLabel`, `breathinessHint`, `brightnessDisplay`, `brightnessHint`, `speechRateHint`, `vowelDisplay`, `vowelHint`, and `liaisonDisplay` using the active `t()` function during every render pass, eliminating all cached Chinese string fallbacks in existing analysis summary stores.
+    重構 `renderAdvancedSummary` 渲染邏輯，改為每次渲染時直接調用當前最新語言的 `t()` 重新獲取 Hints 與 Labels，徹底消除歷史 `advSummary` 狀態物件中寫死的中文字串問題。
+  - Exported `slopeKey` and `rangeKey` from `analyzeIntonation` (`assets/js/advanced-metrics.js`) and removed Chinese bracket formatting `（）` in `makeFormantHint`, ensuring 100% clean English text across all sub-cards in English mode.
+    在 `analyzeIntonation` 之中導出 `slopeKey` 與 `rangeKey` 鍵名，並修復 `makeFormantHint` 寫死的全形中文括號 `（）` 為通用括號 `()`，實現英文模式下 100% 完全無中文殘留的極致體驗。
+
+---
+
+## [1.3.9] - 2026-08-08 (Historic)
 
 ### Fixed & Automated (自動化升版與快取刷新工具 `bump-version.mjs`)
 - **Automated Version Bumping & Cache-Busting Pipeline (`scripts/bump-version.mjs`) (自動化 Cache-Busting 與升版管線)**:
