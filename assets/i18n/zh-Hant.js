@@ -588,7 +588,7 @@ export default {
       '</ul>',
     ].join(""),
   },
-  help: {
+  helpDialog: {
     dialogHtml: [
       '<div class="help-close-affix">',
       '<button type="button" id="helpTop" class="help-top" aria-label="回到頁首">⇧</button>',
@@ -714,7 +714,7 @@ export default {
       '</ul>',
       '</section>',
       '<div class="help-author">',
-      '<img src="assets/avatar-evelyn.jpg?v=1.4.11" alt="Evelyn 的作者照片" class="help-author-img" loading="lazy" />',
+      '<img src="assets/avatar-evelyn.jpg?v=1.4.12" alt="Evelyn 的作者照片" class="help-author-img" loading="lazy" />',
       '<div class="help-author-text">',
       '<h4>關於作者：Evelyn</h4>',
       '<p>不管是寫程式還是練偽音，都是一條充滿探索的路。<br>如果您對 VPA 有任何建議，或想交流聲音訓練的心得，歡迎來我的 Instagram 找我！</p>',

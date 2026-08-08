@@ -194,12 +194,12 @@ function renderAdvancedSummary(summary, context = {}) {
   const labelFormantF1 = advFormantCards.f1 || t("summary.advanced.formantCards.f1") || t("realtime.formants.f1Label") || "F1";
   const labelFormantF2 = advFormantCards.f2 || t("summary.advanced.formantCards.f2") || t("realtime.formants.f2Label") || "F2";
   const labelFormantF3 = advFormantCards.f3 || t("summary.advanced.formantCards.f3") || t("realtime.formants.f3Label") || "F3";
-  const labelFormantTilt = advFormantCards.tilt || t("summary.advanced.formantCards.tilt") || t("analysis.tilt.title") || "Spectral Tilt";
-  const labelFormantBright = advFormantCards.brightness || t("summary.advanced.formantCards.brightness") || t("analysis.brightness.title") || "Brightness";
-  const labelResonance = advCopy.resonanceTitle || t("realtime.resonance.label") || t("analysis.resonanceBalance.title") || "Resonance balance";
-  const labelIntonationTrend = advIntonationCards.trend || t("summary.advanced.intonationCards.trend") || t("analysis.advanced.intonationCards.trend") || t("analysis.intonation.trend") || "Trend";
-  const labelIntonationRange = advIntonationCards.range || t("summary.advanced.intonationCards.range") || t("analysis.advanced.intonationCards.range") || t("analysis.intonation.range") || "Range";
-  const labelSpeechRate = advIntonationCards.speechRate || t("summary.advanced.intonationCards.speechRate") || t("analysis.advanced.intonationCards.speechRate") || t("analysis.speechRate.title") || "Speech rate";
+  const labelFormantTilt = advFormantCards.tilt || t("summary.advanced.formantCards.tilt") || "Spectral Tilt";
+  const labelFormantBright = advFormantCards.brightness || t("summary.advanced.formantCards.brightness") || "Brightness";
+  const labelResonance = advCopy.resonanceTitle || t("realtime.resonance.label") || "Resonance balance";
+  const labelIntonationTrend = advIntonationCards.trend || t("summary.advanced.intonationCards.trend") || "Trend";
+  const labelIntonationRange = advIntonationCards.range || t("summary.advanced.intonationCards.range") || "Range";
+  const labelSpeechRate = advIntonationCards.speechRate || t("summary.advanced.intonationCards.speechRate") || "Speech rate";
   const chestLabel = t("realtime.resonance.chest", { value: chestPct }) || `Chest ${chestPct}%`;
   const maskLabel = t("realtime.resonance.mask", { value: maskPct }) || `Mask ${maskPct}%`;
   const headLabel = t("realtime.resonance.head", { value: headPct }) || `Head ${headPct}%`;
@@ -272,9 +272,9 @@ function renderAdvancedSummary(summary, context = {}) {
   const vowelHint = vowelInfo.hint || summary.vowelHint || "";
 
   const labelBrightness = labelFormantBright;
-  const labelBreathiness = advVowelCards.breathiness || t("summary.advanced.vowelCards.breathiness") || t("analysis.breathiness.title") || "Breathiness";
-  const labelLiaison = advIntonationCards.liaison || t("summary.advanced.intonationCards.liaison") || t("analysis.liaison.title") || "Liaison";
-  const labelVowelFocus = advVowelCards.focus || t("summary.advanced.vowelCards.focus") || t("analysis.vowelFocus.title") || "Vowel focus";
+  const labelBreathiness = advVowelCards.breathiness || t("summary.advanced.vowelCards.breathiness") || "Breathiness";
+  const labelLiaison = advIntonationCards.liaison || t("summary.advanced.intonationCards.liaison") || "Liaison";
+  const labelVowelFocus = advVowelCards.focus || t("summary.advanced.vowelCards.focus") || "Vowel focus";
 
   // 格式化
   const speechRateDisplay = Number.isFinite(speechSyll)
@@ -382,9 +382,9 @@ function renderAdvancedSummary(summary, context = {}) {
           </div>
         </div>
         <div class="intonation-wrap" style="margin-top: 16px;">
-          <canvas id="intonationCanvas" class="intonation-canvas" aria-label="${escapeAttr(t("analysis.advanced.canvasAria") || "Intonation curve")}"></canvas>
+          <canvas id="intonationCanvas" class="intonation-canvas" aria-label="${escapeAttr(t("summary.advanced.canvasAria") || "Intonation curve")}"></canvas>
           <div class="intonation-legend">
-            <label><input id="toggleRawDots" type="checkbox" /> ${escapeHtml(t("analysis.advanced.intonationLegend.show") || "Show raw dots")}</label>
+            <label><input id="toggleRawDots" type="checkbox" /> ${escapeHtml(t("summary.advanced.intonationLegend.show") || "Show raw dots")}</label>
           </div>
         </div>
       </details>

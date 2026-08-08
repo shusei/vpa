@@ -1,4 +1,4 @@
-import zhHant from "../i18n/zh-Hant.js?v=1.4.11";
+import zhHant from "../i18n/zh-Hant.js?v=1.4.12";
 
 const STORAGE_KEY = "vpa.locale";
 const BASE_LOCALES = ["zh-Hant", "zh-Hans", "en", "ja"];
@@ -13,9 +13,9 @@ function getSupportedLocales() {
 }
 
 const LOADERS = {
-  "zh-Hans": () => import("../i18n/zh-Hans.js?v=1.4.11"),
-  en: () => import("../i18n/en.js?v=1.4.11"),
-  ja: () => import("../i18n/ja.js?v=1.4.11"),
+  "zh-Hans": () => import("../i18n/zh-Hans.js?v=1.4.12"),
+  en: () => import("../i18n/en.js?v=1.4.12"),
+  ja: () => import("../i18n/ja.js?v=1.4.12"),
 };
 
 let currentLocale = "zh-Hant";
@@ -47,6 +47,7 @@ function applyDomTranslations(root = (typeof document !== "undefined" ? document
   root.querySelectorAll("[data-i18n]").forEach((el) => {
     const key = el.getAttribute("data-i18n");
     if (!key) return;
+    if (getLocaleValue(key) == null) return;
     const text = t(key);
     if (typeof text === "string") {
       el.textContent = text;
@@ -56,6 +57,7 @@ function applyDomTranslations(root = (typeof document !== "undefined" ? document
   root.querySelectorAll("[data-i18n-html]").forEach((el) => {
     const key = el.getAttribute("data-i18n-html");
     if (!key) return;
+    if (getLocaleValue(key) == null) return;
     const html = t(key);
     if (typeof html === "string") {
       el.innerHTML = html;
@@ -68,6 +70,7 @@ function applyDomTranslations(root = (typeof document !== "undefined" ? document
     attrSpec.split(",").forEach((pair) => {
       const [attr, key] = pair.split(":").map((part) => part.trim());
       if (!attr || !key) return;
+      if (getLocaleValue(key) == null) return;
       const value = t(key);
       if (typeof value === "string") {
         el.setAttribute(attr, value);
@@ -143,6 +146,7 @@ async function internalSetLocale(locale, persist = true) {
   const supported = getSupportedLocales();
   const target = supported.includes(locale) ? locale : "en";
   if (target === currentLocale && dictionary) {
+    document.documentElement.setAttribute("lang", target);
     applyDomTranslations();
     return currentLocale;
   }

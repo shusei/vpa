@@ -6,6 +6,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.12] - 2026-08-08
+
+### Fixed
+
+- **Restored the missing Quick Start information block** — Four locale files declared the top-level help section twice, so the later help dialog silently replaced every earlier help translation. The dialog now has its own helpDialog namespace and all eight information headings render in every locale.
+- **Removed silent translation failures** — Corrected the FFmpeg error-message path and advanced-analysis canvas/legend paths, removed obsolete aliases, and made DOM translation updates preserve source fallback content whenever a key is missing.
+- **Corrected the default document language** — Selecting or initializing the already-active locale now still updates the HTML lang attribute, so Traditional Chinese is no longer mislabeled as English.
+
+### Tests
+
+- Locale tests now reject duplicate top-level dictionary sections and verify every literal HTML/JavaScript translation reference across all four dictionaries.
+- Playwright now switches through Traditional Chinese, Simplified Chinese, English, and Japanese and requires all eight information headings to remain visible and non-empty.
+- Full suite: 44 Playwright tests passed, 2 remote-model tests skipped by design.
+
+---
 ## [1.4.11] - 2026-08-08
 
 ### Fixed (完整進階分析語系根治)

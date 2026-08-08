@@ -76,6 +76,37 @@ for (const [lang, dict] of Object.entries(dictionaries)) {
   flatDicts[lang] = getFlatKeys(dict);
 }
 
+function hasLocalePath(dict, key) {
+  return key.split('.').every((part) => {
+    if (!Object.prototype.hasOwnProperty.call(dict, part)) return false;
+    dict = dict[part];
+    return true;
+  });
+}
+
+const localeSourceFiles = {
+  'zh-Hant': path.resolve('assets/i18n/zh-Hant.js'),
+  'zh-Hans': path.resolve('assets/i18n/zh-Hans.js'),
+  en: path.resolve('assets/i18n/en.js'),
+  ja: path.resolve('assets/i18n/ja.js'),
+};
+const duplicateTopLevelErrors = [];
+for (const [lang, file] of Object.entries(localeSourceFiles)) {
+  const source = fs.readFileSync(file, 'utf8');
+  const exportedSource = source.slice(source.indexOf('export default'));
+  const keys = [...exportedSource.matchAll(/^  ([A-Za-z_$][\w$]*):/gm)].map((match) => match[1]);
+  const seen = new Set();
+  for (const key of keys) {
+    if (seen.has(key)) duplicateTopLevelErrors.push({ lang, key });
+    seen.add(key);
+  }
+}
+
+if (duplicateTopLevelErrors.length > 0) {
+  console.error('[FAIL] Duplicate top-level locale sections silently overwrite earlier translations:', duplicateTopLevelErrors);
+} else {
+  console.log('[PASS] Locale source files contain no duplicate top-level sections.');
+}
 const baseKeys = Object.keys(flatDicts['zh-Hant']);
 let keyErrors = 0;
 
@@ -128,6 +159,49 @@ function listJavaScriptFiles(dir) {
   });
 }
 
+const productionLocaleReferences = new Map();
+function registerLocaleReference(key, source) {
+  const normalized = String(key || '').trim();
+  if (!normalized) return;
+  if (!productionLocaleReferences.has(normalized)) productionLocaleReferences.set(normalized, new Set());
+  productionLocaleReferences.get(normalized).add(source);
+}
+
+for (const htmlFile of ['index.html', 'dev.html']) {
+  const source = fs.readFileSync(path.resolve(htmlFile), 'utf8');
+  for (const match of source.matchAll(/\bdata-i18n(?:-html)?="([^"]+)"/g)) {
+    registerLocaleReference(match[1], htmlFile);
+  }
+  for (const match of source.matchAll(/\bdata-i18n-attrs="([^"]+)"/g)) {
+    for (const binding of match[1].split(',')) {
+      const separator = binding.indexOf(':');
+      if (separator >= 0) registerLocaleReference(binding.slice(separator + 1), htmlFile);
+    }
+  }
+}
+
+for (const file of listJavaScriptFiles(assetsRoot)) {
+  const source = fs.readFileSync(file, 'utf8');
+  const relativeFile = path.relative(process.cwd(), file);
+  for (const match of source.matchAll(/\b(?:t|getLocaleValue)\(\s*["']([^"']+)["']/g)) {
+    registerLocaleReference(match[1], relativeFile);
+  }
+}
+
+const localeReferenceErrors = [];
+for (const [key, sources] of productionLocaleReferences) {
+  for (const [lang, dict] of Object.entries(dictionaries)) {
+    if (!hasLocalePath(dict, key)) {
+      localeReferenceErrors.push({ key, lang, sources: [...sources] });
+    }
+  }
+}
+
+if (localeReferenceErrors.length > 0) {
+  console.error('[FAIL] Production UI references missing locale paths:', localeReferenceErrors);
+} else {
+  console.log('[PASS] All ' + productionLocaleReferences.size + ' literal production locale references resolve in every language.');
+}
 for (const file of listJavaScriptFiles(assetsRoot)) {
   const source = fs.readFileSync(file, 'utf8');
   const importPattern = /from\s+["']([^"']*i18n\.js(?:\?[^"']*)?)["']/g;
@@ -197,6 +271,42 @@ if (missingI18nTags.length > 0) {
   console.log(`✅ [PASS] All static HTML tags with text in index.html are 100% bound with data-i18n attributes.`);
 }
 
+let missingDomFallbackErrors = 0;
+const sourceTextFallback = {
+  textContent: 'Source text fallback',
+  getAttribute: (attr) => attr === 'data-i18n' ? 'missing.translation.path' : null,
+};
+const sourceHtmlFallback = {
+  innerHTML: '<strong>Source HTML fallback</strong>',
+  getAttribute: (attr) => attr === 'data-i18n-html' ? 'missing.translation.html' : null,
+};
+const sourceAttrFallback = {
+  title: 'Source attribute fallback',
+  getAttribute: (attr) => attr === 'data-i18n-attrs' ? 'title:missing.translation.attribute' : null,
+  setAttribute: (attr, value) => { sourceAttrFallback[attr] = value; },
+};
+const originalQuerySelectorAll = document.querySelectorAll;
+try {
+  document.querySelectorAll = (selector) => ({
+    '[data-i18n]': [sourceTextFallback],
+    '[data-i18n-html]': [sourceHtmlFallback],
+    '[data-i18n-attrs]': [sourceAttrFallback],
+  }[selector] || []);
+  await setLocale('ja');
+} finally {
+  document.querySelectorAll = originalQuerySelectorAll;
+}
+
+if (
+  sourceTextFallback.textContent !== 'Source text fallback'
+  || sourceHtmlFallback.innerHTML !== '<strong>Source HTML fallback</strong>'
+  || sourceAttrFallback.title !== 'Source attribute fallback'
+) {
+  console.error('[FAIL] Missing translations erased source fallback DOM content.');
+  missingDomFallbackErrors++;
+} else {
+  console.log('[PASS] Missing translations preserve source text, HTML, and attribute fallbacks.');
+}
 // Step 5: Dynamic Analysis Metrics Evaluation in EN Mode
 await setLocale('en');
 
@@ -284,7 +394,7 @@ if (dynamicErrors === 0) {
 }
 
 // Final assertion
-if (keyErrors > 0 || chineseInEn.length > 0 || i18nImportErrors.length > 0 || missingInfoBindings.length > 0 || missingI18nTags.length > 0 || dynamicErrors > 0) {
+if (keyErrors > 0 || duplicateTopLevelErrors.length > 0 || chineseInEn.length > 0 || i18nImportErrors.length > 0 || localeReferenceErrors.length > 0 || missingInfoBindings.length > 0 || missingI18nTags.length > 0 || missingDomFallbackErrors > 0 || dynamicErrors > 0) {
   console.error('\n❌ Locale Cleanliness Test Failed!');
   process.exit(1);
 } else {

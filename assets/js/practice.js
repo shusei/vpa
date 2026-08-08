@@ -1,4 +1,4 @@
-import { t, getCurrentLocale, onLocaleChange } from "./i18n.js?v=1.4.11";
+import { t, getCurrentLocale, onLocaleChange } from "./i18n.js?v=1.4.12";
 import { loadPracticeData } from "./practice-data.js";
 
 const LS_HISTORY = "vpa.practice.v1.history";
@@ -114,8 +114,8 @@ function setCardRecording(card, recording) {
   if (!card) return;
   const button = card.querySelector('[data-act="toggle"]');
   if (!button) return;
-  const startLabel = t("practice.recordStart") || t("practice.record") || "開始錄音";
-  const stopLabel = t("practice.recordStop") || t("practice.stop") || "停止錄音";
+  const startLabel = t("practice.recordStart") || "開始錄音";
+  const stopLabel = t("practice.recordStop") || "停止錄音";
   button.textContent = recording ? stopLabel : startLabel;
   button.setAttribute("aria-pressed", recording ? "true" : "false");
   button.classList.toggle("danger", recording);
@@ -247,12 +247,12 @@ function writeResult(card, pf, pm) {
   const femPct = `${(femVal * 100).toFixed(1)}%`;
   const mascPct = `${(mascVal * 100).toFixed(1)}%`;
   if (femEl) {
-    const femLabel = t("practice.feminineLabel") || t("practice.feminine") || "女性傾向";
+    const femLabel = t("practice.feminineLabel") || "女性傾向";
     femEl.textContent = `${femLabel} ${femPct}`;
     femEl.setAttribute("aria-label", `${femLabel} ${femPct}`);
   }
   if (mascEl) {
-    const mascLabel = t("practice.masculineLabel") || t("practice.masculine") || "男性傾向";
+    const mascLabel = t("practice.masculineLabel") || "男性傾向";
     mascEl.textContent = `${mascLabel} ${mascPct}`;
     mascEl.setAttribute("aria-label", `${mascLabel} ${mascPct}`);
   }
@@ -526,7 +526,7 @@ export function createCard(phrase) {
   const text = createEl("div", { class: "practice-text" }, document.createTextNode(phrase.text || ""));
   const tip = createEl("div", { class: "practice-tip" }, document.createTextNode(phrase.tip || ""));
   const controls = createEl("div", { class: "practice-controls" });
-  const recordBtn = createEl("button", { class: "btn sm primary", dataset: { act: "toggle" }, "aria-pressed": "false" }, document.createTextNode(t("practice.recordStart") || t("practice.record") || "開始錄音"));
+  const recordBtn = createEl("button", { class: "btn sm primary", dataset: { act: "toggle" }, "aria-pressed": "false" }, document.createTextNode(t("practice.recordStart") || "開始錄音"));
   const playBtn = createEl("button", {
     class: "btn sm secondary",
     dataset: { act: "play" },
@@ -539,8 +539,8 @@ export function createCard(phrase) {
 
   const result = createEl("div", { class: "practice-result", "aria-live": "polite" });
   result.innerHTML = `
-    <div><b class="fem" aria-label="${t("practice.feminineLabel") || t("practice.feminine") || "女性傾向"} --%">${t("practice.feminineLabel") || t("practice.feminine") || "女性傾向"} --%</b></div>
-    <div><b class="masc" aria-label="${t("practice.masculineLabel") || t("practice.masculine") || "男性傾向"} --%">${t("practice.masculineLabel") || t("practice.masculine") || "男性傾向"} --%</b></div>
+    <div><b class="fem" aria-label="${t("practice.feminineLabel") || "女性傾向"} --%">${t("practice.feminineLabel") || "女性傾向"} --%</b></div>
+    <div><b class="masc" aria-label="${t("practice.masculineLabel") || "男性傾向"} --%">${t("practice.masculineLabel") || "男性傾向"} --%</b></div>
   `;
 
   const badges = createEl("div", { class: "practice-badges" });

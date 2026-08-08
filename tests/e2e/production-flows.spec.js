@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { resolve } from "node:path";
+import zhHant from "../../assets/i18n/zh-Hant.js";
+import zhHans from "../../assets/i18n/zh-Hans.js";
+import en from "../../assets/i18n/en.js";
+import ja from "../../assets/i18n/ja.js";
 import {
   captureRuntimeErrors,
   openProductionPage,
@@ -67,6 +71,31 @@ test.describe("Production audio flows", () => {
       expect(devices).toEqual([expectedDevice]);
     });
   }
+  test("keeps every information heading visible in all four locales", async ({ page }) => {
+    const expectedQuickStartTitles = {
+      "zh-Hant": zhHant.help.quickStart.title,
+      "zh-Hans": zhHans.help.quickStart.title,
+      en: en.help.quickStart.title,
+      ja: ja.help.quickStart.title,
+    };
+    const summaries = page.locator("section.info > details > summary");
+
+    for (const [locale, expectedTitle] of Object.entries(expectedQuickStartTitles)) {
+      if (await page.locator("html").getAttribute("lang") !== locale) {
+        await page.locator("[data-quick-locale-toggle]").click();
+        await page.locator('[data-quick-locale="' + locale + '"]').click();
+      }
+
+      await expect(page.locator("html")).toHaveAttribute("lang", locale);
+      await expect(summaries).toHaveCount(8);
+      await expect(summaries.first()).toHaveText(expectedTitle);
+      const summaryTexts = await summaries.allTextContents();
+      expect(
+        summaryTexts.every((text) => text.trim().length > 0),
+        locale + " contains an empty information heading",
+      ).toBe(true);
+    }
+  });
   test("one language switch updates the complete advanced analysis and supporting UI", async ({ page }) => {
     await page.locator("#fileInput").setInputFiles(resolve(mediaDir, "tone.mp3"));
     await waitForAnalysis(page);

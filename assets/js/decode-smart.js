@@ -106,7 +106,7 @@ export async function decodeSmartToFloat32(blobOrFile, targetSR, deps = {}) {
     } catch (ffmpegError) {
       const fallbackMessage = ffmpegError instanceof Error ? ffmpegError.message : String(ffmpegError ?? "");
       log("[decode] ffmpeg fallback failed:", fallbackMessage);
-      setStatus(t("status.ffmpegModuleLoadFailed", { message: fallbackMessage }), true);
+      setStatus(t("errors.ffmpegModuleLoadFailed", { message: fallbackMessage }), true);
       throw new Error(t("status.decodeFailure"));
     }
   }

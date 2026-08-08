@@ -596,7 +596,7 @@ export default {
       "</ul>",
     ].join(""),
   },
-  help: {
+  helpDialog: {
     dialogHtml: [
       '<div class="help-close-affix">',
       '<button type="button" id="helpTop" class="help-top" aria-label="ページ先頭へ戻る">⇧</button>',
@@ -722,7 +722,7 @@ export default {
       "</ul>",
       "</section>",
       '<div class="help-author">',
-      '<img src="assets/avatar-evelyn.jpg?v=1.4.11" alt="Evelyn の作者ポートレート" class="help-author-img" loading="lazy" />',
+      '<img src="assets/avatar-evelyn.jpg?v=1.4.12" alt="Evelyn の作者ポートレート" class="help-author-img" loading="lazy" />',
       '<div class="help-author-text">',
       "<h4>作者：Evelyn</h4>",
       "<p>コーディングもボイストレーニングも、探究を続ける過程を大切にしています。<br>VPA へのご意見やボイストレーニングについてのお話は、Instagram からお気軽にどうぞ。</p>",
