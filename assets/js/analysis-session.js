@@ -16,11 +16,13 @@ export function createAnalysisSessionController() {
     return () => inferenceListeners.delete(cb);
   }
 
-  function notifyInferenceListeners(pf, pm) {
+  function notifyInferenceListeners(pf, pm, analysis = null, presentation = null) {
     if (!inferenceListeners.size) return;
     const payload = {
+      analysis,
       pf: Number.isFinite(pf) ? pf : 0,
       pm: Number.isFinite(pm) ? pm : 0,
+      presentation,
     };
     inferenceListeners.forEach((listener) => {
       try {

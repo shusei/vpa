@@ -1,7 +1,9 @@
-import { t, getCurrentLocale, onLocaleChange } from "./i18n.js?v=1.4.16";
+import { t, getCurrentLocale, onLocaleChange } from "./i18n.js?v=1.4.17";
 import { loadPracticeData } from "./practice-data.js";
 
-const LS_HISTORY = "vpa.practice.v1.history";
+// v2 stores the integrated presentation score. v1 contained the retired raw
+// classifier probability and cannot be compared fairly with current results.
+const LS_HISTORY = "vpa.practice.v2.history";
 const bridge = {
   subscribeInference: null,
   recorder: null,
@@ -242,10 +244,8 @@ function writeResult(card, pf, pm) {
   if (!card) return;
   const femEl = card.querySelector(".practice-result .fem");
   const mascEl = card.querySelector(".practice-result .masc");
-  const femVal = Number.isFinite(pf) ? pf : 0;
-  const mascVal = Number.isFinite(pm) ? pm : 0;
-  const femPct = `${(femVal * 100).toFixed(1)}%`;
-  const mascPct = `${(mascVal * 100).toFixed(1)}%`;
+  const femPct = Number.isFinite(pf) ? `${Math.round(pf * 100)}%` : "--%";
+  const mascPct = Number.isFinite(pm) ? `${Math.round(pm * 100)}%` : "--%";
   if (femEl) {
     const femLabel = t("practice.feminineLabel") || "女性傾向";
     femEl.textContent = `${femLabel} ${femPct}`;
@@ -329,13 +329,18 @@ function bindCardEvents(card, phrase) {
       stopPracticePlayback();
 
       state.unsub?.();
-      state.unsub = subscribeInference(({ pf, pm }) => {
+      state.unsub = subscribeInference(({ presentation }) => {
         if (state.runToken !== runToken) {
           return;
         }
+        const score = presentation?.ready && Number.isFinite(presentation.score)
+          ? Math.max(0, Math.min(100, Math.round(presentation.score)))
+          : null;
+        const pf = score == null ? NaN : score / 100;
+        const pm = score == null ? NaN : (100 - score) / 100;
         cancelActiveRun(card);
         writeResult(card, pf, pm);
-        persistHistory(phrase.id, pf, pm);
+        if (score != null) persistHistory(phrase.id, pf, pm);
         hydrateLastBadge(card, phrase.id);
         const recorderCtl = getRecorder();
         const prevPlayable = state.lastPlayableId;

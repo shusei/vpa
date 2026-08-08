@@ -10,6 +10,7 @@ export function finishStreamStats(deps) {
     currentDevice,
     describeResonanceFromEnergy,
     drawIntonationCurve,
+    evaluatePresentation,
     EPS,
     escapeAttr,
     filterPitchForStats,
@@ -53,7 +54,6 @@ export function finishStreamStats(deps) {
     const statsEl = document.getElementById("streamStats");
     const pfVal = Number.isFinite(lastPf) ? lastPf : 0;
     const pmVal = Number.isFinite(lastPm) ? lastPm : 0;
-    notifyInferenceListeners(pfVal, pmVal);
     if (!statsEl) return;
 
     const headerHTML = `
@@ -74,6 +74,7 @@ export function finishStreamStats(deps) {
     if (!voicedHzRaw.length && !vols.length) {
       statsEl.innerHTML = "";
       setLatestAnalysisExport(null);
+      notifyInferenceListeners(pfVal, pmVal, null, null);
       return;
     }
 
@@ -438,5 +439,14 @@ export function finishStreamStats(deps) {
       },
     };
     setLatestAnalysisExport(payload);
+    let presentation = null;
+    if (typeof evaluatePresentation === "function") {
+      try {
+        presentation = evaluatePresentation(payload);
+      } catch (error) {
+        console.error("[finishStreamStats] presentation evaluation failed", error);
+      }
+    }
+    notifyInferenceListeners(pfVal, pmVal, payload, presentation);
   } catch (e) { console.error("[finishStreamStats]", e); }
 }

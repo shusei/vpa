@@ -1,4 +1,4 @@
-import { applySafetyCopy } from "./safety-copy.js?v=1.4.16";
+import { applySafetyCopy } from "./safety-copy.js?v=1.4.17";
 
 const practiceWarmup = {
   title: "錄音前舒適檢查",
@@ -716,7 +716,7 @@ const dictionary = {
       '</ul>',
       '</section>',
       '<div class="help-author">',
-      '<img src="assets/avatar-evelyn.jpg?v=1.4.16" alt="Evelyn 的作者照片" class="help-author-img" loading="lazy" />',
+      '<img src="assets/avatar-evelyn.jpg?v=1.4.17" alt="Evelyn 的作者照片" class="help-author-img" loading="lazy" />',
       '<div class="help-author-text">',
       '<h4>關於作者：Evelyn</h4>',
       '<p>不管是寫程式還是練偽音，都是一條充滿探索的路。<br>如果您對 VPA 有任何建議，或想交流聲音訓練的心得，歡迎來我的 Instagram 找我！</p>',

@@ -1,5 +1,5 @@
-import { MANUAL_DATA } from './manual-data.js?v=1.4.16';
-import { getCurrentLocale, onLocaleChange, t } from './i18n.js?v=1.4.16';
+import { MANUAL_DATA } from './manual-data.js?v=1.4.17';
+import { getCurrentLocale, onLocaleChange, t } from './i18n.js?v=1.4.17';
 import { mountManualWidgets } from './practice.js';
 
 /**
@@ -51,14 +51,14 @@ export function initManualUI() {
         btn.setAttribute('aria-expanded', 'true');
         const closeBtn = overlay.querySelector('.guide-close');
         closeBtn?.focus();
-        document.body.style.overflow = 'hidden';
+        document.body.classList.add('help-open');
     }
 
     function closeGuide() {
         overlay.hidden = true;
         btn.setAttribute('aria-expanded', 'false');
         btn.focus();
-        document.body.style.overflow = '';
+        document.body.classList.remove('help-open');
     }
 
     btn.addEventListener('click', openGuide);

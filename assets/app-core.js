@@ -1,14 +1,14 @@
 // ===== Transformers pipeline =====
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
 
-import { estimateAcousticPresentation } from "./js/acoustic-fast-path.js?v=1.4.16";
-import { initI18n, t, getLocaleValue, onLocaleChange } from "./js/i18n.js?v=1.4.16";
+import { estimateAcousticPresentation } from "./js/acoustic-fast-path.js?v=1.4.17";
+import { initI18n, t, getLocaleValue, onLocaleChange } from "./js/i18n.js?v=1.4.17";
 import {
   analyzeWhole as sharedAnalyzeWhole,
   analyzeStreamed as sharedAnalyzeStreamed,
   runStreamedWithWindow as sharedRunStreamedWithWindow,
 } from "./js/analysis-core.js";
-import { createAnalysisEngineBridge } from "./js/analysis-engine-bridge.js?v=1.4.16";
+import { createAnalysisEngineBridge } from "./js/analysis-engine-bridge.js?v=1.4.17";
 import {
   createAnalysisFlowController,
   runDecodedAudioAnalyzers as sharedRunDecodedAudioAnalyzers,
@@ -68,7 +68,7 @@ import {
   isPlaying as sharedIsPlaying,
   playLastRecording as sharedPlayLastRecording,
   setPlaybackSource as sharedSetPlaybackSource,
-} from "./js/player-ui.js?v=1.4.16";
+} from "./js/player-ui.js?v=1.4.17";
 import { createPlayerSessionController } from "./js/player-session.js";
 import { createPitchProfileController } from "./js/pitch-profile.js";
 import { createPitchRuntimeCore } from "./js/pitch-runtime-core.js";
@@ -87,25 +87,26 @@ import {
   pickSupportedMime as sharedPickSupportedMime,
   requestMicStream as sharedRequestMicStream,
 } from "./js/recording-utils.js";
-import { createRecordingFlowController } from "./js/recording-flow.js?v=1.4.16";
+import { createRecordingFlowController } from "./js/recording-flow.js?v=1.4.17";
 import {
   bandOf as sharedBandOf,
   isDivergent as sharedIsDivergent,
 } from "./js/summary-helpers.js";
 import { detectThreadCount as sharedDetectThreadCount } from "./js/thread-count.js";
-import { installEmbeddedBrowserGuard } from "./js/embedded-browser.js?v=1.4.16";
+import { installEmbeddedBrowserGuard } from "./js/embedded-browser.js?v=1.4.17";
 import {
   mobileInferenceMaxSec,
   shouldUseEmbeddedAcousticFastPath,
   shouldUseMobileFastPath,
   selectRepresentativeSamples,
-} from "./js/inference-sampling.js?v=1.4.16";
+} from "./js/inference-sampling.js?v=1.4.17";
 import { pickStreamStrategy as sharedPickStreamStrategy } from "./js/stream-strategy.js";
 import { finishStreamStats as sharedFinishStreamStats } from "./js/stats-core.js";
 import { createStatsOrchestration } from "./js/stats-orchestration.js";
 import { maybeApplyAdaptiveVAD as sharedMaybeApplyAdaptiveVAD } from "./js/vad-adaptive.js";
 import { bindMainUIEvents as sharedBindMainUIEvents } from "./js/ui-events.js";
-import { createUIStateControls } from "./js/ui-state-controls.js?v=1.4.16";
+import { createUIStateControls } from "./js/ui-state-controls.js?v=1.4.17";
+import { evaluateAdvancedExperience } from "./experiments/advanced-evaluator.js?v=1.4.17";
 
 import {
   recordBtn,
@@ -238,7 +239,13 @@ export function onInferenceDone(cb) {
   return analysisSession.onInferenceDone(cb);
 }
 
-const notifyInferenceListeners = (pf, pm) => analysisSession.notifyInferenceListeners(pf, pm);
+const notifyInferenceListeners = (pf, pm, analysis = null, presentation = null) => {
+  if (presentation?.ready && Number.isFinite(presentation.score)) {
+    const feminine = Math.max(0, Math.min(1, presentation.score / 100));
+    sharedRenderScores(feminine, 1 - feminine, { femaleVal, maleVal });
+  }
+  analysisSession.notifyInferenceListeners(pf, pm, analysis, presentation);
+};
 
 export const recorderCtl = {
   get isRecording() { return analysisSession.getIsRecording(); },
@@ -521,6 +528,7 @@ const statsOrchestrationController = createStatsOrchestration({
   describeResonanceFromEnergy,
   detectVoiceLeaning,
   drawIntonationCurve,
+  evaluatePresentation: evaluateAdvancedExperience,
   escapeAttr,
   filterPitchForStats,
   fmt1,

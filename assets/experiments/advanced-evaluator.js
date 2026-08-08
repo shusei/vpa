@@ -38,6 +38,10 @@ function clamp01(value) {
 }
 
 function finite(value) {
+  // Export sanitization converts unavailable numeric values (NaN/undefined)
+  // to null. Null must remain unavailable instead of being coerced to zero,
+  // otherwise the same recording receives a different score after export.
+  if (value == null || value === "") return NaN;
   return Number.isFinite(Number(value)) ? Number(value) : NaN;
 }
 

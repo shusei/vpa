@@ -6,7 +6,8 @@ body.help-open {
 .help-overlay {
   position: fixed;
   inset: 0;
-  z-index: 140;
+  /* Must sit above the quick/professional mode banner and its locale menu. */
+  z-index: 1000000;
   display: flex;
   align-items: center;
   justify-content: center;

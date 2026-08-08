@@ -1,18 +1,18 @@
-import { onInferenceDone } from "../app.js?v=1.4.16";
-import { getCurrentLocale, onLocaleChange, t } from "../js/i18n.js?v=1.4.16";
+import { onInferenceDone } from "../app.js?v=1.4.17";
+import { getCurrentLocale, onLocaleChange, t } from "../js/i18n.js?v=1.4.17";
 import { evaluateAdvancedExperience } from "./advanced-evaluator.js";
-import { createChallengeUrl } from "./challenge-link.js?v=1.4.16";
+import { createChallengeUrl } from "./challenge-link.js?v=1.4.17";
 import {
   getPublicShareResult,
   openPublicPlatformShare,
-} from "./public-share.js?v=1.4.16";
+} from "./public-share.js?v=1.4.17";
 import {
   buildShareTargets,
   buildShareUrl,
   createShareCardBlob,
   downloadBlob,
   shareWithSystem,
-} from "./share-card.js?v=1.4.16";
+} from "./share-card.js?v=1.4.17";
 
 let lastAnalysis = null;
 let lastResult = null;
@@ -555,8 +555,8 @@ async function waitForLatestAnalysis(previousId) {
   return null;
 }
 
-onInferenceDone(async () => {
-  const analysis = await waitForLatestAnalysis(renderedAnalysisId);
+onInferenceDone(async ({ analysis: completedAnalysis } = {}) => {
+  const analysis = completedAnalysis || await waitForLatestAnalysis(renderedAnalysisId);
   if (!analysis) return;
   renderedAnalysisId = Number(analysis.analysisId || renderedAnalysisId + 1);
   renderAnalysis(analysis);

@@ -63,6 +63,15 @@ assert.equal(reference.voiceAge.confidenceKey, "medium");
 assert.equal(reference.voiceQuality.version, "voice-quality-1.0.0");
 assert.ok(reference.components.resonance > 0.5);
 
+const serializationFixture = structuredClone(fixture);
+serializationFixture.volume.snr = NaN;
+serializationFixture.advanced.intonation.minHz = NaN;
+const beforeExport = evaluateAdvancedExperience(serializationFixture);
+const afterExport = evaluateAdvancedExperience(JSON.parse(JSON.stringify(serializationFixture)));
+assert.equal(afterExport.score, beforeExport.score);
+assert.deepEqual(afterExport.components, beforeExport.components);
+assert.deepEqual(afterExport.confidence, beforeExport.confidence);
+
 const connectedPerturbation = structuredClone(fixture);
 connectedPerturbation.offlineSamples.extensions["voice-age-v2"].metrics.jitterLocal.valuePct = 18;
 connectedPerturbation.offlineSamples.extensions["voice-age-v2"].metrics.shimmerLocal.valuePct = 30;

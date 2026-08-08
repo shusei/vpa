@@ -6,6 +6,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.17] - 2026-08-09
+
+### Fixed
+
+- Unified the final professional meter, phrase-practice cards, and embedded manual practice cards on the current integrated presentation score instead of the retired raw classifier percentage.
+- Kept unavailable numeric evidence unavailable after JSON export so the same recording cannot receive a different integrated score after serialization.
+- Isolated legacy raw-classifier practice history from current integrated scores.
+- Raised the Help and Feminine Voice Manual overlays above the Quick / Professional mode banner and locale menu so their close controls remain visible and clickable on phones.
+
+### Tests
+
+- Added score-event, export-invariance, practice-history, real-audio, and 390 px mobile overlay regression coverage.
+
 ## [1.4.16] - 2026-08-09
 
 ### Changed

@@ -51,10 +51,47 @@ test.describe("Production audio flows", () => {
       expect(analysis.realtimeStream.volumeDb.length).toBeGreaterThan(0);
       await expect(page.locator("#playBtn")).toBeEnabled();
       await expect(page.locator("#streamStats")).not.toBeEmpty();
-      await expect(page.locator("#femaleVal")).toHaveText("64.0%");
-      await expect(page.locator("#maleVal")).toHaveText("36.0%");
+      const presentation = await page.evaluate(() => (
+        window.vpaAdvancedExperience.evaluate(window.vpaLatestAnalysis)
+      ));
+      expect(presentation.ready).toBe(true);
+      expect(presentation.score).not.toBe(64);
+      await expect(page.locator("#femaleVal")).toHaveText(`${presentation.score.toFixed(1)}%`);
+      await expect(page.locator("#maleVal")).toHaveText(`${(100 - presentation.score).toFixed(1)}%`);
     });
   }
+
+  test("practice cards use the latest integrated percentage and store it separately from legacy scores", async ({ page }) => {
+    await page.locator("#practiceToggle").click();
+    const card = page.locator("#practiceList .practice-card").first();
+    const recordButton = card.locator('[data-act="toggle"]');
+    const phraseId = await card.getAttribute("data-id");
+
+    await recordButton.click();
+    await expect(page.locator("body")).toHaveClass(/recording/);
+    await page.waitForTimeout(1_200);
+    await recordButton.click();
+    await expect(page.locator("body")).not.toHaveClass(/recording/);
+    await waitForAnalysis(page);
+
+    const presentation = await page.evaluate(() => (
+      window.vpaAdvancedExperience.evaluate(window.vpaLatestAnalysis)
+    ));
+    expect(presentation.ready).toBe(true);
+    expect(presentation.score).not.toBe(64);
+    await expect(card.locator(".practice-result .fem")).toContainText(`${presentation.score}%`);
+    await expect(card.locator(".practice-result .masc")).toContainText(`${100 - presentation.score}%`);
+    await expect(page.locator("#femaleVal")).toHaveText(`${presentation.score.toFixed(1)}%`);
+
+    const stored = await page.evaluate(() => ({
+      current: Object.fromEntries(JSON.parse(localStorage.getItem("vpa.practice.v2.history") || "[]")),
+      legacy: localStorage.getItem("vpa.practice.v1.history"),
+    }));
+    const lastStored = stored.current[phraseId].at(-1);
+    expect(lastStored.pf).toBe(presentation.score / 100);
+    expect(lastStored.pm).toBe((100 - presentation.score) / 100);
+    expect(stored.legacy).toBeNull();
+  });
 
   for (const expectedDevice of ["wasm", "webgpu"]) {
     test(`passes ${expectedDevice} to the model pipeline for the matching browser capability`, async ({ page }) => {

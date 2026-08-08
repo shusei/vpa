@@ -15,6 +15,7 @@ const { analyzeStreamed, analyzeWhole, runStreamedWithWindow } = await import(".
 const { createAnalysisFlowController } = await import("../assets/js/analysis-flow.js");
 const { estimateAcousticPresentation } = await import("../assets/js/acoustic-fast-path.js");
 const { createAnalysisEngineBridge } = await import("../assets/js/analysis-engine-bridge.js");
+const { createAnalysisSessionController } = await import("../assets/js/analysis-session.js");
 const { ensurePipeline } = await import("../assets/js/model-core.js");
 const { detectEmbeddedBrowser, openExternalBrowser } = await import("../assets/js/embedded-browser.js");
 const {
@@ -26,6 +27,25 @@ const {
 const { pickStreamStrategy } = await import("../assets/js/stream-strategy.js");
 
 const translate = (key) => key;
+
+test("completed inference events carry the integrated presentation result", () => {
+  const session = createAnalysisSessionController();
+  const analysis = { analysisId: 42 };
+  const presentation = { ready: true, score: 73, version: "advanced-beta-1" };
+  let received = null;
+
+  session.onInferenceDone((payload) => {
+    received = payload;
+  });
+  session.notifyInferenceListeners(0.64, 0.36, analysis, presentation);
+
+  assert.deepEqual(received, {
+    analysis,
+    pf: 0.64,
+    pm: 0.36,
+    presentation,
+  });
+});
 
 test("decoded audio analyzers share one registry across cache-busted module URLs", async () => {
   const alternateModule = await import("../assets/js/analysis-flow.js?registry-identity-test");
