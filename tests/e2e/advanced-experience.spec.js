@@ -34,6 +34,12 @@ test("professional experience renders advanced result and creates a local share 
   expect(result.score).toBeGreaterThanOrEqual(60);
   expect(result.score).toBeLessThan(100);
   await expect(page.locator("#advancedExperience")).toBeVisible();
+    expect(await page.evaluate(() => {
+      const advanced = document.getElementById("advancedExperience");
+      const statistics = document.getElementById("streamStats");
+      if (!advanced || !statistics) return false;
+      return Boolean(advanced.compareDocumentPosition(statistics) & Node.DOCUMENT_POSITION_FOLLOWING);
+    })).toBe(true);
   await expect(page.locator(".advanced-experience__score strong")).toHaveText(`${result.score}%`);
   await expect(page.locator(".advanced-experience__pitch")).toContainText("代表音高");
   await expect(page.locator(".advanced-experience__pitch strong")).toContainText("232.8");
@@ -343,6 +349,12 @@ test.describe("mobile advanced experience", () => {
     });
     expect(overflow).toBeLessThanOrEqual(1);
     await expect(page.locator("#advancedExperience")).toBeVisible();
+    expect(await page.evaluate(() => {
+      const advanced = document.getElementById("advancedExperience");
+      const statistics = document.getElementById("streamStats");
+      if (!advanced || !statistics) return false;
+      return Boolean(advanced.compareDocumentPosition(statistics) & Node.DOCUMENT_POSITION_FOLLOWING);
+    })).toBe(true);
     await expect(page.locator(".advanced-share__platforms")).toBeVisible();
     expect(runtimeErrors).toEqual([]);
   });

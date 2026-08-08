@@ -1,4 +1,4 @@
-import zhHant from "../i18n/zh-Hant.js?v=1.4.12";
+import zhHant from "../i18n/zh-Hant.js?v=1.4.13";
 
 const STORAGE_KEY = "vpa.locale";
 const BASE_LOCALES = ["zh-Hant", "zh-Hans", "en", "ja"];
@@ -13,9 +13,9 @@ function getSupportedLocales() {
 }
 
 const LOADERS = {
-  "zh-Hans": () => import("../i18n/zh-Hans.js?v=1.4.12"),
-  en: () => import("../i18n/en.js?v=1.4.12"),
-  ja: () => import("../i18n/ja.js?v=1.4.12"),
+  "zh-Hans": () => import("../i18n/zh-Hans.js?v=1.4.13"),
+  en: () => import("../i18n/en.js?v=1.4.13"),
+  ja: () => import("../i18n/ja.js?v=1.4.13"),
 };
 
 let currentLocale = "zh-Hant";

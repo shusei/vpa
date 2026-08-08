@@ -6,6 +6,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.13] - 2026-08-08
+
+### Changed
+
+- **Promoted the advanced result to the primary analysis position** — `ADVANCED BETA / Advanced strict analysis`, including the feminine percentage, now appears before Statistics overview instead of being buried beneath the detailed monitors.
+- **Preserved the polished quick and advanced visual systems** — The layout change keeps playback directly above the result, retains the existing result-card hierarchy, and avoids unnecessary redesign of the already strong quick-test interface.
+
+### Tests
+
+- Playwright now verifies on desktop and mobile that the advanced result precedes Statistics overview and remains within the viewport.
+
+---
+
 ## [1.4.12] - 2026-08-08
 
 ### Fixed

@@ -1,18 +1,18 @@
-import { onInferenceDone } from "../app.js?v=1.4.12";
-import { getCurrentLocale, onLocaleChange, t } from "../js/i18n.js?v=1.4.12";
+import { onInferenceDone } from "../app.js?v=1.4.13";
+import { getCurrentLocale, onLocaleChange, t } from "../js/i18n.js?v=1.4.13";
 import { evaluateAdvancedExperience } from "./advanced-evaluator.js";
-import { createChallengeUrl } from "./challenge-link.js?v=1.4.12";
+import { createChallengeUrl } from "./challenge-link.js?v=1.4.13";
 import {
   getPublicShareResult,
   openPublicPlatformShare,
-} from "./public-share.js?v=1.4.12";
+} from "./public-share.js?v=1.4.13";
 import {
   buildShareTargets,
   buildShareUrl,
   createShareCardBlob,
   downloadBlob,
   shareWithSystem,
-} from "./share-card.js?v=1.4.12";
+} from "./share-card.js?v=1.4.13";
 
 let lastAnalysis = null;
 let lastResult = null;
@@ -55,7 +55,16 @@ resultPanel.className = "advanced-experience";
 resultPanel.setAttribute("aria-live", "polite");
 resultPanel.hidden = true;
 
-if (meter) meter.insertAdjacentElement("afterend", resultPanel);
+function placeResultPanelBeforeStatistics() {
+  const statisticsPanel = document.getElementById("streamStats");
+  if (statisticsPanel) {
+    statisticsPanel.insertAdjacentElement("beforebegin", resultPanel);
+    return;
+  }
+  if (meter) meter.insertAdjacentElement("afterend", resultPanel);
+}
+
+placeResultPanelBeforeStatistics();
 
 function componentLabel(key) {
   return t(`experiment.advanced.components.${key}`);
@@ -411,6 +420,9 @@ function notifyResultListeners(analysis, result) {
 }
 
 export function renderAnalysis(analysis, { notify = true } = {}) {
+  // Player and statistics UI are created lazily. Re-place the result here so
+  // the strict score is always the first analysis users see after playback.
+  placeResultPanelBeforeStatistics();
   lastAnalysis = analysis;
   lastResult = {
     ...evaluateAdvancedExperience(analysis),
