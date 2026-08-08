@@ -1,6 +1,6 @@
 import en from "./en.js";
 
-import { applySafetyCopy } from "./safety-copy.js?v=1.4.20";
+import { applySafetyCopy } from "./safety-copy.js?v=1.4.21";
 
 const practiceWarmup = {
   title: "録音前の快適さチェック",
@@ -724,7 +724,7 @@ const dictionary = {
       "</ul>",
       "</section>",
       '<div class="help-author">',
-      '<img src="assets/avatar-evelyn.jpg?v=1.4.20" alt="Evelyn の作者ポートレート" class="help-author-img" loading="lazy" />',
+      '<img src="assets/avatar-evelyn.jpg?v=1.4.21" alt="Evelyn の作者ポートレート" class="help-author-img" loading="lazy" />',
       '<div class="help-author-text">',
       "<h4>作者：Evelyn</h4>",
       "<p>コーディングもボイストレーニングも、探究を続ける過程を大切にしています。<br>VPA へのご意見やボイストレーニングについてのお話は、Instagram からお気軽にどうぞ。</p>",

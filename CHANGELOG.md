@@ -6,6 +6,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.21] - 2026-08-09
+
+### Added
+
+- Added the standard MIT License with the project copyright notice.
+- Added a concise contributor guide covering fork, branch, dependency installation, testing, commit, push, and Pull Request workflow.
+- Added a README Contributing section linking to the contributor guide.
+
+### Tests
+
+- Verified the existing project test commands and confirmed the license badge points to the root `LICENSE` file.
+
 ## [1.4.20] - 2026-08-09
 
 ### Changed

@@ -30,6 +30,7 @@
 - [Workflow & Usage](#workflow--usage)
 - [Technical Architecture](#technical-architecture)
 - [Development & Testing](#development--testing)
+- [Contributing](#contributing)
 - [Privacy & Disclaimer](#privacy--disclaimer)
 - [License & Credits](#license--credits)
 
@@ -74,6 +75,12 @@ Voice Presentation Analyzer (VPA) offers dual interface modes tailored for both 
 npm test      # Run unit tests, syntax checks, and markup checks
 npm run test:e2e # Run Playwright end-to-end browser test suite
 ```
+
+---
+
+## Contributing
+
+Bug fixes, translation fixes, and documentation improvements are welcome. See the [Contributing Guide](CONTRIBUTING.md) for the fork, branch, test, commit, push, and Pull Request workflow.
 
 ---
 
