@@ -67,4 +67,34 @@ test.describe("Production audio flows", () => {
       expect(devices).toEqual([expectedDevice]);
     });
   }
+  test("one language switch updates the complete advanced analysis and supporting UI", async ({ page }) => {
+    await page.locator("#fileInput").setInputFiles(resolve(mediaDir, "tone.mp3"));
+    await waitForAnalysis(page);
+
+    await page.locator("[data-quick-locale-toggle]").click();
+    await page.locator('[data-quick-locale="en"]').click();
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+    await expect(page.locator("#streamStats")).toContainText("Formant & resonance");
+
+    await page.locator("#practiceToggle").click();
+    await expect(page.locator("#practiceList")).toBeVisible();
+    await page.locator("#guideBtn").click();
+    await expect(page.locator("#guideOverlay")).toBeVisible();
+    await expect(page.locator("#guideTitle")).toHaveText("Feminine Voice Manual");
+    await expect(page.locator("#guideBtn")).toHaveAttribute("aria-label", "Feminine Voice Manual");
+    await expect(page.locator(".guide-close")).toHaveAttribute("aria-label", "Close manual");
+    await expect(page.locator(".guide-top")).toHaveAttribute("aria-label", "Back to top");
+    await expect(page.locator("#ver")).not.toHaveText("build");
+
+    const englishSurfaces = await page.evaluate(() => ({
+      advanced: document.querySelector("#streamStats")?.textContent || "",
+      guide: document.querySelector("#guideOverlay")?.textContent || "",
+      info: document.querySelector("section.info")?.textContent || "",
+      practice: document.querySelector("#practiceList")?.textContent || "",
+    }));
+    for (const [surface, text] of Object.entries(englishSurfaces)) {
+      expect(text, `${surface} still contains Chinese after switching to English`)
+        .not.toMatch(/[\u3400-\u9fff]/u);
+    }
+  });
 });

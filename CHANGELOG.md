@@ -6,6 +6,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.11] - 2026-08-08
+
+### Fixed (完整進階分析語系根治)
+
+- **Unified the production i18n module graph** — Every application module now imports the exact same cache-busted `i18n.js` URL. Previously, versioned and unversioned imports created two independent ESM instances, so the quick language control could update the shell while advanced metrics, practice phrases, the manual, sharing UI, and theme controls remained in Traditional Chinese.
+- **Restored complete translation ownership for the information section** — The full interface, model, accuracy, implementation, ethics, compatibility, and version blocks are translated as complete containers again. Build metadata is restored after each locale render, and the manual button, close control, and back-to-top control now have translated accessible names.
+- **Corrected Japanese fallback ordering** — Japanese translations are no longer overwritten by the English base object. The manual keeps Japanese controls and uses English content, rather than unexpectedly falling back to Traditional Chinese, when a Japanese manual body is unavailable.
+- **Added production-graph regression coverage** — Tests now reject mixed i18n import URLs, exercise a real audio upload followed by a language switch, scan the complete advanced analysis and supporting surfaces for Chinese leakage in English mode, and remove the old test-only second-locale switch that had masked the production bug.
+
+- **統一正式版語系模組實例** — 修正帶版本與未帶版本的 `i18n.js` 同時載入所造成的雙語系狀態；快速語言按鈕、完整進階分析、練習抽屜、手冊、分享與主題控制現在會同步切換。
+- **補回完整說明區塊與無障礙文字翻譯** — 介面、模型、準確度、方法、倫理、相容性、版本資訊與手冊控制全部由目前語系完整接管，切換語言後版本資訊也會正確回填。
+- **強化真實流程測試** — 使用實際音檔走完正式分析後切換語言，逐區檢查英文模式零中文殘留，並新增模組載入路徑守門測試，避免同類問題再次被測試假通過掩蓋。
+
+---
+
 ## [1.4.10] - 2026-08-08
 
 ### Fixed (深層語系凍結根治 & 進階卡片資料完整復原)

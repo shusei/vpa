@@ -90,6 +90,9 @@ export async function openProductionPage(page, options) {
     localStorage.setItem("vpa::experiment.experience", "professional");
   });
   await page.goto("/");
+  await page.evaluate(() => {
+    window.VPA_SHARE_SERVICE_ORIGIN = "";
+  });
   await expect(page.locator("#playBtn")).toBeAttached();
   await expect(page.locator(".player")).toBeHidden();
 }

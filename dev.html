@@ -109,10 +109,10 @@
   <link rel="icon" href="./favicon.ico" />
   <link rel="stylesheet" href="assets/css/base.css" />
   <link rel="stylesheet" href="assets/css/layout.css" />
-  <link rel="stylesheet" href="assets/css/components.css?v=1.4.10" />
-  <link rel="stylesheet" href="assets/css/overlays.css?v=1.4.10" />
-  <link rel="stylesheet" href="assets/css/experiments.css?v=1.4.10" />
-  <link rel="stylesheet" href="assets/css/quick-experience.css?v=1.4.10" />
+  <link rel="stylesheet" href="assets/css/components.css?v=1.4.11" />
+  <link rel="stylesheet" href="assets/css/overlays.css?v=1.4.11" />
+  <link rel="stylesheet" href="assets/css/experiments.css?v=1.4.11" />
+  <link rel="stylesheet" href="assets/css/quick-experience.css?v=1.4.11" />
   <script type="importmap">
   {
     "imports": {
@@ -148,7 +148,8 @@
             aria-controls="helpOverlay" aria-expanded="false" title="使用指南"
             data-i18n-attrs="aria-label:topbar.helpAria,title:topbar.helpTitle">❓</button>
           <button id="guideBtn" class="help-btn" type="button" aria-label="女聲訓練手冊" aria-haspopup="dialog"
-            aria-controls="guideOverlay" aria-expanded="false" title="女聲訓練手冊" style="margin-left:4px;">📖</button>
+            aria-controls="guideOverlay" aria-expanded="false" title="女聲訓練手冊" style="margin-left:4px;"
+            data-i18n-attrs="aria-label:guide.title,title:guide.title">📖</button>
           <button id="localeBtn" class="lang-btn" type="button" aria-haspopup="menu" aria-expanded="false"
             aria-controls="localeMenu" aria-label="切換語言" title="切換語言"
             data-i18n-attrs="aria-label:topbar.localeAria,title:topbar.localeTitle">🌐</button>
@@ -570,10 +571,10 @@
     aria-labelledby="guideTitle">
     <div class="help-dialog guide-dialog">
       <div class="help-close-affix">
-        <button type="button" class="help-top guide-top" aria-label="回到頁首">⇧</button>
-        <button type="button" class="help-close guide-close" aria-label="關閉手冊">✕</button>
+        <button type="button" class="help-top guide-top" aria-label="回到頁首" data-i18n-attrs="aria-label:guide.backToTop">⇧</button>
+        <button type="button" class="help-close guide-close" aria-label="關閉手冊" data-i18n-attrs="aria-label:guide.close">✕</button>
       </div>
-      <h2 id="guideTitle">女聲訓練手冊</h2>
+      <h2 id="guideTitle" data-i18n="guide.title">女聲訓練手冊</h2>
       <div id="guideContent" class="guide-body">
         <!-- Content injected by manual-ui.js -->
       </div>
@@ -606,8 +607,8 @@
     window.VPA_SHARE_SERVICE_ORIGIN = window.VPA_SHARE_SERVICE_ORIGIN
       ?? (['127.0.0.1', 'localhost'].includes(location.hostname) ? '' : 'https://vpa-share.evelynjoellelin.workers.dev');
   </script>
-  <script type="module" src="assets/app.js?v=1.4.10"></script>
-  <script type="module" src="assets/experiments/experience-shell.js?v=1.4.10"></script>
+  <script type="module" src="assets/app.js?v=1.4.11"></script>
+  <script type="module" src="assets/experiments/experience-shell.js?v=1.4.11"></script>
 </body>
 
 </html>

@@ -142,10 +142,10 @@
   <link rel="icon" href="./favicon.ico" />
   <link rel="stylesheet" href="assets/css/base.css" />
   <link rel="stylesheet" href="assets/css/layout.css" />
-  <link rel="stylesheet" href="assets/css/components.css?v=1.4.10" />
-  <link rel="stylesheet" href="assets/css/overlays.css?v=1.4.10" />
-  <link rel="stylesheet" href="assets/css/experiments.css?v=1.4.10" />
-  <link rel="stylesheet" href="assets/css/quick-experience.css?v=1.4.10" />
+  <link rel="stylesheet" href="assets/css/components.css?v=1.4.11" />
+  <link rel="stylesheet" href="assets/css/overlays.css?v=1.4.11" />
+  <link rel="stylesheet" href="assets/css/experiments.css?v=1.4.11" />
+  <link rel="stylesheet" href="assets/css/quick-experience.css?v=1.4.11" />
   <script type="importmap">
   {
     "imports": {
@@ -181,7 +181,8 @@
             aria-controls="helpOverlay" aria-expanded="false" title="使用指南"
             data-i18n-attrs="aria-label:topbar.helpAria,title:topbar.helpTitle">❓</button>
           <button id="guideBtn" class="help-btn" type="button" aria-label="女聲訓練手冊" aria-haspopup="dialog"
-            aria-controls="guideOverlay" aria-expanded="false" title="女聲訓練手冊" style="margin-left:4px;">📖</button>
+            aria-controls="guideOverlay" aria-expanded="false" title="女聲訓練手冊" style="margin-left:4px;"
+            data-i18n-attrs="aria-label:guide.title,title:guide.title">📖</button>
           <button id="localeBtn" class="lang-btn" type="button" aria-haspopup="menu" aria-expanded="false"
             aria-controls="localeMenu" aria-label="切換語言" title="切換語言"
             data-i18n-attrs="aria-label:topbar.localeAria,title:topbar.localeTitle">🌐</button>
@@ -496,7 +497,7 @@
         </ul>
       </details>
 
-      <details>
+      <details data-i18n-html="info.interfaceHtml">
         <summary data-i18n="help.interface.title">介面導覽與即時監控</summary>
         <ul class="bullets">
           <li><b data-i18n="help.interface.guideTitle">❓ 使用指南：</b>整理快速開始、面板解說與常見錄音情境，支援鍵盤 <kbd>Esc</kbd> 關閉。</li>
@@ -508,7 +509,7 @@
         </ul>
       </details>
 
-      <details>
+      <details data-i18n-html="info.modelHtml">
         <summary data-i18n="help.modelOverview.title">模型概覽</summary>
         <div class="kv">
           <div data-i18n="help.modelOverview.nameLabel">名稱：</div>
@@ -528,7 +529,7 @@
         </div>
       </details>
 
-      <details>
+      <details data-i18n-html="info.accuracyHtml">
         <summary data-i18n="help.accuracy.title">準確度（開發者報告）</summary>
         <ul class="bullets" style="margin-top:6px;">
           <li>整體準確率：<b>98.46%</b>（6545 筆）</li>
@@ -538,7 +539,7 @@
         <p class="subline" data-i18n="help.accuracy.note">說明：上述為作者資料分佈下的離線評估；不同語言、環境、內容（唱歌）可能與此有落差。</p>
       </details>
 
-      <details>
+      <details data-i18n-html="info.methodHtml">
         <summary data-i18n="help.methods.title">方法簡述（本頁實作）</summary>
         <ul class="bullets">
           <li><b data-i18n="help.methods.engineTitle">推論引擎：</b>Transformers.js + ONNX Runtime；優先 WebGPU，無 GPU 時自動回落至 WASM。</li>
@@ -552,7 +553,7 @@
         </ul>
       </details>
 
-      <details>
+      <details data-i18n-html="info.ethicsHtml">
         <summary data-i18n="help.ethics.title">用途定位與倫理提醒</summary>
         <ul class="bullets">
           <li data-i18n="help.ethics.position">定位：自我練習回饋、教學示範、資料標註輔助、研究原型。</li>
@@ -561,7 +562,7 @@
         </ul>
       </details>
 
-      <details>
+      <details data-i18n-html="info.compatHtml">
         <summary data-i18n="help.compatibility.title">相容性與效能</summary>
         <ul class="bullets">
           <li>瀏覽器：近期 Chrome / Edge / Firefox / Safari；<b data-i18n="help.compatibility.webgpu">開啟 WebGPU 更快</b>。</li>
@@ -570,7 +571,7 @@
         </ul>
       </details>
 
-      <details>
+      <details data-i18n-html="info.versionHtml">
         <summary data-i18n="help.version.title">版本與授權</summary>
         <div class="kv">
           <div data-i18n="help.version.versionLabel">版本：</div>
@@ -603,8 +604,8 @@
     aria-labelledby="guideTitle">
     <div class="help-dialog guide-dialog">
       <div class="help-close-affix">
-        <button type="button" class="help-top guide-top" aria-label="回到頁首">⇧</button>
-        <button type="button" class="help-close guide-close" aria-label="關閉手冊">✕</button>
+        <button type="button" class="help-top guide-top" aria-label="回到頁首" data-i18n-attrs="aria-label:guide.backToTop">⇧</button>
+        <button type="button" class="help-close guide-close" aria-label="關閉手冊" data-i18n-attrs="aria-label:guide.close">✕</button>
       </div>
       <h2 id="guideTitle" data-i18n="guide.title">女聲訓練手冊</h2>
       <div id="guideContent" class="guide-body">
@@ -638,8 +639,8 @@
     window.VPA_SHARE_SERVICE_ORIGIN = window.VPA_SHARE_SERVICE_ORIGIN
       ?? 'https://vpa-share.evelynjoellelin.workers.dev';
   </script>
-  <script type="module" src="assets/app.js?v=1.4.10"></script>
-  <script type="module" src="assets/experiments/experience-shell.js?v=1.4.10"></script>
+  <script type="module" src="assets/app.js?v=1.4.11"></script>
+  <script type="module" src="assets/experiments/experience-shell.js?v=1.4.11"></script>
 </body>
 
 </html>

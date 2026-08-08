@@ -104,6 +104,8 @@ export default {
     }
   },
   guide: {
+    backToTop: "Back to top",
+    close: "Close manual",
     title: "Feminine Voice Manual",
     tagline: "Vocal training isn't about changing who you are—it's about adding a versatile expression tool you can freely command."
   }
@@ -712,7 +714,7 @@ export default {
       '</ul>',
       '</section>',
       '<div class="help-author">',
-      '<img src="assets/avatar-evelyn.jpg?v=1.4.10" alt="Portrait of Evelyn" class="help-author-img" loading="lazy" />',
+      '<img src="assets/avatar-evelyn.jpg?v=1.4.11" alt="Portrait of Evelyn" class="help-author-img" loading="lazy" />',
       '<div class="help-author-text">',
       '<h4>About the Author: Evelyn</h4>',
       '<p>Whether coding or voice training, it’s all about the journey of exploration.<br>If you have feedback on VPA or want to chat about voice training, feel free to connect with me on Instagram!</p>',

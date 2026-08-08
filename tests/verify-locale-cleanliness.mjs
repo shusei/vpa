@@ -28,7 +28,8 @@ import zhHans from '../assets/i18n/zh-Hans.js';
 import en from '../assets/i18n/en.js';
 import ja from '../assets/i18n/ja.js';
 
-import { t, setLocale } from '../assets/js/i18n.js';
+const packageVersion = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8')).version;
+const { t, setLocale } = await import(`../assets/js/i18n.js?v=${packageVersion}`);
 import { bandOf } from '../assets/js/summary-helpers.js';
 import { createFocusHelpers } from '../assets/js/focus-insights.js';
 import { computeAdvancedSummary } from '../assets/js/advanced-summary-core.js';
@@ -114,10 +115,61 @@ if (chineseInEn.length > 0) {
   console.log(`✅ [PASS] EN dictionary contains ZERO unintended Chinese characters.`);
 }
 
-// Step 3: Verify index.html static HTML elements have data-i18n attributes or container
+// Step 3: Verify every production import resolves to one cache-busted i18n module instance
+const assetsRoot = path.resolve('assets');
+const canonicalI18nPath = path.resolve('assets/js/i18n.js');
+const expectedI18nQuery = `v=${packageVersion}`;
+const i18nImportErrors = [];
+
+function listJavaScriptFiles(dir) {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const target = path.join(dir, entry.name);
+    return entry.isDirectory() ? listJavaScriptFiles(target) : (entry.name.endsWith('.js') ? [target] : []);
+  });
+}
+
+for (const file of listJavaScriptFiles(assetsRoot)) {
+  const source = fs.readFileSync(file, 'utf8');
+  const importPattern = /from\s+["']([^"']*i18n\.js(?:\?[^"']*)?)["']/g;
+  for (const match of source.matchAll(importPattern)) {
+    const [modulePath, query = ''] = match[1].split('?');
+    const resolvedModule = path.resolve(path.dirname(file), modulePath);
+    if (resolvedModule !== canonicalI18nPath || query !== expectedI18nQuery) {
+      i18nImportErrors.push({
+        file: path.relative(process.cwd(), file),
+        specifier: match[1],
+      });
+    }
+  }
+}
+
+if (i18nImportErrors.length > 0) {
+  console.error('❌ [FAIL] Production modules do not share one canonical i18n instance:', i18nImportErrors);
+} else {
+  console.log(`✅ [PASS] Every production module shares assets/js/i18n.js?${expectedI18nQuery}.`);
+}
+
+// Step 4: Verify index.html static HTML elements have data-i18n attributes or container
 const htmlPath = path.resolve('index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
 
+const requiredInfoBindings = [
+  'info.interfaceHtml',
+  'info.modelHtml',
+  'info.accuracyHtml',
+  'info.methodHtml',
+  'info.ethicsHtml',
+  'info.compatHtml',
+  'info.versionHtml',
+];
+const missingInfoBindings = requiredInfoBindings.filter((key) => (
+  !html.includes(`data-i18n-html="${key}"`)
+));
+if (missingInfoBindings.length > 0) {
+  console.error('❌ [FAIL] Full information sections are missing translation containers:', missingInfoBindings);
+} else {
+  console.log('✅ [PASS] Every full information section is translated as one complete container.');
+}
 const tagRegex = /<([a-z1-6]+)([^>]*)>([^<]*[\u4e00-\u9fa5][^<]*)<\/\1>/gi;
 let match;
 const missingI18nTags = [];
@@ -145,7 +197,7 @@ if (missingI18nTags.length > 0) {
   console.log(`✅ [PASS] All static HTML tags with text in index.html are 100% bound with data-i18n attributes.`);
 }
 
-// Step 4: Dynamic Analysis Metrics Evaluation in EN Mode
+// Step 5: Dynamic Analysis Metrics Evaluation in EN Mode
 await setLocale('en');
 
 const mockStore = {
@@ -232,7 +284,7 @@ if (dynamicErrors === 0) {
 }
 
 // Final assertion
-if (keyErrors > 0 || chineseInEn.length > 0 || missingI18nTags.length > 0 || dynamicErrors > 0) {
+if (keyErrors > 0 || chineseInEn.length > 0 || i18nImportErrors.length > 0 || missingInfoBindings.length > 0 || missingI18nTags.length > 0 || dynamicErrors > 0) {
   console.error('\n❌ Locale Cleanliness Test Failed!');
   process.exit(1);
 } else {

@@ -104,6 +104,8 @@ export default {
     }
   },
   guide: {
+    backToTop: "回到页首",
+    close: "关闭手册",
     title: "女声训练手册",
     tagline: "声音训练不是要改变你原本的性格，而是让你多一种可以自由运用的表达工具。"
   }
@@ -701,7 +703,7 @@ export default {
       '</ul>',
       '</section>',
       '<div class="help-author">',
-      '<img src="assets/avatar-evelyn.jpg?v=1.4.10" alt="Evelyn 的作者照片" class="help-author-img" loading="lazy" />',
+      '<img src="assets/avatar-evelyn.jpg?v=1.4.11" alt="Evelyn 的作者照片" class="help-author-img" loading="lazy" />',
       '<div class="help-author-text">',
       '<h4>关于作者：Evelyn</h4>',
       '<p>不管是写代码还是练伪音，都是一条充满探索的路。<br>如果您对 VPA 有任何建议，或想交流声音训练的心得，欢迎来我的 Instagram 找我！</p>',

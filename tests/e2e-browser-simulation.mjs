@@ -13,6 +13,8 @@ class MockElement {
   getAttribute(attr) { return this.attributes[attr] || null; }
   setAttribute(attr, val) { this.attributes[attr] = val; }
   appendChild(child) { this.children.push(child); }
+  addEventListener() {}
+  removeEventListener() {}
 
   querySelectorAll(selector) {
     let results = [];
@@ -64,9 +66,12 @@ global.document = {
   createElement: (tag) => new MockElement(tag),
 };
 global.window = global;
+global.addEventListener = () => {};
+global.removeEventListener = () => {};
 global.localStorage = { getItem: () => 'en', setItem: () => {} };
 
-const { t, setLocale } = await import('../assets/js/i18n.js');
+const packageVersion = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
+const { t, setLocale } = await import(`../assets/js/i18n.js?v=${packageVersion}`);
 const { computeAdvancedSummary } = await import('../assets/js/advanced-summary-core.js');
 const { createAdvancedSummaryRenderer } = await import('../assets/js/advanced-summary-render.js');
 const { finishStreamStats } = await import('../assets/js/stats-core.js');

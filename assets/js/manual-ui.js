@@ -1,5 +1,5 @@
 import { MANUAL_DATA } from './manual-data.js';
-import { getCurrentLocale, onLocaleChange } from './i18n.js';
+import { getCurrentLocale, onLocaleChange, t } from './i18n.js?v=1.4.11';
 import { mountManualWidgets } from './practice.js';
 
 /**
@@ -18,17 +18,13 @@ export function initManualUI() {
 
     /**
      * Renders the manual content based on the provided locale.
-     * Falls back to 'en' if the locale is not found in MANUAL_DATA.
+     * Falls back to English if the locale is not found in MANUAL_DATA.
      */
     function renderManual(locale) {
-        // Fallback chain: requested -> zh-Hant -> en
-        let data = MANUAL_DATA[locale];
-        if (!data) {
-            data = MANUAL_DATA['zh-Hant'] || MANUAL_DATA['en'];
-        }
+        const data = MANUAL_DATA[locale] || MANUAL_DATA['en'] || MANUAL_DATA['zh-Hant'];
 
         if (data) {
-            if (guideTitle) guideTitle.textContent = data.title;
+            if (guideTitle) guideTitle.textContent = t('guide.title') || data.title;
 
             // Inject HTML content
             if (guideBody) {

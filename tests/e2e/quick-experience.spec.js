@@ -358,16 +358,18 @@ test("Japanese browser language becomes the default locale and a saved choice wi
   await page.locator("[data-quick-locale-toggle]").click();
   await page.locator('[data-quick-locale="ja"]').click();
   await expect(page.locator("html")).toHaveAttribute("lang", "ja");
-  await page.evaluate(async () => {
-    const { setLocale } = await import("/assets/js/i18n.js");
-    await setLocale("ja");
-  });
+
   await page.locator('#experienceNav [data-experience-target="professional"]').click();
   await page.locator("#practiceToggle").click();
   await expect(page.locator("#practiceList")).toContainText("すみません、少しお時間をいただけますか。");
   await page.locator("#helpBtn").click();
   await expect(page.locator("#helpOverlay")).toContainText("使い方ガイド");
   await expect(page.locator("#helpOverlay")).toContainText("パネルの見方");
+  await page.locator("#helpClose").click();
+  await page.locator("#guideBtn").click();
+  await expect(page.locator("#guideTitle")).toHaveText("女性声トレーニングマニュアル");
+  await expect(page.locator(".guide-close")).toHaveAttribute("aria-label", "マニュアルを閉じる");
+  await expect(page.locator("#guideContent")).toContainText("Who is this for");
   expect(runtimeErrors).toEqual([]);
 });
 

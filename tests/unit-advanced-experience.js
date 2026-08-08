@@ -616,6 +616,10 @@ function flattenDictionary(value, prefix = "", result = {}) {
 const flatEnglish = flattenDictionary(en);
 const flatJapanese = flattenDictionary(ja);
 assert.deepEqual(Object.keys(flatJapanese).sort(), Object.keys(flatEnglish).sort());
+assert.equal(ja.chips.localInference, "ローカルAI解析");
+assert.equal(ja.chips.realtimeMonitoring, "リアルタイム監視");
+assert.equal(ja.guide.title, "女性声トレーニングマニュアル");
+assert.equal(ja.guide.close, "マニュアルを閉じる");
 
 const intentionalJapaneseMatches = [
   "analysis.intonation.insufficient.rangeHint",
@@ -623,10 +627,6 @@ const intentionalJapaneseMatches = [
   "analysis.meter.scale.full",
   "analysis.meter.scale.sixty",
   "analysis.meter.scale.zero",
-  "chips.localInference",
-  "chips.realtimeMonitoring",
-  "chips.statsAndSummary",
-  "chips.themes30",
   "experiment.advanced.beta",
   "experiment.advanced.voiceAgeV2.dbValue",
   "experiment.advanced.voiceAgeV2.eyebrow",
@@ -636,8 +636,6 @@ const intentionalJapaneseMatches = [
   "experiment.quick.eyebrow",
   "experiment.quick.refine.eyebrow",
   "experiment.quick.reveal.eyebrow",
-  "guide.tagline",
-  "guide.title",
   "hero.title",
   "meta.title",
   "player.replayHintSpacer",
