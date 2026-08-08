@@ -8,15 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.4.21] - 2026-08-09
 
-### Added
+### Added（新增）
 
-- Added the standard MIT License with the project copyright notice.
-- Added a concise contributor guide covering fork, branch, dependency installation, testing, commit, push, and Pull Request workflow.
-- Added a README Contributing section linking to the contributor guide.
+- Added the standard MIT License with the project copyright notice.／新增含專案著作權聲明的標準 MIT License。
+- Added a concise contributor guide covering fork, branch, dependency installation, testing, commit, push, and Pull Request workflow.／新增簡短貢獻指南，說明 fork、分支、安裝依賴、測試、commit、push 與 Pull Request 流程。
+- Added a README Contributing section linking to the contributor guide.／在 README 新增 Contributing 段落並連結至貢獻指南。
 
-### Tests
+### Tests（測試）
 
-- Verified the existing project test commands and confirmed the license badge points to the root `LICENSE` file.
+- Verified the existing project test commands and confirmed the license badge points to the root `LICENSE` file.／確認現有專案測試指令可執行，並確認 License badge 指向根目錄的 `LICENSE` 檔案。
 
 ## [1.4.20] - 2026-08-09
 
