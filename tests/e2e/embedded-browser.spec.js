@@ -79,6 +79,10 @@ test.describe("iOS social app challenge browser", () => {
       timeout: 60_000,
     });
 
+    await expect(page.locator(".quick-result__insight > strong > .guidance-list > .guidance-row")).toHaveCount(3);
+    await expect(page.locator(".quick-result__pitch-hint > .guidance-list > .guidance-row")).toHaveCount(3);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+
     expect(await page.evaluate(() => window.__vpaPipelineCalls?.length || 0)).toBe(0);
     expect(await page.evaluate(() => window.__vpaInferenceCalls?.length || 0)).toBe(0);
     expect(await page.evaluate(() => window.vpaLatestAnalysis?.device)).toBe("acoustic-social-1");

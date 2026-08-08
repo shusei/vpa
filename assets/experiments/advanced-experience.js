@@ -1,18 +1,19 @@
-import { onInferenceDone } from "../app.js?v=1.4.17";
-import { getCurrentLocale, onLocaleChange, t } from "../js/i18n.js?v=1.4.17";
+import { onInferenceDone } from "../app.js?v=1.4.18";
+import { getCurrentLocale, onLocaleChange, t } from "../js/i18n.js?v=1.4.18";
 import { evaluateAdvancedExperience } from "./advanced-evaluator.js";
-import { createChallengeUrl } from "./challenge-link.js?v=1.4.17";
+import { createChallengeUrl } from "./challenge-link.js?v=1.4.18";
 import {
   getPublicShareResult,
   openPublicPlatformShare,
-} from "./public-share.js?v=1.4.17";
+} from "./public-share.js?v=1.4.18";
 import {
   buildShareTargets,
   buildShareUrl,
   createShareCardBlob,
   downloadBlob,
   shareWithSystem,
-} from "./share-card.js?v=1.4.17";
+} from "./share-card.js?v=1.4.18";
+import { renderGuidance } from "../js/guidance-markup.js";
 
 let lastAnalysis = null;
 let lastResult = null;
@@ -72,6 +73,10 @@ function componentLabel(key) {
 
 function renderComponent(key, score, weight) {
   const percent = Math.round(score * 100);
+  const guidance = t(`experiment.advanced.components.guidance.${key}`, {
+    value: percent,
+    weight,
+  });
   return `
     <div class="advanced-component">
       <div class="advanced-component__head">
@@ -82,6 +87,7 @@ function renderComponent(key, score, weight) {
         <span style="--advanced-score:${score}"></span>
       </div>
       <small>${escapeHtml(t("experiment.advanced.components.weight", { value: weight }))}</small>
+      <div class="advanced-component__guidance">${renderGuidance(guidance, escapeHtml)}</div>
     </div>
   `;
 }
@@ -125,11 +131,17 @@ function voiceMetricMarkup(labelKey, metric, valueKey, usedForAge) {
   const statusKey = usedForAge
     ? "experiment.advanced.voiceAgeV2.used"
     : "experiment.advanced.voiceAgeV2.connectedReference";
+  const value = metricValue(metric, valueKey);
+  const status = t(statusKey);
+  const guidance = t(`experiment.advanced.voiceAgeV2.metricGuidance.${labelKey}`, {
+    value,
+    status,
+  });
   return `
     <article class="voice-age-metric">
       <span>${escapeHtml(t(`experiment.advanced.voiceAgeV2.metrics.${labelKey}`))}</span>
-      <strong>${escapeHtml(metricValue(metric, valueKey))}</strong>
-      <small>${escapeHtml(t(statusKey))}</small>
+      <strong>${escapeHtml(value)}</strong>
+      <div class="voice-age-metric__guidance">${renderGuidance(guidance, escapeHtml)}</div>
     </article>
   `;
 }
@@ -471,7 +483,7 @@ export function renderAnalysis(analysis, { notify = true } = {}) {
             <span class="advanced-experience__pitch-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
           </div>
           <strong><b>${escapeHtml(pitchText)}</b><small>Hz</small></strong>
-          <small>${escapeHtml(t("experiment.advanced.pitchMedianHint"))}</small>
+          <small>${renderGuidance(t("experiment.advanced.pitchMedianHint"), escapeHtml)}</small>
         </div>
       </div>
     </div>
@@ -503,7 +515,7 @@ export function renderAnalysis(analysis, { notify = true } = {}) {
     ${voiceAgeEvidenceMarkup(result)}
     <div class="advanced-experience__insight">
       <span>${escapeHtml(t("experiment.advanced.insight.label"))}</span>
-      <strong>${escapeHtml(t(`experiment.advanced.insight.${result.insightKey}`))}</strong>
+      <strong>${renderGuidance(t(`experiment.advanced.insight.${result.insightKey}`), escapeHtml)}</strong>
     </div>
     <p class="advanced-experience__disclaimer">${escapeHtml(t("experiment.advanced.disclaimer"))}</p>
     <div class="advanced-share">

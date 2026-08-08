@@ -5,6 +5,7 @@ import zhHans from "../assets/i18n/zh-Hans.js";
 import zhHant from "../assets/i18n/zh-Hant.js";
 import { MANUAL_DATA, MANUAL_SOURCE_URLS } from "../assets/js/manual-data.js";
 import { MEDICAL_SAFETY_SOURCES } from "../assets/i18n/safety-copy.js";
+import { ANALYSIS_GUIDANCE_TEXT } from "../assets/i18n/analysis-guidance.js";
 
 const dictionaries = { en, ja, "zh-Hans": zhHans, "zh-Hant": zhHant };
 const officialUrls = [
@@ -43,8 +44,19 @@ const safetySignals = {
 };
 
 for (const [locale, dictionary] of Object.entries(dictionaries)) {
+  const guidanceLabels = ANALYSIS_GUIDANCE_TEXT[locale].labels;
+  const separator = locale === "en" ? ": " : "：";
+  const assertGuidance = (value, path) => {
+    assert.equal(typeof value, "string", `${locale} ${path} must be a string`);
+    for (const label of guidanceLabels) {
+      assert.match(value, new RegExp(`${label}${separator}`), `${locale} ${path} is missing ${label}`);
+    }
+    assert.equal(value.split(/\r?\n/).filter(Boolean).length, 3, `${locale} ${path} must have exactly three guidance rows`);
+  };
+
   const visibleCopy = JSON.stringify({
     analysis: dictionary.analysis,
+    pitchBands: dictionary.pitchBands,
     experiment: dictionary.experiment,
     help: dictionary.help,
     helpDialog: dictionary.helpDialog,
@@ -88,6 +100,54 @@ for (const [locale, dictionary] of Object.entries(dictionaries)) {
     /higher score|更高分|高い点/u,
     `${locale} retry control still pressures users to chase a score`,
   );
+
+  const guidedMetricGroups = {
+    resonanceBalance: dictionary.analysis.resonanceBalance,
+    tilt: dictionary.analysis.tilt,
+    breathiness: dictionary.analysis.breathiness,
+    brightness: dictionary.analysis.brightness,
+    vowelFocus: dictionary.analysis.vowelFocus,
+    speechRate: dictionary.analysis.speechRate,
+    liaison: dictionary.analysis.liaison,
+    intonationSlope: dictionary.analysis.intonation.slope,
+    intonationRange: dictionary.analysis.intonation.range,
+  };
+  const metricNextSteps = [];
+  for (const [groupName, states] of Object.entries(guidedMetricGroups)) {
+    const hints = Object.entries(states).filter(([, entry]) => entry && typeof entry === "object" && "hint" in entry).map(([state, entry]) => {
+      assertGuidance(entry.hint, `analysis.${groupName}.${state}.hint`);
+      return entry.hint;
+    });
+    assert.ok(new Set(hints).size > 1, `${locale} ${groupName} still repeats one generic hint for every result`);
+    const representative = Object.entries(states).find(([state, entry]) => state !== "insufficient" && entry?.hint)?.[1]?.hint;
+    if (representative) metricNextSteps.push(representative.split(/\r?\n/)[2]);
+  }
+  assert.ok(new Set(metricNextSteps).size >= 8, `${locale} detailed metrics still share generic next steps instead of metric-specific guidance`);
+
+  const formantNextSteps = [];
+  for (const [formant, states] of Object.entries(dictionary.analysis.formant.guidance)) {
+    for (const [state, value] of Object.entries(states)) {
+      assertGuidance(value, `analysis.formant.guidance.${formant}.${state}`);
+    }
+    formantNextSteps.push(states.low.split(/\r?\n/)[2]);
+  }
+  assert.equal(new Set(formantNextSteps).size, 3, `${locale} F1/F2/F3 still share one generic next step`);
+  assertGuidance(dictionary.analysis.meter.hint, "analysis.meter.hint");
+  assertGuidance(dictionary.experiment.quick.reveal.pitchSingleHint, "experiment.quick.reveal.pitchSingleHint");
+  assertGuidance(dictionary.experiment.quick.reveal.pitchStandardHint, "experiment.quick.reveal.pitchStandardHint");
+  assertGuidance(dictionary.experiment.advanced.pitchMedianHint, "experiment.advanced.pitchMedianHint");
+  for (const [key, value] of Object.entries(dictionary.experiment.advanced.components.guidance)) {
+    assertGuidance(value, `experiment.advanced.components.guidance.${key}`);
+  }
+  for (const [key, value] of Object.entries(dictionary.experiment.advanced.voiceAgeV2.metricGuidance)) {
+    assertGuidance(value, `experiment.advanced.voiceAgeV2.metricGuidance.${key}`);
+  }
+  for (const [key, value] of Object.entries(dictionary.experiment.advanced.insight)) {
+    if (key !== "label") assertGuidance(value, `experiment.advanced.insight.${key}`);
+  }
+  for (const [key, value] of Object.entries(dictionary.summary.focus.items)) {
+    assertGuidance(value, `summary.focus.items.${key}`);
+  }
 }
 
-console.log("[PASS] Medical-safety copy audit passed for Quick, Advanced, Help, and Manual in all 4 locales.");
+console.log("[PASS] Medical-safety and three-part guidance audits passed for Quick, Advanced, Help, and Manual in all 4 locales.");

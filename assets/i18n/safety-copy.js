@@ -1,3 +1,5 @@
+import { buildAnalysisGuidance } from "./analysis-guidance.js";
+
 const SOURCES = {
   asha: "https://www.asha.org/practice-portal/professional-issues/gender-affirming-voice-and-communication/",
   nidcdCare: "https://www.nidcd.nih.gov/health/taking-care-your-voice",
@@ -344,6 +346,7 @@ function buildOverride(locale) {
       comparePitch: "Compare pitch", compareSpectral: "Compare spectral trend", compareBreath: "Compare spectral proxy", comparePace: "Compare pacing", openGuide: "Open recording guide",
       formantTitle: "Formant & spectral proxies", intonationTitle: "Intonation & pacing descriptors", vowelTitle: "Vowel-reference & spectral proxies",
       resonanceLabels: { insufficient: "Not enough data", balanced: "Even spectral bands", headBright: "More high-band energy", chestHeavy: "More low-band energy", maskLead: "More mid-band energy" },
+      vowelLabels: { insufficient: "Not enough data", strong: "More frames in app reference", medium: "Mixed relative pattern", weak: "Fewer frames in app reference" },
     },
     ja: {
       appReference: "アプリ参考帯 · 録音条件で変化", spectralNoTarget: "スペクトル代理指標 · 目標値なし",
@@ -352,6 +355,7 @@ function buildOverride(locale) {
       comparePitch: "ピッチを比較", compareSpectral: "スペクトル傾向を比較", compareBreath: "代理指標を比較", comparePace: "話速を比較", openGuide: "録音ガイドを開く",
       formantTitle: "フォルマントとスペクトル代理指標", intonationTitle: "イントネーションと話速の記述", vowelTitle: "母音参考帯とスペクトル代理指標",
       resonanceLabels: { insufficient: "データ不足", balanced: "周波数帯が均等", headBright: "高域エネルギーが多め", chestHeavy: "低域エネルギーが多め", maskLead: "中域エネルギーが多め" },
+      vowelLabels: { insufficient: "データ不足", strong: "参考帯のフレームが多め", medium: "混合した相対パターン", weak: "参考帯のフレームが少なめ" },
     },
     "zh-Hans": {
       appReference: "应用参考带 · 随录音条件改变", spectralNoTarget: "频谱代理指标 · 无目标值",
@@ -360,6 +364,7 @@ function buildOverride(locale) {
       comparePitch: "比较音高", compareSpectral: "比较频谱趋势", compareBreath: "比较频谱代理指标", comparePace: "比较语速", openGuide: "打开录音指南",
       formantTitle: "共振峰与频谱代理指标", intonationTitle: "语调与语速描述", vowelTitle: "元音参考带与频谱代理指标",
       resonanceLabels: { insufficient: "数据不足", balanced: "频段能量较平均", headBright: "高频能量较多", chestHeavy: "低频能量较多", maskLead: "中频能量较多" },
+      vowelLabels: { insufficient: "数据不足", strong: "较多帧位于应用参考带", medium: "混合的相对分布", weak: "较少帧位于应用参考带" },
     },
     "zh-Hant": {
       appReference: "應用參考帶 · 隨錄音條件改變", spectralNoTarget: "頻譜代理指標 · 無目標值",
@@ -368,13 +373,36 @@ function buildOverride(locale) {
       comparePitch: "比較音高", compareSpectral: "比較頻譜趨勢", compareBreath: "比較頻譜代理指標", comparePace: "比較語速", openGuide: "開啟錄音指南",
       formantTitle: "共振峰與頻譜代理指標", intonationTitle: "語調與語速描述", vowelTitle: "母音參考帶與頻譜代理指標",
       resonanceLabels: { insufficient: "資料不足", balanced: "頻段能量較平均", headBright: "高頻能量較多", chestHeavy: "低頻能量較多", maskLead: "中頻能量較多" },
+      vowelLabels: { insufficient: "資料不足", strong: "較多幀位於應用參考帶", medium: "混合的相對分布", weak: "較少幀位於應用參考帶" },
     },
   }[locale] || null;
   const proxyStates = ["insufficient", "balanced", "headBright", "chestHeavy", "maskLead"];
   const tiltStates = ["insufficient", "warm", "gentleWarm", "balanced", "bright"];
   const breathStates = ["insufficient", "dense", "balanced", "airy", "style", "tooAiry"];
   const brightStates = ["insufficient", "balanced", "warm", "sparkle", "sweet", "sweetMasculine", "sparkleMasculine", "sharp"];
-  return {
+  const pitchBandLabels = {
+    "zh-Hant": {
+      male: "應用程式男性化音高參考帶（85–165Hz）",
+      overlap: "應用程式重疊音高參考帶（165–180Hz）",
+      female: "應用程式女性化音高參考帶（180–310Hz）",
+    },
+    "zh-Hans": {
+      male: "应用程序男性化音高参考带（85–165Hz）",
+      overlap: "应用程序重叠音高参考带（165–180Hz）",
+      female: "应用程序女性化音高参考带（180–310Hz）",
+    },
+    en: {
+      male: "App masculine-presentation pitch reference (85–165 Hz)",
+      overlap: "App overlap pitch reference (165–180 Hz)",
+      female: "App feminine-presentation pitch reference (180–310 Hz)",
+    },
+    ja: {
+      male: "アプリのマスキュリン提示ピッチ参考帯（85〜165 Hz）",
+      overlap: "アプリの重なりピッチ参考帯（165〜180 Hz）",
+      female: "アプリのフェミニン提示ピッチ参考帯（180〜310 Hz）",
+    },
+  }[locale];
+  const safetyOverride = {
     guide: { tagline: t.guideTagline, title: MANUAL_TITLES[locale] || MANUAL_TITLES.en },
     callout: { bodyHtml: `<p>${(PREFLIGHT_UI[locale] || PREFLIGHT_UI.en).callout}</p>` },
     practice: { warmup: PREFLIGHT_UI[locale] || PREFLIGHT_UI.en },
@@ -385,6 +413,7 @@ function buildOverride(locale) {
       ethics: { position: t.helpPosition, warning: t.helpWarning },
     },
     helpDialog: { dialogHtml: helpDialog(t, locale) },
+    pitchBands: pitchBandLabels,
     experiment: {
       advanced: {
         beta: t.advBeta, title: t.advTitle, strictScore: t.advScore,
@@ -476,9 +505,10 @@ function buildOverride(locale) {
           voicedLow: t.proxyHint, brightnessSharp: t.proxyHint,
         },
       },
-      advanced: { formantTitle: ui.formantTitle, intonationTitle: ui.intonationTitle, vowelBreathTitle: ui.vowelTitle },
+      advanced: { formantTitle: ui.formantTitle, intonationTitle: ui.intonationTitle, vowelBreathTitle: ui.vowelTitle, referenceBand: ui.appReference },
     },
   };
+  return deepMerge(safetyOverride, buildAnalysisGuidance(locale, ui));
 }
 
 export function applySafetyCopy(locale, dictionary) {

@@ -1275,6 +1275,44 @@ html[data-faction="dark"] .adv-card--resonance .resonance-bar {
   color: color-mix(in oklab, var(--ink) 76%, var(--muted) 24%);
 }
 
+.guidance-list {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  font-weight: 500;
+  line-height: 1.55;
+}
+
+.guidance-row {
+  display: grid;
+  grid-template-columns: minmax(76px, max-content) minmax(0, 1fr);
+  gap: 6px 10px;
+  align-items: start;
+}
+
+.guidance-row + .guidance-row {
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in oklab, currentColor 12%, transparent);
+}
+
+.guidance-row b {
+  color: color-mix(in oklab, var(--accent-1) 68%, currentColor 32%);
+  font-size: .82em;
+  font-weight: 850;
+  letter-spacing: .025em;
+  line-height: 1.65;
+}
+
+.guidance-row span {
+  min-width: 0;
+}
+
+.adv-card .guidance-row,
+.quick-result__pitch .guidance-row {
+  grid-template-columns: 1fr;
+  gap: 2px;
+}
+
 .adv-card--resonance {
   gap: 6px;
 }
@@ -2105,6 +2143,37 @@ html[data-faction="dark"] .practice-result b {
 
 /* --- Added: mobile sizing tweaks for focus chips --- */
 @media (max-width: 600px) {
+  .adv-details > summary {
+    display: grid;
+    grid-template-columns: 14px minmax(0, 1fr);
+    justify-content: normal;
+    align-items: start;
+    gap: 7px 8px;
+  }
+
+  .adv-details > summary::before {
+    grid-row: 1 / span 2;
+    margin-right: 0;
+  }
+
+  .adv-details > summary .adv-title,
+  .adv-details > summary .adv-baselines {
+    grid-column: 2;
+    min-width: 0;
+  }
+
+  .adv-details > summary .adv-baselines {
+    width: 100%;
+  }
+
+  .adv-details > summary .baseline {
+    width: 100%;
+    min-width: 0;
+    border-radius: 10px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
   .focus-chip {
     flex: 1 1 auto;
     padding: 8px 10px;

@@ -631,7 +631,6 @@ assert.equal(ja.guide.title, "女性的な声のマニュアル");
 assert.equal(ja.guide.close, "マニュアルを閉じる");
 
 const intentionalJapaneseMatches = [
-  "analysis.intonation.insufficient.rangeHint",
   "analysis.meter.scale.forty",
   "analysis.meter.scale.full",
   "analysis.meter.scale.sixty",

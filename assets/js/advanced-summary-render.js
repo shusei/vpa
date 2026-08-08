@@ -6,6 +6,7 @@ import {
   describeResonanceFromEnergy,
   buildFormantTrendDisplay,
 } from "./advanced-metrics.js";
+import { renderGuidance } from "./guidance-markup.js";
 
 export function createAdvancedSummaryRenderer(deps) {
   const {
@@ -137,7 +138,7 @@ function renderBeginnerHighlights(summary, context = {}) {
     <div class="adv-card beginner-summary__card" data-highlight="${escapeAttr(card.key)}">
       <div class="k">${escapeHtml(card.title)}</div>
       <div class="v">${escapeHtml(card.value)}</div>
-      <div class="hint">${escapeHtml(card.tip)}</div>
+      <div class="hint">${renderGuidance(card.tip, escapeHtml)}</div>
     </div>
   `).join("");
 
@@ -218,6 +219,9 @@ function renderAdvancedSummary(summary, context = {}) {
   const f1Val = Number.isFinite(f1) ? fmt1(f1) : buildFormantTrendDisplay(f1Trend, f1Cov, Number.isFinite(f1Cov));
   const f2Val = Number.isFinite(f2) ? fmt1(f2) : buildFormantTrendDisplay(f2Trend, f2Cov, Number.isFinite(f2Cov));
   const f3Val = Number.isFinite(f3) ? fmt1(f3) : buildFormantTrendDisplay(f3Trend, f3Cov, Number.isFinite(f3Cov));
+  const f1Display = Number.isFinite(f1) ? `${f1Val}Hz` : f1Val;
+  const f2Display = Number.isFinite(f2) ? `${f2Val}Hz` : f2Val;
+  const f3Display = Number.isFinite(f3) ? `${f3Val}Hz` : f3Val;
   const f1Hint = Number.isFinite(f1) ? makeFormantHint("F1", f1, 170, 420) : makeFormantHint("F1", NaN, 170, 420);
   const f2Hint = Number.isFinite(f2) ? makeFormantHint("F2", f2, 1450, 2750) : makeFormantHint("F2", NaN, 1450, 2750);
   const f3Hint = Number.isFinite(f3) ? makeFormantHint("F3", f3, 2400, 3400) : makeFormantHint("F3", NaN, 2400, 3400);
@@ -285,7 +289,7 @@ function renderAdvancedSummary(summary, context = {}) {
     : "";
   const percentSuffix = (value) => summaryString("percentSuffix", { value }) || `${value}%`;
   const breathDisplay = Number.isFinite(breathPct) ? percentSuffix(Math.round(breathPct)) : "—";
-  const safeHint = (s) => s ? escapeHtml(s) : "&nbsp;";
+  const safeHint = (s) => renderGuidance(s, escapeHtml);
 
   const mode = getAdvancedMode();
   const beginnerHighlights = mode === "beginner" ? renderBeginnerHighlights(summary, context) : "";
@@ -297,6 +301,7 @@ function renderAdvancedSummary(summary, context = {}) {
   const titleFormant = advCopy.formantTitle || t("summary.advanced.formantTitle") || t("realtime.formantTitle") || "Formant & Resonance";
   const titleIntonation = advCopy.intonationTitle || t("summary.advanced.intonationTitle") || "Intonation & Speech";
   const titleVowel = advCopy.vowelBreathTitle || t("summary.advanced.vowelBreathTitle") || "Vowel & Breathiness";
+  const formatReferenceRange = (baseline) => `${advCopy.referenceBand || t("summary.advanced.referenceBand") || "App reference"} ${formatBaselineRange(baseline)}`;
 
   return `
     <div class="advanced-section" data-mode="${mode}">
@@ -314,28 +319,28 @@ function renderAdvancedSummary(summary, context = {}) {
         <summary>
           <span class="adv-title">${escapeHtml(titleFormant)}</span>
           <span class="adv-baselines">
-            <span class="baseline">F1 ${f1Val}Hz (${escapeHtml(formatBaselineRange(BASELINES.f1))})</span>
-            <span class="baseline">F2 ${f2Val}Hz (${escapeHtml(formatBaselineRange(BASELINES.f2))})</span>
-            <span class="baseline">F3 ${f3Val}Hz (${escapeHtml(formatBaselineRange(BASELINES.f3))})</span>
+            <span class="baseline">F1 ${f1Display} (${escapeHtml(formatReferenceRange(BASELINES.f1))})</span>
+            <span class="baseline">F2 ${f2Display} (${escapeHtml(formatReferenceRange(BASELINES.f2))})</span>
+            <span class="baseline">F3 ${f3Display} (${escapeHtml(formatReferenceRange(BASELINES.f3))})</span>
             <span class="baseline">${escapeHtml(labelResonance)}: ${escapeHtml(resonanceDisplay)}</span>
           </span>
         </summary>
         <div class="advanced-grid advanced-grid--four">
           <div class="adv-card" title="${escapeAttr(f1Hint)}">
             <div class="k">${escapeHtml(labelFormantF1)}</div>
-            <div class="v">${f1Val}Hz</div>
+            <div class="v">${f1Display}</div>
             ${renderGauge(f1, BASELINES.f1, labelFormantF1)}
             <div class="hint">${safeHint(f1Hint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(f2Hint)}">
             <div class="k">${escapeHtml(labelFormantF2)}</div>
-            <div class="v">${f2Val}Hz</div>
+            <div class="v">${f2Display}</div>
             ${renderGauge(f2, BASELINES.f2, labelFormantF2)}
             <div class="hint">${safeHint(f2Hint)}</div>
           </div>
           <div class="adv-card" title="${escapeAttr(f3Hint)}">
             <div class="k">${escapeHtml(labelFormantF3)}</div>
-            <div class="v">${f3Val}Hz</div>
+            <div class="v">${f3Display}</div>
             ${renderGauge(f3, BASELINES.f3, labelFormantF3)}
             <div class="hint">${safeHint(f3Hint)}</div>
           </div>
@@ -399,12 +404,11 @@ function renderAdvancedSummary(summary, context = {}) {
           <span class="adv-title">${escapeHtml(titleVowel)}</span>
           <span class="adv-baselines">
             <span class="baseline">${escapeHtml(labelBrightness)}: ${escapeHtml(brightnessDisplay)}</span>
-            <span class="baseline">${escapeHtml(labelBreathiness)}: ${escapeHtml(breathDisplay)} (${escapeHtml(formatBaselineRange(BASELINES.breath))})</span>
+            <span class="baseline">${escapeHtml(labelBreathiness)}: ${escapeHtml(breathDisplay)} (${escapeHtml(formatReferenceRange(BASELINES.breath))})</span>
             <span class="baseline">${escapeHtml(labelVowelFocus)}: ${escapeHtml(vowelDisplay || "—")}</span>
-            <span class="baseline">${escapeHtml(labelLiaison)}: ${escapeHtml(liaisonDisplay || "—")} (${escapeHtml(formatBaselineRange(BASELINES.liaison))})</span>
+            <span class="baseline">${escapeHtml(labelLiaison)}: ${escapeHtml(liaisonDisplay || "—")} (${escapeHtml(formatReferenceRange(BASELINES.liaison))})</span>
           </span>
         </summary>
-        <div class="adv-note">${safeHint(brightnessHint)}</div>
         <div class="advanced-grid advanced-grid--three">
           <div class="adv-card">
             <div class="k">${escapeHtml(labelBrightness)}</div>

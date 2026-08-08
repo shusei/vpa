@@ -1,11 +1,11 @@
-import { t } from "../js/i18n.js?v=1.4.17";
-import { buildShareText, shareResultFiles } from "./audio-share.js?v=1.4.17";
+import { t } from "../js/i18n.js?v=1.4.18";
+import { buildShareText, shareResultFiles } from "./audio-share.js?v=1.4.18";
 import {
   createSelectedAudioFile,
   defaultClipRange,
   generateDynamicVoiceCard,
   readAudioDuration,
-} from "./dynamic-voice-card.js?v=1.4.17";
+} from "./dynamic-voice-card.js?v=1.4.18";
 
 function escapeHtml(value) {
   return String(value ?? "")

@@ -827,7 +827,7 @@ html[data-faction="dark"] .quick-experience {
   letter-spacing:.08em;
 }
 .quick-result__identity .quick-result__pitch-hint {
-  max-width:22ch;
+  max-width:none;
   color:var(--quick-muted);
   font-size:.7rem;
   line-height:1.45;

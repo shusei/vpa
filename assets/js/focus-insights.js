@@ -1,3 +1,5 @@
+import { renderGuidance } from "./guidance-markup.js";
+
 const PRACTICE_CATEGORY_BRIDGE = Object.freeze({
   pitch: "greet",
   resonance: "work",
@@ -5,6 +7,15 @@ const PRACTICE_CATEGORY_BRIDGE = Object.freeze({
   pace: "assist",
   clarity: "cs",
 });
+
+function escapeGuidanceHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
 
 export function createFocusHelpers(deps) {
   const {
@@ -155,7 +166,7 @@ export function createFocusHelpers(deps) {
       <li class="focus-item focus-item--${item.severity}">
         <div class="focus-chip">
           <span class="focus-severity">${item.severityLabel}</span>
-          <span class="focus-title">${item.title}</span>
+          <span class="focus-title">${renderGuidance(item.title, escapeGuidanceHtml)}</span>
         </div>
         ${ctaHtml}
       </li>

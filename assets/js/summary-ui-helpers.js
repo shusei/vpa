@@ -22,7 +22,7 @@ export function createSummaryUIHelpers(deps) {
     const pct = clamp((value - visualMin) / Math.max(1e-6, (visualMax - visualMin)) * 100, 0, 100);
     const cls = (value >= min && value <= max) ? "is-ok" : (value < min ? "is-low" : "is-high");
     const valueDisplay = (unit === "%") ? fmt0(value) : fmt1(value);
-    const title = `${label}: ${valueDisplay}${unit || ""} · target ${fmt0(min)}–${fmt0(max)}${unit || ""}`;
+    const title = `${label}: ${valueDisplay}${unit || ""} · app reference ${fmt0(min)}–${fmt0(max)}${unit || ""}`;
     return `
     <span class="gauge ${cls}" title="${escapeAttr(title)}" role="meter" aria-valuemin="${min}" aria-valuemax="${max}" aria-valuenow="${fmt0(value)}" aria-label="${escapeAttr(label)}">
       <span class="gauge__track">

@@ -1,38 +1,39 @@
-import { recorderCtl } from "../app.js?v=1.4.17";
+import { recorderCtl } from "../app.js?v=1.4.18";
 import { registerDecodedAudioAnalyzer } from "../js/analysis-flow.js";
 import {
   getCurrentLocale,
   onLocaleChange,
   setLocale,
   t,
-} from "../js/i18n.js?v=1.4.17";
+} from "../js/i18n.js?v=1.4.18";
 import {
   createResultCard,
   formatAdvancedResult,
   onAdvancedResult,
   prepareAdvancedXShare,
-} from "./advanced-experience.js?v=1.4.17";
-import { shareResultFiles } from "./audio-share.js?v=1.4.17";
+} from "./advanced-experience.js?v=1.4.18";
+import { shareResultFiles } from "./audio-share.js?v=1.4.18";
 import {
   compareChallenge,
   createChallengeUrl,
   readChallenge,
-} from "./challenge-link.js?v=1.4.17";
-import { createDynamicCardController } from "./dynamic-card-controller.js?v=1.4.17";
+} from "./challenge-link.js?v=1.4.18";
+import { createDynamicCardController } from "./dynamic-card-controller.js?v=1.4.18";
 import {
   getDailyPromptId,
   getStandardPromptId,
   promptTranslationKey,
   STANDARD_PROMPT_IDS,
   STANDARD_TEST_ID,
-} from "./quick-prompts.js?v=1.4.17";
-import { buildShareTargets, downloadBlob } from "./share-card.js?v=1.4.17";
+} from "./quick-prompts.js?v=1.4.18";
+import { buildShareTargets, downloadBlob } from "./share-card.js?v=1.4.18";
+import { renderGuidance } from "../js/guidance-markup.js";
 import {
   getPublicShareResult,
   openPublicPlatformShare,
   resetPublicShareCache,
-} from "./public-share.js?v=1.4.17";
-import { aggregateStandardResults } from "./standard-result.js?v=1.4.17";
+} from "./public-share.js?v=1.4.18";
+import { aggregateStandardResults } from "./standard-result.js?v=1.4.18";
 import { analyzeVoiceQuality } from "./voice-quality-metrics.js";
 
 const EXPERIENCE_KEY = "vpa::experiment.experience";
@@ -626,7 +627,7 @@ function resultMarkup() {
               <b>${escapeHtml(pitchText)}</b>
               <small>Hz</small>
             </strong>
-            <small class="quick-result__pitch-hint">${escapeHtml(t(`experiment.quick.reveal.${pitchHintKey}`))}</small>
+            <small class="quick-result__pitch-hint">${renderGuidance(t(`experiment.quick.reveal.${pitchHintKey}`), escapeHtml)}</small>
           </article>
           <article>
             <span>${escapeHtml(t("experiment.quick.reveal.age"))}</span>
@@ -639,7 +640,7 @@ function resultMarkup() {
         </div>
         <article class="quick-result__insight">
           <span>${escapeHtml(t("experiment.quick.reveal.insight"))}</span>
-          <strong>${escapeHtml(formatted.insight)}</strong>
+          <strong>${renderGuidance(formatted.insight, escapeHtml)}</strong>
         </article>
         <aside class="quick-result__safety" aria-label="${escapeHtml(t("experiment.quick.safety.title"))}">
           <span aria-hidden="true">♡</span>

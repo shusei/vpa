@@ -11,7 +11,7 @@ export function wireAdvancedIntonation(advRoot, advSummary, deps = {}) {
   function resizeIntonationCanvas(canvas) {
     const pxRatio = Math.max(1, window.devicePixelRatio || 1);
     const box = canvas.parentElement || canvas;
-    const cssWidth = Math.max(320, Math.floor(box.clientWidth || 600));
+    const cssWidth = Math.max(1, Math.floor(box.clientWidth || 600));
     const cssHeight = 160;
     canvas.style.width = cssWidth + "px";
     canvas.style.height = cssHeight + "px";

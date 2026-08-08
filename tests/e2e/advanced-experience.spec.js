@@ -355,6 +355,31 @@ test.describe("mobile advanced experience", () => {
       return Boolean(advanced.compareDocumentPosition(statistics) & Node.DOCUMENT_POSITION_FOLLOWING);
     })).toBe(true);
     await expect(page.locator(".advanced-share__platforms")).toBeVisible();
+
+    await page.evaluate((summary) => {
+      const host = document.createElement("div");
+      host.id = "mobileAdvancedSummaryProbe";
+      host.innerHTML = window.vpaDebugHooks.renderAdvancedSummary(summary);
+      host.querySelector(".advanced-section")?.setAttribute("data-mode", "advanced");
+      host.querySelectorAll(".adv-details").forEach((details) => {
+        details.open = true;
+      });
+      document.getElementById("streamStats")?.append(host);
+    }, fixture.advanced);
+    const detailsProbe = page.locator("#mobileAdvancedSummaryProbe");
+    await expect(detailsProbe.locator(".adv-details[open]")).toHaveCount(3);
+    const expandedLayout = await page.evaluate(() => {
+      const summaries = [...document.querySelectorAll("#mobileAdvancedSummaryProbe .adv-details > summary")];
+      return {
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        titleWidths: summaries.map((summary) => summary.querySelector(".adv-title")?.getBoundingClientRect().width || 0),
+        rowCounts: [...document.querySelectorAll("#mobileAdvancedSummaryProbe .guidance-list")]
+          .map((list) => list.querySelectorAll(".guidance-row").length),
+      };
+    });
+    expect(expandedLayout.overflow).toBeLessThanOrEqual(1);
+    expect(expandedLayout.titleWidths.every((width) => width > 180)).toBe(true);
+    expect(expandedLayout.rowCounts.every((count) => count === 3)).toBe(true);
     expect(runtimeErrors).toEqual([]);
   });
 });

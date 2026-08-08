@@ -1,4 +1,4 @@
-import { t } from "./i18n.js?v=1.4.17";
+import { t } from "./i18n.js?v=1.4.18";
 import {
   statusEl,
   statusLabel,

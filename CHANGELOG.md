@@ -6,6 +6,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.18] - 2026-08-09
+
+### Changed
+
+- Rewrote every Quick and Advanced analysis explanation into a consistent three-part structure: what the metric measures, what this recording means, and a metric-specific next comparison.
+- Extended useful guidance to the four weighted Advanced components, Jitter, Shimmer, HNR, CPP, beginner highlights, focus cards, and all detailed formant, spectrum, articulation, pace, liaison, and intonation cards.
+- Replaced population-sounding pitch-band labels with explicit app reference-band wording and improved the one-column mobile layout for voice-age evidence.
+- Kept recommendations comfort-first and comparison-based while preserving meaningful interpretation instead of repeating generic non-diagnostic disclaimers.
+
+### Fixed
+
+- Prevented an unavailable F1, F2, or F3 result from incorrectly displaying an appended `Hz` unit.
+- Removed a duplicated brightness explanation from the expanded detail layout.
+- Kept the intonation chart inside its mobile card instead of forcing a 320 px minimum width and creating a horizontal scrollbar.
+
+### Tests
+
+- Added four-locale regression checks requiring exactly three guidance rows, metric-specific next steps, distinct F1/F2/F3 guidance, and complete Quick/Advanced coverage.
+- Added mobile browser assertions for structured Quick guidance and horizontal-overflow safety.
+
 ## [1.4.17] - 2026-08-09
 
 ### Fixed

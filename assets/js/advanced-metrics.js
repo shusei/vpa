@@ -1,5 +1,5 @@
 import { EPS } from "./constants.js";
-import { t } from "./i18n.js?v=1.4.17";
+import { t } from "./i18n.js?v=1.4.18";
 import {
   PS_INTERVAL_MS,
   CONFIDENCE_INCLUDE_THRESHOLD,
@@ -340,20 +340,29 @@ export function categorizeBreathiness(val, ctx = {}) {
 export function makeFormantHint(label, value, low, high) {
   const labelName = t(`analysis.formant.rangeLabels.${label}`);
   const labelWithName = labelName ? `${label} (${labelName})` : label;
+  const translatedGuidance = (state) => {
+    const key = `analysis.formant.guidance.${label}.${state}`;
+    const value = t(key);
+    return value && value !== key ? value : "";
+  };
   if (!Number.isFinite(value)) {
-    return t("analysis.formant.insufficient", { label: labelWithName });
+    return translatedGuidance("insufficient") || t("analysis.formant.insufficient", { label: labelWithName });
   }
   const lowHint = t(`analysis.formant.low.${label}`);
   const highHint = t(`analysis.formant.high.${label}`);
   if (value < low) {
+    const guidance = translatedGuidance("low");
+    if (guidance) return guidance;
     const msg = t("analysis.formant.lowMessage", { label: labelWithName, hint: lowHint });
     return msg || `${labelWithName} ${lowHint}`;
   }
   if (value > high) {
+    const guidance = translatedGuidance("high");
+    if (guidance) return guidance;
     const msg = t("analysis.formant.highMessage", { label: labelWithName, hint: highHint });
     return msg || `${labelWithName} ${highHint}`;
   }
-  return t("analysis.formant.inRange", { label: labelWithName });
+  return translatedGuidance("inRange") || t("analysis.formant.inRange", { label: labelWithName });
 }
 
 export function summarizeFormantTrends(store, statsBundle, options = {}) {
