@@ -1,14 +1,14 @@
 // ===== Transformers pipeline =====
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
 
-import { estimateAcousticPresentation } from "./js/acoustic-fast-path.js?v=1.4.14";
-import { initI18n, t, getLocaleValue, onLocaleChange } from "./js/i18n.js?v=1.4.14";
+import { estimateAcousticPresentation } from "./js/acoustic-fast-path.js?v=1.4.15";
+import { initI18n, t, getLocaleValue, onLocaleChange } from "./js/i18n.js?v=1.4.15";
 import {
   analyzeWhole as sharedAnalyzeWhole,
   analyzeStreamed as sharedAnalyzeStreamed,
   runStreamedWithWindow as sharedRunStreamedWithWindow,
 } from "./js/analysis-core.js";
-import { createAnalysisEngineBridge } from "./js/analysis-engine-bridge.js?v=1.4.14";
+import { createAnalysisEngineBridge } from "./js/analysis-engine-bridge.js?v=1.4.15";
 import {
   createAnalysisFlowController,
   runDecodedAudioAnalyzers as sharedRunDecodedAudioAnalyzers,
@@ -68,7 +68,7 @@ import {
   isPlaying as sharedIsPlaying,
   playLastRecording as sharedPlayLastRecording,
   setPlaybackSource as sharedSetPlaybackSource,
-} from "./js/player-ui.js?v=1.4.14";
+} from "./js/player-ui.js?v=1.4.15";
 import { createPlayerSessionController } from "./js/player-session.js";
 import { createPitchProfileController } from "./js/pitch-profile.js";
 import { createPitchRuntimeCore } from "./js/pitch-runtime-core.js";
@@ -85,25 +85,25 @@ import {
   pickSupportedMime as sharedPickSupportedMime,
   requestMicStream as sharedRequestMicStream,
 } from "./js/recording-utils.js";
-import { createRecordingFlowController } from "./js/recording-flow.js?v=1.4.14";
+import { createRecordingFlowController } from "./js/recording-flow.js?v=1.4.15";
 import {
   bandOf as sharedBandOf,
   isDivergent as sharedIsDivergent,
 } from "./js/summary-helpers.js";
 import { detectThreadCount as sharedDetectThreadCount } from "./js/thread-count.js";
-import { installEmbeddedBrowserGuard } from "./js/embedded-browser.js?v=1.4.14";
+import { installEmbeddedBrowserGuard } from "./js/embedded-browser.js?v=1.4.15";
 import {
   mobileInferenceMaxSec,
   shouldUseEmbeddedAcousticFastPath,
   shouldUseMobileFastPath,
   selectRepresentativeSamples,
-} from "./js/inference-sampling.js?v=1.4.14";
+} from "./js/inference-sampling.js?v=1.4.15";
 import { pickStreamStrategy as sharedPickStreamStrategy } from "./js/stream-strategy.js";
 import { finishStreamStats as sharedFinishStreamStats } from "./js/stats-core.js";
 import { createStatsOrchestration } from "./js/stats-orchestration.js";
 import { maybeApplyAdaptiveVAD as sharedMaybeApplyAdaptiveVAD } from "./js/vad-adaptive.js";
 import { bindMainUIEvents as sharedBindMainUIEvents } from "./js/ui-events.js";
-import { createUIStateControls } from "./js/ui-state-controls.js?v=1.4.14";
+import { createUIStateControls } from "./js/ui-state-controls.js?v=1.4.15";
 
 import {
   recordBtn,

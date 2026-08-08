@@ -1,22 +1,22 @@
-import { applySafetyCopy } from "./safety-copy.js?v=1.4.14";
+import { applySafetyCopy } from "./safety-copy.js?v=1.4.15";
 
 const practiceWarmup = {
-  title: "暖身三步骤",
-  summary: "录音前 1 分钟快速开声。",
-  intro: "主界面录音键下方也能展开这张卡片，按顺序练一次再开始录音。",
-  shortcutHtml: '主界面录音键下方有 <a href="#warmupCard">「暖身三步骤」卡片</a>，从指南点按可直接跳回主界面暖身。',
+  title: "录音前舒适检查",
+  summary: "录音前快速确认声音与环境。",
+  intro: "录音前确认三件事；这不是发声训练，也不需要改变声音。",
+  shortcutHtml: '回到录音键下方的<a href="#warmupCard">录音前舒适检查</a>，每次测试前都能快速确认。',
   steps: {
     hum: {
-      name: "嗯",
-      desc: "：轻哼把震动带到鼻梁，对应共鸣卡的「胸腔偏重」提示。",
+      name: "平常说一句",
+      desc: "：用日常音量说一小句，不先调整音高、共鸣或气声。",
     },
     yi: {
-      name: "依——",
-      desc: "：拉长前元音让舌头前放，提升元音聚焦指标。",
+      name: "确认感受",
+      desc: "：确认没有疼痛、沙哑、紧绷或明显费力；出现任何一项就停止。",
     },
     hu: {
-      name: "呼",
-      desc: "：慢慢吐气放松喉头，稳定气声比例与频谱倾斜度。",
+      name: "保持相同环境",
+      desc: "：尽量维持相近的麦克风距离与环境噪音，方便公平比较录音。",
     },
   },
 };
@@ -501,7 +501,7 @@ const dictionary = {
     },
   },
   callout: {
-    bodyHtml: '<p>提示：可录音或上传 mp3 / m4a / mp4 / mov，也能把文件直接拖拽到主页面。录音期间会显示即时 Hz Stream（音高走势）与共鸣监控，分析完成提供回放、倾向仪表与统计简要评价；开始前可展开「暖身三步骤」。需要导览请点右上角 <b>❓</b>。</p>',
+    bodyHtml: '<p>提示：可录音或上传 mp3 / m4a / mp4 / mov，也能把文件直接拖拽到主页面。录音期间会显示即时 Hz Stream（音高走势）与共鸣监控，分析完成提供回放、倾向仪表与统计简要评价；开始前可展开「录音前舒适检查」。需要导览请点右上角 <b>❓</b>。</p>',
   },
   info: {
     quickStartHtml: [
@@ -520,7 +520,7 @@ const dictionary = {
       '<li><b>❓ 使用指南：</b>整理快速开始、面板解说与常见录音情境，支持键盘 <kbd>Esc</kbd> 关闭。</li>',
       '<li><b>录音键：</b>支持 MediaRecorder 并显示状态提示；停止后自动进入解码与推理流程。</li>',
       '<li><b>句库练习抽屉：</b>紧邻录音键，提供句子列表与练习记录。卡片左侧按钮负责录音／停止，右侧播放键可快速回听上一段，结果仍只显示在卡片上，主仪表保持简洁。</li>',
-      '<li><b>暖身三步骤：</b>主页面常驻的暖身卡会记住展开状态，指南中的暖身章节也能直接跳回此卡。</li>',
+      '<li><b>录音前舒适检查：</b>这张卡片协助你在录音前确认自然说话、舒适度与可比较的录音环境。</li>',
       '<li><b>Hz Stream（音高走势）：</b>仅在录音期间显示，追踪 50–600 Hz 音高与音量；左右刻度标示 Hz，统计会沿用录音及上传抽样。</li>',
       '<li><b>Formant（共振峰）/ Resonance（共鸣）：</b>同步估计 F1–F3、气声比例与共鸣分布，协助判读声音质地。</li>',
       '<li><b>统计卡：</b>整合 Pitch / Volume 百分位数、环境噪音、SNR 与倾向简要评价；下方按钮可在 Beginner / Advanced 视图间切换，进阶模式会显示语调曲线、语速、连音与共鸣亮度，也支持按住 Shift / Alt 点击一并记住展开状态。</li>',
@@ -620,7 +620,7 @@ const dictionary = {
       '<li>确认环境安静、麦克风距离 10–15 公分，维持日常对话音量。</li>',
       '<li>按下 <strong>🎙️ 开始录音</strong> 说话 5–10 秒，或点右下角 <strong>⬆︎</strong> 上传 mp3 / m4a / mp4 / mov，也支援把文件直接拖拽到主页面。</li>',
       '<li>不知道讲什么？展开录音键旁的 <strong>句库练习</strong> 抽屉，挑一句后按卡片按钮（或 <kbd>Space</kbd>）开始录音，再用右侧播放键重听上一段。</li>',
-      `<li>录音前想先暖身？打开主页面的 <strong>${practiceWarmup.title}</strong> 卡片，依序完成哼声、前元音与呼气放松。</li>`,
+      `<li>录音前想先确认状态？打开主页面的 <strong>${practiceWarmup.title}</strong> 卡片，确认自然说话、舒适度与录音环境。</li>`,
       '<li><strong>iPhone Safari 上传语音备忘录：</strong>打开“语音备忘录”→ 选择录音 → 点右下角 <em>···</em> 分享 → 选择“储存到文件”，再回到本页从 ⬆︎ 按钮挑选该 m4a。</li>',
       '<li>录音时画面会显示 Hz Stream（音高走势）与 Formant / Resonance 即时监控；停止后耐心等待状态列完成解码与推论。</li>',
       '<li>分析完成后可查看倾向仪表、统计卡与一行简评，并回放最新一段音讯。</li>',
@@ -705,7 +705,7 @@ const dictionary = {
       '</ul>',
       '</section>',
       '<div class="help-author">',
-      '<img src="assets/avatar-evelyn.jpg?v=1.4.14" alt="Evelyn 的作者照片" class="help-author-img" loading="lazy" />',
+      '<img src="assets/avatar-evelyn.jpg?v=1.4.15" alt="Evelyn 的作者照片" class="help-author-img" loading="lazy" />',
       '<div class="help-author-text">',
       '<h4>关于作者：Evelyn</h4>',
       '<p>不管是写代码还是练伪音，都是一条充满探索的路。<br>如果您对 VPA 有任何建议，或想交流声音训练的心得，欢迎来我的 Instagram 找我！</p>',

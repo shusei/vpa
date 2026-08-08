@@ -1,22 +1,22 @@
-import { applySafetyCopy } from "./safety-copy.js?v=1.4.14";
+import { applySafetyCopy } from "./safety-copy.js?v=1.4.15";
 
 const practiceWarmup = {
-  title: "Three-step Warmup",
-  summary: "A one-minute reset before recording.",
-  intro: "Open this card beneath the record button and walk through the steps before you press record.",
-  shortcutHtml: 'Find the <a href="#warmupCard">Three-step Warmup</a> card right under the record button—use this shortcut to jump back for a quick reset anytime.',
+  title: "Pre-recording comfort check",
+  summary: "A quick check of your voice and setup before recording.",
+  intro: "Check these three items before recording. This is not a vocal exercise, and you do not need to change your voice.",
+  shortcutHtml: 'Find the <a href="#warmupCard">pre-recording comfort check</a> below the record button before any take.',
   steps: {
     hum: {
-      name: "Hum",
-      desc: ': Gently hum and aim the buzz toward the bridge of your nose—it mirrors the “Chest-heavy resonance” hint.',
+      name: "Speak one natural line",
+      desc: ': Use your everyday volume without first changing pitch, resonance, or breathiness.',
     },
     yi: {
-      name: "Ee sustain",
-      desc: ': Stretch an “ee” vowel to bring the tongue forward and boost the vowel focus metric.',
+      name: "Check how it feels",
+      desc: ': Make sure there is no pain, hoarseness, tightness, or marked effort. Stop if any appears.',
     },
     hu: {
-      name: "Breath out",
-      desc: ': Exhale a soft “hoo” to relax the larynx and steady breathiness / spectral tilt.',
+      name: "Match the setup",
+      desc: ': Keep microphone distance and room noise similar so recordings are easier to compare fairly.',
     },
   },
 };
@@ -520,7 +520,7 @@ const dictionary = {
       '<li><b>❓ Help overlay:</b> collects quick-start steps, explains each panel, and covers common recording scenarios. You can close it with <kbd>Esc</kbd>.</li>',
       '<li><b>Record button:</b> uses the MediaRecorder API and shows status hints; stopping automatically triggers decoding and inference.</li>',
       '<li><b>Practice drawer:</b> sits beside the record button and lists phrases plus your recent results. Each card toggles between record and stop and includes a play button for the previous take, while keeping the feminine / masculine percentages out of the main meter.</li>',
-      '<li><b>Three-step warm-up:</b> the persistent warm-up card remembers whether it was open and mirrors the same section inside the help overlay, so you can jump back to it from the guide.</li>',
+      '<li><b>Pre-recording comfort check:</b> the card helps you confirm a natural take, comfort, and comparable recording conditions before you record.</li>',
       '<li><b>Pitch stream:</b> visible only while recording; tracks 50–600 Hz pitch and loudness. Axis labels stay in Hz and the statistics reuse the same samples for uploads.</li>',
       '<li><b>Formant / Resonance:</b> estimates F1–F3, breathiness, and resonance distribution every 50 ms so you can inspect timbre shifts.</li>',
       '<li><b>Summary cards:</b> aggregate pitch / volume percentiles, noise and SNR, plus coaching notes. Use the Beginner / Advanced toggle below to reveal the intonation curve, speech rate, liaison ratio, and brightness tags—hold Shift or Alt while clicking to save the expanded/collapsed state.</li>',
@@ -661,7 +661,7 @@ const dictionary = {
       '<p><strong>Vowel focus</strong> tracks how many vowels land in the typical feminine pitch bands; <strong>Breathiness</strong> estimates air leakage; <strong>Resonance tilt</strong> extends spectral tilt into a coaching label. Together they show tongue placement, fold closure, and brightness.</p>',
       '<ul>',
       '<li><strong>Well focused:</strong> 60%+ of vowels hit the target—note the phrases and mouth shape you used.</li>',
-      '<li><strong>Can tighten:</strong> roughly half hit the band. Stretch “ee—” or “yay—” to keep the tongue forward, then speak the sentence with that posture.</li>',
+      '<li><strong>Compare gently:</strong> repeated takes can vary with wording, vowels, microphone, and comfort. Keep the take that feels natural and repeatable.</li>',
       '<li><strong>Needs work:</strong> very few hits. Sustain front vowels for 5 seconds with the tongue tip resting on the lower teeth before returning to the line.</li>',
       '<li><strong>Breathiness:</strong> 8%–18% is the sweet spot; add a soft h onset when it’s too dense, or buzz a few “zzz” when it’s too airy.</li>',
       '</ul>',
@@ -716,7 +716,7 @@ const dictionary = {
       '</ul>',
       '</section>',
       '<div class="help-author">',
-      '<img src="assets/avatar-evelyn.jpg?v=1.4.14" alt="Portrait of Evelyn" class="help-author-img" loading="lazy" />',
+      '<img src="assets/avatar-evelyn.jpg?v=1.4.15" alt="Portrait of Evelyn" class="help-author-img" loading="lazy" />',
       '<div class="help-author-text">',
       '<h4>About the Author: Evelyn</h4>',
       '<p>Whether coding or voice training, it’s all about the journey of exploration.<br>If you have feedback on VPA or want to chat about voice training, feel free to connect with me on Instagram!</p>',
@@ -866,7 +866,7 @@ const dictionary = {
       balanced: { label: "Neutral", hint: "Tilt is even. Log how you’re breathing and shaping vowels so you can revisit this reference." },
       bright: {
         label: "Bright and sharp",
-        hint: "High frequencies dominate. This reflects spectral brightness, not vocal pitch. Relax the larynx with a soft “hoo” sigh, then keep the airflow steady as you speak.",
+        hint: "High frequencies dominate. This reflects spectral brightness in this recording, not vocal pitch or body position. Compare comfortable takes under similar conditions.",
       },
     },
     breathiness: {
@@ -877,11 +877,11 @@ const dictionary = {
       },
       balanced: {
         label: "Balanced",
-        hint: "Breathiness sits in the recommended 8%–18% window. Maintain your breathing pattern and avoid lifting the shoulders.",
+        hint: "This spectral proxy should only be compared under similar wording and recording conditions; there is no universal target band.",
       },
       airy: {
         label: "Slightly airy",
-        hint: "Air leakage is noticeable. Buzz a few “zzz” to feel vocal fold contact, then send the airflow forward instead of upward.",
+        hint: "This recording has a stronger airy spectral pattern. Do not force airflow or vocal-fold contact; stop if the voice feels uncomfortable.",
       },
       style: {
         label: "Stylized breathiness",
@@ -958,7 +958,7 @@ const dictionary = {
       },
       medium: {
         label: "Can tighten further",
-        hint: "Roughly 30–50% of vowels meet the target. Stretch the vowels—hold “ee” or “yay” longer—and keep the tongue forward.",
+        hint: "Vowel patterns vary with language, wording, and speaker. Use this as a recording comparison only, not a mouth or tongue prescription.",
       },
       weak: {
         label: "Needs work",
@@ -1039,7 +1039,7 @@ const dictionary = {
         noisy: "Background noise is {{snrLabel}} ({{snrDisplay}}). Move closer or reduce ambient sound.",
         pitchWide: "Pitch swings {{spread}} Hz ({{stability}}). Anchor vowels before shifting notes.",
         pitchModerate: "Pitch shifts {{spread}} Hz ({{stability}}). Smooth the transitions between anchor notes.",
-        breathinessAiry: "Breathiness reads {{label}}—add gentle cord closure before each phrase.",
+        breathinessAiry: "Breathiness reads {{label}}—this is a spectral proxy, not a vocal-fold measurement or exercise prescription.",
         breathinessDense: "Breathiness reads {{label}}—let a light sigh or /h/ release soften the tone.",
         vowelWeak: "Vowel focus shows {{label}}—sustain forward vowels to lock placement.",
         speechFast: "Pace trends {{label}}—add rests and stretch key words.",
