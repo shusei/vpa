@@ -201,6 +201,14 @@ function renderAdvancedSummary(summary, context = {}) {
   const labelIntonationTrend = advIntonationCards.trend || t("summary.advanced.intonationCards.trend") || "Trend";
   const labelIntonationRange = advIntonationCards.range || t("summary.advanced.intonationCards.range") || "Range";
   const labelSpeechRate = advIntonationCards.speechRate || t("summary.advanced.intonationCards.speechRate") || "Speech rate";
+  const intonationChartTitle = t("summary.advanced.intonationChartTitle") || "Intonation contour";
+  const intonationAxes = t("summary.advanced.intonationAxes") || "Horizontal: recording time · Vertical: pitch (Hz)";
+  const intonationCanvasHint = t("summary.advanced.intonationCanvasHint") || "This chart shows how pitch changes over the recording.";
+  const intonationLineLabel = t("summary.advanced.intonationLegend.line") || "Processed curve";
+  const intonationDotsLabel = t("summary.advanced.intonationLegend.dots") || "Raw detector dots";
+  const intonationShadeLabel = t("summary.advanced.intonationLegend.shade") || "Muted or low-confidence spans";
+  const intonationShowRaw = t("summary.advanced.intonationLegend.show") || "Show raw dots";
+  const intonationHideRaw = t("summary.advanced.intonationLegend.hide") || "Hide raw dots";
   const chestLabel = t("realtime.resonance.chest", { value: chestPct }) || `Chest ${chestPct}%`;
   const maskLabel = t("realtime.resonance.mask", { value: maskPct }) || `Mask ${maskPct}%`;
   const headLabel = t("realtime.resonance.head", { value: headPct }) || `Head ${headPct}%`;
@@ -391,9 +399,28 @@ function renderAdvancedSummary(summary, context = {}) {
           </div>
         </div>
         <div class="intonation-wrap" style="margin-top: 16px;">
+          <div class="intonation-chart-copy">
+            <div class="intonation-chart-heading">
+              <strong>${escapeHtml(intonationChartTitle)}</strong>
+              <span>${escapeHtml(intonationAxes)}</span>
+            </div>
+            <p>${escapeHtml(intonationCanvasHint)}</p>
+          </div>
           <canvas id="intonationCanvas" class="intonation-canvas" aria-label="${escapeAttr(t("summary.advanced.canvasAria") || "Intonation curve")}"></canvas>
-          <div class="intonation-legend">
-            <label><input id="toggleRawDots" type="checkbox" /> ${escapeHtml(t("summary.advanced.intonationLegend.show") || "Show raw dots")}</label>
+          <div class="intonation-legend" aria-label="${escapeAttr(intonationChartTitle)}">
+            <span class="legend-item">
+              <span class="legend-swatch legend-swatch--line" aria-hidden="true"></span>
+              <span>${escapeHtml(intonationLineLabel)}</span>
+            </span>
+            <span class="legend-item legend-item--shade">
+              <span class="legend-swatch legend-swatch--shade" aria-hidden="true"></span>
+              <span>${escapeHtml(intonationShadeLabel)}</span>
+            </span>
+            <button id="intonationRawToggle" class="legend-toggle" type="button" aria-pressed="false" aria-label="${escapeAttr(intonationShowRaw)}" title="${escapeAttr(intonationDotsLabel)}">
+              <span class="legend-swatch legend-swatch--dots" aria-hidden="true"></span>
+              <span class="legend-toggle-state state-off">${escapeHtml(intonationShowRaw)}</span>
+              <span class="legend-toggle-state state-on" hidden>${escapeHtml(intonationHideRaw)}</span>
+            </button>
           </div>
         </div>
       </details>

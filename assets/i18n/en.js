@@ -1,4 +1,4 @@
-import { applySafetyCopy } from "./safety-copy.js?v=1.4.18";
+import { applySafetyCopy } from "./safety-copy.js?v=1.4.19";
 
 const practiceWarmup = {
   title: "Pre-recording comfort check",
@@ -716,7 +716,7 @@ const dictionary = {
       '</ul>',
       '</section>',
       '<div class="help-author">',
-      '<img src="assets/avatar-evelyn.jpg?v=1.4.18" alt="Portrait of Evelyn" class="help-author-img" loading="lazy" />',
+      '<img src="assets/avatar-evelyn.jpg?v=1.4.19" alt="Portrait of Evelyn" class="help-author-img" loading="lazy" />',
       '<div class="help-author-text">',
       '<h4>About the Author: Evelyn</h4>',
       '<p>Whether coding or voice training, it’s all about the journey of exploration.<br>If you have feedback on VPA or want to chat about voice training, feel free to connect with me on Instagram!</p>',
@@ -1148,7 +1148,9 @@ const dictionary = {
         speechRate: "Speech rate",
         liaison: "Liaison ratio",
       },
-      intonationCanvasHint: "Magenta line = processed pitch curve. Gray spans mark muted/low-confidence frames (excluded from stats). Toggle raw detector dots from the legend to compare with the stabilized curve.",
+      intonationChartTitle: "Intonation contour",
+      intonationAxes: "Horizontal: recording time · Vertical: pitch (Hz)",
+      intonationCanvasHint: "This chart shows how pitch changes over the recording and supports the trend and pitch-dynamics summaries above. Showing raw dots changes only the view; it does not rerun the analysis or change the score.",
       intonationLegend: {
         line: "Processed curve (max−min = pitch dynamics)",
         dots: "Raw detector dots (toggle)",

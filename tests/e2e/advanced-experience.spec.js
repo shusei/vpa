@@ -368,6 +368,36 @@ test.describe("mobile advanced experience", () => {
     }, fixture.advanced);
     const detailsProbe = page.locator("#mobileAdvancedSummaryProbe");
     await expect(detailsProbe.locator(".adv-details[open]")).toHaveCount(3);
+    await expect(detailsProbe.locator(".intonation-chart-copy")).toContainText("語調走勢圖");
+    await expect(detailsProbe.locator(".intonation-chart-copy")).toContainText("橫軸：錄音時間");
+    await expect(detailsProbe.locator(".intonation-chart-copy")).toContainText("不會重新分析或改變分數");
+    await expect(detailsProbe.locator(".intonation-legend .legend-item")).toHaveCount(2);
+    await expect(detailsProbe.locator("#intonationRawToggle")).toHaveAttribute("aria-pressed", "false");
+    const rawToggleState = await page.evaluate(async () => {
+      const { setupIntonationLegend } = await import("/assets/js/intonation-visual.js?v=1.4.19");
+      let showRaw = false;
+      let redraws = 0;
+      setupIntonationLegend({ rawPoints: [{ t: 0, hz: 220 }] }, {
+        drawIntonationCurve: () => { redraws += 1; },
+        getShowIntonationRawPoints: () => showRaw,
+        saveIntonationRawPreference: () => {},
+        setShowIntonationRawPoints: (next) => { showRaw = next; },
+      });
+      const button = document.getElementById("intonationRawToggle");
+      button?.click();
+      return {
+        ariaLabel: button?.getAttribute("aria-label"),
+        pressed: button?.getAttribute("aria-pressed"),
+        redraws,
+        showRaw,
+      };
+    });
+    expect(rawToggleState).toEqual({
+      ariaLabel: "隱藏原始點",
+      pressed: "true",
+      redraws: 1,
+      showRaw: true,
+    });
     const expandedLayout = await page.evaluate(() => {
       const summaries = [...document.querySelectorAll("#mobileAdvancedSummaryProbe .adv-details > summary")];
       return {

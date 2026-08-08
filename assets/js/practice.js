@@ -1,4 +1,4 @@
-import { t, getCurrentLocale, onLocaleChange } from "./i18n.js?v=1.4.18";
+import { t, getCurrentLocale, onLocaleChange } from "./i18n.js?v=1.4.19";
 import { loadPracticeData } from "./practice-data.js";
 
 // v2 stores the integrated presentation score. v1 contained the retired raw

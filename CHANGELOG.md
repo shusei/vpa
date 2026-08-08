@@ -6,6 +6,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.19] - 2026-08-09
+
+### Fixed
+
+- Added the missing visible explanation for the Advanced intonation contour, including recording-time and pitch axes, processed-curve and low-confidence legends, and a clear statement that raw dots do not change the analysis or score.
+- Replaced the unexplained raw-point checkbox with an accessible stateful control and a complete visual legend across all four locales.
+
+### Tests
+
+- Added mobile regression coverage for the chart purpose, axis explanation, legend, raw-point control, and horizontal-overflow safety.
+
 ## [1.4.18] - 2026-08-09
 
 ### Changed

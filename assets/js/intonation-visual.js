@@ -135,6 +135,8 @@ export function setupIntonationLegend(intonation, deps = {}) {
         const on = btn.querySelector(".state-on");
         if (off) off.hidden = !!showRaw;
         if (on) on.hidden = !showRaw;
+        const activeLabel = showRaw ? on?.textContent : off?.textContent;
+        if (activeLabel) btn.setAttribute("aria-label", activeLabel.trim());
         syncLegend();
       };
 

@@ -1347,10 +1347,47 @@ html[data-faction="dark"] .adv-card--resonance .resonance-bar {
 .intonation-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px 12px;
   align-items: center;
+  margin-top: 10px;
   font-size: 12px;
   color: color-mix(in oklab, var(--ink) 80%, var(--muted) 20%);
+}
+
+.intonation-chart-copy {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 10px;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in oklab, var(--panel-border) 80%, var(--accent-2) 20%);
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--panel) 91%, var(--accent-2) 9%);
+}
+
+.intonation-chart-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.intonation-chart-heading strong {
+  color: var(--ink);
+  font-size: 14px;
+  letter-spacing: .01em;
+}
+
+.intonation-chart-heading span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.intonation-chart-copy p {
+  margin: 0;
+  color: color-mix(in oklab, var(--ink) 84%, var(--muted) 16%);
+  font-size: 12px;
+  line-height: 1.55;
 }
 
 .intonation-legend .legend-item {
@@ -1386,6 +1423,7 @@ html[data-faction="dark"] .adv-card--resonance .resonance-bar {
 
 .intonation-legend .legend-item--shade {
   align-items: flex-start;
+  flex-basis: 100%;
 }
 
 .intonation-legend .legend-toggle {
@@ -1425,6 +1463,21 @@ html[data-faction="dark"] .adv-card--resonance .resonance-bar {
 
 .intonation-legend .legend-toggle-state {
   font-weight: 600;
+}
+
+@media (max-width: 560px) {
+  .intonation-chart-heading {
+    display: grid;
+  }
+
+  .intonation-legend .legend-item,
+  .intonation-legend .legend-toggle {
+    width: 100%;
+  }
+
+  .intonation-legend .legend-toggle {
+    justify-content: center;
+  }
 }
 
 html[data-faction="dark"] .player .hint,

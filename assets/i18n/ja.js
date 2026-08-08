@@ -1,6 +1,6 @@
 import en from "./en.js";
 
-import { applySafetyCopy } from "./safety-copy.js?v=1.4.18";
+import { applySafetyCopy } from "./safety-copy.js?v=1.4.19";
 
 const practiceWarmup = {
   title: "録音前の快適さチェック",
@@ -724,7 +724,7 @@ const dictionary = {
       "</ul>",
       "</section>",
       '<div class="help-author">',
-      '<img src="assets/avatar-evelyn.jpg?v=1.4.18" alt="Evelyn の作者ポートレート" class="help-author-img" loading="lazy" />',
+      '<img src="assets/avatar-evelyn.jpg?v=1.4.19" alt="Evelyn の作者ポートレート" class="help-author-img" loading="lazy" />',
       '<div class="help-author-text">',
       "<h4>作者：Evelyn</h4>",
       "<p>コーディングもボイストレーニングも、探究を続ける過程を大切にしています。<br>VPA へのご意見やボイストレーニングについてのお話は、Instagram からお気軽にどうぞ。</p>",
@@ -1199,7 +1199,9 @@ const dictionary = {
         speechRate: "話速",
         liaison: "連結率",
       },
-      intonationCanvasHint: "マゼンタ線は処理後のピッチ曲線です。グレー部分は無音または低信頼フレームで、統計から除外されます。凡例から検出器の生データ点を切り替え、安定化後の曲線と比較できます。",
+      intonationChartTitle: "イントネーション推移",
+      intonationAxes: "横軸：録音時間・縦軸：ピッチ（Hz）",
+      intonationCanvasHint: "録音中のピッチ変化を示し、上のイントネーション傾向とピッチダイナミクスを理解するための図です。生データ点の表示は見え方だけを切り替え、再分析やスコア変更は行いません。",
       intonationLegend: {
         line: "処理後曲線（最大−最小＝ピッチダイナミクス）",
         dots: "検出器の生データ点（切り替え可能）",

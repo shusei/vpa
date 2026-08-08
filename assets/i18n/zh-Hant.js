@@ -1,4 +1,4 @@
-import { applySafetyCopy } from "./safety-copy.js?v=1.4.18";
+import { applySafetyCopy } from "./safety-copy.js?v=1.4.19";
 
 const practiceWarmup = {
   title: "錄音前舒適檢查",
@@ -716,7 +716,7 @@ const dictionary = {
       '</ul>',
       '</section>',
       '<div class="help-author">',
-      '<img src="assets/avatar-evelyn.jpg?v=1.4.18" alt="Evelyn 的作者照片" class="help-author-img" loading="lazy" />',
+      '<img src="assets/avatar-evelyn.jpg?v=1.4.19" alt="Evelyn 的作者照片" class="help-author-img" loading="lazy" />',
       '<div class="help-author-text">',
       '<h4>關於作者：Evelyn</h4>',
       '<p>不管是寫程式還是練偽音，都是一條充滿探索的路。<br>如果您對 VPA 有任何建議，或想交流聲音訓練的心得，歡迎來我的 Instagram 找我！</p>',
@@ -1141,7 +1141,9 @@ const dictionary = {
         speechRate: "Speech rate（語速）",
         liaison: "Liaison（連音比例）",
       },
-      intonationCanvasHint: "洋紅線＝處理後語調曲線；灰底代表被判無聲或低信心，不會納入統計。可透過圖例切換原始偵測點對照穩定後曲線。",
+      intonationChartTitle: "語調走勢圖",
+      intonationAxes: "橫軸：錄音時間 · 縱軸：音高（Hz）",
+      intonationCanvasHint: "這張圖顯示音高如何隨說話時間變化，用來理解上方的語調趨勢與音高動態。顯示原始點只會切換視圖，不會重新分析或改變分數。",
       intonationLegend: {
         line: "處理後曲線（音高動態＝最大最小差）",
         dots: "原始偵測點（可切換）",
