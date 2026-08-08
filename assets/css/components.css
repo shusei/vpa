@@ -982,6 +982,17 @@ resonance-bar .res-part span {
   color: var(--ink);
 }
 
+.focus-safety {
+  margin: -2px 0 2px;
+  padding: 8px 10px;
+  border-left: 3px solid color-mix(in oklab, var(--accent-2) 66%, var(--panel-border));
+  border-radius: 0 9px 9px 0;
+  color: color-mix(in oklab, var(--ink) 74%, var(--muted) 26%);
+  background: color-mix(in oklab, var(--panel) 88%, var(--accent-2) 12%);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
 .focus-list {
   list-style: none;
   margin: 0;
@@ -1123,6 +1134,26 @@ html[data-faction="dark"] .subline {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.advanced-analysis-note {
+  display: grid;
+  gap: 4px;
+  padding: 11px 13px;
+  border: 1px solid color-mix(in oklab, var(--accent-2) 30%, var(--panel-border));
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--panel) 87%, var(--accent-2) 13%);
+}
+
+.advanced-analysis-note strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.advanced-analysis-note span {
+  color: color-mix(in oklab, var(--ink) 76%, var(--muted) 24%);
+  font-size: 12px;
+  line-height: 1.55;
 }
 
 .beginner-summary {

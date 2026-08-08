@@ -103,7 +103,7 @@ test.describe("Production audio flows", () => {
     await page.locator("[data-quick-locale-toggle]").click();
     await page.locator('[data-quick-locale="en"]').click();
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
-    await expect(page.locator("#streamStats")).toContainText("Formant & resonance");
+    await expect(page.locator("#streamStats")).toContainText("Formant & spectral proxies");
 
     await page.locator("#practiceToggle").click();
     await expect(page.locator("#practiceList")).toBeVisible();

@@ -303,6 +303,10 @@ function renderAdvancedSummary(summary, context = {}) {
       <div class="adv-controls">
         <button type="button" class="btn sm ghost" data-adv-toggle aria-pressed="${mode === "advanced"}" aria-label="Toggle Beginner/Advanced">${escapeHtml(advToggleLabel)}</button>
       </div>
+      <aside class="advanced-analysis-note">
+        <strong>${escapeHtml(t("analysis.safety.detailsTitle"))}</strong>
+        <span>${escapeHtml(t("analysis.safety.detailsBody"))}</span>
+      </aside>
       ${beginnerHighlights}
 
       <!-- Formant & Resonance -->

@@ -1,5 +1,7 @@
 import en from "./en.js";
 
+import { applySafetyCopy } from "./safety-copy.js?v=1.4.14";
+
 const practiceWarmup = {
   title: "3ステップ・ウォームアップ",
   summary: "録音前に1分で声を整えます。",
@@ -283,7 +285,7 @@ const quick = {
   viewProfessional: "詳細分析を詳しく見る",
 };
 
-export default {
+const dictionary = {
   ...en,
 
   chips: {
@@ -722,7 +724,7 @@ export default {
       "</ul>",
       "</section>",
       '<div class="help-author">',
-      '<img src="assets/avatar-evelyn.jpg?v=1.4.13" alt="Evelyn の作者ポートレート" class="help-author-img" loading="lazy" />',
+      '<img src="assets/avatar-evelyn.jpg?v=1.4.14" alt="Evelyn の作者ポートレート" class="help-author-img" loading="lazy" />',
       '<div class="help-author-text">',
       "<h4>作者：Evelyn</h4>",
       "<p>コーディングもボイストレーニングも、探究を続ける過程を大切にしています。<br>VPA へのご意見やボイストレーニングについてのお話は、Instagram からお気軽にどうぞ。</p>",
@@ -1211,3 +1213,5 @@ export default {
     },
   },
 };
+
+export default applySafetyCopy("ja", dictionary);

@@ -618,7 +618,7 @@ const flatJapanese = flattenDictionary(ja);
 assert.deepEqual(Object.keys(flatJapanese).sort(), Object.keys(flatEnglish).sort());
 assert.equal(ja.chips.localInference, "ローカルAI解析");
 assert.equal(ja.chips.realtimeMonitoring, "リアルタイム監視");
-assert.equal(ja.guide.title, "女性声トレーニングマニュアル");
+assert.equal(ja.guide.title, "女性的な声のマニュアル");
 assert.equal(ja.guide.close, "マニュアルを閉じる");
 
 const intentionalJapaneseMatches = [
@@ -627,14 +627,11 @@ const intentionalJapaneseMatches = [
   "analysis.meter.scale.full",
   "analysis.meter.scale.sixty",
   "analysis.meter.scale.zero",
-  "experiment.advanced.beta",
   "experiment.advanced.voiceAgeV2.dbValue",
-  "experiment.advanced.voiceAgeV2.eyebrow",
   "experiment.advanced.voiceAgeV2.percentValue",
   "experiment.quick.dynamic.brand",
   "experiment.quick.dynamic.eyebrow",
   "experiment.quick.eyebrow",
-  "experiment.quick.refine.eyebrow",
   "experiment.quick.reveal.eyebrow",
   "hero.title",
   "meta.title",

@@ -1,5 +1,5 @@
 import { EPS } from "./constants.js";
-import { t } from "./i18n.js?v=1.4.13";
+import { t } from "./i18n.js?v=1.4.14";
 import {
   PS_INTERVAL_MS,
   CONFIDENCE_INCLUDE_THRESHOLD,
@@ -617,7 +617,9 @@ export function analyzeIntonation(data, hopSec) {
   else if (validRange >= 50) rangeKey = "medium";
   const rangeHint = t(`analysis.intonation.range.${rangeKey}.hint`);
   const rangeLabel = t(`analysis.intonation.range.${rangeKey}.label`);
-  const hint = `${slopeHint} ${rangeHint}`.trim();
+  const hint = slopeHint.trim() === rangeHint.trim()
+    ? slopeHint.trim()
+    : `${slopeHint} ${rangeHint}`.trim();
 
   return {
     points,

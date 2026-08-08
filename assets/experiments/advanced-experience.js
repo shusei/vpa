@@ -1,18 +1,18 @@
-import { onInferenceDone } from "../app.js?v=1.4.13";
-import { getCurrentLocale, onLocaleChange, t } from "../js/i18n.js?v=1.4.13";
+import { onInferenceDone } from "../app.js?v=1.4.14";
+import { getCurrentLocale, onLocaleChange, t } from "../js/i18n.js?v=1.4.14";
 import { evaluateAdvancedExperience } from "./advanced-evaluator.js";
-import { createChallengeUrl } from "./challenge-link.js?v=1.4.13";
+import { createChallengeUrl } from "./challenge-link.js?v=1.4.14";
 import {
   getPublicShareResult,
   openPublicPlatformShare,
-} from "./public-share.js?v=1.4.13";
+} from "./public-share.js?v=1.4.14";
 import {
   buildShareTargets,
   buildShareUrl,
   createShareCardBlob,
   downloadBlob,
   shareWithSystem,
-} from "./share-card.js?v=1.4.13";
+} from "./share-card.js?v=1.4.14";
 
 let lastAnalysis = null;
 let lastResult = null;
@@ -475,6 +475,25 @@ export function renderAnalysis(analysis, { notify = true } = {}) {
         </div>
       </div>
     </div>
+    <aside class="advanced-experience__safety" aria-label="${escapeHtml(t("experiment.advanced.safety.title"))}">
+      <span class="advanced-experience__safety-icon" aria-hidden="true">♡</span>
+      <div>
+        <span class="advanced-experience__safety-badge">${escapeHtml(t("experiment.advanced.safety.badge"))}</span>
+        <h3>${escapeHtml(t("experiment.advanced.safety.title"))}</h3>
+        <p>${escapeHtml(t("experiment.advanced.safety.scope"))}</p>
+        <p><strong>${escapeHtml(t("experiment.advanced.safety.stop"))}</strong></p>
+        <details>
+          <summary>${escapeHtml(t("experiment.advanced.safety.sourcePrefix"))}</summary>
+          <p>${escapeHtml(t("experiment.advanced.safety.care"))}</p>
+          <div class="advanced-experience__safety-links">
+            <a href="https://www.asha.org/practice-portal/professional-issues/gender-affirming-voice-and-communication/" target="_blank" rel="noopener">${escapeHtml(t("experiment.advanced.safety.sources.asha"))}</a>
+            <a href="https://www.nidcd.nih.gov/health/taking-care-your-voice" target="_blank" rel="noopener">${escapeHtml(t("experiment.advanced.safety.sources.nidcd"))}</a>
+            <a href="https://www.nidcd.nih.gov/health/hoarseness" target="_blank" rel="noopener">${escapeHtml(t("experiment.advanced.safety.sources.hoarseness"))}</a>
+            <a href="https://transcare.ucsf.edu/guidelines/vocal-health" target="_blank" rel="noopener">${escapeHtml(t("experiment.advanced.safety.sources.ucsf"))}</a>
+          </div>
+        </details>
+      </div>
+    </aside>
     <div class="advanced-experience__components">
       ${renderComponent("model", result.components.model, 30)}
       ${renderComponent("resonance", result.components.resonance, 45)}

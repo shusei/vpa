@@ -6,6 +6,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.14] - 2026-08-08
+
+### Safety
+
+- Reworked Quick, Advanced, Help, and Feminine Voice Manual guidance in Traditional Chinese, Simplified Chinese, English, and Japanese around non-clinical acoustic comparison, user-defined goals, comfort-first stop rules, and appropriate ENT / voice-specialist referral signals.
+- Removed fixed feminine targets and unsupported self-training instructions for vocal-fold closure, breathiness, larynx position, formants, resonance placement, speech rate, and intonation.
+- Replaced the anatomical “three-step warmup” with a pre-recording comfort check that verifies natural speech, absence of discomfort, and consistent recording conditions.
+
+### Changed
+
+- Restored a structured, polished Help tour with Quick start, Interface tour & live monitors, result-panel interpretation, clear limits, and four authoritative references.
+- Renamed the manual UI to “Feminine Voice Manual” / “女性化聲音手冊” to match its non-prescriptive scope.
+- GitHub Pages now deploys a Vite production build with content-hashed JavaScript and CSS filenames, eliminating reliance on manually maintained cache-query versions for users.
+- The source version-bump helper now discovers direct-development cache tags recursively and keeps package-lock.json aligned.
+
+### Tests
+
+- Added four-locale medical-safety audits, phone overflow checks, production-build fingerprint verification, and a production-runtime smoke test.
+- Verified 46 Playwright browser tests; 2 real remote-model tests remain skipped by design.
+- npm audit reports 0 known vulnerabilities.
+
+---
+
 ## [1.4.13] - 2026-08-08
 
 ### Changed

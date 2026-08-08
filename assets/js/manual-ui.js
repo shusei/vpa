@@ -1,5 +1,5 @@
-import { MANUAL_DATA } from './manual-data.js';
-import { getCurrentLocale, onLocaleChange, t } from './i18n.js?v=1.4.13';
+import { MANUAL_DATA } from './manual-data.js?v=1.4.14';
+import { getCurrentLocale, onLocaleChange, t } from './i18n.js?v=1.4.14';
 import { mountManualWidgets } from './practice.js';
 
 /**

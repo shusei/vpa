@@ -173,10 +173,10 @@ const focusHelpers = createFocusHelpers({
 const advSummary = computeAdvancedSummary(advDeps);
 
 const testConfigs = [
-  { locale: 'en', expectToken: 'Formant & resonance', disallowChinese: true },
-  { locale: 'ja', expectToken: 'フォルマント', requireKana: true, disallowHant: true },
-  { locale: 'zh-Hans', expectToken: '共振峰与共鸣', expectHans: true },
-  { locale: 'zh-Hant', expectToken: '共振峰與共鳴', expectHant: true },
+  { locale: 'en', expectToken: 'Formant & spectral proxies', disallowChinese: true },
+  { locale: 'ja', expectToken: 'フォルマントとスペクトル代理指標', requireKana: true, disallowHant: true },
+  { locale: 'zh-Hans', expectToken: '共振峰与频谱代理指标', expectHans: true },
+  { locale: 'zh-Hant', expectToken: '共振峰與頻譜代理指標', expectHant: true },
 ];
 
 for (const config of testConfigs) {

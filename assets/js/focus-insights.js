@@ -138,11 +138,13 @@ export function createFocusHelpers(deps) {
   function renderFocusBlock(focus) {
     const heading = focus?.heading || t("summary.focus.heading");
     const empty = focus?.empty || t("summary.focus.empty");
+    const safety = t("summary.focus.safety");
     const items = Array.isArray(focus?.items) ? focus.items : [];
     if (!items.length) {
       return `
       <div class="focus-block">
         <h3 class="focus-heading">${heading}</h3>
+        <p class="focus-safety">${safety}</p>
         <div class="focus-empty">${empty}</div>
       </div>
     `;
@@ -163,6 +165,7 @@ export function createFocusHelpers(deps) {
     return `
     <div class="focus-block">
       <h3 class="focus-heading">${heading}</h3>
+      <p class="focus-safety">${safety}</p>
       <ul class="focus-list">
         ${listHtml}
       </ul>

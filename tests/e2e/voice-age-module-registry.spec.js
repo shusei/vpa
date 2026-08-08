@@ -9,6 +9,9 @@ import {
 test("dev analysis keeps the Voice Age analyzer connected after cache busting", async ({ page }) => {
   const runtimeErrors = captureRuntimeErrors(page);
   await installDeterministicRuntime(page);
+  await page.addInitScript(() => {
+    window.VPA_SHARE_SERVICE_ORIGIN = "";
+  });
   await page.goto("/");
   await page.locator('#experienceNav [data-experience-target="professional"]').click();
   await page.locator("#fileInput").setInputFiles(resolve("tests/.generated-media/tone.wav"));

@@ -1,38 +1,38 @@
-import { recorderCtl } from "../app.js?v=1.4.13";
+import { recorderCtl } from "../app.js?v=1.4.14";
 import { registerDecodedAudioAnalyzer } from "../js/analysis-flow.js";
 import {
   getCurrentLocale,
   onLocaleChange,
   setLocale,
   t,
-} from "../js/i18n.js?v=1.4.13";
+} from "../js/i18n.js?v=1.4.14";
 import {
   createResultCard,
   formatAdvancedResult,
   onAdvancedResult,
   prepareAdvancedXShare,
-} from "./advanced-experience.js?v=1.4.13";
-import { shareResultFiles } from "./audio-share.js?v=1.4.13";
+} from "./advanced-experience.js?v=1.4.14";
+import { shareResultFiles } from "./audio-share.js?v=1.4.14";
 import {
   compareChallenge,
   createChallengeUrl,
   readChallenge,
-} from "./challenge-link.js?v=1.4.13";
-import { createDynamicCardController } from "./dynamic-card-controller.js?v=1.4.13";
+} from "./challenge-link.js?v=1.4.14";
+import { createDynamicCardController } from "./dynamic-card-controller.js?v=1.4.14";
 import {
   getDailyPromptId,
   getStandardPromptId,
   promptTranslationKey,
   STANDARD_PROMPT_IDS,
   STANDARD_TEST_ID,
-} from "./quick-prompts.js?v=1.4.13";
-import { buildShareTargets, downloadBlob } from "./share-card.js?v=1.4.13";
+} from "./quick-prompts.js?v=1.4.14";
+import { buildShareTargets, downloadBlob } from "./share-card.js?v=1.4.14";
 import {
   getPublicShareResult,
   openPublicPlatformShare,
   resetPublicShareCache,
-} from "./public-share.js?v=1.4.13";
-import { aggregateStandardResults } from "./standard-result.js?v=1.4.13";
+} from "./public-share.js?v=1.4.14";
+import { aggregateStandardResults } from "./standard-result.js?v=1.4.14";
 import { analyzeVoiceQuality } from "./voice-quality-metrics.js";
 
 const EXPERIENCE_KEY = "vpa::experiment.experience";
@@ -641,6 +641,14 @@ function resultMarkup() {
           <span>${escapeHtml(t("experiment.quick.reveal.insight"))}</span>
           <strong>${escapeHtml(formatted.insight)}</strong>
         </article>
+        <aside class="quick-result__safety" aria-label="${escapeHtml(t("experiment.quick.safety.title"))}">
+          <span aria-hidden="true">♡</span>
+          <div>
+            <strong>${escapeHtml(t("experiment.quick.safety.title"))}</strong>
+            <p>${escapeHtml(t("experiment.quick.safety.body"))}</p>
+            <small>${escapeHtml(t("experiment.quick.safety.stop"))}</small>
+          </div>
+        </aside>
       ` : `
         <p class="quick-error">${escapeHtml(t("experiment.advanced.insufficient"))}</p>
       `}

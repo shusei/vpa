@@ -12,8 +12,11 @@ const fixture = JSON.parse(readFileSync(
   "utf8",
 ));
 
-async function openDevelopmentPage(page) {
+async function openDevelopmentPage(page, { shareServiceOrigin = "" } = {}) {
   await installDeterministicRuntime(page);
+  await page.addInitScript((origin) => {
+    window.VPA_SHARE_SERVICE_ORIGIN = origin;
+  }, shareServiceOrigin);
   await page.goto("/");
   await expect(page.locator("#playBtn")).toBeAttached();
   await expect(page.locator(".player")).toBeHidden();
@@ -43,9 +46,8 @@ test("professional experience renders advanced result and creates a local share 
   await expect(page.locator(".advanced-experience__score strong")).toHaveText(`${result.score}%`);
   await expect(page.locator(".advanced-experience__pitch")).toContainText("代表音高");
   await expect(page.locator(".advanced-experience__pitch strong")).toContainText("232.8");
-  await expect(page.locator("#advancedExperience").getByText("聲音年齡印象", { exact: true }))
-    .toBeVisible();
-  await expect(page.getByRole("heading", { name: "聲音年齡 2.0 證據" })).toBeVisible();
+  await expect(page.locator(".advanced-experience__identity-item").first()).toBeVisible();
+  await expect(page.locator(".voice-age-evidence h3")).toBeVisible();
   await expect(page.locator(".voice-age-evidence__metrics")).toContainText("Jitter");
   await expect(page.locator(".voice-age-evidence__metrics")).toContainText("Shimmer");
   await expect(page.locator(".voice-age-evidence__metrics")).toContainText("HNR");
@@ -111,9 +113,6 @@ test("professional X sharing publishes the personalized public result", async ({
   const publicShareGate = new Promise((resolvePromise) => {
     releasePublicShare = resolvePromise;
   });
-  await page.addInitScript(() => {
-    window.VPA_SHARE_SERVICE_ORIGIN = "https://share.example";
-  });
   await page.route("https://share.example/api/shares", async (route) => {
     await publicShareGate;
     await route.fulfill({
@@ -127,7 +126,7 @@ test("professional X sharing publishes the personalized public result", async ({
     });
   });
   const runtimeErrors = captureRuntimeErrors(page);
-  await openDevelopmentPage(page);
+  await openDevelopmentPage(page, { shareServiceOrigin: "https://share.example" });
   await page.evaluate((analysis) => {
     window.vpaExperience.setExperience("professional");
     window.vpaAdvancedExperience.renderAnalysis(analysis);

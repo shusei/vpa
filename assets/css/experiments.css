@@ -215,6 +215,72 @@ html[data-faction="dark"] .advanced-experience {
 .advanced-experience__pitch-wave i:nth-child(3) {
   height:18px;
 }
+.advanced-experience__safety {
+  display:grid;
+  grid-template-columns:42px minmax(0, 1fr);
+  gap:14px;
+  align-items:start;
+  margin:-2px 0 22px;
+  padding:18px 20px;
+  border:1px solid color-mix(in oklab, var(--accent-2) 34%, var(--experiment-subtle));
+  border-radius:20px;
+  color:var(--experiment-ink);
+  background:linear-gradient(135deg,
+    color-mix(in oklab, var(--experiment-card) 86%, var(--accent-2) 14%),
+    color-mix(in oklab, var(--experiment-card) 94%, var(--accent-1) 6%));
+}
+.advanced-experience__safety-icon {
+  display:grid;
+  place-items:center;
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  color:var(--experiment-emphasis);
+  background:color-mix(in oklab, var(--accent-2) 17%, transparent);
+  font-size:1.25rem;
+  font-weight:900;
+}
+.advanced-experience__safety > div {
+  min-width:0;
+}
+.advanced-experience__safety-badge {
+  color:var(--experiment-emphasis);
+  font-size:.68rem;
+  font-weight:900;
+  letter-spacing:.13em;
+}
+.advanced-experience__safety h3 {
+  margin:4px 0 7px;
+  font:800 1.02rem/1.35 "Segoe UI", "Noto Sans TC", sans-serif;
+}
+.advanced-experience__safety p {
+  margin:5px 0;
+  color:var(--experiment-muted);
+  font-size:.8rem;
+  line-height:1.6;
+}
+.advanced-experience__safety details {
+  margin-top:9px;
+  color:var(--experiment-muted);
+  font-size:.76rem;
+}
+.advanced-experience__safety summary {
+  width:max-content;
+  max-width:100%;
+  cursor:pointer;
+  color:var(--experiment-emphasis);
+  font-weight:800;
+}
+.advanced-experience__safety-links {
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px 13px;
+  margin-top:8px;
+}
+.advanced-experience__safety-links a {
+  color:var(--experiment-emphasis);
+  overflow-wrap:anywhere;
+}
 .advanced-experience__components {
   display:grid;
   grid-template-columns:repeat(2, minmax(0, 1fr));

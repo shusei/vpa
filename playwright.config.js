@@ -36,7 +36,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run start",
+    // Spawn the server directly so Playwright can terminate it cleanly on Windows.
+    command: "node node_modules/http-server/bin/http-server -p 8080 -c-1",
     url: "http://127.0.0.1:8080",
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,

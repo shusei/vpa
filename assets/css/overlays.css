@@ -228,6 +228,47 @@ body.help-open {
   box-shadow: inset 0 1px 0 color-mix(in oklab, #fff 30%, transparent);
 }
 
+.help-safety-panel {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 22px;
+  padding: 22px 24px;
+  border: 1px solid color-mix(in oklab, var(--accent-2) 38%, var(--panel-border));
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 100% 0, color-mix(in oklab, var(--accent-2) 16%, transparent), transparent 42%),
+    color-mix(in oklab, var(--panel) 90%, var(--accent-2) 10%);
+}
+
+.help-safety-panel > span {
+  color: color-mix(in oklab, var(--accent-1) 74%, var(--ink) 26%);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.help-safety-panel h3,
+.help-safety-panel p {
+  margin: 0;
+}
+
+.help-evidence-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 5px;
+  font-size: 13px;
+}
+
+.help-evidence-links strong {
+  flex-basis: 100%;
+}
+
+.help-evidence-links a {
+  color: color-mix(in oklab, var(--accent-1) 76%, var(--ink) 24%);
+  overflow-wrap: anywhere;
+}
+
 .help-author-img {
   flex: 0 0 auto;
   width: 112px;
@@ -289,6 +330,25 @@ body.help-open {
 }
 
 @media (max-width: 520px) {
+  .help-overlay {
+    padding: 10px;
+  }
+
+  .help-dialog {
+    width: min(100%, 370px);
+    padding: 22px 16px 28px;
+    border-radius: 22px;
+  }
+
+  .help-dialog h2 {
+    font-size: clamp(21px, 6vw, 24px);
+    line-height: 1.32;
+  }
+
+  .help-hero {
+    padding: 20px 18px 22px;
+  }
+
   .help-author {
     flex-direction: column;
     align-items: flex-start;
@@ -576,6 +636,118 @@ kbd {
 }
 
 /* Fix manual intro readability */
+.manual-safety-manual {
+  display: grid;
+  gap: 22px;
+}
+
+.manual-safety-manual > section {
+  padding: 20px 22px;
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+  background: color-mix(in oklab, var(--panel) 92%, var(--surface) 8%);
+}
+
+.manual-safety-manual h2 {
+  margin: 0 0 12px;
+  font-size: clamp(1.05rem, 3vw, 1.35rem);
+}
+
+.manual-safety-manual p,
+.manual-safety-manual li {
+  line-height: 1.68;
+}
+
+.manual-safe-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 26px 28px;
+  border: 1px solid color-mix(in oklab, var(--accent-2) 36%, var(--panel-border));
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 90% 0, color-mix(in oklab, var(--accent-2) 22%, transparent), transparent 45%),
+    linear-gradient(145deg, color-mix(in oklab, var(--panel) 84%, var(--accent-2) 16%), var(--panel));
+}
+
+.manual-safe-hero > span {
+  color: color-mix(in oklab, var(--accent-1) 75%, var(--ink) 25%);
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .13em;
+}
+
+.manual-safe-hero h2 {
+  margin: 7px 0 10px;
+  font-family: Georgia, "Noto Serif TC", serif;
+  font-size: clamp(1.65rem, 5vw, 2.35rem);
+}
+
+.manual-safe-hero p {
+  max-width: 70ch;
+  margin: 0;
+}
+
+.manual-stop-panel {
+  border-color: color-mix(in oklab, #d97706 34%, var(--panel-border)) !important;
+  background: color-mix(in oklab, var(--panel) 89%, #d97706 11%) !important;
+}
+
+.manual-avoid-panel {
+  border-color: color-mix(in oklab, var(--accent-2) 34%, var(--panel-border)) !important;
+}
+
+.manual-safe-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.manual-safe-grid article {
+  min-width: 0;
+  padding: 15px 16px;
+  border: 1px solid color-mix(in oklab, var(--panel-border) 84%, var(--accent-2) 16%);
+  border-radius: 14px;
+  background: color-mix(in oklab, var(--panel) 88%, var(--accent-2) 12%);
+}
+
+.manual-safe-grid h3 {
+  margin: 0 0 7px;
+  color: var(--ink);
+  font-size: .95rem;
+}
+
+.manual-safe-grid p {
+  margin: 0;
+  color: color-mix(in oklab, var(--ink) 78%, var(--muted) 22%);
+  font-size: .86rem;
+}
+
+.manual-source-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px 16px;
+}
+
+.manual-source-panel h2 {
+  flex-basis: 100%;
+}
+
+.manual-source-panel a {
+  color: color-mix(in oklab, var(--accent-1) 76%, var(--ink) 24%);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 520px) {
+  .manual-safe-hero,
+  .manual-safety-manual > section {
+    padding: 17px;
+  }
+
+  .manual-safe-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .manual-intro {
   margin: 0 0 24px;
   padding: 22px 26px 24px;

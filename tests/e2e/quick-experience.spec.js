@@ -76,7 +76,7 @@ test("quick and professional experiences share one analysis result", async ({ pa
   await expect(page.locator(".quick-result__pitch")).toContainText("代表音高");
   await expect(page.locator(".quick-result__pitch-value")).toContainText("232.8");
   await expect(page.locator(".quick-result__pitch-value")).toContainText("Hz");
-  await expect(page.locator("[data-quick-refine]")).toContainText("打磨出最滿意的成績");
+  await expect(page.locator("[data-quick-refine]")).toContainText("保留自然、舒服的一次");
   await expect(page.locator("[data-quick-refine] [data-quick-retry]")).toBeVisible();
   await expect(page.locator(".quick-result__actions [data-quick-retry]")).toHaveCount(0);
 
@@ -367,9 +367,9 @@ test("Japanese browser language becomes the default locale and a saved choice wi
   await expect(page.locator("#helpOverlay")).toContainText("パネルの見方");
   await page.locator("#helpClose").click();
   await page.locator("#guideBtn").click();
-  await expect(page.locator("#guideTitle")).toHaveText("女性声トレーニングマニュアル");
+  await expect(page.locator("#guideTitle")).toHaveText("女性的な声のマニュアル");
   await expect(page.locator(".guide-close")).toHaveAttribute("aria-label", "マニュアルを閉じる");
-  await expect(page.locator("#guideContent")).toContainText("Who is this for");
+  await expect(page.locator("#guideContent")).toContainText("始める前に");
   expect(runtimeErrors).toEqual([]);
 });
 

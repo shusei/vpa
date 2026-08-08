@@ -20,8 +20,9 @@ test.describe("Voice Manual Overlay", () => {
     await expect(overlay).toBeHidden();
     await guideBtn.click();
     await expect(overlay).toBeVisible();
-    await expect(page.locator("#guideTitle")).toHaveText("女聲訓練手冊");
-    await expect(page.locator("#guideContent")).toContainText("0) 你每天照做什麼");
+    await expect(page.locator("#guideTitle")).toHaveText("女性化聲音手冊");
+    await expect(page.locator("#guideContent")).toContainText("一次安全的自我比較流程");
+    await expect(page.locator("#guideContent .manual-stop-panel")).toBeVisible();
   });
 
   test("closes the manual and restores focus", async ({ page }) => {

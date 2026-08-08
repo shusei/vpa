@@ -1,3 +1,5 @@
+import { applySafetyCopy } from "./safety-copy.js?v=1.4.14";
+
 const practiceWarmup = {
   title: "暖身三步驟",
   summary: "錄音前 1 分鐘快速開聲。",
@@ -25,7 +27,7 @@ const warmupStepsHtml = [
   `<li><strong>${practiceWarmup.steps.hu.name}</strong>${practiceWarmup.steps.hu.desc}</li>`,
 ].join("");
 
-export default {
+const dictionary = {
 
   chips: {
     localInference: "本地推論",
@@ -714,7 +716,7 @@ export default {
       '</ul>',
       '</section>',
       '<div class="help-author">',
-      '<img src="assets/avatar-evelyn.jpg?v=1.4.13" alt="Evelyn 的作者照片" class="help-author-img" loading="lazy" />',
+      '<img src="assets/avatar-evelyn.jpg?v=1.4.14" alt="Evelyn 的作者照片" class="help-author-img" loading="lazy" />',
       '<div class="help-author-text">',
       '<h4>關於作者：Evelyn</h4>',
       '<p>不管是寫程式還是練偽音，都是一條充滿探索的路。<br>如果您對 VPA 有任何建議，或想交流聲音訓練的心得，歡迎來我的 Instagram 找我！</p>',
@@ -1153,3 +1155,5 @@ export default {
     },
   },
 };
+
+export default applySafetyCopy("zh-Hant", dictionary);

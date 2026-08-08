@@ -1,17 +1,22 @@
 {
   "name": "vpa",
-  "version": "1.4.13",
+  "version": "1.4.14",
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4173",
     "start": "http-server -p 8080 -c-1",
-    "test": "npm run test:share-worker && npm run test:unit && npm run test:voice-age && npm run test:locale && npm run test:strict-locale && npm run test:e2e && npm run test:syntax && npm run test:markup && npm run test:ffmpeg && npm run test:decode && npm run test:phrases && npm run test:social",
+    "test": "npm run test:share-worker && npm run test:unit && npm run test:voice-age && npm run test:locale && npm run test:strict-locale && npm run test:medical-safety && npm run test:build && npm run test:production-runtime && npm run test:e2e && npm run test:syntax && npm run test:markup && npm run test:ffmpeg && npm run test:decode && npm run test:phrases && npm run test:social",
     "test:strict-locale": "node tests/strict-end-to-end-localization.mjs",
     "test:e2e": "node tests/helpers/generate-media-fixtures.mjs && playwright test",
     "test:share-worker": "node --test cloudflare/share-worker/test/share-worker.test.mjs tests/unit-share-service.mjs tests/unit-dynamic-video.mjs",
     "test:unit": "node tests/unit-pitch-shared.js && node tests/unit-analysis-runtime.js && node tests/unit-analysis-telemetry.js && node tests/unit-voice-quality.js && node tests/unit-advanced-experience.js",
     "test:voice-age": "node tests/verify-voice-age-calibration.mjs",
     "test:locale": "node tests/verify-locale-cleanliness.mjs",
+    "test:medical-safety": "node tests/verify-medical-safety.mjs",
+    "test:build": "vite build && node tests/verify-production-build.mjs",
+    "test:production-runtime": "node tests/verify-production-runtime.mjs",
     "test:syntax": "node --check assets/app.js && node --check assets/app-core.js",
     "test:markup": "node scripts/check-static.js",
     "test:ffmpeg": "node tests/verify-ffmpeg-download.mjs",
@@ -26,6 +31,7 @@
   "devDependencies": {
     "@playwright/test": "^1.40.0",
     "http-server": "^14.1.1",
-    "playwright": "^1.58.2"
+    "playwright": "^1.59.1",
+    "vite": "^8.2.1"
   }
 }

@@ -850,6 +850,47 @@ html[data-faction="dark"] .quick-experience {
 .quick-result__insight strong {
   line-height:1.6;
 }
+.quick-result__safety {
+  display:grid;
+  grid-template-columns:34px minmax(0, 1fr);
+  gap:12px;
+  align-items:start;
+  padding:15px 17px;
+  border:1px solid color-mix(in oklab, var(--quick-accent-2) 32%, var(--quick-border));
+  border-radius:18px;
+  background:linear-gradient(135deg,
+    color-mix(in oklab, var(--quick-surface) 88%, var(--quick-accent-2) 12%),
+    color-mix(in oklab, var(--quick-surface) 94%, var(--quick-accent) 6%));
+}
+.quick-result__safety > span {
+  display:grid;
+  place-items:center;
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  color:var(--quick-emphasis);
+  background:color-mix(in oklab, var(--quick-accent-2) 17%, transparent);
+  font-size:1.05rem;
+  font-weight:900;
+}
+.quick-result__safety div {
+  display:grid;
+  gap:5px;
+}
+.quick-result__safety strong {
+  color:var(--quick-emphasis);
+  font-size:.88rem;
+}
+.quick-result__safety p,
+.quick-result__safety small {
+  margin:0;
+  color:var(--quick-muted);
+  font-size:.75rem;
+  line-height:1.55;
+}
+.quick-result__safety small {
+  font-weight:750;
+}
 .quick-result__disclaimer {
   margin:0;
   color:var(--quick-muted);

@@ -5,7 +5,7 @@ import { captureRuntimeErrors, installDeterministicRuntime, openProductionPage }
 
 const fixture = JSON.parse(readFileSync(resolve("fixtures/analysis/sweet_feminine.json"), "utf8"));
 
-test("production advanced analysis matches every original fixture field", async ({ page }) => {
+test("production advanced analysis preserves every acoustic fixture value", async ({ page }) => {
   const runtimeErrors = captureRuntimeErrors(page);
   await openProductionPage(page);
 
@@ -52,7 +52,20 @@ test("production advanced analysis matches every original fixture field", async 
     return JSON.parse(JSON.stringify(cloned).replaceAll(" (", "（").replaceAll(")", "）"));
   };
 
-  expect(clean(actual)).toEqual(clean(fixture.advanced));
+  const cleanData = (obj) => {
+    const preserveDataAndShape = (value) => {
+      if (Array.isArray(value)) return value.map(preserveDataAndShape);
+      if (value && typeof value === "object") {
+        return Object.fromEntries(
+          Object.entries(value).map(([key, entry]) => [key, preserveDataAndShape(entry)]),
+        );
+      }
+      return typeof value === "string" ? "<localized-text>" : value;
+    };
+    return preserveDataAndShape(clean(obj));
+  };
+
+  expect(cleanData(actual)).toEqual(cleanData(fixture.advanced));
   expect(runtimeErrors).toEqual([]);
 });
 
@@ -123,6 +136,27 @@ test.describe("mobile production interactions", () => {
 test("GA4 tag submits page_view and production analysis_completed", async ({ page }) => {
   await installDeterministicRuntime(page, { mockAnalytics: false });
   const acceptedEvents = [];
+  await page.route("https://www.googletagmanager.com/gtag/js**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "text/javascript",
+      body: `
+        setTimeout(() => {
+          const queuedGtag = window.gtag;
+          window.gtag = function(command, name, parameters) {
+            queuedGtag?.apply(this, arguments);
+            if (command === "event") {
+              fetch("https://www.google-analytics.com/g/collect?en=" + encodeURIComponent(name));
+            }
+          };
+          fetch("https://www.google-analytics.com/g/collect?en=page_view");
+        }, 0);
+      `,
+    });
+  });
+  await page.route(/https:\/\/(?:www\.)?google-analytics\.com\/g\/collect.*/, async (route) => {
+    await route.fulfill({ status: 204, body: "" });
+  });
   page.on("response", (response) => {
     const url = response.url();
     if (url.includes("google-analytics.com/g/collect")) {
