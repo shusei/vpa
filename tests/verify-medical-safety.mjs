@@ -133,8 +133,14 @@ for (const [locale, dictionary] of Object.entries(dictionaries)) {
   }
   assert.equal(new Set(formantNextSteps).size, 3, `${locale} F1/F2/F3 still share one generic next step`);
   assertGuidance(dictionary.analysis.meter.hint, "analysis.meter.hint");
-  assertGuidance(dictionary.experiment.quick.reveal.pitchSingleHint, "experiment.quick.reveal.pitchSingleHint");
-  assertGuidance(dictionary.experiment.quick.reveal.pitchStandardHint, "experiment.quick.reveal.pitchStandardHint");
+  for (const [key, value] of Object.entries(dictionary.experiment.quick.insight)) {
+    assert.equal(typeof value, "string", `${locale} experiment.quick.insight.${key} must be a string`);
+    assert.ok(value.trim(), `${locale} experiment.quick.insight.${key} must not be empty`);
+    assert.equal(value.split(/\r?\n/).filter(Boolean).length, 1, `${locale} experiment.quick.insight.${key} must be one concise line`);
+    for (const label of guidanceLabels) {
+      assert.doesNotMatch(value, new RegExp(`^${label}${separator}`), `${locale} experiment.quick.insight.${key} still starts with a guidance label`);
+    }
+  }
   assertGuidance(dictionary.experiment.advanced.pitchMedianHint, "experiment.advanced.pitchMedianHint");
   for (const [key, value] of Object.entries(dictionary.experiment.advanced.components.guidance)) {
     assertGuidance(value, `experiment.advanced.components.guidance.${key}`);
@@ -150,4 +156,4 @@ for (const [locale, dictionary] of Object.entries(dictionaries)) {
   }
 }
 
-console.log("[PASS] Medical-safety and three-part guidance audits passed for Quick, Advanced, Help, and Manual in all 4 locales.");
+console.log("[PASS] Compact Quick summaries plus Advanced, Help, and Manual safety-guidance audits passed in all 4 locales.");

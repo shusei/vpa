@@ -76,7 +76,17 @@ test("quick and professional experiences share one analysis result", async ({ pa
   await expect(page.locator(".quick-result__pitch")).toContainText("代表音高");
   await expect(page.locator(".quick-result__pitch-value")).toContainText("232.8");
   await expect(page.locator(".quick-result__pitch-value")).toContainText("Hz");
-  await expect(page.locator("[data-quick-refine]")).toContainText("保留自然、舒服的一次");
+  await expect(page.locator(".quick-result__insight > span")).toHaveText("本次小結");
+  await expect(page.locator(".quick-result__insight > strong")).not.toBeEmpty();
+  await expect(page.locator(".quick-result .guidance-list")).toHaveCount(0);
+  await expect(page.locator(".quick-result__pitch-hint")).toHaveCount(0);
+  await expect(page.locator(".quick-result__safety")).toHaveCount(0);
+  await expect(page.locator(".quick-result__disclaimer")).toHaveCount(0);
+  await expect(page.locator(".quick-footer > span")).toHaveCount(0);
+  await expect(page.locator(".quick-share-shortcuts")).toBeVisible();
+  await expect(page.locator(".quick-share-shortcuts [data-quick-platform]")).toHaveCount(3);
+  await expect(page.locator(".quick-result__refine-head")).toHaveCount(0);
+  await expect(page.locator("[data-quick-refine] small")).toHaveCount(0);
   await expect(page.locator("[data-quick-refine] [data-quick-retry]")).toBeVisible();
   await expect(page.locator(".quick-result__actions [data-quick-retry]")).toHaveCount(0);
 

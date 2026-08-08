@@ -567,48 +567,12 @@ html[data-faction="dark"] .quick-experience {
   font-weight:800;
 }
 .quick-result__refine {
-  position:relative;
-  isolation:isolate;
-  display:grid;
-  gap:13px;
   width:min(100%, 560px);
   margin:0 auto;
-  padding:16px;
-  overflow:hidden;
-  border:1px solid color-mix(in oklab, var(--quick-accent) 46%, var(--quick-border));
-  border-radius:22px;
-  background:
-    radial-gradient(circle at 92% -24%, color-mix(in oklab, var(--quick-accent) 30%, transparent), transparent 46%),
-    linear-gradient(145deg, color-mix(in oklab, var(--quick-surface) 88%, var(--quick-accent-2) 12%), var(--quick-surface));
-  box-shadow:0 14px 34px color-mix(in oklab, var(--quick-shadow) 66%, transparent), inset 0 1px 0 color-mix(in oklab, #fff 38%, transparent);
-}
-.quick-result__refine::after {
-  content:"";
-  position:absolute;
-  z-index:-1;
-  right:-34px;
-  bottom:-62px;
-  width:130px;
-  height:130px;
-  border:1px solid color-mix(in oklab, var(--quick-accent-2) 30%, transparent);
-  border-radius:50%;
-  box-shadow:0 0 0 18px color-mix(in oklab, var(--quick-accent-2) 6%, transparent);
-}
-.quick-result__refine-head {
-  display:flex;
-  align-items:baseline;
-  justify-content:space-between;
-  gap:12px;
-}
-.quick-result__refine-head span {
-  color:var(--quick-emphasis);
-  font-size:.65rem;
-  font-weight:900;
-  letter-spacing:.14em;
-}
-.quick-result__refine-head strong {
-  color:var(--quick-ink);
-  font-size:.92rem;
+  padding:8px;
+  border:1px solid color-mix(in oklab, var(--quick-accent) 38%, var(--quick-border));
+  border-radius:18px;
+  background:color-mix(in oklab, var(--quick-surface) 90%, var(--quick-accent) 10%);
 }
 .quick-result__refine-actions {
   display:grid;
@@ -621,13 +585,13 @@ html[data-faction="dark"] .quick-experience {
   align-items:center;
   gap:9px;
   min-width:0;
-  min-height:68px;
-  padding:9px 11px 9px 9px;
+  min-height:52px;
+  padding:7px 10px 7px 7px;
   border:1px solid color-mix(in oklab, var(--quick-accent-2) 32%, var(--quick-border));
-  border-radius:16px;
+  border-radius:13px;
   color:var(--quick-ink);
   background:color-mix(in oklab, var(--quick-surface-strong) 86%, transparent);
-  box-shadow:0 7px 18px color-mix(in oklab, var(--quick-shadow) 48%, transparent);
+  box-shadow:0 5px 14px color-mix(in oklab, var(--quick-shadow) 38%, transparent);
   text-align:left;
   cursor:pointer;
   transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
@@ -660,8 +624,8 @@ html[data-faction="dark"] .quick-experience {
 .quick-result__refine-icon {
   display:grid;
   place-items:center;
-  width:38px;
-  height:38px;
+  width:34px;
+  height:34px;
   padding-left:2px;
   border-radius:50%;
   color:var(--quick-accent-ink);
@@ -676,14 +640,6 @@ html[data-faction="dark"] .quick-experience {
   display:grid;
   gap:1px;
   min-width:0;
-}
-.quick-result__refine-copy small {
-  overflow:hidden;
-  color:var(--quick-muted);
-  font-size:.64rem;
-  font-weight:750;
-  text-overflow:ellipsis;
-  white-space:nowrap;
 }
 .quick-result__refine-copy strong {
   font-size:.88rem;
@@ -826,12 +782,6 @@ html[data-faction="dark"] .quick-experience {
   font:850 .8rem "Segoe UI", "Noto Sans TC", sans-serif;
   letter-spacing:.08em;
 }
-.quick-result__identity .quick-result__pitch-hint {
-  max-width:none;
-  color:var(--quick-muted);
-  font-size:.7rem;
-  line-height:1.45;
-}
 @media (prefers-reduced-motion:no-preference) {
   .quick-result__identity article {
     transition:transform .22s ease, box-shadow .22s ease, border-color .22s ease;
@@ -848,53 +798,6 @@ html[data-faction="dark"] .quick-experience {
   border-left:4px solid var(--quick-accent-2);
 }
 .quick-result__insight strong {
-  line-height:1.6;
-}
-.quick-result__safety {
-  display:grid;
-  grid-template-columns:34px minmax(0, 1fr);
-  gap:12px;
-  align-items:start;
-  padding:15px 17px;
-  border:1px solid color-mix(in oklab, var(--quick-accent-2) 32%, var(--quick-border));
-  border-radius:18px;
-  background:linear-gradient(135deg,
-    color-mix(in oklab, var(--quick-surface) 88%, var(--quick-accent-2) 12%),
-    color-mix(in oklab, var(--quick-surface) 94%, var(--quick-accent) 6%));
-}
-.quick-result__safety > span {
-  display:grid;
-  place-items:center;
-  width:34px;
-  height:34px;
-  border-radius:50%;
-  color:var(--quick-emphasis);
-  background:color-mix(in oklab, var(--quick-accent-2) 17%, transparent);
-  font-size:1.05rem;
-  font-weight:900;
-}
-.quick-result__safety div {
-  display:grid;
-  gap:5px;
-}
-.quick-result__safety strong {
-  color:var(--quick-emphasis);
-  font-size:.88rem;
-}
-.quick-result__safety p,
-.quick-result__safety small {
-  margin:0;
-  color:var(--quick-muted);
-  font-size:.75rem;
-  line-height:1.55;
-}
-.quick-result__safety small {
-  font-weight:750;
-}
-.quick-result__disclaimer {
-  margin:0;
-  color:var(--quick-muted);
-  font-size:.76rem;
   line-height:1.6;
 }
 .quick-result__actions {
@@ -1281,29 +1184,20 @@ html[data-experience="professional"] #meter {
     border-radius:24px;
   }
   .quick-result__refine {
-    gap:11px;
-    padding:13px;
-    border-radius:19px;
-  }
-  .quick-result__refine-head {
-    align-items:flex-start;
-    flex-direction:column;
-    gap:2px;
+    padding:7px;
+    border-radius:16px;
   }
   .quick-result__refine-actions {
     gap:7px;
   }
   .quick-result__refine-action {
     grid-template-columns:auto minmax(0, 1fr);
-    min-height:70px;
-    padding:8px;
+    min-height:50px;
+    padding:7px;
   }
   .quick-result__refine-icon {
     width:35px;
     height:35px;
-  }
-  .quick-result__refine-copy small {
-    font-size:.6rem;
   }
   .quick-result__refine-copy strong {
     font-size:.82rem;
@@ -1311,7 +1205,12 @@ html[data-experience="professional"] #meter {
   .quick-result__replay-wave {
     display:none;
   }
-  .quick-result__identity,
+  .quick-result__identity {
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
+  .quick-result__identity .quick-result__pitch {
+    grid-column:1/-1;
+  }
   .quick-standard-summary,
   .quick-result__actions {
     grid-template-columns:1fr;

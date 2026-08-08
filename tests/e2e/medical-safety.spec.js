@@ -9,10 +9,10 @@ const fixture = JSON.parse(readFileSync(
 ));
 
 const expected = {
-  en: { quick: "Comfort matters more than the score", advanced: "Comfort comes first—do not train to the score" },
-  ja: { quick: "点数より快適さが大切", advanced: "快適さを最優先し、点数を目標に練習しない" },
-  "zh-Hans": { quick: "舒服比高分重要", advanced: "先以舒适为准，不要追着分数练" },
-  "zh-Hant": { quick: "舒服比高分重要", advanced: "先以舒適為準，不要追著分數練" },
+  en: "Comfort comes first—do not train to the score",
+  ja: "快適さを最優先し、点数を目標に練習しない",
+  "zh-Hans": "先以舒适为准，不要追着分数练",
+  "zh-Hant": "先以舒適為準，不要追著分數練",
 };
 
 async function switchLocale(page, locale) {
@@ -22,7 +22,7 @@ async function switchLocale(page, locale) {
   await expect(page.locator("html")).toHaveAttribute("lang", locale);
 }
 
-test("Quick, Advanced, Help, and Manual expose safety guidance in all locales", async ({ page }) => {
+test("Quick stays compact while Advanced, Help, and Manual expose safety guidance in all locales", async ({ page }) => {
   const runtimeErrors = captureRuntimeErrors(page);
   await installDeterministicRuntime(page, { storedLocale: "zh-Hant" });
   await page.addInitScript(() => {
@@ -31,16 +31,17 @@ test("Quick, Advanced, Help, and Manual expose safety guidance in all locales", 
   await page.goto("/");
   await expect.poll(() => page.evaluate(() => Boolean(window.vpaAdvancedExperience))).toBe(true);
 
-  for (const [locale, copy] of Object.entries(expected)) {
+  for (const [locale, advancedCopy] of Object.entries(expected)) {
     await switchLocale(page, locale);
     await page.evaluate((analysis) => window.vpaAdvancedExperience.renderAnalysis(analysis), fixture);
 
-    await expect(page.locator(".quick-result__safety")).toBeVisible();
-    await expect(page.locator(".quick-result__safety")).toContainText(copy.quick);
+    await expect(page.locator(".quick-result__safety")).toHaveCount(0);
+    await expect(page.locator(".quick-result__disclaimer")).toHaveCount(0);
+    await expect(page.locator(".quick-result .guidance-list")).toHaveCount(0);
 
     await page.locator('.quick-result [data-experience-target="professional"]').click();
     await expect(page.locator(".advanced-experience__safety")).toBeVisible();
-    await expect(page.locator(".advanced-experience__safety")).toContainText(copy.advanced);
+    await expect(page.locator(".advanced-experience__safety")).toContainText(advancedCopy);
     await page.locator("#helpBtn").click();
     await expect(page.locator("#helpOverlay .help-safety-panel")).toBeVisible();
     await expect(page.locator("#helpOverlay .help-evidence-links a")).toHaveCount(4);
@@ -59,7 +60,7 @@ test("Quick, Advanced, Help, and Manual expose safety guidance in all locales", 
   expect(runtimeErrors).toEqual([]);
 });
 
-test("safety content remains readable without horizontal overflow on a phone", async ({ page }) => {
+test("Quick remains compact and Advanced safety remains readable without phone overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await installDeterministicRuntime(page, { storedLocale: "en" });
   await page.addInitScript(() => {
@@ -68,7 +69,10 @@ test("safety content remains readable without horizontal overflow on a phone", a
   await page.goto("/");
   await expect.poll(() => page.evaluate(() => Boolean(window.vpaAdvancedExperience))).toBe(true);
   await page.evaluate((analysis) => window.vpaAdvancedExperience.renderAnalysis(analysis), fixture);
-  await expect(page.locator(".quick-result__safety")).toBeVisible();
+  await expect(page.locator(".quick-result__safety")).toHaveCount(0);
+  await expect(page.locator(".quick-result__identity article")).toHaveCount(3);
+  await expect(page.locator(".quick-result__insight")).toBeVisible();
+  await expect(page.locator(".quick-share-shortcuts")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 
   await page.locator('.quick-result [data-experience-target="professional"]').click();

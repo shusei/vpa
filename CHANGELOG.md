@@ -6,6 +6,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.20] - 2026-08-09
+
+### Changed
+
+- Streamlined Quick results to show only the score, core voice data, one concise summary, replay/retry controls, and immediate sharing actions.
+- Removed long three-part guidance, pitch explanations, safety panels, disclaimers, and footer warnings from Quick while retaining the complete safety and interpretation guidance in Advanced, Help, and the Feminine Voice Manual.
+- Compressed the replay/retry controls and placed voice-age and character cards side by side on phones so sharing actions appear sooner.
+
+### Tests
+
+- Added four-locale regression coverage for single-line Quick summaries and the absence of verbose Quick-only guidance.
+- Verified the 390 × 844 mobile result layout, first-tap audio replay, direct sharing controls, and zero horizontal overflow.
+
 ## [1.4.19] - 2026-08-09
 
 ### Fixed

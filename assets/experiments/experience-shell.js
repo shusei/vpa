@@ -1,39 +1,38 @@
-import { recorderCtl } from "../app.js?v=1.4.19";
+import { recorderCtl } from "../app.js?v=1.4.20";
 import { registerDecodedAudioAnalyzer } from "../js/analysis-flow.js";
 import {
   getCurrentLocale,
   onLocaleChange,
   setLocale,
   t,
-} from "../js/i18n.js?v=1.4.19";
+} from "../js/i18n.js?v=1.4.20";
 import {
   createResultCard,
   formatAdvancedResult,
   onAdvancedResult,
   prepareAdvancedXShare,
-} from "./advanced-experience.js?v=1.4.19";
-import { shareResultFiles } from "./audio-share.js?v=1.4.19";
+} from "./advanced-experience.js?v=1.4.20";
+import { shareResultFiles } from "./audio-share.js?v=1.4.20";
 import {
   compareChallenge,
   createChallengeUrl,
   readChallenge,
-} from "./challenge-link.js?v=1.4.19";
-import { createDynamicCardController } from "./dynamic-card-controller.js?v=1.4.19";
+} from "./challenge-link.js?v=1.4.20";
+import { createDynamicCardController } from "./dynamic-card-controller.js?v=1.4.20";
 import {
   getDailyPromptId,
   getStandardPromptId,
   promptTranslationKey,
   STANDARD_PROMPT_IDS,
   STANDARD_TEST_ID,
-} from "./quick-prompts.js?v=1.4.19";
-import { buildShareTargets, downloadBlob } from "./share-card.js?v=1.4.19";
-import { renderGuidance } from "../js/guidance-markup.js";
+} from "./quick-prompts.js?v=1.4.20";
+import { buildShareTargets, downloadBlob } from "./share-card.js?v=1.4.20";
 import {
   getPublicShareResult,
   openPublicPlatformShare,
   resetPublicShareCache,
-} from "./public-share.js?v=1.4.19";
-import { aggregateStandardResults } from "./standard-result.js?v=1.4.19";
+} from "./public-share.js?v=1.4.20";
+import { aggregateStandardResults } from "./standard-result.js?v=1.4.20";
 import { analyzeVoiceQuality } from "./voice-quality-metrics.js";
 
 const EXPERIENCE_KEY = "vpa::experiment.experience";
@@ -558,7 +557,7 @@ function resultMarkup() {
   const masculine = ready ? 100 - feminine : null;
   const pitchHz = Number(result.pitchHz);
   const pitchText = Number.isFinite(pitchHz) ? pitchHz.toFixed(1) : "—";
-  const pitchHintKey = isStandard ? "pitchStandardHint" : "pitchSingleHint";
+  const quickSummary = t(`experiment.quick.insight.${result.insightKey}`);
   return `
     <section class="quick-result" data-quick-stage="result">
       ${comparisonMarkup(result)}
@@ -586,35 +585,6 @@ function resultMarkup() {
         ` : `<strong class="quick-result__unavailable">—</strong>`}
         <small>${escapeHtml(t(scoreKey))}</small>
       </div>
-      <section class="quick-result__refine" aria-labelledby="quick-refine-title" data-quick-refine>
-        <header class="quick-result__refine-head">
-          <span>${escapeHtml(t("experiment.quick.refine.eyebrow"))}</span>
-          <strong id="quick-refine-title">${escapeHtml(t("experiment.quick.refine.title"))}</strong>
-        </header>
-        <div class="quick-result__refine-actions">
-          ${recorderCtl.hasLastRecording ? `
-            <button type="button" class="quick-result__refine-action quick-result__refine-action--replay"
-              aria-label="${escapeHtml(t(recorderCtl.isPlaying ? "player.ariaPause" : "player.replayHintAria"))}" data-quick-replay>
-              <span class="quick-result__refine-icon quick-result__refine-icon--play" aria-hidden="true">${recorderCtl.isPlaying ? "⏸" : "▶"}</span>
-              <span class="quick-result__refine-copy">
-                <small>${escapeHtml(t("experiment.quick.refine.replayHint"))}</small>
-                <strong>${escapeHtml(t(recorderCtl.isPlaying ? "player.pause" : "player.replayHintAction"))}</strong>
-              </span>
-              <span class="quick-result__replay-wave" aria-hidden="true">
-                <i></i><i></i><i></i><i></i><i></i>
-              </span>
-            </button>
-          ` : ""}
-          <button type="button" class="quick-result__refine-action quick-result__refine-action--retry"
-            aria-label="${escapeHtml(t("experiment.quick.refine.retryAria"))}" data-quick-retry>
-            <span class="quick-result__refine-icon" aria-hidden="true">↻</span>
-            <span class="quick-result__refine-copy">
-              <small>${escapeHtml(t("experiment.quick.refine.retryHint"))}</small>
-              <strong>${escapeHtml(t("experiment.quick.retry"))}</strong>
-            </span>
-          </button>
-        </div>
-      </section>
       ${ready ? standardSummaryMarkup(result) : ""}
       ${ready ? `
         <div class="quick-result__identity">
@@ -627,7 +597,6 @@ function resultMarkup() {
               <b>${escapeHtml(pitchText)}</b>
               <small>Hz</small>
             </strong>
-            <small class="quick-result__pitch-hint">${renderGuidance(t(`experiment.quick.reveal.${pitchHintKey}`), escapeHtml)}</small>
           </article>
           <article>
             <span>${escapeHtml(t("experiment.quick.reveal.age"))}</span>
@@ -640,20 +609,34 @@ function resultMarkup() {
         </div>
         <article class="quick-result__insight">
           <span>${escapeHtml(t("experiment.quick.reveal.insight"))}</span>
-          <strong>${renderGuidance(formatted.insight, escapeHtml)}</strong>
+          <strong>${escapeHtml(quickSummary)}</strong>
         </article>
-        <aside class="quick-result__safety" aria-label="${escapeHtml(t("experiment.quick.safety.title"))}">
-          <span aria-hidden="true">♡</span>
-          <div>
-            <strong>${escapeHtml(t("experiment.quick.safety.title"))}</strong>
-            <p>${escapeHtml(t("experiment.quick.safety.body"))}</p>
-            <small>${escapeHtml(t("experiment.quick.safety.stop"))}</small>
+        <section class="quick-result__refine" aria-label="${escapeHtml(t("experiment.quick.refine.title"))}" data-quick-refine>
+          <div class="quick-result__refine-actions">
+            ${recorderCtl.hasLastRecording ? `
+              <button type="button" class="quick-result__refine-action quick-result__refine-action--replay"
+                aria-label="${escapeHtml(t(recorderCtl.isPlaying ? "player.ariaPause" : "player.replayHintAria"))}" data-quick-replay>
+                <span class="quick-result__refine-icon quick-result__refine-icon--play" aria-hidden="true">${recorderCtl.isPlaying ? "⏸" : "▶"}</span>
+                <span class="quick-result__refine-copy">
+                  <strong>${escapeHtml(t(recorderCtl.isPlaying ? "player.pause" : "player.replayHintAction"))}</strong>
+                </span>
+                <span class="quick-result__replay-wave" aria-hidden="true">
+                  <i></i><i></i><i></i><i></i><i></i>
+                </span>
+              </button>
+            ` : ""}
+            <button type="button" class="quick-result__refine-action quick-result__refine-action--retry"
+              aria-label="${escapeHtml(t("experiment.quick.refine.retryAria"))}" data-quick-retry>
+              <span class="quick-result__refine-icon" aria-hidden="true">↻</span>
+              <span class="quick-result__refine-copy">
+                <strong>${escapeHtml(t("experiment.quick.retry"))}</strong>
+              </span>
+            </button>
           </div>
-        </aside>
+        </section>
       ` : `
         <p class="quick-error">${escapeHtml(t("experiment.advanced.insufficient"))}</p>
       `}
-      <p class="quick-result__disclaimer">${escapeHtml(t("experiment.advanced.disclaimer"))}</p>
       ${ready ? shareShortcutMarkup() : ""}
       <div class="quick-result__actions">
         <button type="button" class="quick-primary" data-quick-share ${ready ? "" : "disabled"}>
@@ -691,7 +674,6 @@ function renderQuickExperience() {
             ? standardCheckpointMarkup()
             : progressMarkup()}
       <footer class="quick-footer">
-        <span>${escapeHtml(t("experiment.quick.footer"))}</span>
         <button type="button" class="footer-author-shortcut" data-author-shortcut
           aria-label="${escapeHtml(t("footer.easterEggAria"))}">
           <svg viewBox="0 0 24 24" aria-hidden="true">

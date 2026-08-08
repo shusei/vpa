@@ -77,7 +77,10 @@ try {
   }
 
   await page.evaluate((analysis) => window.vpaAdvancedExperience.renderAnalysis(analysis), fixture);
-  assert.ok(await page.locator(".quick-result__safety").isVisible(), "production quick safety card is missing");
+  assert.ok(await page.locator(".quick-result__insight").isVisible(), "production quick summary is missing");
+  assert.equal(await page.locator(".quick-result .guidance-list").count(), 0, "production Quick still contains long guidance");
+  assert.equal(await page.locator(".quick-result__safety").count(), 0, "production Quick still contains the safety panel");
+  assert.ok(await page.locator(".quick-share-shortcuts").isVisible(), "production quick-share shortcuts are missing");
   await page.locator('.quick-result [data-experience-target="professional"]').click();
   assert.ok(await page.locator(".advanced-experience__safety").isVisible(), "production advanced safety card is missing");
   await page.locator("#helpBtn").click();
@@ -87,7 +90,7 @@ try {
   assert.equal(await page.locator("#guideOverlay .manual-source-panel a").count(), 4);
   assert.deepEqual(errors, []);
   await context.close();
-  console.log(`[PASS] Production runtime loaded ${new Set(localAssets).size} hashed JS/CSS assets with safety UI intact.`);
+  console.log(`[PASS] Production runtime loaded ${new Set(localAssets).size} hashed JS/CSS assets with compact Quick results and Advanced safety UI intact.`);
 } finally {
   await browser?.close();
   server.kill();

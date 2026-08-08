@@ -334,6 +334,7 @@ export function buildAnalysisGuidance(locale, ui) {
     high: guidance(locale, metric.purpose, metric.high, metric.next || g.compare),
   }]));
   const insight = Object.fromEntries(Object.entries(g.insights).map(([key, parts]) => [key, guidance(locale, ...parts)]));
+  const quickInsight = Object.fromEntries(Object.entries(g.insights).map(([key, parts]) => [key, parts[1]]));
   const compact = (purpose, result, next = g.compare) => guidance(locale, purpose, result, next);
 
   return {
@@ -345,10 +346,7 @@ export function buildAnalysisGuidance(locale, ui) {
         voiceAgeV2: { metricGuidance: voiceQualityGuidance },
       },
       quick: {
-        reveal: {
-          pitchSingleHint: guidance(locale, g.pitch.purpose, g.pitch.single, g.pitch.next),
-          pitchStandardHint: guidance(locale, g.pitch.purpose, g.pitch.standard, g.pitch.next),
-        },
+        insight: quickInsight,
       },
     },
     analysis: {

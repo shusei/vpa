@@ -435,7 +435,6 @@ function buildOverride(locale) {
         footer: t.quickFooter,
         challenge: { behind: t.quickBehind },
         trust: { strict: t.quickTrust },
-        reveal: { insight: t.quickInsight },
         refine: {
           eyebrow: t.quickRefineEyebrow, title: t.quickRefineTitle,
           retryAria: t.quickRetryAria, retryHint: t.quickRetryHint,

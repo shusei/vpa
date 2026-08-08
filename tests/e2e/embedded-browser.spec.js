@@ -79,8 +79,12 @@ test.describe("iOS social app challenge browser", () => {
       timeout: 60_000,
     });
 
-    await expect(page.locator(".quick-result__insight > strong > .guidance-list > .guidance-row")).toHaveCount(3);
-    await expect(page.locator(".quick-result__pitch-hint > .guidance-list > .guidance-row")).toHaveCount(3);
+    await expect(page.locator(".quick-result__insight > strong")).not.toBeEmpty();
+    await expect(page.locator(".quick-result .guidance-list")).toHaveCount(0);
+    await expect(page.locator(".quick-result__pitch-hint")).toHaveCount(0);
+    await expect(page.locator(".quick-result__safety")).toHaveCount(0);
+    await expect(page.locator(".quick-result__disclaimer")).toHaveCount(0);
+    await expect(page.locator(".quick-share-shortcuts")).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
 
     expect(await page.evaluate(() => window.__vpaPipelineCalls?.length || 0)).toBe(0);
