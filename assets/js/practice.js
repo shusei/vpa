@@ -1,4 +1,4 @@
-import { t, getCurrentLocale, onLocaleChange } from "./i18n.js?v=1.4.15";
+import { t, getCurrentLocale, onLocaleChange } from "./i18n.js?v=1.4.16";
 import { loadPracticeData } from "./practice-data.js";
 
 const LS_HISTORY = "vpa.practice.v1.history";

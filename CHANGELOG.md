@@ -6,6 +6,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.16] - 2026-08-09
+
+### Changed
+
+- Added capability-aware neutral microphone capture for iPhone Safari and Android Chrome: mono and 48 kHz are requested only when reported as supported, while echo cancellation, noise suppression, and automatic gain remain disabled where available.
+- Added a 128 kbps recording target with MIME-only and browser-default fallbacks so improved quality does not block older phones or in-app browsers.
+- Verifies the settings actually chosen by the browser and warns during recording when device audio processing remains active or cannot be fully confirmed.
+- Updated the four-locale pre-recording check to recommend a consistent, unobstructed 30–60 cm phone position in a quiet room.
+- Added unit coverage for full, partial, fallback, and recorder-option support paths.
+
 ## [1.4.15] - 2026-08-08
 
 ### Fixed

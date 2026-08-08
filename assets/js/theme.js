@@ -8,7 +8,7 @@ import {
   recordBtn,
   uploadFab,
 } from "./dom.js";
-import { setLocale, getCurrentLocale, onLocaleChange } from "./i18n.js?v=1.4.15";
+import { setLocale, getCurrentLocale, onLocaleChange } from "./i18n.js?v=1.4.16";
 
 const MODE_KEY = "vpa::theme.mode";          // 'auto' | 'light' | 'dark'
 const LAST_LIGHT_KEY = "vpa::theme.light";  // ex: 'day'

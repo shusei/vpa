@@ -1,6 +1,6 @@
 import en from "./en.js";
 
-import { applySafetyCopy } from "./safety-copy.js?v=1.4.15";
+import { applySafetyCopy } from "./safety-copy.js?v=1.4.16";
 
 const practiceWarmup = {
   title: "録音前の快適さチェック",
@@ -18,7 +18,7 @@ const practiceWarmup = {
     },
     hu: {
       name: "環境をそろえる",
-      desc: "：マイクとの距離と周囲の雑音をできるだけそろえ、録音を公平に比較します。",
+      desc: "：静かな場所で端末を正面約 30〜60 cm に置き、マイクを塞がず、テイク間で位置をそろえます。",
     },
   },
 };
@@ -625,7 +625,7 @@ const dictionary = {
       '<section id="help-start" class="help-section accent">',
       "<h3>クイックスタート</h3>",
       "<ol>",
-      "<li>静かな場所でマイクを口から 10〜15 cm 離し、無理のない会話音量で話します。</li>",
+      "<li>静かな場所で端末を正面約 30〜60 cm に置き、マイクを塞がず、無理のない会話音量で話します。</li>",
       "<li><strong>🎙️ 録音を開始</strong> を押して 5〜10 秒話すか、<strong>⬆︎</strong> から mp3 / m4a / mp4 / mov を選びます。メイン領域へドラッグ＆ドロップすることもできます。</li>",
       "<li>読み上げ文が必要なら、録音ボタン横の <strong>フレーズ練習</strong> を開きます。文を選び、カードのボタン（または <kbd>Space</kbd>）で録音し、再生ボタンで直前の音声を確認します。</li>",
       `<li>先に声を整えるなら、メイン画面の <strong>${practiceWarmup.title}</strong> を開き、3つの手順を行ってください。</li>`,
@@ -724,7 +724,7 @@ const dictionary = {
       "</ul>",
       "</section>",
       '<div class="help-author">',
-      '<img src="assets/avatar-evelyn.jpg?v=1.4.15" alt="Evelyn の作者ポートレート" class="help-author-img" loading="lazy" />',
+      '<img src="assets/avatar-evelyn.jpg?v=1.4.16" alt="Evelyn の作者ポートレート" class="help-author-img" loading="lazy" />',
       '<div class="help-author-text">',
       "<h4>作者：Evelyn</h4>",
       "<p>コーディングもボイストレーニングも、探究を続ける過程を大切にしています。<br>VPA へのご意見やボイストレーニングについてのお話は、Instagram からお気軽にどうぞ。</p>",
@@ -770,6 +770,8 @@ const dictionary = {
     recordProcessingFailed: "録音データを処理できませんでした",
     recordProcessingTimeout: "録音データの待機時間を超えました。もう一度お試しください。",
     recording: "録音中…もう一度押すと停止します",
+    recordingProcessed: "録音中…端末側の音声処理が一部有効です",
+    recordingUnverified: "録音中…中立録音の設定を端末から完全には確認できません",
     uploadWhileRecording: "録音を停止してからファイルを選択してください。",
     processingAudio: "音声を処理しています…",
     decoding: "ファイルをデコードしています…",

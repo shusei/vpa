@@ -80,7 +80,7 @@ const PREFLIGHT_UI = {
     steps: {
       hum: { name: "平常說一句", desc: "：用日常音量說一小句，不先調整音高、共鳴或氣聲。" },
       yi: { name: "確認感受", desc: "：確認沒有疼痛、沙啞、緊繃或明顯費力；有任何不適就停止。" },
-      hu: { name: "固定環境", desc: "：保持麥克風距離與房間安靜，讓前後錄音更容易公平比較。" },
+      hu: { name: "固定環境", desc: "：安靜環境中將手機放在前方約 30–60 公分，避免遮住麥克風，前後保持相近位置。" },
     },
   },
   "zh-Hans": {
@@ -92,7 +92,7 @@ const PREFLIGHT_UI = {
     steps: {
       hum: { name: "平常说一句", desc: "：用日常音量说一小句，不先调整音高、共鸣或气声。" },
       yi: { name: "确认感受", desc: "：确认没有疼痛、沙哑、紧绷或明显费力；有任何不适就停止。" },
-      hu: { name: "固定环境", desc: "：保持麦克风距离与房间安静，让前后录音更容易公平比较。" },
+      hu: { name: "固定环境", desc: "：安静环境中将手机放在前方约 30–60 厘米，避免遮住麦克风，前后保持相近位置。" },
     },
   },
   en: {
@@ -104,7 +104,7 @@ const PREFLIGHT_UI = {
     steps: {
       hum: { name: "Speak one natural line", desc: ": Use your everyday volume without first changing pitch, resonance, or breathiness." },
       yi: { name: "Check how it feels", desc: ": Make sure there is no pain, hoarseness, tightness, or marked effort. Stop if any appears." },
-      hu: { name: "Match the setup", desc: ": Keep microphone distance and room noise similar so recordings are easier to compare fairly." },
+      hu: { name: "Match the setup", desc: ": In a quiet room, place the phone about 30–60 cm in front of you, keep its microphones uncovered, and match the position between takes." },
     },
   },
   ja: {
@@ -116,7 +116,7 @@ const PREFLIGHT_UI = {
     steps: {
       hum: { name: "普段の声で一文", desc: "：ピッチ、共鳴、息漏れ感を先に変えず、日常の音量で短く話します。" },
       yi: { name: "感覚を確認", desc: "：痛み、かすれ、締め付け、強い努力感がないか確認し、一つでもあれば中止します。" },
-      hu: { name: "条件をそろえる", desc: "：マイク距離と部屋の静かさをそろえ、録音同士を公平に比較しやすくします。" },
+      hu: { name: "条件をそろえる", desc: "：静かな場所で端末を正面約 30〜60 cm に置き、マイクを塞がず、テイク間で位置をそろえます。" },
     },
   },
 };

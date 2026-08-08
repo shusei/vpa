@@ -1,4 +1,4 @@
-import { applySafetyCopy } from "./safety-copy.js?v=1.4.15";
+import { applySafetyCopy } from "./safety-copy.js?v=1.4.16";
 
 const practiceWarmup = {
   title: "录音前舒适检查",
@@ -16,7 +16,7 @@ const practiceWarmup = {
     },
     hu: {
       name: "保持相同环境",
-      desc: "：尽量维持相近的麦克风距离与环境噪音，方便公平比较录音。",
+      desc: "：安静环境中将手机放在前方约 30–60 厘米，避免遮住麦克风，前后保持相近位置。",
     },
   },
 };
@@ -617,7 +617,7 @@ const dictionary = {
       '<section id="help-start" class="help-section accent">',
       '<h3>快速开始</h3>',
       '<ol>',
-      '<li>确认环境安静、麦克风距离 10–15 公分，维持日常对话音量。</li>',
+      '<li>确认环境安静，将手机放在前方约 30–60 厘米并避免遮住麦克风，维持日常对话音量。</li>',
       '<li>按下 <strong>🎙️ 开始录音</strong> 说话 5–10 秒，或点右下角 <strong>⬆︎</strong> 上传 mp3 / m4a / mp4 / mov，也支援把文件直接拖拽到主页面。</li>',
       '<li>不知道讲什么？展开录音键旁的 <strong>句库练习</strong> 抽屉，挑一句后按卡片按钮（或 <kbd>Space</kbd>）开始录音，再用右侧播放键重听上一段。</li>',
       `<li>录音前想先确认状态？打开主页面的 <strong>${practiceWarmup.title}</strong> 卡片，确认自然说话、舒适度与录音环境。</li>`,
@@ -705,7 +705,7 @@ const dictionary = {
       '</ul>',
       '</section>',
       '<div class="help-author">',
-      '<img src="assets/avatar-evelyn.jpg?v=1.4.15" alt="Evelyn 的作者照片" class="help-author-img" loading="lazy" />',
+      '<img src="assets/avatar-evelyn.jpg?v=1.4.16" alt="Evelyn 的作者照片" class="help-author-img" loading="lazy" />',
       '<div class="help-author-text">',
       '<h4>关于作者：Evelyn</h4>',
       '<p>不管是写代码还是练伪音，都是一条充满探索的路。<br>如果您对 VPA 有任何建议，或想交流声音训练的心得，欢迎来我的 Instagram 找我！</p>',
@@ -750,6 +750,8 @@ const dictionary = {
     recordProcessingFailed: "录音处理失败",
     recordProcessingTimeout: "录音数据逾时，请重试",
     recording: "录音中… 再按一次停止",
+    recordingProcessed: "录音中… 设备保留了部分系统音频处理",
+    recordingUnverified: "录音中… 此设备未报告完整的中性录音设置",
     uploadWhileRecording: "录音时无法上传，请先停止录音。",
     processingAudio: "处理中…",
     decoding: "解析文件…",

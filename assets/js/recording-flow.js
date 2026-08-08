@@ -1,6 +1,8 @@
 export function createRecordingFlowController(deps) {
   const {
     dismissOnboardTip,
+    createMediaRecorder = (stream, mimeType) => new MediaRecorder(stream, mimeType ? { mimeType } : undefined),
+    getMicCaptureInfo = () => null,
     handleFileOrBlob,
     pickSupportedMime,
     prepareAnalysis = () => null,
@@ -42,8 +44,9 @@ export function createRecordingFlowController(deps) {
     }
     dismissOnboardTip(true);
     chunks = [];
+    const captureInfo = getMicCaptureInfo(stream);
     const mimeType = pickSupportedMime();
-    mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+    mediaRecorder = createMediaRecorder(stream, mimeType);
     let finalDataReady = false;
     let finalDataPromise = null;
     let resolveFinalData = null;
@@ -142,7 +145,10 @@ export function createRecordingFlowController(deps) {
 
     document.body.classList.add("recording");
     document.querySelector(".container")?.classList.add("recording");
-    setStatus(t("status.recording"));
+    const recordingStatusKey = captureInfo?.processingActive
+      ? "status.recordingProcessed"
+      : (captureInfo && !captureInfo.verified ? "status.recordingUnverified" : "status.recording");
+    setStatus(t(recordingStatusKey));
     startRecordingTimer();
     setIsRecording(true);
     refreshAvailability();

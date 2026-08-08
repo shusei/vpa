@@ -1,4 +1,4 @@
-import { applySafetyCopy } from "./safety-copy.js?v=1.4.15";
+import { applySafetyCopy } from "./safety-copy.js?v=1.4.16";
 
 const practiceWarmup = {
   title: "Pre-recording comfort check",
@@ -16,7 +16,7 @@ const practiceWarmup = {
     },
     hu: {
       name: "Match the setup",
-      desc: ': Keep microphone distance and room noise similar so recordings are easier to compare fairly.',
+      desc: ': In a quiet room, place the phone about 30–60 cm in front of you, keep its microphones uncovered, and match the position between takes.',
     },
   },
 };
@@ -617,7 +617,7 @@ const dictionary = {
       '<section id="help-start" class="help-section accent">',
       '<h3>Quick start</h3>',
       '<ol>',
-      '<li>Pick a quiet space, keep the mic 10–15 cm away, and speak at a relaxed conversation level.</li>',
+      '<li>In a quiet space, place the phone about 30–60 cm in front of you, keep its microphones uncovered, and speak at a relaxed conversation level.</li>',
       '<li>Press <strong>🎙️ Start recording</strong> and speak for 5–10 seconds, or tap <strong>⬆︎</strong> to upload mp3 / m4a / mp4 / mov. You can also drag and drop files into the main area.</li>',
       '<li>Need ideas? Open the <strong>Practice phrases</strong> drawer beside the record button, choose a line, press the card action (or <kbd>Space</kbd>) to record, then use the play button on the card to review the latest take.</li>',
       `<li>Want to limber up first? Expand the <strong>${practiceWarmup.title}</strong> card on the main page and run through the three cues before your take.</li>`,
@@ -716,7 +716,7 @@ const dictionary = {
       '</ul>',
       '</section>',
       '<div class="help-author">',
-      '<img src="assets/avatar-evelyn.jpg?v=1.4.15" alt="Portrait of Evelyn" class="help-author-img" loading="lazy" />',
+      '<img src="assets/avatar-evelyn.jpg?v=1.4.16" alt="Portrait of Evelyn" class="help-author-img" loading="lazy" />',
       '<div class="help-author-text">',
       '<h4>About the Author: Evelyn</h4>',
       '<p>Whether coding or voice training, it’s all about the journey of exploration.<br>If you have feedback on VPA or want to chat about voice training, feel free to connect with me on Instagram!</p>',
@@ -762,6 +762,8 @@ const dictionary = {
     recordProcessingFailed: "Recording processing failed",
     recordProcessingTimeout: "Recording data timed out. Please try again.",
     recording: "Recording… tap again to stop",
+    recordingProcessed: "Recording… this device kept some system audio processing active",
+    recordingUnverified: "Recording… this device did not report every neutral-capture setting",
     uploadWhileRecording: "Stop recording before uploading a file.",
     processingAudio: "Processing audio…",
     decoding: "Decoding file…",
