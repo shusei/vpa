@@ -61,21 +61,15 @@ export function ensurePlayerUI(state, deps) {
 
   state.playBtn.onclick = async () => {
     if (!state.audioEl.src) return;
-    try {
-      if (state.audioEl.paused) {
-        await state.audioEl.play();
-        deps.updatePlayerCopy(true);
-      } else {
-        state.audioEl.pause();
-        deps.updatePlayerCopy(false);
-      }
-    } catch (e) {
-      console.error("[audio play]", e);
+    if (state.audioEl.paused) {
+      await playLastRecording(state, deps);
+    } else {
+      pausePlayback(state, deps);
     }
   };
   state.audioEl.onended = () => { deps.updatePlayerCopy(false); };
   state.audioEl.onpause = () => { deps.updatePlayerCopy(false); };
-  state.audioEl.onplay = () => { deps.updatePlayerCopy(true); };
+  state.audioEl.onplay = () => { deps.updatePlayerCopy(!state.audioEl.paused); };
 
   if (!document.getElementById("streamStats")) {
     const stats = document.createElement("div");
@@ -84,6 +78,12 @@ export function ensurePlayerUI(state, deps) {
     stats.innerHTML = "";
     wrap.insertAdjacentElement("afterend", stats);
   }
+}
+
+function invalidatePlayback(state) {
+  const nextGeneration = (Number.isSafeInteger(state.playbackGeneration) ? state.playbackGeneration : 0) + 1;
+  state.playbackGeneration = nextGeneration;
+  return nextGeneration;
 }
 
 export function setupExportButton({ exportBtn, getLatestAnalysisExport, setStatus, t }) {
@@ -122,9 +122,10 @@ export function setupExportButton({ exportBtn, getLatestAnalysisExport, setStatu
 }
 
 export function stopPlayback(state, deps) {
+  invalidatePlayback(state);
   try {
-    if (state.audioEl && !state.audioEl.paused) {
-      state.audioEl.pause();
+    if (state.audioEl) {
+      try { state.audioEl.pause(); } catch { }
       state.audioEl.currentTime = 0;
     }
   } catch (e) {
@@ -134,6 +135,7 @@ export function stopPlayback(state, deps) {
 }
 
 export function pausePlayback(state, deps) {
+  invalidatePlayback(state);
   try {
     if (state.audioEl && !state.audioEl.paused) {
       state.audioEl.pause();
@@ -151,14 +153,24 @@ export function isPlaying(state) {
 
 export async function playLastRecording(state, deps) {
   if (!state.audioEl || !state.audioEl.src) return false;
+  const playGeneration = invalidatePlayback(state);
   try {
+    if (state.audioEl.ended || (Number.isFinite(state.audioEl.duration) && state.audioEl.currentTime >= state.audioEl.duration)) {
+      state.audioEl.currentTime = 0;
+    }
     const playPromise = state.audioEl.play();
     if (playPromise && typeof playPromise.then === "function") {
       await playPromise;
     }
+    if (playGeneration !== state.playbackGeneration || state.audioEl.paused) {
+      return false;
+    }
     deps.updatePlayerCopy(true);
     return true;
   } catch (err) {
+    if (playGeneration !== state.playbackGeneration) {
+      return false;
+    }
     console.error("[playLastRecording]", err);
     return false;
   }
@@ -167,10 +179,14 @@ export async function playLastRecording(state, deps) {
 export function setPlaybackSource(state, blob, deps) {
   try {
     if (!state.audioEl || !state.playBtn) return;
-    if (state.lastAudioUrl) {
-      try {
-        URL.revokeObjectURL(state.lastAudioUrl);
-      } catch { }
+    invalidatePlayback(state);
+    const oldUrl = state.lastAudioUrl;
+    state.lastAudioUrl = null;
+    try { state.audioEl.pause(); } catch { }
+    state.audioEl.removeAttribute("src");
+    state.audioEl.load();
+    if (oldUrl) {
+      try { URL.revokeObjectURL(oldUrl); } catch { }
     }
     state.lastAudioUrl = URL.createObjectURL(blob);
     state.audioEl.src = state.lastAudioUrl;

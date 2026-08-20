@@ -1,38 +1,38 @@
-import { recorderCtl } from "../app.js?v=1.4.21";
+import { recorderCtl } from "../app.js?v=1.4.22";
 import { registerDecodedAudioAnalyzer } from "../js/analysis-flow.js";
 import {
   getCurrentLocale,
   onLocaleChange,
   setLocale,
   t,
-} from "../js/i18n.js?v=1.4.21";
+} from "../js/i18n.js?v=1.4.22";
 import {
   createResultCard,
   formatAdvancedResult,
   onAdvancedResult,
   prepareAdvancedXShare,
-} from "./advanced-experience.js?v=1.4.21";
-import { shareResultFiles } from "./audio-share.js?v=1.4.21";
+} from "./advanced-experience.js?v=1.4.22";
+import { shareResultFiles } from "./audio-share.js?v=1.4.22";
 import {
   compareChallenge,
   createChallengeUrl,
   readChallenge,
-} from "./challenge-link.js?v=1.4.21";
-import { createDynamicCardController } from "./dynamic-card-controller.js?v=1.4.21";
+} from "./challenge-link.js?v=1.4.22";
+import { createDynamicCardController } from "./dynamic-card-controller.js?v=1.4.22";
 import {
   getDailyPromptId,
   getStandardPromptId,
   promptTranslationKey,
   STANDARD_PROMPT_IDS,
   STANDARD_TEST_ID,
-} from "./quick-prompts.js?v=1.4.21";
-import { buildShareTargets, downloadBlob } from "./share-card.js?v=1.4.21";
+} from "./quick-prompts.js?v=1.4.22";
+import { buildShareTargets, downloadBlob } from "./share-card.js?v=1.4.22";
 import {
   getPublicShareResult,
   openPublicPlatformShare,
   resetPublicShareCache,
-} from "./public-share.js?v=1.4.21";
-import { aggregateStandardResults } from "./standard-result.js?v=1.4.21";
+} from "./public-share.js?v=1.4.22";
+import { aggregateStandardResults } from "./standard-result.js?v=1.4.22";
 import { analyzeVoiceQuality } from "./voice-quality-metrics.js";
 
 const EXPERIENCE_KEY = "vpa::experiment.experience";
@@ -62,6 +62,7 @@ let currentChallenge = null;
 let standardStep = 0;
 let standardRuns = [];
 let isQuickUpload = false;
+let quickReplayBinding = null;
 
 function resetQuickXShareState() {
   quickXSharePreparing = false;
@@ -777,6 +778,14 @@ function bindQuickControls() {
     resetQuickTest();
     await toggleQuickRecording();
   });
+  if (quickReplayBinding) {
+    const { audioEl, handler } = quickReplayBinding;
+    audioEl.removeEventListener("play", handler);
+    audioEl.removeEventListener("pause", handler);
+    audioEl.removeEventListener("ended", handler);
+    quickReplayBinding = null;
+  }
+
   const updateQuickReplayUI = () => {
     const replayBtn = quickExperience.querySelector("[data-quick-replay]");
     if (!replayBtn) return;
@@ -804,12 +813,10 @@ function bindQuickControls() {
 
   const audioEl = recorderCtl.getAudioEl?.();
   if (audioEl) {
-    audioEl.removeEventListener("play", updateQuickReplayUI);
-    audioEl.removeEventListener("pause", updateQuickReplayUI);
-    audioEl.removeEventListener("ended", updateQuickReplayUI);
     audioEl.addEventListener("play", updateQuickReplayUI);
     audioEl.addEventListener("pause", updateQuickReplayUI);
     audioEl.addEventListener("ended", updateQuickReplayUI);
+    quickReplayBinding = { audioEl, handler: updateQuickReplayUI };
   }
   quickExperience.querySelectorAll("[data-quick-standard]").forEach((button) => {
     button.addEventListener("click", () => {

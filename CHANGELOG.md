@@ -6,6 +6,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.22] - 2026-08-20
+
+### Fixed（修正）
+
+- Prevented stale playback promises and replaced audio sources from restoring an outdated replay state.／防止延遲完成的播放 Promise 或已替換的音訊來源恢復過期的回放狀態。
+- Serialized realtime pitch startup and teardown so AudioContext, processors, animation frames, and resize listeners cannot leak across retries or Quick-to-Professional transitions.／將即時音高啟停流程序列化，避免 AudioContext、處理器、動畫影格與視窗縮放監聽器在重試或 Quick 切換 Professional 時殘留。
+- Kept Quick replay event listeners bounded across rerenders and safely reset completed audio before replay.／確保 Quick 重繪後只保留目前的回放事件監聽器，並在重播已結束的音訊前安全歸零。
+
+### Tests（測試）
+
+- Added deterministic unit coverage for delayed playback and overlapping realtime-pitch session races.／新增延遲播放與即時音高工作階段交錯競態的決定性單元測試。
+- Added serialized browser coverage for Quick-to-Professional switching, active source replacement, and a 15-round record/replay stress cycle.／新增串行瀏覽器測試，涵蓋 Quick 切換 Professional、播放中替換來源，以及 15 輪錄音與回放壓力循環。
+
 ## [1.4.21] - 2026-08-09
 
 ### Added（新增）

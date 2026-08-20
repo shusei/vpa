@@ -6,6 +6,9 @@ const fakeAudioPath = resolve("tests/.generated-media/tone.wav");
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 90_000,
+  // Chromium exposes one deterministic fake microphone file to every test.
+  // Keep media lifecycle tests exclusive so parallel workers cannot exhaust it.
+  workers: 1,
   expect: {
     timeout: 10_000,
   },

@@ -120,7 +120,7 @@ export function createRecordingFlowController(deps) {
         await waitForFinalData();
       } catch (waitErr) {
         console.error("[onstop] waiting for data failed", waitErr);
-        stopPitchStream();
+        await stopPitchStream();
         chunks.length = 0;
         resetBusyState();
         setStatus(t(waitErr?.name === "MediaRecorderTimeoutError" ? "status.recordProcessingTimeout" : "status.recordProcessingFailed"));
@@ -128,7 +128,7 @@ export function createRecordingFlowController(deps) {
         return;
       }
 
-      stopPitchStream();                 // 停止即時圖，但保留資料做統計
+      await stopPitchStream();                 // 停止即時圖，但保留資料做統計
       try {
         const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
         await handleFileOrBlob(blob, "recording");      // 分析完成後會呼叫 finishStreamStats()
@@ -168,7 +168,7 @@ export function createRecordingFlowController(deps) {
     }
 
     // 啟動 Pitch Stream
-    startPitchStream(stream);
+    await startPitchStream(stream);
   }
 
   async function stopRecording() {

@@ -56,6 +56,8 @@ export function createRealtimePitchStreamController(deps) {
   let psProc = null;
   let psRAF = null;
   let psRunning = false;
+  let psGeneration = 0;
+  let psResizeHandler = null;
 
   function bandLabel(hz) {
     if (!hz) return "—";
@@ -104,6 +106,7 @@ export function createRealtimePitchStreamController(deps) {
   }
 
   function startDrawLoop() {
+    const drawGen = psGeneration;
     const ctx = pitchCanvas.getContext("2d");
     const DPR = Math.max(1, window.devicePixelRatio || 1);
     function resize() {
@@ -111,7 +114,9 @@ export function createRealtimePitchStreamController(deps) {
       pitchCanvas.width = Math.max(600, Math.round(r.width * DPR));
       pitchCanvas.height = Math.round(r.height * DPR);
     }
-    resize(); addEventListener("resize", resize);
+    resize();
+    psResizeHandler = resize;
+    addEventListener("resize", psResizeHandler);
 
     function yOf(hz) {
       const h = pitchCanvas.height;
@@ -142,8 +147,20 @@ export function createRealtimePitchStreamController(deps) {
     }
 
     function draw() {
+      if (drawGen !== psGeneration) return;
       if (!psRunning && psHzSmooth.length === 0) { psRAF = requestAnimationFrame(draw); return; }
+
+      const expectedH = Math.round(pitchCanvas.clientHeight * DPR);
+      if (pitchCanvas.height === 0 && expectedH > 0) {
+        resize();
+      }
+
       const w = pitchCanvas.width, h = pitchCanvas.height;
+      if (h === 0) {
+        psRAF = requestAnimationFrame(draw);
+        return;
+      }
+
       ctx.clearRect(0, 0, w, h);
       drawBands();
 
@@ -209,9 +226,51 @@ export function createRealtimePitchStreamController(deps) {
     draw();
   }
 
-  function startPitchStream(userMediaStream) {
+  function detachPitchResources() {
+    psRunning = false;
+
+    if (psRAF) { cancelAnimationFrame(psRAF); psRAF = null; }
+    if (psResizeHandler) {
+      removeEventListener("resize", psResizeHandler);
+      psResizeHandler = null;
+    }
+
+    const resources = {
+      ctx: psCtx,
+      proc: psProc,
+      src: psSrc,
+    };
+    psCtx = null;
+    psProc = null;
+    psSrc = null;
+    return resources;
+  }
+
+  async function releasePitchResources({ ctx, proc, src }) {
+    if (proc) {
+      proc.onaudioprocess = null;
+      try { proc.disconnect(); } catch { }
+    }
+    if (src) {
+      try { src.disconnect(); } catch { }
+    }
+    if (ctx) {
+      try { await ctx.close(); } catch { }
+    }
+  }
+
+  async function startPitchStream(userMediaStream) {
+    if (!pitchWrap || !pitchCanvas) return;
+    const gen = ++psGeneration;
+    const previousResources = detachPitchResources();
+    setRealtimePanelsActive(false);
+    await releasePitchResources(previousResources);
+    if (gen !== psGeneration) return;
+
+    let localCtx = null;
+    let localSrc = null;
+    let localProc = null;
     try {
-      if (!pitchWrap || !pitchCanvas) return;
       psHz.length = 0; psHzSmooth.length = 0; psDb.length = 0; psVoiced.length = 0; psConfidence.length = 0;
       resetPitchPostState(pitchPostState);
       psRealtimeNoiseTracker.reset();
@@ -220,15 +279,23 @@ export function createRealtimePitchStreamController(deps) {
       maybeEnableAdvancedPitch("realtime", { allowRetry: true });
 
       const Ctx = window.AudioContext || window.webkitAudioContext;
-      psCtx = new Ctx();
-      psSrc = psCtx.createMediaStreamSource(userMediaStream);
-      psProc = psCtx.createScriptProcessor(2048, 1, 1);
-      const sampleRate = psCtx.sampleRate;
+      localCtx = new Ctx();
+      if (localCtx.state !== "running") {
+        await localCtx.resume();
+      }
 
-      setRealtimePanelsActive(true);
+      if (gen !== psGeneration) {
+        await releasePitchResources({ ctx: localCtx, proc: localProc, src: localSrc });
+        return;
+      }
+
+      localSrc = localCtx.createMediaStreamSource(userMediaStream);
+      localProc = localCtx.createScriptProcessor(2048, 1, 1);
+      const sampleRate = localCtx.sampleRate;
 
       let lastTick = 0;
-      psProc.onaudioprocess = (ev) => {
+      localProc.onaudioprocess = (ev) => {
+        if (gen !== psGeneration) return;
         const input = ev.inputBuffer.getChannelData(0);
         const rms = Math.sqrt(input.reduce((a, v) => a + v * v, 0) / Math.max(1, input.length));
         const rawDb = 20 * Math.log10(Math.max(rms, 1e-6)) + 100; // 相對 dB
@@ -274,22 +341,30 @@ export function createRealtimePitchStreamController(deps) {
         }
       };
 
-      psSrc.connect(psProc); psProc.connect(psCtx.destination);
+      localSrc.connect(localProc); localProc.connect(localCtx.destination);
+
+      psCtx = localCtx;
+      psSrc = localSrc;
+      psProc = localProc;
       psRunning = true;
+
+      setRealtimePanelsActive(true);
       startDrawLoop();
-    } catch (e) { console.error("[startPitchStream]", e); }
+    } catch (e) {
+      if (gen === psGeneration) console.error("[startPitchStream]", e);
+      if (psCtx === localCtx) {
+        await releasePitchResources(detachPitchResources());
+      } else {
+        await releasePitchResources({ ctx: localCtx, proc: localProc, src: localSrc });
+      }
+      if (gen === psGeneration) setRealtimePanelsActive(false);
+    }
   }
 
-  function stopPitchStream() {
-    try {
-      psRunning = false;
-      if (psRAF) { cancelAnimationFrame(psRAF); psRAF = null; }
-      psProc?.disconnect(); psSrc?.disconnect();
-      psCtx?.close();
-    } catch { } finally {
-      psProc = null; psSrc = null; psCtx = null;
-      setRealtimePanelsActive(false);
-    }
+  async function stopPitchStream() {
+    const gen = ++psGeneration;
+    await releasePitchResources(detachPitchResources());
+    if (gen === psGeneration) setRealtimePanelsActive(false);
   }
 
   return {

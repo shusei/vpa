@@ -1,5 +1,5 @@
 import { EPS } from "./constants.js";
-import { t } from "./i18n.js?v=1.4.21";
+import { t } from "./i18n.js?v=1.4.22";
 import {
   PS_INTERVAL_MS,
   CONFIDENCE_INCLUDE_THRESHOLD,

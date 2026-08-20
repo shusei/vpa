@@ -14,6 +14,7 @@ export function createPlayerSessionController(deps) {
     playBtn: null,
     audioEl: null,
     lastAudioUrl: null,
+    playbackGeneration: 0,
     playerHintEl: null,
     replayBtn: null,
     replayHintPrefixEl: null,
