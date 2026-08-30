@@ -1,6 +1,6 @@
 {
   "name": "vpa",
-  "version": "1.4.22",
+  "version": "1.4.23",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,6 +10,7 @@
     "test": "npm run test:share-worker && npm run test:unit && npm run test:voice-age && npm run test:locale && npm run test:strict-locale && npm run test:medical-safety && npm run test:build && npm run test:production-runtime && npm run test:e2e && npm run test:syntax && npm run test:markup && npm run test:ffmpeg && npm run test:decode && npm run test:phrases && npm run test:social",
     "test:strict-locale": "node tests/strict-end-to-end-localization.mjs",
     "test:e2e": "node tests/helpers/generate-media-fixtures.mjs && playwright test",
+    "test:e2e:cross-browser": "node tests/helpers/generate-media-fixtures.mjs && playwright test --grep @cross-browser",
     "test:share-worker": "node --test cloudflare/share-worker/test/share-worker.test.mjs tests/unit-share-service.mjs tests/unit-dynamic-video.mjs",
     "test:unit": "node tests/unit-pitch-shared.js && node tests/unit-analysis-runtime.js && node tests/unit-analysis-telemetry.js && node tests/unit-voice-quality.js && node tests/unit-advanced-experience.js && node tests/unit-recording-utils.mjs && node tests/unit-audio-lifecycle.mjs",
     "test:voice-age": "node tests/verify-voice-age-calibration.mjs",

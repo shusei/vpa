@@ -6,6 +6,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.23] - 2026-08-31
+
+### Fixed
+
+- Reused and serialized the realtime pitch AudioContext across repeated recording and playback cycles so the live pitch chart no longer disappears while recording remains active.
+- Included the local FFmpeg WASM decoder in GitHub Pages builds so video uploads do not depend on a third-party runtime download.
+- Kept the Quick information area available while hiding only the upload controls that belong to Professional mode.
+
+### Changed
+
+- Made the complete test suite a required GitHub Pages deployment gate and added a post-deployment HTTP check for the hosted FFmpeg WASM asset.
+- Added deterministic browser media fixtures that do not require a system FFmpeg installation during tests.
+
+### Tests
+
+- Added Chromium, Firefox, and WebKit coverage for MP4, HEVC/MOV, 181-second, 32 MB, no-audio, corrupt, and empty video uploads.
+- Added a 30-round Professional record/play soak test that continuously verifies the live pitch chart, AudioContext reuse, processor cleanup, playback, and available heap measurements.
+- Added a release-device checklist for iPhone Safari and Android Chrome verification.
+
 ## [1.4.22] - 2026-08-20
 
 ### Fixed（修正）

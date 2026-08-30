@@ -7,3 +7,4 @@ playwright-report/
 test-results/
 tests/.generated-media/
 dist/
+assets/vendor/ffmpeg/ffmpeg-core.wasm

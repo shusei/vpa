@@ -1,5 +1,9 @@
 import { test, expect } from "@playwright/test";
-import { installDeterministicRuntime, captureRuntimeErrors } from "./helpers.js";
+import {
+  captureRuntimeErrors,
+  installDeterministicRuntime,
+  installSyntheticMicrophone,
+} from "./helpers.js";
 
 // ----- Shared helpers -----
 
@@ -10,9 +14,14 @@ async function openQuickPage(page) {
     window.VPA_PUBLIC_APP_URL = "";
   });
   await page.goto("/");
-  await expect.poll(() => page.evaluate(() => Boolean(
-    window.vpaAdvancedExperience && window.vpaExperience,
-  ))).toBe(true);
+  try {
+    await expect.poll(() => page.evaluate(() => Boolean(
+      window.vpaAdvancedExperience && window.vpaExperience,
+    ))).toBe(true);
+  } catch (error) {
+    const initErrors = await page.evaluate(() => window.__vpaTestCounters?.errors || []);
+    throw new Error(`${error.message}\nInitialization errors: ${JSON.stringify(initErrors)}`);
+  }
 }
 
 async function setupLifecycleCounters(page) {
@@ -293,7 +302,7 @@ test.describe("Audio Lifecycle", () => {
     counters = await getCounters(page);
     const ctxRound1 = counters.audioContextCount;
     expect(ctxRound1).toBeGreaterThanOrEqual(1);
-    expect(counters.audioContextClosed).toBe(ctxRound1);
+    expect(counters.audioContextClosed).toBe(ctxRound1 - 1);
     const procRound1 = counters.processorCount;
     expect(procRound1).toBeGreaterThanOrEqual(1);
     expect(counters.processorDisconnected).toBe(procRound1);
@@ -347,7 +356,7 @@ test.describe("Audio Lifecycle", () => {
     await expect.poll(
       async () => {
         const c = await getCounters(page);
-        return c.audioContextClosed >= c.audioContextCount && c.processorDisconnected >= c.processorCount;
+        return c.audioContextClosed >= c.audioContextCount - 1 && c.processorDisconnected >= c.processorCount;
       },
       { timeout: 10000 }
     ).toBe(true);
@@ -365,6 +374,79 @@ test.describe("Audio Lifecycle", () => {
     // 10. Errors empty
     const relevantErrors = errors.filter(
       (e) => !e.includes("net::") && !e.includes("favicon") && !e.includes("model-preload"),
+    );
+    expect(relevantErrors).toEqual([]);
+    expect(counters.errors).toEqual([]);
+  });
+
+  test("@cross-browser Professional 30-round record/play soak keeps realtime pitch visible", async ({ page }) => {
+    test.setTimeout(600_000);
+    await installSyntheticMicrophone(page);
+    await setupLifecycleCounters(page);
+    const errors = captureRuntimeErrors(page);
+
+    await openQuickPage(page);
+    await page.locator("[data-experience-target='professional']").first().click();
+    await expect(page.locator("html[data-experience='professional']")).toBeAttached();
+
+    const recordBtn = page.locator("#recordBtn");
+    const playBtn = page.locator("#playBtn");
+    const heapSamples = [];
+    let previousAnalysisId = 0;
+    let previousCallbacks = 0;
+
+    for (let round = 1; round <= 30; round += 1) {
+      await recordBtn.click();
+      await expect(page.locator("body.recording")).toBeAttached();
+      await expect(page.locator("#pitchWrap")).toBeVisible();
+
+      await expect.poll(
+        async () => (await getCounters(page)).processorCallbacks,
+        { timeout: 10000 },
+      ).toBeGreaterThan(previousCallbacks + 3);
+      previousCallbacks = (await getCounters(page)).processorCallbacks;
+
+      const dimensions = await page.locator("#pitchCanvas").evaluate((canvas) => ({
+        height: canvas.height,
+        width: canvas.width,
+      }));
+      expect(dimensions.width).toBeGreaterThan(0);
+      expect(dimensions.height).toBeGreaterThan(0);
+      await expect(page.locator("#pitchNow")).toHaveText(/^\d+(?:\.\d+)?Hz$/);
+
+      await recordBtn.click();
+      await expect.poll(
+        async () => page.evaluate(() => window.vpaLatestAnalysis?.analysisId || 0),
+        { timeout: 90000 },
+      ).toBeGreaterThan(previousAnalysisId);
+      previousAnalysisId = await page.evaluate(() => window.vpaLatestAnalysis.analysisId);
+
+      await expect(playBtn).toBeVisible();
+      await expect(playBtn).toBeEnabled();
+      await playBtn.click();
+      await expect.poll(
+        async () => page.evaluate(() => document.querySelector("audio#playback")?.currentTime || 0),
+        { timeout: 5000 },
+      ).toBeGreaterThan(0);
+      await playBtn.click();
+      await expect.poll(
+        async () => page.evaluate(() => document.querySelector("audio#playback")?.paused),
+        { timeout: 5000 },
+      ).toBe(true);
+
+      const heapSize = await page.evaluate(() => performance.memory?.usedJSHeapSize || null);
+      if (Number.isFinite(heapSize)) heapSamples.push(heapSize);
+    }
+
+    const counters = await getCounters(page);
+    expect(counters.audioContextCount - counters.audioContextClosed).toBe(1);
+    expect(counters.processorCount).toBe(30);
+    expect(counters.processorDisconnected).toBe(counters.processorCount);
+    if (heapSamples.length > 1) {
+      expect(Math.max(...heapSamples) - heapSamples[0]).toBeLessThan(128 * 1024 * 1024);
+    }
+    const relevantErrors = errors.filter(
+      (error) => !error.includes("net::") && !error.includes("favicon") && !error.includes("model-preload"),
     );
     expect(relevantErrors).toEqual([]);
     expect(counters.errors).toEqual([]);
@@ -472,8 +554,8 @@ test.describe("Audio Lifecycle", () => {
 
       // 13. 每輪結束不得有 pending play promise
       expect(c.audioPlayPending).toBe(0);
-      // Processor/Context cleanup is verified because closed == count
-      expect(c.audioContextClosed).toBe(c.audioContextCount);
+      // Decode contexts close; the one reusable realtime context remains suspended.
+      expect(c.audioContextClosed).toBe(c.audioContextCount - 1);
       expect(c.processorDisconnected).toBe(c.processorCount);
 
       // Listener counts stable

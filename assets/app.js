@@ -1,1 +1,1 @@
-export * from "./app-core.js?v=1.4.22";
+export * from "./app-core.js?v=1.4.23";

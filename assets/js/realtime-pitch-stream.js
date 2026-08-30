@@ -58,6 +58,7 @@ export function createRealtimePitchStreamController(deps) {
   let psRunning = false;
   let psGeneration = 0;
   let psResizeHandler = null;
+  let psTransition = Promise.resolve();
 
   function bandLabel(hz) {
     if (!hz) return "—";
@@ -236,17 +237,15 @@ export function createRealtimePitchStreamController(deps) {
     }
 
     const resources = {
-      ctx: psCtx,
       proc: psProc,
       src: psSrc,
     };
-    psCtx = null;
     psProc = null;
     psSrc = null;
     return resources;
   }
 
-  async function releasePitchResources({ ctx, proc, src }) {
+  async function releasePitchResources({ proc, src }) {
     if (proc) {
       proc.onaudioprocess = null;
       try { proc.disconnect(); } catch { }
@@ -254,18 +253,44 @@ export function createRealtimePitchStreamController(deps) {
     if (src) {
       try { src.disconnect(); } catch { }
     }
-    if (ctx) {
-      try { await ctx.close(); } catch { }
-    }
   }
 
-  async function startPitchStream(userMediaStream) {
-    if (!pitchWrap || !pitchCanvas) return;
-    const gen = ++psGeneration;
+  function enqueuePitchTransition(task) {
+    const pending = psTransition
+      .catch(() => { })
+      .then(task);
+    psTransition = pending.catch(() => { });
+    return pending;
+  }
+
+  async function getRunningPitchContext() {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    let lastError = null;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      if (!psCtx || psCtx.state === "closed") {
+        psCtx = new Ctx();
+      }
+      const context = psCtx;
+      try {
+        if (context.state !== "running") {
+          await context.resume();
+        }
+        return context;
+      } catch (error) {
+        lastError = error;
+        if (psCtx === context) psCtx = null;
+        try { await context.close(); } catch { }
+      }
+    }
+    throw lastError || new Error("Unable to start realtime audio analysis.");
+  }
+
+  async function activatePitchStream(userMediaStream, gen) {
+    if (gen !== psGeneration) return false;
     const previousResources = detachPitchResources();
     setRealtimePanelsActive(false);
     await releasePitchResources(previousResources);
-    if (gen !== psGeneration) return;
+    if (gen !== psGeneration) return false;
 
     let localCtx = null;
     let localSrc = null;
@@ -278,15 +303,11 @@ export function createRealtimePitchStreamController(deps) {
 
       maybeEnableAdvancedPitch("realtime", { allowRetry: true });
 
-      const Ctx = window.AudioContext || window.webkitAudioContext;
-      localCtx = new Ctx();
-      if (localCtx.state !== "running") {
-        await localCtx.resume();
-      }
+      localCtx = await getRunningPitchContext();
 
       if (gen !== psGeneration) {
-        await releasePitchResources({ ctx: localCtx, proc: localProc, src: localSrc });
-        return;
+        await releasePitchResources({ proc: localProc, src: localSrc });
+        return false;
       }
 
       localSrc = localCtx.createMediaStreamSource(userMediaStream);
@@ -350,21 +371,36 @@ export function createRealtimePitchStreamController(deps) {
 
       setRealtimePanelsActive(true);
       startDrawLoop();
+      return true;
     } catch (e) {
       if (gen === psGeneration) console.error("[startPitchStream]", e);
       if (psCtx === localCtx) {
         await releasePitchResources(detachPitchResources());
       } else {
-        await releasePitchResources({ ctx: localCtx, proc: localProc, src: localSrc });
+        await releasePitchResources({ proc: localProc, src: localSrc });
       }
       if (gen === psGeneration) setRealtimePanelsActive(false);
+      return false;
     }
   }
 
-  async function stopPitchStream() {
+  function startPitchStream(userMediaStream) {
+    if (!pitchWrap || !pitchCanvas) return;
     const gen = ++psGeneration;
-    await releasePitchResources(detachPitchResources());
-    if (gen === psGeneration) setRealtimePanelsActive(false);
+    return enqueuePitchTransition(() => activatePitchStream(userMediaStream, gen));
+  }
+
+  function stopPitchStream() {
+    const gen = ++psGeneration;
+    return enqueuePitchTransition(async () => {
+      if (gen !== psGeneration) return false;
+      await releasePitchResources(detachPitchResources());
+      if (psCtx?.state === "running" && typeof psCtx.suspend === "function") {
+        try { await psCtx.suspend(); } catch { }
+      }
+      if (gen === psGeneration) setRealtimePanelsActive(false);
+      return true;
+    });
   }
 
   return {

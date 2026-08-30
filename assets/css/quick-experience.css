@@ -1115,10 +1115,16 @@ html[data-faction="dark"] .quick-experience {
   gap:8px;
 }
 html[data-experience="quick"] body > .hero,
-html[data-experience="quick"] body > #dropZone,
 html[data-experience="quick"] body > #uploadFab,
 html[data-experience="quick"] body > .footer {
   display:none !important;
+}
+html[data-experience="quick"] #dropZone > :not(.info) {
+  display:none !important;
+}
+html[data-experience="quick"] #dropZone {
+  display:block !important;
+  padding:0;
 }
 html[data-experience="professional"] #quickExperience,
 html[data-experience="professional"] #meter {

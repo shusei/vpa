@@ -18,7 +18,6 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: "http://127.0.0.1:8080",
-    permissions: ["microphone"],
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
     video: "retain-on-failure",
@@ -28,6 +27,7 @@ export default defineConfig({
       name: "chromium",
       use: {
         browserName: "chromium",
+        permissions: ["microphone"],
         launchOptions: {
           args: [
             "--use-fake-device-for-media-stream",
@@ -35,6 +35,27 @@ export default defineConfig({
             `--use-file-for-fake-audio-capture=${fakeAudioPath}`,
           ],
         },
+      },
+    },
+    {
+      name: "firefox",
+      grep: /@cross-browser/,
+      use: {
+        browserName: "firefox",
+        launchOptions: {
+          firefoxUserPrefs: {
+            "media.autoplay.default": 0,
+            "media.navigator.permission.disabled": true,
+            "media.navigator.streams.fake": true,
+          },
+        },
+      },
+    },
+    {
+      name: "webkit",
+      grep: /@cross-browser/,
+      use: {
+        browserName: "webkit",
       },
     },
   ],

@@ -104,9 +104,11 @@ function deferred() {
     requestAnimationFrame: globalThis.requestAnimationFrame,
     window: globalThis.window,
   };
-  const firstResume = deferred();
   const contexts = [];
   const panelStates = [];
+  let processorCount = 0;
+  let processorDisconnectCount = 0;
+  let suspendGate = null;
   let nextFrame = 1;
 
   class MockAudioContext {
@@ -116,6 +118,8 @@ function deferred() {
       this.id = contexts.length;
       this.state = "suspended";
       this.closeCount = 0;
+      this.resumeCount = 0;
+      this.suspendCount = 0;
       contexts.push(this);
     }
 
@@ -135,16 +139,23 @@ function deferred() {
     }
 
     createScriptProcessor() {
+      processorCount += 1;
       return {
         connect() {},
-        disconnect() {},
+        disconnect() { processorDisconnectCount += 1; },
         onaudioprocess: null,
       };
     }
 
     async resume() {
-      if (this.id === 0) await firstResume.promise;
+      this.resumeCount += 1;
       this.state = "running";
+    }
+
+    async suspend() {
+      this.suspendCount += 1;
+      if (suspendGate) await suspendGate.promise;
+      this.state = "suspended";
     }
   }
 
@@ -209,40 +220,39 @@ function deferred() {
       t: () => "",
     });
 
-    const firstStart = controller.startPitchStream({});
-    await Promise.resolve();
-    await Promise.resolve();
-    assert.equal(contexts.length, 1, "the first start should be waiting for AudioContext.resume()");
+    for (let round = 0; round < 8; round += 1) {
+      assert.equal(await controller.startPitchStream({}), true);
+      assert.equal(panelStates.at(-1), true, `round ${round + 1} must show realtime panels`);
+      assert.equal(await controller.stopPitchStream(), true);
+      assert.equal(panelStates.at(-1), false, `round ${round + 1} must hide realtime panels after stop`);
+    }
 
-    const secondStart = controller.startPitchStream({});
-    await secondStart;
-    assert.equal(contexts.length, 2);
-    assert.equal(contexts[1].closeCount, 0, "the newest pitch session must remain active");
+    assert.equal(contexts.length, 1, "repeated recording must reuse one AudioContext");
+    assert.equal(contexts[0].closeCount, 0, "the reusable AudioContext must stay available between recordings");
+    assert.equal(contexts[0].resumeCount, 8);
+    assert.equal(contexts[0].suspendCount, 8);
+    assert.equal(processorCount, 8);
+    assert.equal(processorDisconnectCount, processorCount);
 
-    firstResume.resolve();
-    await firstStart;
-    assert.equal(contexts[0].closeCount, 1, "the superseded pitch session must close itself");
-    assert.equal(contexts[1].closeCount, 0, "an older start must not close the newer pitch session");
-    assert.equal(panelStates.at(-1), true);
-
-    const delayedClose = deferred();
-    contexts[1].closeGate = delayedClose;
+    await controller.startPitchStream({});
+    suspendGate = deferred();
+    const suspendsBeforeRace = contexts[0].suspendCount;
     const delayedStop = controller.stopPitchStream();
-    await Promise.resolve();
+    while (contexts[0].suspendCount === suspendsBeforeRace) {
+      await Promise.resolve();
+    }
 
-    const thirdStart = controller.startPitchStream({});
-    await thirdStart;
-    assert.equal(contexts.length, 3);
-    assert.equal(panelStates.at(-1), true, "a newer start must reactivate the realtime panels");
+    const nextStart = controller.startPitchStream({});
+    suspendGate.resolve();
+    suspendGate = null;
+    await Promise.all([delayedStop, nextStart]);
 
-    delayedClose.resolve();
-    await delayedStop;
-    assert.equal(contexts[1].closeCount, 1);
-    assert.equal(panelStates.at(-1), true, "an older stop must not hide a newer pitch session");
+    assert.equal(contexts.length, 1, "a stop/start race must still reuse the same AudioContext");
+    assert.equal(panelStates.at(-1), true, "the newest start must reactivate realtime panels");
 
     await controller.stopPitchStream();
-    assert.equal(contexts[2].closeCount, 1);
     assert.equal(panelStates.at(-1), false);
+    assert.equal(processorDisconnectCount, processorCount);
   } finally {
     Object.assign(globalThis, originalGlobals);
   }

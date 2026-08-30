@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { access, stat } from 'node:fs/promises';
+import { access, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -66,6 +66,22 @@ async function ensureOptionalFile(file) {
 }
 
 async function main() {
+  const deploymentWorkflow = await readFile(
+    path.resolve(ROOT, '.github/workflows/pages.yml'),
+    'utf8',
+  );
+  const fetchStep = deploymentWorkflow.indexOf('run: npm run fetch:ffmpeg');
+  const testStep = deploymentWorkflow.indexOf('run: npm test');
+  const buildStep = deploymentWorkflow.indexOf('run: npm run build');
+  const deployStep = deploymentWorkflow.indexOf('uses: actions/deploy-pages@v4');
+  const deployedAssetCheck = deploymentWorkflow.indexOf('/assets/vendor/ffmpeg/ffmpeg-core.wasm" --output /dev/null');
+  assert.ok(fetchStep >= 0, 'Pages deployment must download the ffmpeg WASM asset.');
+  assert.ok(testStep > fetchStep, 'Pages deployment must run the complete test suite after preparing ffmpeg.');
+  assert.ok(buildStep > testStep, 'Pages deployment must pass the complete test suite before building dist.');
+  assert.ok(buildStep > fetchStep, 'Pages deployment must download ffmpeg before building dist.');
+  assert.ok(deployedAssetCheck > deployStep, 'Pages deployment must verify the hosted ffmpeg WASM asset.');
+  console.log('[ffmpeg-check] Verified Pages prepares ffmpeg and passes all tests before deployment.');
+
   for (const file of REQUIRED_FILES) {
     await ensureFile(file);
   }

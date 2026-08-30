@@ -29,4 +29,12 @@ for (const required of [
   assert.ok(existsSync(resolve(dist, required)), `runtime asset missing from production build: ${required}`);
 }
 
+const sourceFFmpegWasm = resolve('assets/vendor/ffmpeg/ffmpeg-core.wasm');
+if (existsSync(sourceFFmpegWasm)) {
+  assert.ok(
+    existsSync(resolve(dist, 'assets/vendor/ffmpeg/ffmpeg-core.wasm')),
+    'runtime asset missing from production build: assets/vendor/ffmpeg/ffmpeg-core.wasm',
+  );
+}
+
 console.log(`[PASS] Production build uses ${jsFiles.length} hashed JS and ${cssFiles.length} hashed CSS assets.`);

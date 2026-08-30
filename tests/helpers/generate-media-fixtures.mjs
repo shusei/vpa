@@ -1,63 +1,38 @@
-import { mkdirSync } from "node:fs";
+import {
+  closeSync,
+  copyFileSync,
+  mkdirSync,
+  openSync,
+  writeFileSync,
+  writeSync,
+} from "node:fs";
 import { resolve } from "node:path";
-import { spawnSync } from "node:child_process";
 
 const outputDir = resolve("tests/.generated-media");
+const sourceDir = resolve("fixtures/media");
 mkdirSync(outputDir, { recursive: true });
 
-function runFfmpeg(args, outputName) {
-  const result = spawnSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", ...args], {
-    encoding: "utf8",
-  });
-  if (result.error || result.status !== 0) {
-    const detail = result.error?.message || result.stderr || `exit ${result.status}`;
-    throw new Error(`Unable to generate ${outputName}: ${detail}`);
-  }
+for (const name of ["tone.wav", "tone-30.wav", "tone.mp3", "tone.m4a", "tone.mp4"]) {
+  copyFileSync(resolve(sourceDir, name), resolve(outputDir, name));
 }
 
-const wavPath = resolve(outputDir, "tone.wav");
-runFfmpeg([
-  "-f", "lavfi",
-  "-i", "sine=frequency=220:sample_rate=48000:duration=4",
-  "-ac", "1",
-  "-c:a", "pcm_s16le",
-  wavPath,
-], "tone.wav");
+const largePath = resolve(outputDir, "tone-large.mp4");
+copyFileSync(resolve(sourceDir, "tone.mp4"), largePath);
+const freeBoxSize = 32 * 1024 * 1024;
+const freeBoxHeader = Buffer.alloc(8);
+freeBoxHeader.writeUInt32BE(freeBoxSize, 0);
+freeBoxHeader.write("free", 4, "ascii");
+const largeFile = openSync(largePath, "a");
+writeSync(largeFile, freeBoxHeader);
+const padding = Buffer.alloc(64 * 1024);
+for (let remaining = freeBoxSize - freeBoxHeader.length; remaining > 0;) {
+  const bytes = Math.min(remaining, padding.length);
+  writeSync(largeFile, padding, 0, bytes);
+  remaining -= bytes;
+}
+closeSync(largeFile);
 
-const longWavPath = resolve(outputDir, "tone-30.wav");
-runFfmpeg([
-  "-f", "lavfi",
-  "-i", "sine=frequency=220:sample_rate=48000:duration=30",
-  "-ac", "1",
-  "-c:a", "pcm_s16le",
-  longWavPath,
-], "tone-30.wav");
-
-runFfmpeg([
-  "-i", wavPath,
-  "-c:a", "libmp3lame",
-  "-b:a", "96k",
-  resolve(outputDir, "tone.mp3"),
-], "tone.mp3");
-
-runFfmpeg([
-  "-i", wavPath,
-  "-c:a", "aac",
-  "-b:a", "96k",
-  resolve(outputDir, "tone.m4a"),
-], "tone.m4a");
-
-runFfmpeg([
-  "-f", "lavfi",
-  "-i", "color=c=black:s=320x240:r=15:d=4",
-  "-i", wavPath,
-  "-shortest",
-  "-c:v", "libx264",
-  "-preset", "ultrafast",
-  "-pix_fmt", "yuv420p",
-  "-c:a", "aac",
-  "-b:a", "96k",
-  resolve(outputDir, "tone.mp4"),
-], "tone.mp4");
+writeFileSync(resolve(outputDir, "corrupt.mp4"), Buffer.from("not a playable media file"));
+writeFileSync(resolve(outputDir, "empty.mp4"), Buffer.alloc(0));
 
 console.log(`[media] Generated deterministic fixtures in ${outputDir}`);

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import zhHant from "../../assets/i18n/zh-Hant.js";
 import zhHans from "../../assets/i18n/zh-Hans.js";
@@ -60,6 +61,32 @@ test.describe("Production audio flows", () => {
       await expect(page.locator("#maleVal")).toHaveText(`${(100 - presentation.score).toFixed(1)}%`);
     });
   }
+
+  test("uses the vendored FFmpeg fallback when native MP4 decoding fails", async ({ page }) => {
+    test.skip(
+      !existsSync(resolve("assets/vendor/ffmpeg/ffmpeg-core.wasm")),
+      "FFmpeg WASM is downloaded only for production and focused fallback tests.",
+    );
+
+    await page.evaluate(() => {
+      const AudioContextLike = window.AudioContext || window.webkitAudioContext;
+      AudioContextLike.prototype.decodeAudioData = function(_buffer, _success, failure) {
+        const error = new DOMException("Forced native decoder failure", "EncodingError");
+        if (typeof failure === "function") {
+          queueMicrotask(() => failure(error));
+          return undefined;
+        }
+        return Promise.reject(error);
+      };
+    });
+
+    await page.locator("#fileInput").setInputFiles(resolve(mediaDir, "tone.mp4"));
+    const analysis = await waitForAnalysis(page, 0, { timeout: 120_000 });
+
+    expect(analysis.probabilities).toEqual({ feminine: 0.64, masculine: 0.36 });
+    expect(analysis.realtimeStream.volumeDb.length).toBeGreaterThan(0);
+    await expect(page.locator("#playBtn")).toBeEnabled();
+  });
 
   test("practice cards use the latest integrated percentage and store it separately from legacy scores", async ({ page }) => {
     await page.locator("#practiceToggle").click();
