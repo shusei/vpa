@@ -275,62 +275,63 @@ export async function installSyntheticMicrophone(page, {
             writable: true,
           });
         } catch {
-          window[name] = value;
+          try { window[name] = value; } catch { }
         }
+        return window[name] === value;
       };
-      replaceGlobal("AudioContext", MockAudioContext);
-      replaceGlobal("webkitAudioContext", MockAudioContext);
-      replaceGlobal("MediaRecorder", MockMediaRecorder);
-      replaceGlobal("MediaStream", MockMediaStream);
-      replaceGlobal("MediaStreamTrack", MockMediaStreamTrack);
+      const replacedGlobals = {
+        audioContext: replaceGlobal("AudioContext", MockAudioContext),
+        mediaRecorder: replaceGlobal("MediaRecorder", MockMediaRecorder),
+        mediaStream: replaceGlobal("MediaStream", MockMediaStream),
+        mediaStreamTrack: replaceGlobal("MediaStreamTrack", MockMediaStreamTrack),
+        webkitAudioContext: replaceGlobal("webkitAudioContext", MockAudioContext),
+      };
       NativeAudioContext = MockAudioContext;
 
-      const mediaState = new WeakMap();
-      const mediaPrototype = window.HTMLMediaElement.prototype;
-      const nativePaused = Object.getOwnPropertyDescriptor(mediaPrototype, "paused");
-      const nativeCurrentTime = Object.getOwnPropertyDescriptor(mediaPrototype, "currentTime");
-      if (!nativePaused || nativePaused.configurable) {
-        Object.defineProperty(mediaPrototype, "paused", {
-          configurable: true,
-          get() {
-            return mediaState.get(this)?.paused ?? nativePaused?.get?.call(this) ?? true;
-          },
-        });
-      }
-      if (!nativeCurrentTime || nativeCurrentTime.configurable) {
-        Object.defineProperty(mediaPrototype, "currentTime", {
-          configurable: true,
-          get() {
-            return mediaState.get(this)?.currentTime ?? nativeCurrentTime?.get?.call(this) ?? 0;
-          },
-          set(value) {
-            const state = mediaState.get(this) || { paused: true, currentTime: 0 };
-            state.currentTime = Number(value) || 0;
-            mediaState.set(this, state);
-          },
-        });
-      }
-      mediaPrototype.play = function() {
-        const state = mediaState.get(this) || { paused: true, currentTime: 0 };
-        state.paused = false;
-        state.currentTime = Math.max(0.1, state.currentTime);
-        mediaState.set(this, state);
-        this.dispatchEvent(new Event("play"));
-        return Promise.resolve();
-      };
-      mediaPrototype.pause = function() {
-        const state = mediaState.get(this) || { paused: true, currentTime: 0 };
-        state.paused = true;
-        mediaState.set(this, state);
-        this.dispatchEvent(new Event("pause"));
-      };
-    }
-
-    if (!navigator.mediaDevices) {
-      Object.defineProperty(navigator, "mediaDevices", {
-        configurable: true,
-        value: {},
-      });
+      let mediaElementPatched = false;
+      try {
+        const mediaState = new WeakMap();
+        const mediaPrototype = window.HTMLMediaElement.prototype;
+        const nativePaused = Object.getOwnPropertyDescriptor(mediaPrototype, "paused");
+        const nativeCurrentTime = Object.getOwnPropertyDescriptor(mediaPrototype, "currentTime");
+        if (!nativePaused || nativePaused.configurable) {
+          Object.defineProperty(mediaPrototype, "paused", {
+            configurable: true,
+            get() {
+              return mediaState.get(this)?.paused ?? nativePaused?.get?.call(this) ?? true;
+            },
+          });
+        }
+        if (!nativeCurrentTime || nativeCurrentTime.configurable) {
+          Object.defineProperty(mediaPrototype, "currentTime", {
+            configurable: true,
+            get() {
+              return mediaState.get(this)?.currentTime ?? nativeCurrentTime?.get?.call(this) ?? 0;
+            },
+            set(value) {
+              const state = mediaState.get(this) || { paused: true, currentTime: 0 };
+              state.currentTime = Number(value) || 0;
+              mediaState.set(this, state);
+            },
+          });
+        }
+        mediaPrototype.play = function() {
+          const state = mediaState.get(this) || { paused: true, currentTime: 0 };
+          state.paused = false;
+          state.currentTime = Math.max(0.1, state.currentTime);
+          mediaState.set(this, state);
+          this.dispatchEvent(new Event("play"));
+          return Promise.resolve();
+        };
+        mediaPrototype.pause = function() {
+          const state = mediaState.get(this) || { paused: true, currentTime: 0 };
+          state.paused = true;
+          mediaState.set(this, state);
+          this.dispatchEvent(new Event("pause"));
+        };
+        mediaElementPatched = true;
+      } catch { }
+      window.__vpaSyntheticAudioGlobals = { mediaElementPatched, replacedGlobals };
     }
 
     let microphoneContext = null;
@@ -367,15 +368,48 @@ export async function installSyntheticMicrophone(page, {
       };
       return destination.stream;
     };
-    try {
-      Object.defineProperty(navigator.mediaDevices, "getUserMedia", {
-        configurable: true,
-        value: getSyntheticUserMedia,
-        writable: true,
-      });
-    } catch {
-      navigator.mediaDevices.getUserMedia = getSyntheticUserMedia;
+
+    const syntheticMediaDevices = navigator.mediaDevices || {};
+    const defineGetUserMedia = (target) => {
+      if (!target) return false;
+      try {
+        Object.defineProperty(target, "getUserMedia", {
+          configurable: true,
+          value: getSyntheticUserMedia,
+          writable: true,
+        });
+      } catch {
+        try { target.getUserMedia = getSyntheticUserMedia; } catch { }
+      }
+      return target.getUserMedia === getSyntheticUserMedia;
+    };
+    const getUserMediaInstalled = defineGetUserMedia(syntheticMediaDevices);
+    let mediaDevicesInstalled = navigator.mediaDevices === syntheticMediaDevices;
+    if (!mediaDevicesInstalled) {
+      try {
+        Object.defineProperty(navigator, "mediaDevices", {
+          configurable: true,
+          value: syntheticMediaDevices,
+        });
+      } catch { }
+      mediaDevicesInstalled = navigator.mediaDevices === syntheticMediaDevices;
     }
+    if (!mediaDevicesInstalled) {
+      try {
+        Object.defineProperty(Object.getPrototypeOf(navigator), "mediaDevices", {
+          configurable: true,
+          get: () => syntheticMediaDevices,
+        });
+      } catch { }
+      mediaDevicesInstalled = navigator.mediaDevices === syntheticMediaDevices;
+    }
+    window.__vpaSyntheticMicrophone = {
+      audioContext: window.AudioContext?.name || window.webkitAudioContext?.name || "",
+      getUserMediaInstalled,
+      mediaDevicesInstalled,
+      mediaRecorder: window.MediaRecorder?.name || "",
+      useMockAudio,
+    };
   }, {
     forceMock: forceMockAudio,
     requireGesture: gestureBoundResume,

@@ -276,6 +276,23 @@ async function getCanvasColorCount(page) {
   });
 }
 
+async function expectSyntheticMicrophoneReady(page, expectMockAudio = false) {
+  const state = await page.evaluate(() => ({
+    ...window.__vpaSyntheticMicrophone,
+    hasGetUserMedia: typeof navigator.mediaDevices?.getUserMedia === "function",
+  }));
+  expect(state, `Synthetic microphone install state: ${JSON.stringify(state)}`).toMatchObject({
+    getUserMediaInstalled: true,
+    hasGetUserMedia: true,
+    mediaDevicesInstalled: true,
+    useMockAudio: expectMockAudio,
+  });
+  if (expectMockAudio) {
+    expect(state.audioContext).toBe("MockAudioContext");
+    expect(state.mediaRecorder).toBe("MockMediaRecorder");
+  }
+}
+
 // ----- Test A: Quick → Professional realtime pitch -----
 test.describe("Audio Lifecycle", () => {
   test("@cross-browser A: Quick → Professional pitch stream works without reload", async ({ browserName, page }) => {
@@ -284,6 +301,7 @@ test.describe("Audio Lifecycle", () => {
     const errors = captureRuntimeErrors(page);
 
     await openQuickPage(page);
+    await expectSyntheticMicrophoneReady(page, browserName !== "chromium");
     await expect(page.locator("#audioDebugDownload")).toBeHidden();
     expect(await page.evaluate(() => typeof window.vpaAudioDebug)).toBe("undefined");
 
@@ -421,6 +439,7 @@ test.describe("Audio Lifecycle", () => {
     const errors = captureRuntimeErrors(page);
 
     await openQuickPage(page);
+    await expectSyntheticMicrophoneReady(page, true);
     await page.locator("[data-quick-record]").click();
     await expect(page.locator("[data-quick-stage='recording']")).toBeVisible();
     await page.waitForTimeout(250);
@@ -558,6 +577,7 @@ test.describe("Audio Lifecycle", () => {
     const errors = captureRuntimeErrors(page);
 
     await openQuickPage(page);
+    await expectSyntheticMicrophoneReady(page, browserName !== "chromium");
     await page.locator("[data-experience-target='professional']").first().click();
     await expect(page.locator("html[data-experience='professional']")).toBeAttached();
 
