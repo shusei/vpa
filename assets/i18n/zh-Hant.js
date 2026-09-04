@@ -1,4 +1,4 @@
-import { applySafetyCopy } from "./safety-copy.js?v=1.4.23";
+import { applySafetyCopy } from "./safety-copy.js?v=1.4.24";
 
 const practiceWarmup = {
   title: "錄音前舒適檢查",
@@ -34,6 +34,10 @@ const dictionary = {
     realtimeMonitoring: "即時監控",
     statsAndSummary: "統計＋簡評",
     themes30: "30+ 主題"
+  },
+  audioDebug: {
+    download: "下載音訊診斷 JSON",
+    downloadAria: "下載不含錄音內容的音訊診斷 JSON",
   },
   help: {
     title: "Voice Presentation Analyzer 使用指南",
@@ -716,7 +720,7 @@ const dictionary = {
       '</ul>',
       '</section>',
       '<div class="help-author">',
-      '<img src="assets/avatar-evelyn.jpg?v=1.4.23" alt="Evelyn 的作者照片" class="help-author-img" loading="lazy" />',
+      '<img src="assets/avatar-evelyn.jpg?v=1.4.24" alt="Evelyn 的作者照片" class="help-author-img" loading="lazy" />',
       '<div class="help-author-text">',
       '<h4>關於作者：Evelyn</h4>',
       '<p>不管是寫程式還是練偽音，都是一條充滿探索的路。<br>如果您對 VPA 有任何建議，或想交流聲音訓練的心得，歡迎來我的 Instagram 找我！</p>',

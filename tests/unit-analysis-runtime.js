@@ -679,3 +679,33 @@ test("analysis flow warns only above the 180 second boundary", async () => {
   assert.equal(aboveBoundary.statuses.includes("status.warnLong"), true);
   assert.equal(aboveBoundary.yields, 1);
 });
+
+test("analysis flow reports decode failure to recording lifecycle callers", async () => {
+  const notifications = [];
+  const controller = createAnalysisFlowController({
+    analyzeStreamed: async () => { },
+    analyzeWhole: async () => { },
+    decodeSmartToFloat32: async () => {
+      throw new Error("invalid recording");
+    },
+    finishAnalysisRun: () => { },
+    finishStreamStats: () => { },
+    fmtSec: String,
+    isAnalysisActive: () => true,
+    MAX_WHOLE_SEC: 150,
+    maybeApplyAdaptiveVAD: () => null,
+    microYield: async () => { },
+    notifyInferenceListeners: (...args) => notifications.push(args),
+    offlineExtractStreamMetrics: () => { },
+    setPlaybackSource: () => { },
+    setStatus: () => { },
+    startAnalysisRun: () => 1,
+    t: translate,
+    TARGET_SR: 16_000,
+    updatePlaybackAvailability: () => { },
+    WARN_LONG_SEC: 180,
+  });
+
+  assert.equal(await controller.handleFileOrBlob(new Blob(), "recording"), false);
+  assert.deepEqual(notifications, [[0, 0]]);
+});

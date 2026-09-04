@@ -1,9 +1,10 @@
-import { cpSync, existsSync, mkdirSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig } from "vite";
 
 const root = import.meta.dirname;
 const outDir = resolve(root, "dist");
+const packageVersion = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8")).version;
 
 function copyRuntimeAssets() {
   const directories = ["audio", "data", "img", "vendor"];
@@ -31,6 +32,9 @@ function copyRuntimeAssets() {
 
 export default defineConfig({
   base: "/vpa/",
+  define: {
+    __VPA_BUILD_VERSION__: JSON.stringify(packageVersion),
+  },
   publicDir: false,
   resolve: {
     alias: {

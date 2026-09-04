@@ -84,11 +84,25 @@ export function captureRuntimeErrors(page) {
   return errors;
 }
 
-export async function installSyntheticMicrophone(page) {
-  await page.addInitScript(() => {
+export async function installSyntheticMicrophone(page, {
+  forceMockAudio = false,
+  gestureBoundResume = false,
+} = {}) {
+  await page.addInitScript(({ forceMock, requireGesture }) => {
     let NativeAudioContext = window.AudioContext || window.webkitAudioContext;
 
-    if (!NativeAudioContext || typeof window.MediaRecorder !== "function") {
+    if (requireGesture) {
+      window.__vpaTestGestureActive = false;
+      window.__vpaTestRequireGestureResume = false;
+      document.addEventListener("click", () => {
+        window.__vpaTestGestureActive = true;
+      }, true);
+      document.addEventListener("click", () => {
+        window.__vpaTestGestureActive = false;
+      });
+    }
+
+    if (forceMock || !NativeAudioContext || typeof window.MediaRecorder !== "function") {
       class MockAudioBuffer {
         constructor(length = 16_000, sampleRate = 16_000) {
           this.duration = length / sampleRate;
@@ -146,7 +160,7 @@ export async function installSyntheticMicrophone(page) {
         constructor() {
           this.destination = {};
           this.sampleRate = 16_000;
-          this.state = "running";
+          this.state = window.__vpaTestRequireGestureResume ? "suspended" : "running";
         }
 
         close() {
@@ -171,6 +185,13 @@ export async function installSyntheticMicrophone(page) {
         }
 
         resume() {
+          if (window.__vpaTestRequireGestureResume && !window.__vpaTestGestureActive) {
+            const error = new DOMException(
+              "AudioContext.resume() requires a user gesture.",
+              "NotAllowedError",
+            );
+            return Promise.reject(error);
+          }
           this.state = "running";
           return Promise.resolve();
         }
@@ -296,6 +317,9 @@ export async function installSyntheticMicrophone(page) {
 
     let microphoneContext = null;
     navigator.mediaDevices.getUserMedia = async () => {
+      if (window.__vpaTestRequireGestureResume) {
+        window.__vpaTestGestureActive = false;
+      }
       if (typeof window.MediaStream === "function" && window.MediaStream.name === "MockMediaStream") {
         return new window.MediaStream();
       }
@@ -325,6 +349,9 @@ export async function installSyntheticMicrophone(page) {
       };
       return destination.stream;
     };
+  }, {
+    forceMock: forceMockAudio,
+    requireGesture: gestureBoundResume,
   });
 }
 

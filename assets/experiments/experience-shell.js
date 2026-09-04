@@ -1,44 +1,46 @@
-import { recorderCtl } from "../app.js?v=1.4.23";
+import { recorderCtl } from "../app.js?v=1.4.24";
 import { registerDecodedAudioAnalyzer } from "../js/analysis-flow.js";
 import {
   getCurrentLocale,
   onLocaleChange,
   setLocale,
   t,
-} from "../js/i18n.js?v=1.4.23";
+} from "../js/i18n.js?v=1.4.24";
 import {
   createResultCard,
   formatAdvancedResult,
   onAdvancedResult,
   prepareAdvancedXShare,
-} from "./advanced-experience.js?v=1.4.23";
-import { shareResultFiles } from "./audio-share.js?v=1.4.23";
+} from "./advanced-experience.js?v=1.4.24";
+import { shareResultFiles } from "./audio-share.js?v=1.4.24";
 import {
   compareChallenge,
   createChallengeUrl,
   readChallenge,
-} from "./challenge-link.js?v=1.4.23";
-import { createDynamicCardController } from "./dynamic-card-controller.js?v=1.4.23";
+} from "./challenge-link.js?v=1.4.24";
+import { createDynamicCardController } from "./dynamic-card-controller.js?v=1.4.24";
 import {
   getDailyPromptId,
   getStandardPromptId,
   promptTranslationKey,
   STANDARD_PROMPT_IDS,
   STANDARD_TEST_ID,
-} from "./quick-prompts.js?v=1.4.23";
-import { buildShareTargets, downloadBlob } from "./share-card.js?v=1.4.23";
+} from "./quick-prompts.js?v=1.4.24";
+import { createQuickRecordingAdapter } from "./quick-recording-adapter.js";
+import { buildShareTargets, downloadBlob } from "./share-card.js?v=1.4.24";
 import {
   getPublicShareResult,
   openPublicPlatformShare,
   resetPublicShareCache,
-} from "./public-share.js?v=1.4.23";
-import { aggregateStandardResults } from "./standard-result.js?v=1.4.23";
+} from "./public-share.js?v=1.4.24";
+import { aggregateStandardResults } from "./standard-result.js?v=1.4.24";
 import { analyzeVoiceQuality } from "./voice-quality-metrics.js";
 
 const EXPERIENCE_KEY = "vpa::experiment.experience";
 const LATEST_RESULT_KEY = "vpa::quick.latestResult";
 const VALID_EXPERIENCES = new Set(["quick", "professional"]);
 const QUICK_ANALYSIS_TIMEOUT_MS = 90000;
+const quickRecording = createQuickRecordingAdapter(recorderCtl);
 
 let currentExperience = readChallenge() ? "quick" : readExperience();
 let incomingChallenge = readChallenge();
@@ -63,6 +65,7 @@ let standardStep = 0;
 let standardRuns = [];
 let isQuickUpload = false;
 let quickReplayBinding = null;
+let quickRecordingUnsubscribe = null;
 
 function resetQuickXShareState() {
   quickXSharePreparing = false;
@@ -755,7 +758,13 @@ function bindQuickControls() {
     quickStage = "analyzing";
     renderQuickExperience();
     try {
-      await recorderCtl.handleFileOrBlob(file, "upload");
+      const completed = await recorderCtl.handleFileOrBlob(file, "upload");
+      if (completed === false) {
+        isQuickUpload = false;
+        quickStage = "idle";
+        quickErrorKey = "experiment.quick.errors.recordingFailed";
+        renderQuickExperience();
+      }
     } catch (err) {
       console.error("[quick-upload] failed", err);
       isQuickUpload = false;
@@ -964,32 +973,30 @@ function updateQuickTimer() {
   timer.textContent = `${String(minutes).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
-async function waitForRecordingState(expected, timeoutMs) {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (recorderCtl.isRecording === expected) return true;
-    await new Promise((resolve) => setTimeout(resolve, 60));
-  }
-  return recorderCtl.isRecording === expected;
-}
-
 async function toggleQuickRecording() {
-  const recordButton = document.getElementById("recordBtn");
-  if (!recordButton) return;
-  if (recorderCtl.busy && !recorderCtl.isRecording) return;
+  if (!quickRecordingUnsubscribe) {
+    quickRecordingUnsubscribe = quickRecording.subscribe((snapshot) => {
+      if (snapshot.state !== "error") return;
+      clearTimers();
+      quickStage = "idle";
+      quickErrorKey = "experiment.quick.errors.recordingFailed";
+      renderQuickExperience();
+    });
+  }
+  if (quickRecording.busy && !quickRecording.isRecording) return;
   quickErrorKey = "";
 
-  if (recorderCtl.isRecording) {
+  if (quickRecording.isRecording) {
     quickStage = "analyzing";
     clearTimers();
     renderQuickExperience();
-    recordButton.click();
     analysisTimeoutId = setTimeout(() => {
       if (quickStage !== "analyzing") return;
       quickStage = "idle";
       quickErrorKey = "experiment.quick.errors.analysisTimeout";
       renderQuickExperience();
     }, QUICK_ANALYSIS_TIMEOUT_MS);
+    await quickRecording.stop();
     return;
   }
 
@@ -1005,8 +1012,7 @@ async function toggleQuickRecording() {
     prompt_id: activePromptId(),
     standard_step: quickTestMode === "standard" ? standardStep + 1 : undefined,
   });
-  recordButton.click();
-  const started = await waitForRecordingState(true, 4000);
+  const started = await quickRecording.start();
   if (!started) {
     quickStage = "idle";
     quickErrorKey = "experiment.quick.errors.recordingFailed";

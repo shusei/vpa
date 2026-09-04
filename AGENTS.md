@@ -4,13 +4,14 @@
 這份指引涵蓋整個倉庫。若未來在子資料夾中加入新的 `AGENTS.md`，請以最接近的指引為準。
 
 ## 專案定位
-- 前端為 100% 靜態頁面，所有推論都在瀏覽器端完成，禁止引入後端服務或建置流程。
-- 程式碼採用原生 ES Modules，直接以 `<script type="module">` 從 CDN 載入依賴，**不要**加入打包器或額外編譯步驟。
+- Production 仍是 100% 靜態前端，所有推論都在瀏覽器端完成；禁止引入應用後端或伺服器端推論。
+- 原始碼採用原生 ES Modules，不使用應用框架。現有 Vite 僅用於 production asset hashing／靜態建置與本機 preview；**不要**加入另一套 bundler、框架或非必要編譯層。
+- 直接開發入口仍以 `<script type="module">` 載入模組與 CDN 依賴；修改必須同時通過直接 runtime 與 Vite production build 驗證。
 - 任何對使用者可見的文案都必須透過 `assets/js/i18n.js` 管理；若新增字串，請同步更新 `assets/i18n/zh-Hant.js`、`zh-Hans.js`、`en.js` 等字典。
 
 ## 目錄速查
 - `index.html`：唯一的頁面，含 UI 標記、ARIA 屬性與 `data-i18n` 標記。
-- `assets/app.js`：核心流程（載入模型、錄音／上傳處理、推論管線、統計與 UI 更新）。
+- `assets/app.js`：production 薄入口；主要組裝位於 `assets/app-core.js`，錄音狀態由 `assets/js/recording-coordinator.js` 協調。
 - `assets/js/`：以功能拆分的輔助模組（音訊工具、pitch 計算、主題 / DOM 操作、句庫練習 UI、進階面板折疊控制等）。
 - `assets/css/`：基礎樣式、佈局、元件與覆蓋層；維持既有的壓縮式格式（`property:value;`）。
 - `assets/data/`、`fixtures/`：示範資料與測試樣本。
@@ -58,6 +59,7 @@
   - 靜態標記與 CSS 結構無錯誤。
   - FFmpeg 下載、解碼流程與語音句庫驗證都能通過。
 - 若修改音訊處理或推論流程，請更新 `fixtures/` 內的對照檔並執行 `npm run regression` 確認行為未退步。
+- 音訊 lifecycle 發布前，還必須依 `docs/release-device-smoke-test.md` 完成 iPhone Safari 與 Android Chrome 實機檢查；Playwright 的合成麥克風只能證明狀態機與 UI，不得取代實機結論。
 
 ## Commit 與版本號自動化規範
 - 當使用者發出指令 **「commit 要有 body 然後 push」**（或包含該意圖）時，必須 **100% 自動執行升版與發布流程**：

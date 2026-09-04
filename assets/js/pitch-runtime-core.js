@@ -141,9 +141,11 @@ export function createPitchRuntimeCore(deps) {
     const {
       applyDbCalibration,
       describeResonanceFromEnergy,
+      diagnostics,
       dom,
       estimateSpectralFeatures,
       normalizeResonanceBands,
+      onPitchState,
     } = runtimeDeps;
 
     return createRealtimePitchStreamController({
@@ -157,11 +159,13 @@ export function createPitchRuntimeCore(deps) {
         psConfidence,
       },
       describeResonanceFromEnergy,
+      diagnostics,
       dom,
       estimateSpectralFeatures,
       fmt1,
       maybeEnableAdvancedPitch: (context, options = {}) => pitchStrategyController.maybeEnableAdvancedPitch(context, options),
       normalizeResonanceBands,
+      onPitchState,
       pitchPostState,
       psRealtimeNoiseTracker,
       PS_INTERVAL_MS,

@@ -1,6 +1,6 @@
 import en from "./en.js";
 
-import { applySafetyCopy } from "./safety-copy.js?v=1.4.23";
+import { applySafetyCopy } from "./safety-copy.js?v=1.4.24";
 
 const practiceWarmup = {
   title: "録音前の快適さチェック",
@@ -293,6 +293,10 @@ const dictionary = {
     realtimeMonitoring: "リアルタイム監視",
     statsAndSummary: "統計・総合分析",
     themes30: "30+ テーマ"
+  },
+  audioDebug: {
+    download: "音声診断 JSON を保存",
+    downloadAria: "録音内容を含まない音声診断 JSON を保存",
   },
   help: {
     title: "Voice Presentation Analyzer 使い方ガイド",
@@ -724,7 +728,7 @@ const dictionary = {
       "</ul>",
       "</section>",
       '<div class="help-author">',
-      '<img src="assets/avatar-evelyn.jpg?v=1.4.23" alt="Evelyn の作者ポートレート" class="help-author-img" loading="lazy" />',
+      '<img src="assets/avatar-evelyn.jpg?v=1.4.24" alt="Evelyn の作者ポートレート" class="help-author-img" loading="lazy" />',
       '<div class="help-author-text">',
       "<h4>作者：Evelyn</h4>",
       "<p>コーディングもボイストレーニングも、探究を続ける過程を大切にしています。<br>VPA へのご意見やボイストレーニングについてのお話は、Instagram からお気軽にどうぞ。</p>",

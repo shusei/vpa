@@ -7,13 +7,13 @@ import {
 
 // ----- Shared helpers -----
 
-async function openQuickPage(page) {
+async function openQuickPage(page, path = "/") {
   await installDeterministicRuntime(page);
   await page.addInitScript(() => {
     window.VPA_SHARE_SERVICE_ORIGIN = "";
     window.VPA_PUBLIC_APP_URL = "";
   });
-  await page.goto("/");
+  await page.goto(path);
   try {
     await expect.poll(() => page.evaluate(() => Boolean(
       window.vpaAdvancedExperience && window.vpaExperience,
@@ -172,21 +172,8 @@ async function setupLifecycleCounters(page) {
         ctx.createScriptProcessor = function(...sArgs) {
           const proc = origCreateScriptProcessor.apply(ctx, sArgs);
           counters.processorCount++;
-
-          let userOnProc = null;
-          Object.defineProperty(proc, "onaudioprocess", {
-            get() { return userOnProc; },
-            set(fn) {
-              userOnProc = fn;
-              if (fn) {
-                origAddEventListener.call(proc, "audioprocess", function(e) {
-                  counters.processorCallbacks++;
-                  if (userOnProc) userOnProc.call(proc, e);
-                });
-              } else {
-                // Not perfectly unbinding native event for mock simplicity, but we track callback count.
-              }
-            }
+          origAddEventListener.call(proc, "audioprocess", () => {
+            counters.processorCallbacks++;
           });
 
           const origDisconnect = proc.disconnect;
@@ -273,13 +260,32 @@ async function getCanvasChecksum(page) {
   });
 }
 
+async function getCanvasColorCount(page) {
+  return page.evaluate(() => {
+    const canvas = document.getElementById("pitchCanvas");
+    if (!canvas || canvas.width === 0 || canvas.height === 0) return 0;
+    const pixels = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+    const pixelCount = canvas.width * canvas.height;
+    const step = Math.max(1, Math.floor(pixelCount / 3600));
+    const colors = new Set();
+    for (let pixel = 0; pixel < pixelCount; pixel += step) {
+      const offset = pixel * 4;
+      colors.add(`${pixels[offset]},${pixels[offset + 1]},${pixels[offset + 2]},${pixels[offset + 3]}`);
+    }
+    return colors.size;
+  });
+}
+
 // ----- Test A: Quick → Professional realtime pitch -----
 test.describe("Audio Lifecycle", () => {
-  test("A: Quick → Professional pitch stream works without reload", async ({ page }) => {
+  test("@cross-browser A: Quick → Professional pitch stream works without reload", async ({ page }) => {
+    await installSyntheticMicrophone(page);
     await setupLifecycleCounters(page);
     const errors = captureRuntimeErrors(page);
 
     await openQuickPage(page);
+    await expect(page.locator("#audioDebugDownload")).toBeHidden();
+    expect(await page.evaluate(() => typeof window.vpaAudioDebug)).toBe("undefined");
 
     // 1. Quick 第一輪真的收到 audioprocess callbacks
     let counters = await getCounters(page);
@@ -318,10 +324,9 @@ test.describe("Audio Lifecycle", () => {
     // 4. Professional 建立的是第二個獨立 session
     counters = await getCounters(page);
     const callbacksBeforePro = counters.processorCallbacks;
-    const sumBeforePro = await getCanvasChecksum(page);
-
     await recordBtn.click();
     await expect(page.locator("body.recording")).toBeAttached({ timeout: 10000 });
+    await expect(page.locator("#pitchWrap")).toBeVisible();
 
     // 5. 第二輪 audioprocess callback count 明確增加
     await expect.poll(
@@ -336,14 +341,42 @@ test.describe("Audio Lifecycle", () => {
     // 7. pitchCanvas.width > 0、height > 0
     const dim = await page.evaluate(() => {
       const c = document.getElementById("pitchCanvas");
-      return { w: c.width, h: c.height };
+      const wrap = document.getElementById("pitchWrap");
+      const dropZone = document.getElementById("dropZone");
+      const style = getComputedStyle(wrap);
+      const dropStyle = getComputedStyle(dropZone);
+      const dropRect = dropZone.getBoundingClientRect();
+      const rect = c.getBoundingClientRect();
+      return {
+        display: style.display,
+        dropDisplay: dropStyle.display,
+        dropHeight: dropRect.height,
+        dropVisibility: dropStyle.visibility,
+        dropWidth: dropRect.width,
+        hidden: wrap.hasAttribute("hidden"),
+        h: c.height,
+        rectHeight: rect.height,
+        rectWidth: rect.width,
+        visibility: style.visibility,
+        w: c.width,
+      };
     });
+    expect(dim.hidden).toBe(false);
+    expect(dim.display).not.toBe("none");
+    expect(dim.visibility).not.toBe("hidden");
+    expect(dim.dropDisplay).not.toBe("none");
+    expect(dim.dropVisibility).not.toBe("hidden");
+    expect(dim.dropWidth).toBeGreaterThan(0);
+    expect(dim.dropHeight).toBeGreaterThan(0);
     expect(dim.w).toBeGreaterThan(0);
     expect(dim.h).toBeGreaterThan(0);
+    expect(dim.rectWidth).toBeGreaterThan(0);
+    expect(dim.rectHeight).toBeGreaterThan(0);
 
     // 8. 第二輪錄音期間 canvas pixel checksum 確實改變
-    const sumAfterPro = await getCanvasChecksum(page);
-    expect(sumAfterPro).not.toBe(sumBeforePro);
+    const sumDuringPro = await getCanvasChecksum(page);
+    await page.waitForTimeout(100);
+    expect(await getCanvasChecksum(page)).not.toBe(sumDuringPro);
 
     await recordBtn.click();
     await expect.poll(
@@ -363,7 +396,7 @@ test.describe("Audio Lifecycle", () => {
 
     counters = await getCounters(page);
     const ctxRound2 = counters.audioContextCount;
-    expect(ctxRound2).toBeGreaterThanOrEqual(ctxRound1 + 1);
+    expect(ctxRound2 - counters.audioContextClosed).toBe(1);
     const procRound2 = counters.processorCount;
     expect(procRound2).toBeGreaterThanOrEqual(procRound1 + 1);
     expect(counters.processorDisconnected).toBe(procRound2);
@@ -377,6 +410,145 @@ test.describe("Audio Lifecycle", () => {
     );
     expect(relevantErrors).toEqual([]);
     expect(counters.errors).toEqual([]);
+  });
+
+  test("@cross-browser Quick → Professional resumes reusable pitch context inside the user gesture", async ({ page }) => {
+    await installSyntheticMicrophone(page, {
+      forceMockAudio: true,
+      gestureBoundResume: true,
+    });
+    await setupLifecycleCounters(page);
+    const errors = captureRuntimeErrors(page);
+
+    await openQuickPage(page);
+    await page.locator("[data-quick-record]").click();
+    await expect(page.locator("[data-quick-stage='recording']")).toBeVisible();
+    await page.waitForTimeout(250);
+    await page.locator("[data-quick-record]").click();
+    await expect(page.locator("[data-quick-stage='result']")).toBeVisible({ timeout: 90000 });
+
+    await page.evaluate(() => {
+      window.__vpaTestRequireGestureResume = true;
+    });
+    await page.locator("[data-experience-target='professional']").first().click();
+    await expect(page.locator("html[data-experience='professional']")).toBeAttached();
+
+    const callbacksBefore = (await getCounters(page)).processorCallbacks;
+    const recordBtn = page.locator("#recordBtn");
+    await recordBtn.click();
+    await expect(page.locator("body.recording")).toBeAttached();
+    await expect(page.locator("#pitchWrap")).toBeVisible();
+
+    const panel = await page.locator("#pitchWrap").evaluate((element) => {
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      const canvas = element.querySelector("#pitchCanvas");
+      const canvasRect = canvas.getBoundingClientRect();
+      return {
+        canvasHeight: canvasRect.height,
+        canvasWidth: canvasRect.width,
+        display: style.display,
+        height: rect.height,
+        hidden: element.hasAttribute("hidden"),
+        visibility: style.visibility,
+        width: rect.width,
+      };
+    });
+    expect(panel.hidden).toBe(false);
+    expect(panel.display).not.toBe("none");
+    expect(panel.visibility).not.toBe("hidden");
+    expect(panel.width).toBeGreaterThan(0);
+    expect(panel.height).toBeGreaterThan(0);
+    expect(panel.canvasWidth).toBeGreaterThan(0);
+    expect(panel.canvasHeight).toBeGreaterThan(0);
+
+    await expect.poll(
+      async () => (await getCounters(page)).processorCallbacks,
+      { timeout: 10000 },
+    ).toBeGreaterThan(callbacksBefore + 3);
+    await expect(page.locator("#pitchNow")).toHaveText(/^\d+(?:\.\d+)?Hz$/);
+    const firstChecksum = await getCanvasChecksum(page);
+    await page.waitForTimeout(100);
+    expect(await getCanvasChecksum(page)).not.toBe(firstChecksum);
+
+    await recordBtn.click();
+    await expect(page.locator("#pitchWrap")).toBeHidden();
+    await expect.poll(
+      async () => (await getCounters(page)).processorDisconnected,
+      { timeout: 10000 },
+    ).toBe((await getCounters(page)).processorCount);
+
+    const relevantErrors = errors.filter(
+      (error) => !error.includes("net::") && !error.includes("favicon") && !error.includes("model-preload"),
+    );
+    expect(relevantErrors).toEqual([]);
+    expect((await getCounters(page)).errors).toEqual([]);
+  });
+
+  test("audio diagnostics stay opt-in, bounded, and export metadata without audio", async ({ page }) => {
+    await installSyntheticMicrophone(page);
+    await setupLifecycleCounters(page);
+    await openQuickPage(page, "/?vpaAudioDebug=1");
+
+    await expect(page.locator("#audioDebugDownload")).toBeVisible();
+    await page.locator("[data-quick-record]").click();
+    await expect(page.locator("[data-quick-stage='recording']")).toBeVisible();
+    await expect.poll(
+      async () => page.evaluate(() => window.vpaAudioDebug.getReport().events.some(
+        (event) => event.type === "pitch.processor.callback",
+      )),
+    ).toBe(true);
+    await page.waitForTimeout(500);
+    await page.locator("[data-quick-record]").click();
+    await expect(page.locator("[data-quick-stage='result']")).toBeVisible({ timeout: 90000 });
+
+    const report = await page.evaluate(() => window.vpaAudioDebug.getReport());
+    expect(report.schemaVersion).toBe(1);
+    expect(report.events.length).toBeLessThanOrEqual(600);
+    expect(report.events.some((event) => event.type === "recording.session.begin")).toBe(true);
+    expect(report.events.some((event) => event.type === "recording.microphone.ready")).toBe(true);
+    expect(report.events.some((event) => event.type === "pitch.context.suspend.after")).toBe(true);
+    expect(JSON.stringify(report)).not.toContain("audioSamples");
+    expect(JSON.stringify(report)).not.toContain("deviceId");
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.locator("#audioDebugDownload").click();
+    await downloadPromise;
+  });
+
+  test("mobile Professional pitch canvas remains readable in light and dark themes without overflow", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installSyntheticMicrophone(page);
+    const errors = captureRuntimeErrors(page);
+    await openQuickPage(page);
+
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+    await page.locator("[data-experience-target='professional']").first().click();
+    const recordBtn = page.locator("#recordBtn");
+    await recordBtn.click();
+    await expect(page.locator("#pitchWrap")).toBeVisible();
+    await expect(page.locator("#pitchNow")).toHaveText(/^\d+(?:\.\d+)?Hz$/);
+
+    await page.locator('.theme-item[data-theme="day"]').evaluate((button) => button.click());
+    await expect(page.locator("html[data-faction='light']")).toBeAttached();
+    await page.waitForTimeout(100);
+    const lightChecksum = await getCanvasChecksum(page);
+    expect(await getCanvasColorCount(page)).toBeGreaterThan(4);
+
+    await page.locator('.theme-item[data-theme="night"]').evaluate((button) => button.click());
+    await expect(page.locator("html[data-faction='dark']")).toBeAttached();
+    await page.waitForTimeout(100);
+    const darkChecksum = await getCanvasChecksum(page);
+    expect(await getCanvasColorCount(page)).toBeGreaterThan(4);
+    expect(darkChecksum).not.toBe(lightChecksum);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+
+    await recordBtn.click();
+    await expect(page.locator("#pitchWrap")).toBeHidden();
+    const relevantErrors = errors.filter(
+      (error) => !error.includes("net::") && !error.includes("favicon") && !error.includes("model-preload"),
+    );
+    expect(relevantErrors).toEqual([]);
   });
 
   test("@cross-browser Professional 30-round record/play soak keeps realtime pitch visible", async ({ page }) => {

@@ -1,15 +1,16 @@
 export function createRecordingFlowController(deps) {
   const {
     dismissOnboardTip,
+    diagnostics = null,
     createMediaRecorder = (stream, mimeType) => new MediaRecorder(stream, mimeType ? { mimeType } : undefined),
     getMicCaptureInfo = () => null,
     handleFileOrBlob,
     pickSupportedMime,
+    preparePitchStream = () => null,
     prepareAnalysis = () => null,
     refreshAvailability,
     requestMicStream,
-    setBusy,
-    setIsRecording,
+    onStateChange = () => { },
     setStatus,
     startPitchStream,
     startRecordingTimer,
@@ -22,31 +23,51 @@ export function createRecordingFlowController(deps) {
 
   let mediaRecorder = null;
   let chunks = [];
+  let currentSessionId = 0;
 
-  function getMediaRecorder() {
-    return mediaRecorder;
-  }
-
-  async function startRecording() {
-    if (typeof MediaRecorder === "undefined") { setStatus(t("status.recordUnsupported"), false); return; }
+  async function startRecording({ sessionId = 0, source = "professional" } = {}) {
+    if (typeof MediaRecorder === "undefined") {
+      setStatus(t("status.recordUnsupported"), false);
+      onStateChange("error", { error: new Error("record-unsupported"), sessionId, source });
+      return false;
+    }
     stopPlayback();
+    const pitchPreparation = preparePitchStream({ sessionId, source });
+    diagnostics?.record("recording.microphone.request", { sessionId, source });
     let stream;
     try {
       stream = await requestMicStream();
+      diagnostics?.recordStream("recording.microphone.ready", stream, { sessionId, source });
     } catch (err) {
       console.error("[startRecording] getUserMedia failed", err);
+      diagnostics?.recordError("recording.microphone.error", err, { sessionId, source });
+      await stopPitchStream({ sessionId, source });
       if (err?.message === "record-unsupported") {
         setStatus(t("status.recordUnsupported"), false);
       } else {
         setStatus(t("status.recordFailed"));
       }
-      return;
+      onStateChange("error", { error: err, sessionId, source });
+      return false;
     }
     dismissOnboardTip(true);
     chunks = [];
-    const captureInfo = getMicCaptureInfo(stream);
-    const mimeType = pickSupportedMime();
-    mediaRecorder = createMediaRecorder(stream, mimeType);
+    currentSessionId = sessionId;
+    let captureInfo;
+    let mimeType;
+    let sessionRecorder;
+    try {
+      captureInfo = getMicCaptureInfo(stream);
+      mimeType = pickSupportedMime();
+      sessionRecorder = createMediaRecorder(stream, mimeType);
+    } catch (error) {
+      stream.getTracks().forEach(t => t.stop());
+      await stopPitchStream({ sessionId, source });
+      diagnostics?.recordError("recording.media-recorder.create-error", error, { sessionId, source });
+      onStateChange("error", { error, sessionId, source });
+      throw error;
+    }
+    mediaRecorder = sessionRecorder;
     let finalDataReady = false;
     let finalDataPromise = null;
     let resolveFinalData = null;
@@ -103,43 +124,62 @@ export function createRecordingFlowController(deps) {
       resolveFinalDataPromise();
     };
 
-    mediaRecorder.ondataavailable = (ev) => {
+    sessionRecorder.ondataavailable = (ev) => {
       if (ev.data?.size) chunks.push(ev.data);
-      if (mediaRecorder?.state === "inactive") {
+      if (sessionRecorder.state === "inactive") {
         markFinalDataReady();
       }
     };
-    mediaRecorder.onstop = async () => {
+    sessionRecorder.onerror = (event) => {
+      const error = event?.error || new Error("MediaRecorder error.");
+      diagnostics?.recordError("recording.media-recorder.error", error, { sessionId, source });
+    };
+    sessionRecorder.onstop = async () => {
       stopRecordingTimer();
-      const resetBusyState = () => {
-        setBusy(false);
-        refreshAvailability();
-      };
 
       try {
         await waitForFinalData();
       } catch (waitErr) {
         console.error("[onstop] waiting for data failed", waitErr);
-        await stopPitchStream();
+        diagnostics?.recordError("recording.final-data.error", waitErr, { sessionId, source });
+        await stopPitchStream({ sessionId, source });
         chunks.length = 0;
-        resetBusyState();
         setStatus(t(waitErr?.name === "MediaRecorderTimeoutError" ? "status.recordProcessingTimeout" : "status.recordProcessingFailed"));
         stream.getTracks().forEach(t => t.stop());
+        diagnostics?.recordStream("recording.microphone.stopped", stream, { sessionId, source });
+        onStateChange("error", { error: waitErr, sessionId, source });
         return;
       }
 
-      await stopPitchStream();                 // 停止即時圖，但保留資料做統計
+      await stopPitchStream({ sessionId, source });                 // 停止即時圖，但保留資料做統計
+      onStateChange("analyzing", { sessionId, source });
       try {
         const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
-        await handleFileOrBlob(blob, "recording");      // 分析完成後會呼叫 finishStreamStats()
+        diagnostics?.record("recording.analysis.begin", {
+          bytes: blob.size,
+          mimeType: blob.type,
+          sessionId,
+          source,
+        });
+        const analysisCompleted = await handleFileOrBlob(blob, "recording");
         chunks.length = 0;
+        if (analysisCompleted === false) {
+          const error = new Error("Recording analysis did not complete.");
+          diagnostics?.recordError("recording.analysis.incomplete", error, { sessionId, source });
+          onStateChange("error", { error, sessionId, source });
+          return;
+        }
+        diagnostics?.record("recording.analysis.end", { sessionId, source });
+        onStateChange("idle", { pitchState: "inactive", sessionId, source });
       } catch (e) {
         console.error("[onstop]", e);
+        diagnostics?.recordError("recording.analysis.error", e, { sessionId, source });
         setStatus(t("status.recordProcessingFailed"));
         chunks.length = 0;
-        resetBusyState();
+        onStateChange("error", { error: e, sessionId, source });
       } finally {
         stream.getTracks().forEach(t => t.stop());
+        diagnostics?.recordStream("recording.microphone.stopped", stream, { sessionId, source });
       }
     };
 
@@ -150,48 +190,63 @@ export function createRecordingFlowController(deps) {
       : (captureInfo && !captureInfo.verified ? "status.recordingUnverified" : "status.recording");
     setStatus(t(recordingStatusKey));
     startRecordingTimer();
-    setIsRecording(true);
-    refreshAvailability();
     try {
-      mediaRecorder.start();
+      sessionRecorder.start();
+      diagnostics?.record("recording.media-recorder.start", {
+        mimeType: sessionRecorder.mimeType || mimeType || "",
+        sessionId,
+        source,
+        state: sessionRecorder.state,
+      });
+      onStateChange("recording", { sessionId, source });
       void Promise.resolve()
         .then(() => prepareAnalysis())
         .catch((error) => console.warn("[model-preload] unable to start preload.", error));
     } catch (err) {
-      setIsRecording(false);
-      refreshAvailability();
       document.body.classList.remove("recording");
       document.querySelector(".container")?.classList.remove("recording");
       stream.getTracks().forEach(t => t.stop());
       stopRecordingTimer();
+      await stopPitchStream({ sessionId, source });
+      diagnostics?.recordError("recording.media-recorder.start-error", err, { sessionId, source });
+      onStateChange("error", { error: err, sessionId, source });
       throw err;
     }
 
     // 啟動 Pitch Stream
-    await startPitchStream(stream);
+    await startPitchStream(stream, {
+      preparation: pitchPreparation,
+      sessionId,
+      source,
+    });
+    return true;
   }
 
-  async function stopRecording() {
+  async function stopRecording({ sessionId = currentSessionId } = {}) {
     stopRecordingTimer();
-    if (mediaRecorder && mediaRecorder.state !== "inactive") {
-      setBusy(true);
-      setIsRecording(false);
-      refreshAvailability();
-      setStatus(t("status.processingAudio"), true);
-      try {
+    try {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        setStatus(t("status.processingAudio"), true);
         mediaRecorder.stop();
-      } catch (err) {
-        setBusy(false);
-        refreshAvailability();
-        throw err;
+        diagnostics?.record("recording.media-recorder.stop", {
+          sessionId,
+          state: mediaRecorder.state,
+        });
+      } else {
+        return false;
       }
+    } catch (err) {
+      diagnostics?.recordError("recording.media-recorder.stop-error", err, { sessionId });
+      throw err;
+    } finally {
+      document.body.classList.remove("recording");
+      document.querySelector(".container")?.classList.remove("recording");
+      refreshAvailability();
     }
-    document.body.classList.remove("recording");
-    document.querySelector(".container")?.classList.remove("recording");
+    return true;
   }
 
   return {
-    getMediaRecorder,
     startRecording,
     stopRecording,
   };

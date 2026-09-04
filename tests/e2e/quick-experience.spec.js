@@ -245,6 +245,7 @@ test("quick recording delegates to the production recording and analysis path", 
 
   await refine.locator("[data-quick-retry]").click();
   await expect(page.locator('[data-quick-stage="recording"]')).toBeVisible({ timeout: 30_000 });
+  await page.waitForTimeout(1200);
   await page.locator("[data-quick-record]").click();
   await expect(page.locator('[data-quick-stage="result"]')).toBeVisible({ timeout: 60_000 });
 

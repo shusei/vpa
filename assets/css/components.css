@@ -2293,3 +2293,19 @@ html[data-faction="dark"] .adv-card--resonance .resonance-bar .res-part {
   color: color-mix(in oklab, var(--text) 96%, #fff 4%) !important;
   /* 仍是白系，用來當其它字的顏色 */
 }
+.audio-debug-download {
+  position:fixed;
+  left:max(12px, env(safe-area-inset-left));
+  bottom:max(12px, env(safe-area-inset-bottom));
+  z-index:1200;
+  max-width:calc(100vw - 24px);
+  padding:9px 12px;
+  border:1px solid var(--panel-border);
+  border-radius:10px;
+  background:var(--panel);
+  color:var(--ink);
+  box-shadow:0 8px 24px rgba(0,0,0,.24);
+  font:inherit;
+  font-size:.8rem;
+  cursor:pointer;
+}

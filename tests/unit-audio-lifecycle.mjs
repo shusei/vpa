@@ -109,6 +109,8 @@ function deferred() {
   let processorCount = 0;
   let processorDisconnectCount = 0;
   let suspendGate = null;
+  let requireGestureForResume = false;
+  let userGestureActive = false;
   let nextFrame = 1;
 
   class MockAudioContext {
@@ -149,6 +151,9 @@ function deferred() {
 
     async resume() {
       this.resumeCount += 1;
+      if (requireGestureForResume && !userGestureActive) {
+        throw new Error("resume requires a user gesture");
+      }
       this.state = "running";
     }
 
@@ -220,10 +225,18 @@ function deferred() {
       t: () => "",
     });
 
+    requireGestureForResume = true;
     for (let round = 0; round < 8; round += 1) {
-      assert.equal(await controller.startPitchStream({}), true);
+      userGestureActive = true;
+      const preparation = controller.prepareForUserGesture({ sessionId: round + 1, source: "professional" });
+      userGestureActive = false;
+      assert.equal(await controller.startPitchStream({}, {
+        preparation,
+        sessionId: round + 1,
+        source: "professional",
+      }), true);
       assert.equal(panelStates.at(-1), true, `round ${round + 1} must show realtime panels`);
-      assert.equal(await controller.stopPitchStream(), true);
+      assert.equal(await controller.stopPitchStream({ sessionId: round + 1 }), true);
       assert.equal(panelStates.at(-1), false, `round ${round + 1} must hide realtime panels after stop`);
     }
 
@@ -234,6 +247,7 @@ function deferred() {
     assert.equal(processorCount, 8);
     assert.equal(processorDisconnectCount, processorCount);
 
+    requireGestureForResume = false;
     await controller.startPitchStream({});
     suspendGate = deferred();
     const suspendsBeforeRace = contexts[0].suspendCount;
@@ -253,6 +267,17 @@ function deferred() {
     await controller.stopPitchStream();
     assert.equal(panelStates.at(-1), false);
     assert.equal(processorDisconnectCount, processorCount);
+
+    const ownedSession = 101;
+    await controller.startPitchStream({}, { sessionId: ownedSession, source: "professional" });
+    assert.equal(
+      await controller.stopPitchStream({ sessionId: ownedSession - 1 }),
+      false,
+      "an old session must not stop the active pitch graph",
+    );
+    assert.equal(panelStates.at(-1), true);
+    assert.equal(await controller.stopPitchStream({ sessionId: ownedSession }), true);
+    assert.equal(panelStates.at(-1), false);
   } finally {
     Object.assign(globalThis, originalGlobals);
   }

@@ -1,6 +1,6 @@
 {
   "name": "vpa",
-  "version": "1.4.23",
+  "version": "1.4.24",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,7 +12,7 @@
     "test:e2e": "node tests/helpers/generate-media-fixtures.mjs && playwright test",
     "test:e2e:cross-browser": "node tests/helpers/generate-media-fixtures.mjs && playwright test --grep @cross-browser",
     "test:share-worker": "node --test cloudflare/share-worker/test/share-worker.test.mjs tests/unit-share-service.mjs tests/unit-dynamic-video.mjs",
-    "test:unit": "node tests/unit-pitch-shared.js && node tests/unit-analysis-runtime.js && node tests/unit-analysis-telemetry.js && node tests/unit-voice-quality.js && node tests/unit-advanced-experience.js && node tests/unit-recording-utils.mjs && node tests/unit-audio-lifecycle.mjs",
+    "test:unit": "node tests/unit-pitch-shared.js && node tests/unit-analysis-runtime.js && node tests/unit-analysis-telemetry.js && node tests/unit-voice-quality.js && node tests/unit-advanced-experience.js && node tests/unit-recording-utils.mjs && node tests/unit-decode-smart.mjs && node tests/unit-audio-lifecycle.mjs && node tests/unit-recording-flow.mjs && node tests/unit-recording-coordinator.mjs && node tests/unit-audio-diagnostics.mjs",
     "test:voice-age": "node tests/verify-voice-age-calibration.mjs",
     "test:locale": "node tests/verify-locale-cleanliness.mjs",
     "test:medical-safety": "node tests/verify-medical-safety.mjs",

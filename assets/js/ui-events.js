@@ -6,7 +6,7 @@ export function bindMainUIEvents(deps) {
     uploadFab,
     isBusy,
     isRecording,
-    getMediaRecorder,
+    getRecordingSnapshot,
     resetMeter,
     startRecording,
     stopRecording,
@@ -20,10 +20,10 @@ export function bindMainUIEvents(deps) {
   recordBtn?.addEventListener("click", async () => {
     if (isBusy() && !isRecording()) return;
     try {
-      const mediaRecorder = getMediaRecorder();
-      if (!mediaRecorder || mediaRecorder.state === "inactive") {
+      const snapshot = getRecordingSnapshot();
+      if (snapshot.state !== "recording") {
         resetMeter();
-        await startRecording();
+        await startRecording({ source: "professional" });
       } else {
         await stopRecording();
       }

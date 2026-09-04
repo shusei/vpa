@@ -1,4 +1,4 @@
-import { t, getCurrentLocale, onLocaleChange } from "./i18n.js?v=1.4.23";
+import { t, getCurrentLocale, onLocaleChange } from "./i18n.js?v=1.4.24";
 import { loadPracticeData } from "./practice-data.js";
 
 // v2 stores the integrated presentation score. v1 contained the retired raw
@@ -359,7 +359,8 @@ function bindCardEvents(card, phrase) {
       });
 
       try {
-        await Promise.resolve(recorder.start());
+        const started = await Promise.resolve(recorder.start({ source: "practice" }));
+        if (!started) throw new Error("Practice recording did not start.");
         setCardRecording(card, true);
         setCardBusy(card, false);
       } catch (err) {

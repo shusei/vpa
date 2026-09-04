@@ -1,14 +1,14 @@
 // ===== Transformers pipeline =====
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
 
-import { estimateAcousticPresentation } from "./js/acoustic-fast-path.js?v=1.4.23";
-import { initI18n, t, getLocaleValue, onLocaleChange } from "./js/i18n.js?v=1.4.23";
+import { estimateAcousticPresentation } from "./js/acoustic-fast-path.js?v=1.4.24";
+import { initI18n, t, getLocaleValue, onLocaleChange } from "./js/i18n.js?v=1.4.24";
 import {
   analyzeWhole as sharedAnalyzeWhole,
   analyzeStreamed as sharedAnalyzeStreamed,
   runStreamedWithWindow as sharedRunStreamedWithWindow,
 } from "./js/analysis-core.js";
-import { createAnalysisEngineBridge } from "./js/analysis-engine-bridge.js?v=1.4.23";
+import { createAnalysisEngineBridge } from "./js/analysis-engine-bridge.js?v=1.4.24";
 import {
   createAnalysisFlowController,
   runDecodedAudioAnalyzers as sharedRunDecodedAudioAnalyzers,
@@ -41,6 +41,7 @@ import {
 } from "./js/analysis-export.js";
 import { createAnalysisTelemetryController } from "./js/analysis-telemetry.js";
 import { wireAdvancedIntonation as sharedWireAdvancedIntonation } from "./js/advanced-intonation-wire.js";
+import { createAudioDiagnostics } from "./js/audio-diagnostics.js";
 import { mixChannelDataToMono } from "./js/audio-utils.js";
 import { bootstrapAppRuntime } from "./js/app-bootstrap.js";
 import { fillBuildMeta as sharedFillBuildMeta } from "./js/build-meta.js";
@@ -48,7 +49,7 @@ import {
   drawIntonationCurve as sharedDrawIntonationCurve,
   setupIntonationLegend as sharedSetupIntonationLegend,
 } from "./js/intonation-visual.js";
-import { decodeSmartToFloat32 as sharedDecodeSmartToFloat32 } from "./js/decode-smart.js";
+import { decodeSmartToFloat32 as sharedDecodeSmartToFloat32 } from "./js/decode-smart.js?v=1.4.24";
 import {
   offlineExtractStreamMetrics as sharedOfflineExtractStreamMetrics,
   resetOfflineFeatureStore as sharedResetOfflineFeatureStore,
@@ -68,7 +69,7 @@ import {
   isPlaying as sharedIsPlaying,
   playLastRecording as sharedPlayLastRecording,
   setPlaybackSource as sharedSetPlaybackSource,
-} from "./js/player-ui.js?v=1.4.23";
+} from "./js/player-ui.js?v=1.4.24";
 import { createPlayerSessionController } from "./js/player-session.js";
 import { createPitchProfileController } from "./js/pitch-profile.js";
 import { createPitchRuntimeCore } from "./js/pitch-runtime-core.js";
@@ -87,29 +88,31 @@ import {
   pickSupportedMime as sharedPickSupportedMime,
   requestMicStream as sharedRequestMicStream,
 } from "./js/recording-utils.js";
-import { createRecordingFlowController } from "./js/recording-flow.js?v=1.4.23";
+import { createRecordingFlowController } from "./js/recording-flow.js?v=1.4.24";
+import { createRecordingCoordinator } from "./js/recording-coordinator.js";
 import {
   bandOf as sharedBandOf,
   isDivergent as sharedIsDivergent,
 } from "./js/summary-helpers.js";
 import { detectThreadCount as sharedDetectThreadCount } from "./js/thread-count.js";
-import { installEmbeddedBrowserGuard } from "./js/embedded-browser.js?v=1.4.23";
+import { installEmbeddedBrowserGuard } from "./js/embedded-browser.js?v=1.4.24";
 import {
   mobileInferenceMaxSec,
   shouldUseEmbeddedAcousticFastPath,
   shouldUseMobileFastPath,
   selectRepresentativeSamples,
-} from "./js/inference-sampling.js?v=1.4.23";
+} from "./js/inference-sampling.js?v=1.4.24";
 import { pickStreamStrategy as sharedPickStreamStrategy } from "./js/stream-strategy.js";
 import { finishStreamStats as sharedFinishStreamStats } from "./js/stats-core.js";
 import { createStatsOrchestration } from "./js/stats-orchestration.js";
 import { maybeApplyAdaptiveVAD as sharedMaybeApplyAdaptiveVAD } from "./js/vad-adaptive.js";
 import { bindMainUIEvents as sharedBindMainUIEvents } from "./js/ui-events.js";
-import { createUIStateControls } from "./js/ui-state-controls.js?v=1.4.23";
-import { evaluateAdvancedExperience } from "./experiments/advanced-evaluator.js?v=1.4.23";
+import { createUIStateControls } from "./js/ui-state-controls.js?v=1.4.24";
+import { evaluateAdvancedExperience } from "./experiments/advanced-evaluator.js?v=1.4.24";
 
 import {
   recordBtn,
+  audioDebugDownload,
   dropZone,
   fileInput,
   uploadFab,
@@ -234,6 +237,27 @@ const {
 
 // ===== 狀態 =====
 const analysisSession = createAnalysisSessionController();
+let recordingCoordinator = null;
+
+const appCoreVersion = (() => {
+  try {
+    if (typeof __VPA_BUILD_VERSION__ !== "undefined") return __VPA_BUILD_VERSION__;
+    return new URL(import.meta.url).searchParams.get("v") || "development";
+  } catch {
+    return "development";
+  }
+})();
+const audioDiagnostics = createAudioDiagnostics({
+  buildVersion: appCoreVersion,
+  dom: { pitchCanvas, pitchNowEl, pitchWrap },
+  downloadButton: audioDebugDownload,
+});
+if (audioDiagnostics.enabled) {
+  window.vpaAudioDebug = {
+    download: () => audioDiagnostics.download(),
+    getReport: () => audioDiagnostics.getReport(),
+  };
+}
 
 export function onInferenceDone(cb) {
   return analysisSession.onInferenceDone(cb);
@@ -248,14 +272,16 @@ const notifyInferenceListeners = (pf, pm, analysis = null, presentation = null) 
 };
 
 export const recorderCtl = {
-  get isRecording() { return analysisSession.getIsRecording(); },
-  get busy() { return analysisSession.getBusy(); },
+  get isRecording() { return recordingCoordinator?.isRecording || false; },
+  get busy() { return recordingCoordinator?.busy || analysisSession.getBusy(); },
   get hasLastRecording() { return playerSessionController.hasLastRecording(); },
   get isPlaying() { return playerSessionController.isPlaying(); },
   getAudioEl: () => playerSessionController.getAudioEl(),
   getLastRecordingUrl: () => playerSessionController.getLastRecordingUrl(),
-  start: () => recordingFlowController.startRecording(),
-  stop: () => recordingFlowController.stopRecording(),
+  getSnapshot: () => recordingCoordinator.getSnapshot(),
+  start: (options) => recordingCoordinator.start(options),
+  stop: () => recordingCoordinator.stop(),
+  subscribe: (listener) => recordingCoordinator.subscribe(listener),
   stopPlayback: () => playerSessionController.stopPlayback(),
   pausePlayback: () => playerSessionController.pausePlayback(),
   playLast: () => playerSessionController.playLastRecording(),
@@ -272,9 +298,9 @@ export const recorderCtl = {
 
 const uiStateControls = createUIStateControls({
   fileInput,
-  getBusy: () => analysisSession.getBusy(),
+  getBusy: () => recordingCoordinator?.busy || analysisSession.getBusy(),
   getHasPlaybackSource: () => playerSessionController.hasPlaybackSource(),
-  getIsRecording: () => analysisSession.getIsRecording(),
+  getIsRecording: () => recordingCoordinator?.isRecording || false,
   getPlayBtn: () => playerSessionController.getPlayBtn(),
   recordBtn,
   setStatusTimer,
@@ -428,6 +454,7 @@ function clearStreamStatsPanel() {
 
 const recordingFlowController = createRecordingFlowController({
   createMediaRecorder: (stream, mimeType) => sharedCreateAudioMediaRecorder(stream, mimeType),
+  diagnostics: audioDiagnostics,
   dismissOnboardTip,
   handleFileOrBlob: (fileOrBlob, source = "upload") => analysisFlowController.handleFileOrBlob(fileOrBlob, source),
   pickSupportedMime: () => sharedPickSupportedMime(),
@@ -437,10 +464,10 @@ const recordingFlowController = createRecordingFlowController({
       ? analysisEngineBridge.preloadPipeline()
       : null
   ),
+  preparePitchStream,
   refreshAvailability: () => uiStateControls.refreshAvailability(),
   requestMicStream: () => sharedRequestMicStream(),
-  setBusy: (value) => analysisSession.setBusy(value),
-  setIsRecording: (value) => analysisSession.setIsRecording(value),
+  onStateChange: (state, detail) => recordingCoordinator?.handleFlowState(state, detail),
   setStatus,
   startPitchStream,
   startRecordingTimer: () => uiStateControls.startRecordingTimer(),
@@ -449,6 +476,17 @@ const recordingFlowController = createRecordingFlowController({
   stopRecordingTimer: () => uiStateControls.stopRecordingTimer(),
   t,
   MEDIA_RECORDER_DATA_TIMEOUT_MS,
+});
+
+recordingCoordinator = createRecordingCoordinator({
+  diagnostics: audioDiagnostics,
+  isExternalBusy: () => analysisSession.getBusy(),
+  onStateApplied: (snapshot) => {
+    analysisSession.setIsRecording(snapshot.state === "recording");
+    uiStateControls.refreshAvailability();
+  },
+  startRecording: (options) => recordingFlowController.startRecording(options),
+  stopRecording: (options) => recordingFlowController.stopRecording(options),
 });
 
 // ===== 版本資訊（build 與日期） =====
@@ -461,12 +499,12 @@ sharedBindMainUIEvents({
   dropZone,
   fileInput,
   uploadFab,
-  isBusy: () => analysisSession.getBusy(),
-  isRecording: () => analysisSession.getIsRecording(),
-  getMediaRecorder: () => recordingFlowController.getMediaRecorder(),
+  isBusy: () => recordingCoordinator.busy,
+  isRecording: () => recordingCoordinator.isRecording,
+  getRecordingSnapshot: () => recordingCoordinator.getSnapshot(),
   resetMeter,
-  startRecording: () => recordingFlowController.startRecording(),
-  stopRecording: () => recordingFlowController.stopRecording(),
+  startRecording: (options) => recordingCoordinator.start(options),
+  stopRecording: () => recordingCoordinator.stop(),
   setStatus,
   t,
   dismissOnboardTip,
@@ -640,6 +678,7 @@ function maybeApplyAdaptiveVAD(float32, sr) {
 const realtimePitchStreamController = pitchRuntimeCore.createRealtimeController({
   applyDbCalibration,
   describeResonanceFromEnergy,
+  diagnostics: audioDiagnostics,
   dom: {
     pitchWrap,
     pitchCanvas,
@@ -662,14 +701,19 @@ const realtimePitchStreamController = pitchRuntimeCore.createRealtimeController(
   },
   estimateSpectralFeatures,
   normalizeResonanceBands,
+  onPitchState: (state, detail) => recordingCoordinator?.updatePitchState(state, detail),
 });
 
-function startPitchStream(userMediaStream) {
-  return realtimePitchStreamController.startPitchStream(userMediaStream);
+function preparePitchStream(meta) {
+  return realtimePitchStreamController.prepareForUserGesture(meta);
 }
 
-function stopPitchStream() {
-  return realtimePitchStreamController.stopPitchStream();
+function startPitchStream(userMediaStream, options) {
+  return realtimePitchStreamController.startPitchStream(userMediaStream, options);
+}
+
+function stopPitchStream(options) {
+  return realtimePitchStreamController.stopPitchStream(options);
 }
 
 // ===== 離線抽樣（上傳檔用；錄音也會補） =====

@@ -6,6 +6,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.24] - 2026-09-05
+
+### Fixed
+
+- Prepared and resumed the reusable realtime-pitch AudioContext inside the recording button's synchronous user gesture so iPhone Safari can start the Professional chart after a completed Quick recording.
+- Bound realtime processors, sources, animation frames, and cleanup to the active recording session so stale teardown cannot stop a newer pitch graph.
+- Replaced the Quick experience's hidden Professional record-button proxy and polling loop with one recording coordinator shared by Quick, Professional, and Practice.
+- Preserved a Web Audio fallback buffer before decoding so a rejected decoder cannot detach the only copy and strand a repeated Quick recording in the analyzing state.
+
+### Added
+
+- Added an opt-in `?vpaAudioDebug=1` in-memory diagnostic report for AudioContext state, processor callbacks, pitch samples, panel visibility, canvas dimensions, and cleanup without retaining or uploading audio.
+- Documented the recording state machine, audio-resource ownership, Safari user-activation constraint, and required iPhone Safari and Android Chrome release checks.
+
+### Tests
+
+- Added a Quick-to-Professional regression that verifies the live panel, parent visibility, valid Hz samples, changing canvas pixels, stopped resources, and empty runtime errors.
+- Added recording-coordinator, stale-session, gesture-bound resume, bounded diagnostics, mobile overflow, light/dark readability, and repeated-recording coverage.
+
 ## [1.4.23] - 2026-08-31
 
 ### Fixed

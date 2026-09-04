@@ -4,11 +4,13 @@ export function createRealtimePitchStreamController(deps) {
     applyDbCalibration,
     arrays,
     describeResonanceFromEnergy,
+    diagnostics = null,
     dom,
     estimateSpectralFeatures,
     fmt1,
     maybeEnableAdvancedPitch,
     normalizeResonanceBands,
+    onPitchState = () => { },
     pitchPostState,
     psRealtimeNoiseTracker,
     PS_INTERVAL_MS,
@@ -57,8 +59,26 @@ export function createRealtimePitchStreamController(deps) {
   let psRAF = null;
   let psRunning = false;
   let psGeneration = 0;
+  let psOwnerSessionId = null;
+  let psContextSessionId = null;
   let psResizeHandler = null;
   let psTransition = Promise.resolve();
+
+  function trace(type, detail = {}) {
+    diagnostics?.record(type, detail);
+  }
+
+  function traceError(type, error, detail = {}) {
+    diagnostics?.recordError(type, error, detail);
+  }
+
+  function publishPitchState(state, detail = {}) {
+    try {
+      onPitchState(state, detail);
+    } catch (error) {
+      console.warn("[realtime-pitch] state listener failed", error);
+    }
+  }
 
   function bandLabel(hz) {
     if (!hz) return "—";
@@ -106,14 +126,19 @@ export function createRealtimePitchStreamController(deps) {
     } catch (e) { console.error("[updateRealtimeMonitor]", e); }
   }
 
-  function startDrawLoop() {
+  function startDrawLoop(meta = {}) {
     const drawGen = psGeneration;
     const ctx = pitchCanvas.getContext("2d");
     const DPR = Math.max(1, window.devicePixelRatio || 1);
+    let frameCount = 0;
     function resize() {
       const r = pitchCanvas.getBoundingClientRect();
       pitchCanvas.width = Math.max(600, Math.round(r.width * DPR));
       pitchCanvas.height = Math.round(r.height * DPR);
+      diagnostics?.recordPanel("pitch.canvas.resize", {
+        generation: drawGen,
+        sessionId: meta.sessionId,
+      });
     }
     resize();
     psResizeHandler = resize;
@@ -222,15 +247,29 @@ export function createRealtimePitchStreamController(deps) {
 
       ctx.restore();
 
+      frameCount += 1;
+      if (frameCount === 1 || frameCount % 60 === 0) {
+        diagnostics?.recordPanel("pitch.raf.frame", {
+          frameCount,
+          generation: drawGen,
+          sessionId: meta.sessionId,
+        });
+      }
+
       psRAF = requestAnimationFrame(draw);
     }
+    trace("pitch.raf.start", { generation: drawGen, sessionId: meta.sessionId });
     draw();
   }
 
   function detachPitchResources() {
     psRunning = false;
 
-    if (psRAF) { cancelAnimationFrame(psRAF); psRAF = null; }
+    if (psRAF) {
+      cancelAnimationFrame(psRAF);
+      trace("pitch.raf.stop", { generation: psGeneration });
+      psRAF = null;
+    }
     if (psResizeHandler) {
       removeEventListener("resize", psResizeHandler);
       psResizeHandler = null;
@@ -249,9 +288,11 @@ export function createRealtimePitchStreamController(deps) {
     if (proc) {
       proc.onaudioprocess = null;
       try { proc.disconnect(); } catch { }
+      trace("pitch.processor.disconnect");
     }
     if (src) {
       try { src.disconnect(); } catch { }
+      trace("pitch.source.disconnect");
     }
   }
 
@@ -263,30 +304,130 @@ export function createRealtimePitchStreamController(deps) {
     return pending;
   }
 
-  async function getRunningPitchContext() {
+  function createPitchContext(reason, meta = {}) {
     const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) throw new Error("Web Audio is unavailable.");
+    const context = new Ctx();
+    trace("pitch.context.create", {
+      reason,
+      sampleRate: context.sampleRate,
+      sessionId: meta.sessionId,
+      state: context.state,
+    });
+    context.addEventListener?.("statechange", () => {
+      trace("pitch.context.statechange", {
+        sessionId: psContextSessionId,
+        state: context.state,
+      });
+    });
+    return context;
+  }
+
+  function resumePitchContext(context, reason, meta = {}) {
+    trace("pitch.context.resume.before", {
+      reason,
+      sessionId: meta.sessionId,
+      state: context.state,
+    });
+    let resumeResult;
+    try {
+      resumeResult = context.resume();
+    } catch (error) {
+      traceError("pitch.context.resume.error", error, {
+        reason,
+        sessionId: meta.sessionId,
+        state: context.state,
+      });
+      const rejected = Promise.reject(error);
+      rejected.catch(() => { });
+      return rejected;
+    }
+    const pending = Promise.resolve(resumeResult).then(() => {
+      if (context.state !== "running") {
+        throw new Error(`AudioContext remained ${context.state} after resume().`);
+      }
+      trace("pitch.context.resume.after", {
+        reason,
+        sessionId: meta.sessionId,
+        state: context.state,
+      });
+      return context;
+    }).catch((error) => {
+      traceError("pitch.context.resume.error", error, {
+        reason,
+        sessionId: meta.sessionId,
+        state: context.state,
+      });
+      throw error;
+    });
+    pending.catch(() => { });
+    return pending;
+  }
+
+  function prepareForUserGesture(meta = {}) {
+    try {
+      psContextSessionId = meta.sessionId ?? null;
+      if (!psCtx || psCtx.state === "closed") {
+        psCtx = createPitchContext("user-gesture", meta);
+      }
+      const context = psCtx;
+      const promise = context.state === "running"
+        ? Promise.resolve(context)
+        : resumePitchContext(context, "user-gesture", meta);
+      trace("pitch.prepare", {
+        sessionId: meta.sessionId,
+        source: meta.source,
+        state: context.state,
+      });
+      return { context, promise, sessionId: meta.sessionId };
+    } catch (error) {
+      traceError("pitch.prepare.error", error, { sessionId: meta.sessionId });
+      const promise = Promise.reject(error);
+      promise.catch(() => { });
+      return { context: null, promise, sessionId: meta.sessionId };
+    }
+  }
+
+  async function getRunningPitchContext(preparation = null, meta = {}) {
     let lastError = null;
+
+    if (preparation?.context && preparation.context === psCtx) {
+      try {
+        const preparedContext = await preparation.promise;
+        if (preparedContext.state === "running") return preparedContext;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
     for (let attempt = 0; attempt < 2; attempt += 1) {
       if (!psCtx || psCtx.state === "closed") {
-        psCtx = new Ctx();
+        psCtx = createPitchContext(attempt === 0 ? "start" : "resume-retry", meta);
       }
       const context = psCtx;
       try {
         if (context.state !== "running") {
-          await context.resume();
+          await resumePitchContext(context, "start", meta);
         }
         return context;
       } catch (error) {
         lastError = error;
         if (psCtx === context) psCtx = null;
         try { await context.close(); } catch { }
+        trace("pitch.context.close", {
+          attempt,
+          sessionId: meta.sessionId,
+          state: context.state,
+        });
       }
     }
     throw lastError || new Error("Unable to start realtime audio analysis.");
   }
 
-  async function activatePitchStream(userMediaStream, gen) {
+  async function activatePitchStream(userMediaStream, gen, options = {}) {
+    const { preparation = null, sessionId, source } = options;
     if (gen !== psGeneration) return false;
+    publishPitchState("starting", { sessionId, source });
     const previousResources = detachPitchResources();
     setRealtimePanelsActive(false);
     await releasePitchResources(previousResources);
@@ -303,7 +444,7 @@ export function createRealtimePitchStreamController(deps) {
 
       maybeEnableAdvancedPitch("realtime", { allowRetry: true });
 
-      localCtx = await getRunningPitchContext();
+      localCtx = await getRunningPitchContext(preparation, { sessionId, source });
 
       if (gen !== psGeneration) {
         await releasePitchResources({ proc: localProc, src: localSrc });
@@ -313,10 +454,27 @@ export function createRealtimePitchStreamController(deps) {
       localSrc = localCtx.createMediaStreamSource(userMediaStream);
       localProc = localCtx.createScriptProcessor(2048, 1, 1);
       const sampleRate = localCtx.sampleRate;
+      trace("pitch.graph.create", {
+        contextState: localCtx.state,
+        generation: gen,
+        sampleRate,
+        sessionId,
+        source,
+      });
 
       let lastTick = 0;
+      let processorCallbackCount = 0;
+      let pitchSampleCount = 0;
       localProc.onaudioprocess = (ev) => {
         if (gen !== psGeneration) return;
+        processorCallbackCount += 1;
+        if (processorCallbackCount === 1 || processorCallbackCount % 25 === 0) {
+          trace("pitch.processor.callback", {
+            count: processorCallbackCount,
+            generation: gen,
+            sessionId,
+          });
+        }
         const input = ev.inputBuffer.getChannelData(0);
         const rms = Math.sqrt(input.reduce((a, v) => a + v * v, 0) / Math.max(1, input.length));
         const rawDb = 20 * Math.log10(Math.max(rms, 1e-6)) + 100; // 相對 dB
@@ -359,6 +517,20 @@ export function createRealtimePitchStreamController(deps) {
           if (volNowEl) volNowEl.textContent = `${db.toFixed(1)} dB`;
           if (bandNowEl) bandNowEl.textContent = bandLabel(displayHz);
           updateRealtimeMonitor(spectral);
+          if (Number.isFinite(displayHz)) {
+            pitchSampleCount += 1;
+            if (pitchSampleCount === 1) {
+              publishPitchState("sampling", { sessionId, source });
+            }
+            if (pitchSampleCount === 1 || pitchSampleCount % 10 === 0) {
+              trace("pitch.sample", {
+                db,
+                hz: displayHz,
+                sampleCount: pitchSampleCount,
+                sessionId,
+              });
+            }
+          }
         }
       };
 
@@ -370,40 +542,83 @@ export function createRealtimePitchStreamController(deps) {
       psRunning = true;
 
       setRealtimePanelsActive(true);
-      startDrawLoop();
+      diagnostics?.recordPanel("pitch.panel.active", { generation: gen, sessionId });
+      startDrawLoop({ sessionId });
+      publishPitchState("active", { sessionId, source });
       return true;
     } catch (e) {
       if (gen === psGeneration) console.error("[startPitchStream]", e);
+      traceError("pitch.stream.error", e, { generation: gen, sessionId, source });
       if (psCtx === localCtx) {
         await releasePitchResources(detachPitchResources());
       } else {
         await releasePitchResources({ proc: localProc, src: localSrc });
       }
       if (gen === psGeneration) setRealtimePanelsActive(false);
+      if (gen === psGeneration) {
+        psOwnerSessionId = null;
+        publishPitchState("error", { error: e, sessionId, source });
+      }
       return false;
     }
   }
 
-  function startPitchStream(userMediaStream) {
+  function startPitchStream(userMediaStream, options = {}) {
     if (!pitchWrap || !pitchCanvas) return;
+    psOwnerSessionId = options.sessionId ?? null;
+    psContextSessionId = options.sessionId ?? psContextSessionId;
     const gen = ++psGeneration;
-    return enqueuePitchTransition(() => activatePitchStream(userMediaStream, gen));
+    diagnostics?.recordStream("pitch.stream.start", userMediaStream, {
+      generation: gen,
+      sessionId: options.sessionId,
+      source: options.source,
+    });
+    return enqueuePitchTransition(() => activatePitchStream(userMediaStream, gen, options));
   }
 
-  function stopPitchStream() {
+  function stopPitchStream(options = {}) {
+    if (
+      options.sessionId != null
+      && psOwnerSessionId != null
+      && options.sessionId !== psOwnerSessionId
+    ) {
+      trace("pitch.stream.stop-stale", {
+        activeSessionId: psOwnerSessionId,
+        ignoredSessionId: options.sessionId,
+      });
+      return Promise.resolve(false);
+    }
     const gen = ++psGeneration;
     return enqueuePitchTransition(async () => {
       if (gen !== psGeneration) return false;
       await releasePitchResources(detachPitchResources());
       if (psCtx?.state === "running" && typeof psCtx.suspend === "function") {
-        try { await psCtx.suspend(); } catch { }
+        trace("pitch.context.suspend.before", {
+          sessionId: options.sessionId,
+          state: psCtx.state,
+        });
+        try {
+          await psCtx.suspend();
+          trace("pitch.context.suspend.after", {
+            sessionId: options.sessionId,
+            state: psCtx.state,
+          });
+        } catch (error) {
+          traceError("pitch.context.suspend.error", error, { sessionId: options.sessionId });
+        }
       }
-      if (gen === psGeneration) setRealtimePanelsActive(false);
+      if (gen === psGeneration) {
+        psOwnerSessionId = null;
+        setRealtimePanelsActive(false);
+        diagnostics?.recordPanel("pitch.panel.inactive", { generation: gen, sessionId: options.sessionId });
+        publishPitchState("inactive", { sessionId: options.sessionId, source: options.source });
+      }
       return true;
     });
   }
 
   return {
+    prepareForUserGesture,
     startPitchStream,
     stopPitchStream,
   };

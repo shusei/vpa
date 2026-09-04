@@ -31,6 +31,7 @@ function isLikelyM4A(blobOrFile) {
 
 export async function decodeViaWebAudio(blobOrFile, targetSR = 16000, mixChannelDataToMono) {
   const arrayBuf = await blobOrFile.arrayBuffer();
+  const legacyArrayBuf = arrayBuf.slice(0);
   const Ctx = window.AudioContext || window.webkitAudioContext;
   const ctx = new Ctx();
   let offline = null;
@@ -41,7 +42,7 @@ export async function decodeViaWebAudio(blobOrFile, targetSR = 16000, mixChannel
     } catch (err) {
       audioBuf = await new Promise((resolve, reject) => {
         try {
-          ctx.decodeAudioData(arrayBuf.slice(0), resolve, reject);
+          ctx.decodeAudioData(legacyArrayBuf, resolve, reject);
         } catch (legacyErr) {
           reject(legacyErr);
         }

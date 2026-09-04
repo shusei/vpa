@@ -79,7 +79,7 @@ export function createAnalysisFlowController(deps) {
 
       setStatus(t("status.decoding"), true);
       decoded = await decodeSmartToFloat32(fileOrBlob, TARGET_SR);
-      if (!isAnalysisActive(token)) return;
+      if (!isAnalysisActive(token)) return false;
       let { float32, sr, durationSec } = decoded;
 
       // 離線抽樣（供 Statistics / 簡評）。先對原始音檔做一次。
@@ -100,10 +100,10 @@ export function createAnalysisFlowController(deps) {
         // 針對「有效語音」再抽樣一次，提升代表性
         offlineExtractStreamMetrics(float32, sr, /*append*/true);
         await microYield();
-        if (!isAnalysisActive(token)) return;
+        if (!isAnalysisActive(token)) return false;
       }
 
-      if (!isAnalysisActive(token)) return;
+      if (!isAnalysisActive(token)) return false;
 
       const extensions = await runDecodedAudioAnalyzers({
         durationSec,
@@ -111,7 +111,7 @@ export function createAnalysisFlowController(deps) {
         sampleRate: sr,
         source,
       });
-      if (!isAnalysisActive(token)) return;
+      if (!isAnalysisActive(token)) return false;
       setAnalysisExtensions(extensions);
 
       const completedWithoutModel = await analyzeWithoutModel({
@@ -121,10 +121,10 @@ export function createAnalysisFlowController(deps) {
         source,
         token,
       });
-      if (!isAnalysisActive(token)) return;
+      if (!isAnalysisActive(token)) return false;
       if (completedWithoutModel) {
         finishStreamStats();
-        return;
+        return true;
       }
 
       const inferenceSelection = prepareInferenceSamples({
@@ -154,14 +154,16 @@ export function createAnalysisFlowController(deps) {
       }
 
       // 顯示統計（錄音/上傳皆會有）
-      if (!isAnalysisActive(token)) return;
+      if (!isAnalysisActive(token)) return false;
       finishStreamStats();
+      return true;
     } catch (e) {
       console.error("[handleFileOrBlob]", e);
       if (isAnalysisActive(token)) {
         setStatus(t("status.errorPrefix", { message: e?.message || t("status.decodeFailure") }));
       }
       notifyInferenceListeners(0, 0);
+      return false;
     } finally {
       if (decoded) decoded.float32 = null;
       decoded = null;
