@@ -90,6 +90,8 @@ export async function installSyntheticMicrophone(page, {
 } = {}) {
   await page.addInitScript(({ forceMock, requireGesture }) => {
     let NativeAudioContext = window.AudioContext || window.webkitAudioContext;
+    const useMockAudio = forceMock || !NativeAudioContext || typeof window.MediaRecorder !== "function";
+    let MockMediaStreamCtor = null;
 
     if (requireGesture) {
       window.__vpaTestGestureActive = false;
@@ -102,7 +104,7 @@ export async function installSyntheticMicrophone(page, {
       });
     }
 
-    if (forceMock || !NativeAudioContext || typeof window.MediaRecorder !== "function") {
+    if (useMockAudio) {
       class MockAudioBuffer {
         constructor(length = 16_000, sampleRate = 16_000) {
           this.duration = length / sampleRate;
@@ -231,6 +233,7 @@ export async function installSyntheticMicrophone(page, {
           return [this.track];
         }
       }
+      MockMediaStreamCtor = MockMediaStream;
 
       class MockMediaRecorder extends EventTarget {
         static isTypeSupported() {
@@ -264,34 +267,49 @@ export async function installSyntheticMicrophone(page, {
         }
       }
 
-      window.AudioContext = MockAudioContext;
-      window.webkitAudioContext = MockAudioContext;
-      window.MediaRecorder = MockMediaRecorder;
-      window.MediaStream = MockMediaStream;
-      window.MediaStreamTrack = MockMediaStreamTrack;
+      const replaceGlobal = (name, value) => {
+        try {
+          Object.defineProperty(window, name, {
+            configurable: true,
+            value,
+            writable: true,
+          });
+        } catch {
+          window[name] = value;
+        }
+      };
+      replaceGlobal("AudioContext", MockAudioContext);
+      replaceGlobal("webkitAudioContext", MockAudioContext);
+      replaceGlobal("MediaRecorder", MockMediaRecorder);
+      replaceGlobal("MediaStream", MockMediaStream);
+      replaceGlobal("MediaStreamTrack", MockMediaStreamTrack);
       NativeAudioContext = MockAudioContext;
 
       const mediaState = new WeakMap();
       const mediaPrototype = window.HTMLMediaElement.prototype;
       const nativePaused = Object.getOwnPropertyDescriptor(mediaPrototype, "paused");
       const nativeCurrentTime = Object.getOwnPropertyDescriptor(mediaPrototype, "currentTime");
-      Object.defineProperty(mediaPrototype, "paused", {
-        configurable: true,
-        get() {
-          return mediaState.get(this)?.paused ?? nativePaused?.get?.call(this) ?? true;
-        },
-      });
-      Object.defineProperty(mediaPrototype, "currentTime", {
-        configurable: true,
-        get() {
-          return mediaState.get(this)?.currentTime ?? nativeCurrentTime?.get?.call(this) ?? 0;
-        },
-        set(value) {
-          const state = mediaState.get(this) || { paused: true, currentTime: 0 };
-          state.currentTime = Number(value) || 0;
-          mediaState.set(this, state);
-        },
-      });
+      if (!nativePaused || nativePaused.configurable) {
+        Object.defineProperty(mediaPrototype, "paused", {
+          configurable: true,
+          get() {
+            return mediaState.get(this)?.paused ?? nativePaused?.get?.call(this) ?? true;
+          },
+        });
+      }
+      if (!nativeCurrentTime || nativeCurrentTime.configurable) {
+        Object.defineProperty(mediaPrototype, "currentTime", {
+          configurable: true,
+          get() {
+            return mediaState.get(this)?.currentTime ?? nativeCurrentTime?.get?.call(this) ?? 0;
+          },
+          set(value) {
+            const state = mediaState.get(this) || { paused: true, currentTime: 0 };
+            state.currentTime = Number(value) || 0;
+            mediaState.set(this, state);
+          },
+        });
+      }
       mediaPrototype.play = function() {
         const state = mediaState.get(this) || { paused: true, currentTime: 0 };
         state.paused = false;
@@ -316,12 +334,12 @@ export async function installSyntheticMicrophone(page, {
     }
 
     let microphoneContext = null;
-    navigator.mediaDevices.getUserMedia = async () => {
+    const getSyntheticUserMedia = async () => {
       if (window.__vpaTestRequireGestureResume) {
         window.__vpaTestGestureActive = false;
       }
-      if (typeof window.MediaStream === "function" && window.MediaStream.name === "MockMediaStream") {
-        return new window.MediaStream();
+      if (useMockAudio) {
+        return new MockMediaStreamCtor();
       }
       if (!microphoneContext || microphoneContext.state === "closed") {
         microphoneContext = new NativeAudioContext();
@@ -349,6 +367,15 @@ export async function installSyntheticMicrophone(page, {
       };
       return destination.stream;
     };
+    try {
+      Object.defineProperty(navigator.mediaDevices, "getUserMedia", {
+        configurable: true,
+        value: getSyntheticUserMedia,
+        writable: true,
+      });
+    } catch {
+      navigator.mediaDevices.getUserMedia = getSyntheticUserMedia;
+    }
   }, {
     forceMock: forceMockAudio,
     requireGesture: gestureBoundResume,

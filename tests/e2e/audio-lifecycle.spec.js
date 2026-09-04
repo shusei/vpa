@@ -278,8 +278,8 @@ async function getCanvasColorCount(page) {
 
 // ----- Test A: Quick → Professional realtime pitch -----
 test.describe("Audio Lifecycle", () => {
-  test("@cross-browser A: Quick → Professional pitch stream works without reload", async ({ page }) => {
-    await installSyntheticMicrophone(page);
+  test("@cross-browser A: Quick → Professional pitch stream works without reload", async ({ browserName, page }) => {
+    await installSyntheticMicrophone(page, { forceMockAudio: browserName !== "chromium" });
     await setupLifecycleCounters(page);
     const errors = captureRuntimeErrors(page);
 
@@ -551,9 +551,9 @@ test.describe("Audio Lifecycle", () => {
     expect(relevantErrors).toEqual([]);
   });
 
-  test("@cross-browser Professional 30-round record/play soak keeps realtime pitch visible", async ({ page }) => {
+  test("@cross-browser Professional 30-round record/play soak keeps realtime pitch visible", async ({ browserName, page }) => {
     test.setTimeout(600_000);
-    await installSyntheticMicrophone(page);
+    await installSyntheticMicrophone(page, { forceMockAudio: browserName !== "chromium" });
     await setupLifecycleCounters(page);
     const errors = captureRuntimeErrors(page);
 

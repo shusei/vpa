@@ -29,7 +29,26 @@ function isLikelyM4A(blobOrFile) {
   return false;
 }
 
-export async function decodeViaWebAudio(blobOrFile, targetSR = 16000, mixChannelDataToMono) {
+const WEB_AUDIO_DECODE_TIMEOUT_MS = 15_000;
+
+function withDecodeTimeout(promise, timeoutMs) {
+  let timeoutId = null;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error("WebAudio decode timed out"));
+    }, timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId !== null) clearTimeout(timeoutId);
+  });
+}
+
+export async function decodeViaWebAudio(
+  blobOrFile,
+  targetSR = 16000,
+  mixChannelDataToMono,
+  decodeTimeoutMs = WEB_AUDIO_DECODE_TIMEOUT_MS,
+) {
   const arrayBuf = await blobOrFile.arrayBuffer();
   const legacyArrayBuf = arrayBuf.slice(0);
   const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -38,15 +57,15 @@ export async function decodeViaWebAudio(blobOrFile, targetSR = 16000, mixChannel
   try {
     let audioBuf;
     try {
-      audioBuf = await ctx.decodeAudioData(arrayBuf);
+      audioBuf = await withDecodeTimeout(ctx.decodeAudioData(arrayBuf), decodeTimeoutMs);
     } catch (err) {
-      audioBuf = await new Promise((resolve, reject) => {
+      audioBuf = await withDecodeTimeout(new Promise((resolve, reject) => {
         try {
           ctx.decodeAudioData(legacyArrayBuf, resolve, reject);
         } catch (legacyErr) {
           reject(legacyErr);
         }
-      });
+      }), decodeTimeoutMs);
     }
     const mono = ctx.createBuffer(1, audioBuf.length, audioBuf.sampleRate);
     const outCh = mono.getChannelData(0);

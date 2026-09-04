@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prepared and resumed the reusable realtime-pitch AudioContext inside the recording button's synchronous user gesture so iPhone Safari can start the Professional chart after a completed Quick recording.
 - Bound realtime processors, sources, animation frames, and cleanup to the active recording session so stale teardown cannot stop a newer pitch graph.
 - Replaced the Quick experience's hidden Professional record-button proxy and polling loop with one recording coordinator shared by Quick, Professional, and Practice.
-- Preserved a Web Audio fallback buffer before decoding so a rejected decoder cannot detach the only copy and strand a repeated Quick recording in the analyzing state.
+- Preserved a Web Audio fallback buffer before decoding and bounded stalled decoder calls so rejected or non-settling browser decoders cannot strand recording analysis.
 
 ### Added
 
