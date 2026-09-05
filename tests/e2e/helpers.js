@@ -92,6 +92,12 @@ export async function installSyntheticMicrophone(page, {
     let NativeAudioContext = window.AudioContext || window.webkitAudioContext;
     const useMockAudio = forceMock || !NativeAudioContext || typeof window.MediaRecorder !== "function";
     let MockMediaStreamCtor = null;
+    let microphoneFrequency = 220;
+    let microphoneOscillator = null;
+    window.__vpaSetMicrophoneFrequency = (frequency) => {
+      microphoneFrequency = frequency;
+      if (microphoneOscillator) microphoneOscillator.frequency.value = frequency;
+    };
 
     if (requireGesture) {
       window.__vpaTestGestureActive = false;
@@ -106,14 +112,14 @@ export async function installSyntheticMicrophone(page, {
 
     if (useMockAudio) {
       class MockAudioBuffer {
-        constructor(length = 16_000, sampleRate = 16_000) {
+        constructor(length = 16_000, sampleRate = 16_000, frequency = 220) {
           this.duration = length / sampleRate;
           this.length = length;
           this.numberOfChannels = 1;
           this.sampleRate = sampleRate;
           this.samples = new Float32Array(length);
           for (let i = 0; i < length; i += 1) {
-            this.samples[i] = Math.sin((2 * Math.PI * 220 * i) / sampleRate) * 0.15;
+            this.samples[i] = Math.sin((2 * Math.PI * frequency * i) / sampleRate) * 0.15;
           }
         }
 
@@ -143,7 +149,7 @@ export async function installSyntheticMicrophone(page, {
             this.timer = setInterval(() => {
               const event = new Event("audioprocess");
               Object.defineProperty(event, "inputBuffer", {
-                value: new MockAudioBuffer(2048, this.sampleRate),
+                value: new MockAudioBuffer(2048, this.sampleRate, microphoneFrequency),
               });
               this.dispatchEvent(event);
               this.onaudioprocess?.(event);
@@ -352,7 +358,8 @@ export async function installSyntheticMicrophone(page, {
       const destination = microphoneContext.createMediaStreamDestination();
       const oscillator = microphoneContext.createOscillator();
       const gain = microphoneContext.createGain();
-      oscillator.frequency.value = 220;
+      microphoneOscillator = oscillator;
+      oscillator.frequency.value = microphoneFrequency;
       gain.gain.value = 0.15;
       oscillator.connect(gain);
       gain.connect(destination);
@@ -361,6 +368,7 @@ export async function installSyntheticMicrophone(page, {
       const [track] = destination.stream.getAudioTracks();
       const nativeStop = track.stop.bind(track);
       track.stop = () => {
+        if (microphoneOscillator === oscillator) microphoneOscillator = null;
         try { oscillator.stop(); } catch { }
         try { oscillator.disconnect(); } catch { }
         try { gain.disconnect(); } catch { }

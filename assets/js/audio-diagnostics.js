@@ -149,10 +149,12 @@ export function createAudioDiagnostics({
   }
 
   function recordPanel(type, detail = {}) {
+    if (!enabled) return;
     record(type, { ...detail, panel: safePanelSnapshot(dom) });
   }
 
   function recordStream(type, stream, detail = {}) {
+    if (!enabled) return;
     record(type, { ...detail, tracks: safeTrackSnapshot(stream) });
   }
 

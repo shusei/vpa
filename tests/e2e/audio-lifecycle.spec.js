@@ -276,6 +276,18 @@ async function getCanvasColorCount(page) {
   });
 }
 
+async function expectPitchFollowsMicrophone(page) {
+  await page.locator("#pitchCanvas").scrollIntoViewIfNeeded();
+  await expect(page.locator("#pitchNow")).toHaveText(/^\d+(?:\.\d+)?Hz$/);
+  await expect.poll(() => getCanvasColorCount(page)).toBeGreaterThan(5);
+  const before = await getCanvasChecksum(page);
+  // A new audible tone must reach both the number and the existing drawing loop.
+  // Polling tolerates browser frame scheduling, but a frozen canvas still fails.
+  await page.evaluate(() => window.__vpaSetMicrophoneFrequency(280));
+  await expect.poll(async () => Number.parseFloat(await page.locator("#pitchNow").textContent())).toBeGreaterThan(260);
+  await expect.poll(() => getCanvasChecksum(page), { timeout: 5000 }).not.toBe(before);
+}
+
 async function expectSyntheticMicrophoneReady(page, expectMockAudio = false) {
   const state = await page.evaluate(() => ({
     ...window.__vpaSyntheticMicrophone,
@@ -392,9 +404,7 @@ test.describe("Audio Lifecycle", () => {
     expect(dim.rectHeight).toBeGreaterThan(0);
 
     // 8. 第二輪錄音期間 canvas pixel checksum 確實改變
-    const sumDuringPro = await getCanvasChecksum(page);
-    await page.waitForTimeout(100);
-    expect(await getCanvasChecksum(page)).not.toBe(sumDuringPro);
+    await expectPitchFollowsMicrophone(page);
 
     await recordBtn.click();
     await expect.poll(
@@ -486,9 +496,7 @@ test.describe("Audio Lifecycle", () => {
       { timeout: 10000 },
     ).toBeGreaterThan(callbacksBefore + 3);
     await expect(page.locator("#pitchNow")).toHaveText(/^\d+(?:\.\d+)?Hz$/);
-    const firstChecksum = await getCanvasChecksum(page);
-    await page.waitForTimeout(100);
-    expect(await getCanvasChecksum(page)).not.toBe(firstChecksum);
+    await expectPitchFollowsMicrophone(page);
 
     await recordBtn.click();
     await expect(page.locator("#pitchWrap")).toBeHidden();

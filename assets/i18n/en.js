@@ -1,4 +1,4 @@
-import { applySafetyCopy } from "./safety-copy.js?v=1.4.24";
+import { applySafetyCopy } from "./safety-copy.js?v=1.4.25";
 
 const practiceWarmup = {
   title: "Pre-recording comfort check",
@@ -720,7 +720,7 @@ const dictionary = {
       '</ul>',
       '</section>',
       '<div class="help-author">',
-      '<img src="assets/avatar-evelyn.jpg?v=1.4.24" alt="Portrait of Evelyn" class="help-author-img" loading="lazy" />',
+      '<img src="assets/avatar-evelyn.jpg?v=1.4.25" alt="Portrait of Evelyn" class="help-author-img" loading="lazy" />',
       '<div class="help-author-text">',
       '<h4>About the Author: Evelyn</h4>',
       '<p>Whether coding or voice training, it’s all about the journey of exploration.<br>If you have feedback on VPA or want to chat about voice training, feel free to connect with me on Instagram!</p>',

@@ -63,6 +63,7 @@ export function createRealtimePitchStreamController(deps) {
   let psContextSessionId = null;
   let psResizeHandler = null;
   let psTransition = Promise.resolve();
+  let psStartController = null;
 
   function trace(type, detail = {}) {
     diagnostics?.record(type, detail);
@@ -388,29 +389,50 @@ export function createRealtimePitchStreamController(deps) {
     }
   }
 
-  async function getRunningPitchContext(preparation = null, meta = {}) {
+  function waitForPitchContext(promise, context, signal) {
+    // A stopped session must not hold the lifecycle queue behind a pending resume.
+    const pending = Promise.resolve(promise);
+    const contextSessionId = psContextSessionId;
+    pending.then(async () => {
+      if (signal?.aborted && psCtx === context && psContextSessionId === contextSessionId && psOwnerSessionId === null && !psRunning && context.state === "running") {
+        try { await context.suspend(); } catch (error) { traceError("pitch.context.suspend.error", error); }
+      }
+    }, () => { });
+    if (!signal) return pending;
+    return new Promise((resolve, reject) => {
+      const abort = () => reject(new DOMException("Pitch session stopped.", "AbortError"));
+      if (signal.aborted) { abort(); return; }
+      signal.addEventListener("abort", abort, { once: true });
+      pending.then(resolve, reject).finally(() => signal.removeEventListener("abort", abort));
+    });
+  }
+
+  async function getRunningPitchContext(preparation = null, meta = {}, signal) {
     let lastError = null;
 
     if (preparation?.context && preparation.context === psCtx) {
       try {
-        const preparedContext = await preparation.promise;
+        const preparedContext = await waitForPitchContext(preparation.promise, preparation.context, signal);
         if (preparedContext.state === "running") return preparedContext;
       } catch (error) {
+        if (signal?.aborted) throw error;
         lastError = error;
       }
     }
 
     for (let attempt = 0; attempt < 2; attempt += 1) {
+      signal?.throwIfAborted();
       if (!psCtx || psCtx.state === "closed") {
         psCtx = createPitchContext(attempt === 0 ? "start" : "resume-retry", meta);
       }
       const context = psCtx;
       try {
         if (context.state !== "running") {
-          await resumePitchContext(context, "start", meta);
+          await waitForPitchContext(resumePitchContext(context, "start", meta), context, signal);
         }
         return context;
       } catch (error) {
+        if (signal?.aborted) throw error;
         lastError = error;
         if (psCtx === context) psCtx = null;
         try { await context.close(); } catch { }
@@ -425,7 +447,7 @@ export function createRealtimePitchStreamController(deps) {
   }
 
   async function activatePitchStream(userMediaStream, gen, options = {}) {
-    const { preparation = null, sessionId, source } = options;
+    const { preparation = null, sessionId, source, signal } = options;
     if (gen !== psGeneration) return false;
     publishPitchState("starting", { sessionId, source });
     const previousResources = detachPitchResources();
@@ -444,7 +466,7 @@ export function createRealtimePitchStreamController(deps) {
 
       maybeEnableAdvancedPitch("realtime", { allowRetry: true });
 
-      localCtx = await getRunningPitchContext(preparation, { sessionId, source });
+      localCtx = await getRunningPitchContext(preparation, { sessionId, source }, signal);
 
       if (gen !== psGeneration) {
         await releasePitchResources({ proc: localProc, src: localSrc });
@@ -549,7 +571,7 @@ export function createRealtimePitchStreamController(deps) {
     } catch (e) {
       if (gen === psGeneration) console.error("[startPitchStream]", e);
       traceError("pitch.stream.error", e, { generation: gen, sessionId, source });
-      if (psCtx === localCtx) {
+      if (psSrc === localSrc && psProc === localProc) {
         await releasePitchResources(detachPitchResources());
       } else {
         await releasePitchResources({ proc: localProc, src: localSrc });
@@ -565,6 +587,9 @@ export function createRealtimePitchStreamController(deps) {
 
   function startPitchStream(userMediaStream, options = {}) {
     if (!pitchWrap || !pitchCanvas) return;
+    psStartController?.abort();
+    psStartController = new AbortController();
+    const signal = psStartController.signal;
     psOwnerSessionId = options.sessionId ?? null;
     psContextSessionId = options.sessionId ?? psContextSessionId;
     const gen = ++psGeneration;
@@ -573,7 +598,7 @@ export function createRealtimePitchStreamController(deps) {
       sessionId: options.sessionId,
       source: options.source,
     });
-    return enqueuePitchTransition(() => activatePitchStream(userMediaStream, gen, options));
+    return enqueuePitchTransition(() => activatePitchStream(userMediaStream, gen, { ...options, signal }));
   }
 
   function stopPitchStream(options = {}) {
@@ -588,6 +613,8 @@ export function createRealtimePitchStreamController(deps) {
       });
       return Promise.resolve(false);
     }
+    psStartController?.abort();
+    psStartController = null;
     const gen = ++psGeneration;
     return enqueuePitchTransition(async () => {
       if (gen !== psGeneration) return false;

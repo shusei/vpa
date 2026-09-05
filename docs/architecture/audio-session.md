@@ -62,6 +62,10 @@ stop()
 
 ## Safari user activation
 
+瀏覽器自行發出的 MediaRecorder `stop`（包含音軌結束與錯誤）也必須先進入 `stopping`，並在分析之前釋放麥克風。錄音 chunks 屬於該次 session，不能由下一輪錄音覆寫。
+
+停止操作會取消該 session 對 pending `resume()` 的等待，不必等瀏覽器恢復才完成清理；若舊 resume 稍後完成，只能 suspend 仍閒置且尚未被下一個 session 接手的 context。正常停止仍重用單一 suspended AudioContext。
+
 iPhone Safari 可能要求 suspended AudioContext 的 `resume()` 發生在使用者操作的同步 call stack。若等到 `getUserMedia()` resolve 後才 resume，第二次錄音可能仍能啟動 MediaRecorder，卻沒有 realtime callback 或圖表。
 
 因此 `prepareForUserGesture()` 必須在第一次 `await` 之前同步建立／恢復 reusable AudioContext，並回傳 preparation ticket。`startPitchStream()` 只能等待同一 ticket，不可為了繞過失敗而複製 detector 或建立另一套 canvas。

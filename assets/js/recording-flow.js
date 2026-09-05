@@ -22,7 +22,6 @@ export function createRecordingFlowController(deps) {
   } = deps;
 
   let mediaRecorder = null;
-  let chunks = [];
   let currentSessionId = 0;
 
   async function startRecording({ sessionId = 0, source = "professional" } = {}) {
@@ -51,7 +50,7 @@ export function createRecordingFlowController(deps) {
       return false;
     }
     dismissOnboardTip(true);
-    chunks = [];
+    const chunks = [];
     currentSessionId = sessionId;
     let captureInfo;
     let mimeType;
@@ -73,6 +72,7 @@ export function createRecordingFlowController(deps) {
     let resolveFinalData = null;
     let rejectFinalData = null;
     let finalDataTimer = null;
+    let recorderError = null;
 
     const clearFinalDataTimer = () => {
       if (finalDataTimer !== null) {
@@ -131,11 +131,19 @@ export function createRecordingFlowController(deps) {
       }
     };
     sessionRecorder.onerror = (event) => {
-      const error = event?.error || new Error("MediaRecorder error.");
-      diagnostics?.recordError("recording.media-recorder.error", error, { sessionId, source });
+      recorderError = event?.error || new Error("MediaRecorder error.");
+      diagnostics?.recordError("recording.media-recorder.error", recorderError, { sessionId, source });
     };
     sessionRecorder.onstop = async () => {
-      stopRecordingTimer();
+      // Native track endings/errors also emit stop, without a coordinator.stop().
+      if (currentSessionId === sessionId) {
+        stopRecordingTimer();
+        document.body.classList.remove("recording");
+        document.querySelector(".container")?.classList.remove("recording");
+        onStateChange("stopping", { sessionId, source });
+      }
+      stream.getTracks().forEach(t => t.stop());
+      diagnostics?.recordStream("recording.microphone.stopped", stream, { sessionId, source });
 
       try {
         await waitForFinalData();
@@ -145,13 +153,18 @@ export function createRecordingFlowController(deps) {
         await stopPitchStream({ sessionId, source });
         chunks.length = 0;
         setStatus(t(waitErr?.name === "MediaRecorderTimeoutError" ? "status.recordProcessingTimeout" : "status.recordProcessingFailed"));
-        stream.getTracks().forEach(t => t.stop());
-        diagnostics?.recordStream("recording.microphone.stopped", stream, { sessionId, source });
         onStateChange("error", { error: waitErr, sessionId, source });
         return;
       }
 
       await stopPitchStream({ sessionId, source });                 // 停止即時圖，但保留資料做統計
+      if (currentSessionId !== sessionId) return;
+      if (recorderError) {
+        chunks.length = 0;
+        setStatus(t("status.recordFailed"));
+        onStateChange("error", { error: recorderError, pitchState: "inactive", sessionId, source });
+        return;
+      }
       onStateChange("analyzing", { sessionId, source });
       try {
         const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
@@ -177,9 +190,6 @@ export function createRecordingFlowController(deps) {
         setStatus(t("status.recordProcessingFailed"));
         chunks.length = 0;
         onStateChange("error", { error: e, sessionId, source });
-      } finally {
-        stream.getTracks().forEach(t => t.stop());
-        diagnostics?.recordStream("recording.microphone.stopped", stream, { sessionId, source });
       }
     };
 

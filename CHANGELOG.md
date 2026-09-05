@@ -6,6 +6,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.25] - 2026-09-05
+
+### Fixed
+
+- Reconciled browser-initiated recording stops and errors with the shared coordinator, releasing microphone tracks before analysis and retaining recording chunks per session.
+- Released partially connected realtime audio graphs and allowed stop to cancel a pending context resume without leaving a late-resumed idle context running.
+- Removed canvas pixel and track inspection when audio diagnostics are disabled.
+
+### Tests
+
+- Added red-to-green failure-path tests for native stop events, graph cleanup, disabled diagnostics, and pending resume cancellation.
+- Replaced fixed 100 ms canvas assertions with an input-frequency change that must reach both the Hz readout and rendered pixels. Physical iPhone Safari and Android Chrome validation remains required.
+
 ## [1.4.24] - 2026-09-05
 
 ### Fixed

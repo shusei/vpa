@@ -61,7 +61,7 @@ try {
   for (let attempt = 0; attempt < 10 && !states.includes("error"); attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 0));
   }
-  assert.deepEqual(states, ["recording", "analyzing", "error"]);
+  assert.deepEqual(states, ["recording", "stopping", "analyzing", "error"]);
 } finally {
   globalThis.document = originalDocument;
   globalThis.MediaRecorder = originalMediaRecorder;

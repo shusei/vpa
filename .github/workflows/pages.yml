@@ -44,6 +44,16 @@ jobs:
       - name: Run complete test suite
         run: npm test
 
+      - name: Preserve failed browser diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-test-failures
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
       - name: Build production site
         run: npm run build
 
