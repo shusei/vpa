@@ -1,14 +1,14 @@
 // ===== Transformers pipeline =====
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js";
 
-import { estimateAcousticPresentation } from "./js/acoustic-fast-path.js?v=1.4.25";
-import { initI18n, t, getLocaleValue, onLocaleChange } from "./js/i18n.js?v=1.4.25";
+import { estimateAcousticPresentation } from "./js/acoustic-fast-path.js?v=1.4.26";
+import { initI18n, t, getLocaleValue, onLocaleChange } from "./js/i18n.js?v=1.4.26";
 import {
   analyzeWhole as sharedAnalyzeWhole,
   analyzeStreamed as sharedAnalyzeStreamed,
   runStreamedWithWindow as sharedRunStreamedWithWindow,
 } from "./js/analysis-core.js";
-import { createAnalysisEngineBridge } from "./js/analysis-engine-bridge.js?v=1.4.25";
+import { createAnalysisEngineBridge } from "./js/analysis-engine-bridge.js?v=1.4.26";
 import {
   createAnalysisFlowController,
   runDecodedAudioAnalyzers as sharedRunDecodedAudioAnalyzers,
@@ -49,7 +49,7 @@ import {
   drawIntonationCurve as sharedDrawIntonationCurve,
   setupIntonationLegend as sharedSetupIntonationLegend,
 } from "./js/intonation-visual.js";
-import { decodeSmartToFloat32 as sharedDecodeSmartToFloat32 } from "./js/decode-smart.js?v=1.4.25";
+import { decodeSmartToFloat32 as sharedDecodeSmartToFloat32 } from "./js/decode-smart.js?v=1.4.26";
 import {
   offlineExtractStreamMetrics as sharedOfflineExtractStreamMetrics,
   resetOfflineFeatureStore as sharedResetOfflineFeatureStore,
@@ -69,7 +69,7 @@ import {
   isPlaying as sharedIsPlaying,
   playLastRecording as sharedPlayLastRecording,
   setPlaybackSource as sharedSetPlaybackSource,
-} from "./js/player-ui.js?v=1.4.25";
+} from "./js/player-ui.js?v=1.4.26";
 import { createPlayerSessionController } from "./js/player-session.js";
 import { createPitchProfileController } from "./js/pitch-profile.js";
 import { createPitchRuntimeCore } from "./js/pitch-runtime-core.js";
@@ -88,27 +88,27 @@ import {
   pickSupportedMime as sharedPickSupportedMime,
   requestMicStream as sharedRequestMicStream,
 } from "./js/recording-utils.js";
-import { createRecordingFlowController } from "./js/recording-flow.js?v=1.4.25";
+import { createRecordingFlowController } from "./js/recording-flow.js?v=1.4.26";
 import { createRecordingCoordinator } from "./js/recording-coordinator.js";
 import {
   bandOf as sharedBandOf,
   isDivergent as sharedIsDivergent,
 } from "./js/summary-helpers.js";
 import { detectThreadCount as sharedDetectThreadCount } from "./js/thread-count.js";
-import { installEmbeddedBrowserGuard } from "./js/embedded-browser.js?v=1.4.25";
+import { installEmbeddedBrowserGuard } from "./js/embedded-browser.js?v=1.4.26";
 import {
   mobileInferenceMaxSec,
   shouldUseEmbeddedAcousticFastPath,
   shouldUseMobileFastPath,
   selectRepresentativeSamples,
-} from "./js/inference-sampling.js?v=1.4.25";
+} from "./js/inference-sampling.js?v=1.4.26";
 import { pickStreamStrategy as sharedPickStreamStrategy } from "./js/stream-strategy.js";
 import { finishStreamStats as sharedFinishStreamStats } from "./js/stats-core.js";
 import { createStatsOrchestration } from "./js/stats-orchestration.js";
 import { maybeApplyAdaptiveVAD as sharedMaybeApplyAdaptiveVAD } from "./js/vad-adaptive.js";
 import { bindMainUIEvents as sharedBindMainUIEvents } from "./js/ui-events.js";
-import { createUIStateControls } from "./js/ui-state-controls.js?v=1.4.25";
-import { evaluateAdvancedExperience } from "./experiments/advanced-evaluator.js?v=1.4.25";
+import { createUIStateControls } from "./js/ui-state-controls.js?v=1.4.26";
+import { evaluateAdvancedExperience } from "./experiments/advanced-evaluator.js?v=1.4.26";
 
 import {
   recordBtn,
@@ -197,6 +197,7 @@ const THREAD_STORAGE_KEY = "vpa::onnxThreads";
 const VOLUME_DISPLAY_MODE = "relative";
 const MEDIA_RECORDER_DATA_TIMEOUT_MS = 5000;
 const playerSessionController = createPlayerSessionController({
+  realtimeAnchor: formantWrap || pitchWrap,
   sharedEnsurePlayerUI,
   sharedIsPlaying,
   sharedPausePlayback,

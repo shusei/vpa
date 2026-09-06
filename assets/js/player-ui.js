@@ -43,9 +43,11 @@ export function ensurePlayerUI(state, deps) {
   wrap.appendChild(hint);
   wrap.appendChild(audio);
 
-  const startWrapEl = container.querySelector(".start-wrap");
+  // Playback and the result panels anchored to it must follow live feedback.
+  // Otherwise a previous result pushes the next recording's chart off screen.
+  const anchor = deps.realtimeAnchor || container.querySelector(".start-wrap");
   const tipEl = container.querySelector(".callout");
-  if (startWrapEl) startWrapEl.insertAdjacentElement("afterend", wrap);
+  if (anchor) anchor.insertAdjacentElement("afterend", wrap);
   else if (tipEl) container.insertBefore(wrap, tipEl);
   else container.appendChild(wrap);
 

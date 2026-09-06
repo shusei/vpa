@@ -6,6 +6,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.26] - 2026-09-06
+
+### Fixed
+
+- Kept realtime pitch and formant panels directly after recording controls and before playback/results. A previous Quick result could push the next Professional recording's live chart thousands of pixels below the viewport while audio and canvas updates continued normally.
+- Preserved existing audio lifecycle, pitch detection, scoring, and the stopped-recording/Quick layouts.
+
+### Tests
+
+- Added mobile and desktop Quick-record/result-to-Professional-record regressions that assert the canvas is in the viewport without scrolling, above previous results, receiving pitch data, drawing changing pixels, and cleaning up after stop.
+- Removed the chart helper's automatic scrolling, which had concealed the misplaced chart. Native synthetic-audio tests now request 48 kHz instead of inheriting the host sound device's sample rate; physical-device validation and other sample rates remain separate checks.
+
 ## [1.4.25] - 2026-09-05
 
 ### Fixed

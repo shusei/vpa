@@ -60,6 +60,12 @@ stop()
   -> coordinator idle
 ```
 
+## 即時圖表的版面不變量
+
+錄音控制區之後必須先放 `pitchWrap` / `formantWrap`，再放播放器、進階結果與統計。`app-core` 注入既有 DOM anchor 給 player session；player UI 不得把上一輪結果插到錄音按鈕與即時圖表之間。停止錄音後隱藏即時 panels，播放器與結果自然接回控制區，不需要強制 display 或捲動補救。
+
+2026-09-06 的 iPhone 診斷顯示第二輪 context running、callback/sample/RAF 與像素持續更新；另以 production build 重現手機版面，圖表卻被上一輪結果推到約 8,318 px 下方。診斷中的非零尺寸不等於使用者看得到。回歸測試必須檢查 viewport intersection 與 DOM 排列，不能先 `scrollIntoViewIfNeeded()` 再驗證。
+
 ## Safari user activation
 
 瀏覽器自行發出的 MediaRecorder `stop`（包含音軌結束與錯誤）也必須先進入 `stopping`，並在分析之前釋放麥克風。錄音 chunks 屬於該次 session，不能由下一輪錄音覆寫。

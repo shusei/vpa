@@ -277,7 +277,6 @@ async function getCanvasColorCount(page) {
 }
 
 async function expectPitchFollowsMicrophone(page) {
-  await page.locator("#pitchCanvas").scrollIntoViewIfNeeded();
   await expect(page.locator("#pitchNow")).toHaveText(/^\d+(?:\.\d+)?Hz$/);
   await expect.poll(() => getCanvasColorCount(page)).toBeGreaterThan(5);
   const before = await getCanvasChecksum(page);
@@ -307,6 +306,52 @@ async function expectSyntheticMicrophoneReady(page, expectMockAudio = false) {
 
 // ----- Test A: Quick → Professional realtime pitch -----
 test.describe("Audio Lifecycle", () => {
+  for (const viewport of [{ width: 440, height: 956 }, { width: 1280, height: 900 }]) {
+    test(`@cross-browser live pitch stays beside recording controls after Quick results (${viewport.width}px)`, async ({ browserName, page }) => {
+      await page.setViewportSize(viewport);
+      await installSyntheticMicrophone(page, { forceMockAudio: browserName !== "chromium" });
+      await setupLifecycleCounters(page);
+      const errors = captureRuntimeErrors(page);
+      await openQuickPage(page);
+      await expectSyntheticMicrophoneReady(page, browserName !== "chromium");
+      await page.locator("[data-quick-record]").click();
+      await expect(page.locator("[data-quick-stage='recording']")).toBeVisible();
+      await expect.poll(async () => (await getCounters(page)).processorCallbacks).toBeGreaterThan(5);
+      await expect(page.locator("#pitchNow")).toHaveText(/^\d+(?:\.\d+)?Hz$/);
+      await page.locator("[data-quick-record]").click();
+      await expect(page.locator("[data-quick-stage='result']")).toBeVisible({ timeout: 90000 });
+      await page.locator("[data-experience-target='professional']").first().click();
+      const callbacksBefore = (await getCounters(page)).processorCallbacks;
+      await page.locator("#recordBtn").click();
+      await expect(page.locator("body.recording")).toBeAttached();
+      await expect(page.locator("#pitchWrap")).toBeVisible();
+
+      // Never scroll to the canvas: that would conceal a chart below old results.
+      await expect(page.locator("#pitchCanvas")).toBeInViewport({ ratio: 0.9 });
+      const layout = await page.evaluate(() => {
+        const rect = (selector) => document.querySelector(selector).getBoundingClientRect();
+        return {
+          gap: rect("#pitchWrap").top - rect(".start-wrap").bottom,
+          chartBottom: rect("#pitchWrap").bottom,
+          resultTop: rect("#advancedExperience").top,
+          overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        };
+      });
+      expect(layout.gap).toBeGreaterThanOrEqual(0);
+      expect(layout.gap).toBeLessThan(40);
+      expect(layout.resultTop).toBeGreaterThan(layout.chartBottom);
+      expect(layout.overflow).toBeLessThanOrEqual(1);
+      await expect.poll(async () => (await getCounters(page)).processorCallbacks).toBeGreaterThan(callbacksBefore + 5);
+      await expectPitchFollowsMicrophone(page);
+      await page.locator("#recordBtn").click();
+      await expect(page.locator("#pitchWrap")).toBeHidden();
+      await expect(page.locator("#advancedExperience")).toBeVisible();
+      await expect.poll(async () => (await getCounters(page)).processorDisconnected).toBe(2);
+      expect((await getCounters(page)).rafCancelled).toBeGreaterThan(0);
+      expect(errors).toEqual([]);
+    });
+  }
+
   test("@cross-browser A: Quick → Professional pitch stream works without reload", async ({ browserName, page }) => {
     await installSyntheticMicrophone(page, { forceMockAudio: browserName !== "chromium" });
     await setupLifecycleCounters(page);

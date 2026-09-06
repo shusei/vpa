@@ -1,5 +1,6 @@
 export function createPlayerSessionController(deps) {
   const {
+    realtimeAnchor,
     sharedEnsurePlayerUI,
     sharedIsPlaying,
     sharedPausePlayback,
@@ -50,6 +51,7 @@ export function createPlayerSessionController(deps) {
 
   function ensurePlayerUI(updatePlaybackAvailability) {
     sharedEnsurePlayerUI(state, {
+      realtimeAnchor,
       updatePlayerCopy,
       updatePlaybackAvailability,
     });

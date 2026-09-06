@@ -1,11 +1,11 @@
-import { getCurrentLocale, t } from "../js/i18n.js?v=1.4.25";
-import { buildShareTargets } from "./share-card.js?v=1.4.25";
+import { getCurrentLocale, t } from "../js/i18n.js?v=1.4.26";
+import { buildShareTargets } from "./share-card.js?v=1.4.26";
 import {
   isShareServiceConfigured,
   publishShareResult,
-} from "./share-service.js?v=1.4.25";
-import { createSocialPreviewBlob } from "./social-preview-card.js?v=1.4.25";
-import { navigate, prefersCurrentTab } from "./share-navigation.js?v=1.4.25";
+} from "./share-service.js?v=1.4.26";
+import { createSocialPreviewBlob } from "./social-preview-card.js?v=1.4.26";
+import { navigate, prefersCurrentTab } from "./share-navigation.js?v=1.4.26";
 
 const publishedShareCache = new Map();
 const failedShareCacheKeys = new Set();

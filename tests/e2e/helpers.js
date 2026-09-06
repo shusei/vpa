@@ -94,6 +94,19 @@ export async function installSyntheticMicrophone(page, {
     let MockMediaStreamCtor = null;
     let microphoneFrequency = 220;
     let microphoneOscillator = null;
+    if (!useMockAudio) {
+      // Keep synthetic input independent of the host output device (e.g. 192 kHz).
+      // These are still native contexts, nodes, callbacks, and MediaRecorders.
+      const BrowserAudioContext = NativeAudioContext;
+      class TestAudioContext extends BrowserAudioContext {
+        constructor(options = {}) {
+          super({ sampleRate: 48000, ...options });
+        }
+      }
+      NativeAudioContext = TestAudioContext;
+      window.AudioContext = TestAudioContext;
+      window.webkitAudioContext = TestAudioContext;
+    }
     window.__vpaSetMicrophoneFrequency = (frequency) => {
       microphoneFrequency = frequency;
       if (microphoneOscillator) microphoneOscillator.frequency.value = frequency;
