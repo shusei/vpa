@@ -5,69 +5,95 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+本文件採用 Keep a Changelog 格式，並遵循語意化版本規範（Semantic Versioning）。
 
 ## [1.4.26] - 2026-09-06
 
-### Fixed
+### Fixed（修正）
 
 - Kept realtime pitch and formant panels directly after recording controls and before playback/results. A previous Quick result could push the next Professional recording's live chart thousands of pixels below the viewport while audio and canvas updates continued normally.
+  將即時音高與共振峰面板維持在錄音控制區正下方、播放與結果區之前。先前 Quick 的分析結果可能把下一輪 Professional 錄音的即時圖表推到視窗下方數千像素處，即使音訊與畫布仍正常更新。
 - Preserved existing audio lifecycle, pitch detection, scoring, and the stopped-recording/Quick layouts.
+  保留既有音訊生命週期、音高偵測、評分，以及停止錄音後與 Quick 模式的版面。
 
-### Tests
+### Tests（測試）
 
 - Added mobile and desktop Quick-record/result-to-Professional-record regressions that assert the canvas is in the viewport without scrolling, above previous results, receiving pitch data, drawing changing pixels, and cleaning up after stop.
+  新增手機與桌面的「Quick 錄音／結果 → Professional 再錄音」回歸測試，確認不捲動畫面即可看到畫布、圖表位於上一輪結果之前、持續收到音高資料並繪製變動像素，且停止後正確清理。
 - Removed the chart helper's automatic scrolling, which had concealed the misplaced chart. Native synthetic-audio tests now request 48 kHz instead of inheriting the host sound device's sample rate; physical-device validation and other sample rates remain separate checks.
+  移除圖表測試輔助函式中掩蓋位置錯誤的自動捲動。原生合成音訊測試改為明確要求 48 kHz，不再繼承主機音效裝置的取樣率；實機驗證與其他取樣率仍須另行檢查。
 
 ## [1.4.25] - 2026-09-05
 
-### Fixed
+### Fixed（修正）
 
 - Reconciled browser-initiated recording stops and errors with the shared coordinator, releasing microphone tracks before analysis and retaining recording chunks per session.
+  將瀏覽器主動觸發的錄音停止與錯誤事件同步到共用協調器，在分析前釋放麥克風音軌，並按錄音工作階段保存音訊片段。
 - Released partially connected realtime audio graphs and allowed stop to cancel a pending context resume without leaving a late-resumed idle context running.
+  釋放尚未完整連接的即時音訊節點圖，並允許停止操作取消等待中的 AudioContext 恢復，避免延遲恢復後的閒置 context 持續運作。
 - Removed canvas pixel and track inspection when audio diagnostics are disabled.
+  停用音訊診斷時，不再檢查畫布像素與音軌。
 
-### Tests
+### Tests（測試）
 
 - Added red-to-green failure-path tests for native stop events, graph cleanup, disabled diagnostics, and pending resume cancellation.
+  新增先失敗、修正後通過的失敗路徑測試，涵蓋原生停止事件、音訊節點圖清理、診斷停用與等待中恢復操作的取消。
 - Replaced fixed 100 ms canvas assertions with an input-frequency change that must reach both the Hz readout and rendered pixels. Physical iPhone Safari and Android Chrome validation remains required.
+  以輸入頻率變化必須同時反映於 Hz 讀值與畫布像素的驗證，取代固定等待 100 ms 的畫布斷言；仍須完成 iPhone Safari 與 Android Chrome 實機驗證。
 
 ## [1.4.24] - 2026-09-05
 
-### Fixed
+### Fixed（修正）
 
 - Prepared and resumed the reusable realtime-pitch AudioContext inside the recording button's synchronous user gesture so iPhone Safari can start the Professional chart after a completed Quick recording.
+  在錄音按鈕的同步使用者操作階段，預先建立並恢復可重用的即時音高 AudioContext，讓 iPhone Safari 能在完成 Quick 錄音後啟動 Professional 圖表。
 - Bound realtime processors, sources, animation frames, and cleanup to the active recording session so stale teardown cannot stop a newer pitch graph.
+  將即時處理器、音訊來源、動畫影格與清理操作綁定到目前的錄音工作階段，避免過期的清理流程停止新一輪音高節點圖。
 - Replaced the Quick experience's hidden Professional record-button proxy and polling loop with one recording coordinator shared by Quick, Professional, and Practice.
+  以 Quick、Professional 與 Practice 共用的單一錄音協調器，取代 Quick 透過隱藏的 Professional 錄音按鈕代理命令與輪詢的流程。
 - Preserved a Web Audio fallback buffer before decoding and bounded stalled decoder calls so rejected or non-settling browser decoders cannot strand recording analysis.
+  解碼前保留 Web Audio 備援緩衝區，並限制停滯解碼呼叫的等待時間，避免瀏覽器解碼器拒絕或遲遲未完成時卡住錄音分析。
 
-### Added
+### Added（新增）
 
 - Added an opt-in `?vpaAudioDebug=1` in-memory diagnostic report for AudioContext state, processor callbacks, pitch samples, panel visibility, canvas dimensions, and cleanup without retaining or uploading audio.
+  新增須以 `?vpaAudioDebug=1` 主動啟用的記憶體診斷報告，記錄 AudioContext 狀態、處理器回呼、音高樣本、面板可見性、畫布尺寸與清理狀況，不保留或上傳音訊。
 - Documented the recording state machine, audio-resource ownership, Safari user-activation constraint, and required iPhone Safari and Android Chrome release checks.
+  記錄錄音狀態機、音訊資源所有權、Safari 使用者啟用限制，以及必要的 iPhone Safari 與 Android Chrome 發布檢查。
 
-### Tests
+### Tests（測試）
 
 - Added a Quick-to-Professional regression that verifies the live panel, parent visibility, valid Hz samples, changing canvas pixels, stopped resources, and empty runtime errors.
+  新增 Quick 切換 Professional 的回歸測試，驗證即時面板與父層可見性、有效 Hz 樣本、畫布像素變化、停止後資源狀態，以及無執行階段錯誤。
 - Added recording-coordinator, stale-session, gesture-bound resume, bounded diagnostics, mobile overflow, light/dark readability, and repeated-recording coverage.
+  新增錄音協調器、過期工作階段、使用者操作階段恢復、有限容量診斷、手機水平溢出、深淺色可讀性與重複錄音測試。
 
 ## [1.4.23] - 2026-08-31
 
-### Fixed
+### Fixed（修正）
 
 - Reused and serialized the realtime pitch AudioContext across repeated recording and playback cycles so the live pitch chart no longer disappears while recording remains active.
+  在重複錄音與播放循環中重用即時音高 AudioContext，並將啟停流程序列化，以修正仍在錄音時即時音高圖表消失的問題。
 - Included the local FFmpeg WASM decoder in GitHub Pages builds so video uploads do not depend on a third-party runtime download.
+  將本機 FFmpeg WASM 解碼器納入 GitHub Pages 建置，讓影片上傳不再依賴執行時從第三方下載解碼器。
 - Kept the Quick information area available while hiding only the upload controls that belong to Professional mode.
+  保留 Quick 的資訊區，只隱藏屬於 Professional 模式的上傳控制項。
 
-### Changed
+### Changed（變更）
 
 - Made the complete test suite a required GitHub Pages deployment gate and added a post-deployment HTTP check for the hosted FFmpeg WASM asset.
+  將完整測試套件設為 GitHub Pages 部署的必要門檻，並新增部署後對網站 FFmpeg WASM 資源的 HTTP 檢查。
 - Added deterministic browser media fixtures that do not require a system FFmpeg installation during tests.
+  新增可重現的瀏覽器媒體測試樣本，測試時不需在系統中安裝 FFmpeg。
 
-### Tests
+### Tests（測試）
 
 - Added Chromium, Firefox, and WebKit coverage for MP4, HEVC/MOV, 181-second, 32 MB, no-audio, corrupt, and empty video uploads.
+  新增 Chromium、Firefox 與 WebKit 的影片上傳測試，涵蓋 MP4、HEVC/MOV、181 秒、32 MB、無音軌、損壞與空白檔案。
 - Added a 30-round Professional record/play soak test that continuously verifies the live pitch chart, AudioContext reuse, processor cleanup, playback, and available heap measurements.
+  新增 30 輪 Professional 錄音／播放長時間測試，持續驗證即時音高圖表、AudioContext 重用、處理器清理、播放，以及可取得的堆積記憶體量測。
 - Added a release-device checklist for iPhone Safari and Android Chrome verification.
+  新增 iPhone Safari 與 Android Chrome 的發布實機驗證清單。
 
 ## [1.4.22] - 2026-08-20
 
@@ -96,127 +122,175 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.4.20] - 2026-08-09
 
-### Changed
+### Changed（變更）
 
 - Streamlined Quick results to show only the score, core voice data, one concise summary, replay/retry controls, and immediate sharing actions.
+  精簡 Quick 結果，只顯示分數、核心聲音資料、一段簡短摘要、回放／重試控制項與立即分享操作。
 - Removed long three-part guidance, pitch explanations, safety panels, disclaimers, and footer warnings from Quick while retaining the complete safety and interpretation guidance in Advanced, Help, and the Feminine Voice Manual.
+  移除 Quick 中冗長的三段式指引、音高說明、安全面板、免責聲明與頁尾提醒；完整的安全與解讀指引仍保留在進階分析、使用指南與女性化聲音手冊。
 - Compressed the replay/retry controls and placed voice-age and character cards side by side on phones so sharing actions appear sooner.
+  縮減回放／重試控制區，並在手機上並排顯示聲音年齡與角色卡，讓分享操作更早出現在畫面中。
 
-### Tests
+### Tests（測試）
 
 - Added four-locale regression coverage for single-line Quick summaries and the absence of verbose Quick-only guidance.
+  新增四語系回歸測試，確認 Quick 摘要只有一行，且不再出現冗長的 Quick 專屬指引。
 - Verified the 390 × 844 mobile result layout, first-tap audio replay, direct sharing controls, and zero horizontal overflow.
+  驗證 390 × 844 手機結果版面、首次點擊即可回放、直接分享控制項，以及無水平溢出。
 
 ## [1.4.19] - 2026-08-09
 
-### Fixed
+### Fixed（修正）
 
 - Added the missing visible explanation for the Advanced intonation contour, including recording-time and pitch axes, processed-curve and low-confidence legends, and a clear statement that raw dots do not change the analysis or score.
+  補上進階語調曲線缺少的可見說明，包括錄音時間與音高座標軸、處理後曲線與低信心圖例，並明確說明原始資料點不會改變分析或評分。
 - Replaced the unexplained raw-point checkbox with an accessible stateful control and a complete visual legend across all four locales.
+  將缺少說明的原始資料點核取方塊改為具無障礙支援、可反映狀態的控制項，並補齊四語系視覺圖例。
 
-### Tests
+### Tests（測試）
 
 - Added mobile regression coverage for the chart purpose, axis explanation, legend, raw-point control, and horizontal-overflow safety.
+  新增手機回歸測試，涵蓋圖表用途、座標軸說明、圖例、原始資料點控制項與水平溢出防護。
 
 ## [1.4.18] - 2026-08-09
 
-### Changed
+### Changed（變更）
 
 - Rewrote every Quick and Advanced analysis explanation into a consistent three-part structure: what the metric measures, what this recording means, and a metric-specific next comparison.
+  將所有 Quick 與進階分析說明統一改為三段式結構：指標測量什麼、這次錄音代表什麼，以及針對該指標的下一次比較方式。
 - Extended useful guidance to the four weighted Advanced components, Jitter, Shimmer, HNR, CPP, beginner highlights, focus cards, and all detailed formant, spectrum, articulation, pace, liaison, and intonation cards.
+  將實用指引擴充至四個加權進階分析項目、Jitter、Shimmer、HNR、CPP、入門重點、焦點卡，以及共振峰、頻譜、咬字、節奏、連音與語調的所有詳細卡片。
 - Replaced population-sounding pitch-band labels with explicit app reference-band wording and improved the one-column mobile layout for voice-age evidence.
+  將容易被誤解為族群分類的音高區間標籤，改為明確標示的應用程式參考區間，並改善手機單欄的聲音年齡依據版面。
 - Kept recommendations comfort-first and comparison-based while preserving meaningful interpretation instead of repeating generic non-diagnostic disclaimers.
+  以舒適優先與比較觀察為建議原則，保留有意義的解讀，不再重複套用泛泛的非診斷聲明。
 
-### Fixed
+### Fixed（修正）
 
 - Prevented an unavailable F1, F2, or F3 result from incorrectly displaying an appended `Hz` unit.
+  避免 F1、F2 或 F3 資料不可用時，仍錯誤附加顯示 `Hz` 單位。
 - Removed a duplicated brightness explanation from the expanded detail layout.
+  移除展開詳細資料版面中重複的亮度說明。
 - Kept the intonation chart inside its mobile card instead of forcing a 320 px minimum width and creating a horizontal scrollbar.
+  讓語調圖表維持在手機卡片範圍內，不再強制 320 px 最小寬度而產生水平捲軸。
 
-### Tests
+### Tests（測試）
 
 - Added four-locale regression checks requiring exactly three guidance rows, metric-specific next steps, distinct F1/F2/F3 guidance, and complete Quick/Advanced coverage.
+  新增四語系回歸檢查，要求恰好三列指引、各指標專屬的下一步、不同的 F1／F2／F3 說明，以及完整的 Quick／進階分析涵蓋範圍。
 - Added mobile browser assertions for structured Quick guidance and horizontal-overflow safety.
+  新增手機瀏覽器斷言，驗證 Quick 的結構化指引與水平溢出防護。
 
 ## [1.4.17] - 2026-08-09
 
-### Fixed
+### Fixed（修正）
 
 - Unified the final professional meter, phrase-practice cards, and embedded manual practice cards on the current integrated presentation score instead of the retired raw classifier percentage.
+  將 Professional 最終儀表、句庫練習卡與手冊內嵌練習卡，統一使用目前的綜合呈現分數，不再使用已停用的原始分類器百分比。
 - Kept unavailable numeric evidence unavailable after JSON export so the same recording cannot receive a different integrated score after serialization.
+  讓缺失的數值依據在 JSON 匯出後仍維持缺失，避免同一份錄音在序列化後得到不同的綜合分數。
 - Isolated legacy raw-classifier practice history from current integrated scores.
+  將舊版原始分類器的練習歷史與目前的綜合分數分開保存。
 - Raised the Help and Feminine Voice Manual overlays above the Quick / Professional mode banner and locale menu so their close controls remain visible and clickable on phones.
+  提高使用指南與女性化聲音手冊浮層的顯示層級，使其位於 Quick／Professional 模式橫幅與語言選單上方，確保手機上的關閉按鈕可見且可點擊。
 
-### Tests
+### Tests（測試）
 
 - Added score-event, export-invariance, practice-history, real-audio, and 390 px mobile overlay regression coverage.
+  新增分數事件、匯出不變性、練習歷史、真實音訊與 390 px 手機浮層的回歸測試。
 
 ## [1.4.16] - 2026-08-09
 
-### Changed
+### Changed（變更）
 
 - Added capability-aware neutral microphone capture for iPhone Safari and Android Chrome: mono and 48 kHz are requested only when reported as supported, while echo cancellation, noise suppression, and automatic gain remain disabled where available.
+  為 iPhone Safari 與 Android Chrome 新增依支援能力調整的中性麥克風擷取：只在瀏覽器回報支援時要求單聲道與 48 kHz，並在可用時關閉回音消除、降噪與自動增益。
 - Added a 128 kbps recording target with MIME-only and browser-default fallbacks so improved quality does not block older phones or in-app browsers.
+  新增 128 kbps 錄音目標，並提供僅指定 MIME 與瀏覽器預設值的備援方式，避免改善音質時阻擋舊手機或應用程式內建瀏覽器。
 - Verifies the settings actually chosen by the browser and warns during recording when device audio processing remains active or cannot be fully confirmed.
+  驗證瀏覽器實際採用的設定；若裝置音訊處理仍啟用或無法完全確認，則在錄音時顯示提醒。
 - Updated the four-locale pre-recording check to recommend a consistent, unobstructed 30–60 cm phone position in a quiet room.
+  更新四語系錄音前檢查，建議在安靜環境中將手機保持於固定、無遮擋的 30–60 cm 距離。
 - Added unit coverage for full, partial, fallback, and recorder-option support paths.
+  新增單元測試，涵蓋完整支援、部分支援、備援與錄音器選項的各種路徑。
 
 ## [1.4.15] - 2026-08-08
 
-### Fixed
+### Fixed（修正）
 
 - Removed stale warm-up wording from static HTML, all locale fallbacks, help shortcuts, and Advanced backup hints.
+  移除靜態 HTML、所有語系備援文案、使用指南捷徑與進階分析備援提示中的過期暖身文字。
 - Standardized every visible pre-recording card on the comfort-first, non-prescriptive check.
+  將所有可見的錄音前卡片統一為舒適優先、不提供發聲處方的檢查內容。
 
 ## [1.4.14] - 2026-08-08
 
-### Safety
+### Safety（安全）
 
 - Reworked Quick, Advanced, Help, and Feminine Voice Manual guidance in Traditional Chinese, Simplified Chinese, English, and Japanese around non-clinical acoustic comparison, user-defined goals, comfort-first stop rules, and appropriate ENT / voice-specialist referral signals.
+  重新整理繁中、簡中、英文與日文的 Quick、進階分析、使用指南及女性化聲音手冊指引，以非臨床聲學比較、使用者自訂目標、舒適優先的停止原則，以及適當的耳鼻喉科／嗓音專業轉介訊號為核心。
 - Removed fixed feminine targets and unsupported self-training instructions for vocal-fold closure, breathiness, larynx position, formants, resonance placement, speech rate, and intonation.
+  移除固定的女性化目標，以及缺乏依據的聲帶閉合、氣聲、喉位、共振峰、共鳴位置、語速與語調自我訓練指示。
 - Replaced the anatomical “three-step warmup” with a pre-recording comfort check that verifies natural speech, absence of discomfort, and consistent recording conditions.
+  將涉及解剖操作的「三步驟暖身」改為錄音前舒適度檢查，確認自然說話、沒有不適，且錄音條件一致。
 
-### Changed
+### Changed（變更）
 
 - Restored a structured, polished Help tour with Quick start, Interface tour & live monitors, result-panel interpretation, clear limits, and four authoritative references.
+  恢復結構清楚的使用指南導覽，涵蓋快速開始、介面與即時監控、結果面板解讀、明確限制與四項權威參考資料。
 - Renamed the manual UI to “Feminine Voice Manual” / “女性化聲音手冊” to match its non-prescriptive scope.
+  將手冊介面更名為「Feminine Voice Manual／女性化聲音手冊」，使名稱符合不提供發聲處方的內容範圍。
 - GitHub Pages now deploys a Vite production build with content-hashed JavaScript and CSS filenames, eliminating reliance on manually maintained cache-query versions for users.
+  GitHub Pages 改為部署 Vite production build，JavaScript 與 CSS 檔名帶有內容雜湊，不再仰賴手動維護快取查詢版本號來更新使用者端資源。
 - The source version-bump helper now discovers direct-development cache tags recursively and keeps package-lock.json aligned.
+  原始碼升版工具改為遞迴尋找直接開發模式的快取標記，並同步維持 package-lock.json 的版本一致。
 
-### Tests
+### Tests（測試）
 
 - Added four-locale medical-safety audits, phone overflow checks, production-build fingerprint verification, and a production-runtime smoke test.
+  新增四語系醫療安全文案檢查、手機溢出檢查、正式建置指紋驗證與正式執行入口冒煙測試。
 - Verified 46 Playwright browser tests; 2 real remote-model tests remain skipped by design.
+  通過 46 項 Playwright 瀏覽器測試；另有 2 項真實遠端模型測試依設計維持略過。
 - npm audit reports 0 known vulnerabilities.
+  npm audit 回報 0 項已知安全漏洞。
 
 ---
 
 ## [1.4.13] - 2026-08-08
 
-### Changed
+### Changed（變更）
 
 - **Promoted the advanced result to the primary analysis position** — `ADVANCED BETA / Advanced strict analysis`, including the feminine percentage, now appears before Statistics overview instead of being buried beneath the detailed monitors.
+  **將進階結果提升為主要分析位置** — `ADVANCED BETA／進階嚴格分析`（含女性化百分比）改為顯示在統計總覽之前，不再埋在詳細監控區下方。
 - **Preserved the polished quick and advanced visual systems** — The layout change keeps playback directly above the result, retains the existing result-card hierarchy, and avoids unnecessary redesign of the already strong quick-test interface.
+  **保留既有的 Quick 與進階視覺系統** — 調整版面時維持播放器位於結果正上方，保留結果卡的既有層級，不另外重設計已完善的快速測試介面。
 
-### Tests
+### Tests（測試）
 
 - Playwright now verifies on desktop and mobile that the advanced result precedes Statistics overview and remains within the viewport.
+  Playwright 新增桌面與手機驗證，確認進階結果位於統計總覽之前，且保持在視窗範圍內。
 
 ---
 
 ## [1.4.12] - 2026-08-08
 
-### Fixed
+### Fixed（修正）
 
 - **Restored the missing Quick Start information block** — Four locale files declared the top-level help section twice, so the later help dialog silently replaced every earlier help translation. The dialog now has its own helpDialog namespace and all eight information headings render in every locale.
+  **恢復消失的快速開始資訊區塊** — 四個語系檔案重複宣告頂層 help 區段，導致後面的說明對話框無聲覆蓋先前所有 help 翻譯。對話框現已使用獨立的 helpDialog 命名空間，八個資訊標題皆可在各語系顯示。
 - **Removed silent translation failures** — Corrected the FFmpeg error-message path and advanced-analysis canvas/legend paths, removed obsolete aliases, and made DOM translation updates preserve source fallback content whenever a key is missing.
+  **移除未提示的翻譯失敗** — 修正 FFmpeg 錯誤訊息與進階分析畫布／圖例的翻譯路徑，移除過期別名，並讓 DOM 翻譯在缺少鍵值時保留原始備援內容。
 - **Corrected the default document language** — Selecting or initializing the already-active locale now still updates the HTML lang attribute, so Traditional Chinese is no longer mislabeled as English.
+  **修正文件預設語言** — 即使選擇或初始化的語系已是目前語系，仍會更新 HTML 的 lang 屬性，避免繁體中文被誤標為英文。
 
-### Tests
+### Tests（測試）
 
 - Locale tests now reject duplicate top-level dictionary sections and verify every literal HTML/JavaScript translation reference across all four dictionaries.
+  語系測試現在會拒絕重複的頂層字典區段，並檢查四份字典中所有 HTML／JavaScript 字面翻譯引用。
 - Playwright now switches through Traditional Chinese, Simplified Chinese, English, and Japanese and requires all eight information headings to remain visible and non-empty.
+  Playwright 會依序切換繁中、簡中、英文與日文，要求八個資訊標題持續可見且內容非空。
 - Full suite: 44 Playwright tests passed, 2 remote-model tests skipped by design.
+  完整測試套件通過 44 項 Playwright 測試；2 項遠端模型測試依設計略過。
 
 ---
 ## [1.4.11] - 2026-08-08
@@ -231,6 +305,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **統一正式版語系模組實例** — 修正帶版本與未帶版本的 `i18n.js` 同時載入所造成的雙語系狀態；快速語言按鈕、完整進階分析、練習抽屜、手冊、分享與主題控制現在會同步切換。
 - **補回完整說明區塊與無障礙文字翻譯** — 介面、模型、準確度、方法、倫理、相容性、版本資訊與手冊控制全部由目前語系完整接管，切換語言後版本資訊也會正確回填。
 - **強化真實流程測試** — 使用實際音檔走完正式分析後切換語言，逐區檢查英文模式零中文殘留，並新增模組載入路徑守門測試，避免同類問題再次被測試假通過掩蓋。
+- **修正日文備援順序** — 日文翻譯不再被英文基底物件覆蓋；日文手冊內文不可用時，保留日文控制項並顯示英文內容，不會意外回退為繁體中文。
 
 ---
 
@@ -247,6 +322,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **補齊 deps 傳遞鏈** — `describeResonanceFromEnergy` 與 `getSummaryText` 從未被正確傳入 `finishStreamStats` 的 deps，現已補齊完整的依賴傳遞路徑。
 
 - **All 42 Playwright E2E specs + strict multi-locale localization tests pass 100%.**
+  **全部 42 項 Playwright E2E 測試與嚴格多語系在地化測試皆通過。**
 
 ---
 
@@ -265,7 +341,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.4.8] - 2026-08-08
 
 ### Verified & End-to-End Certified (嚴格端到端 E2E 測試與 CI/CD 100% 全綠認證)
-- **Strict End-to-End E2E Testing Pipeline (`tests/e2e-browser-simulation.mjs` & Playwright E2E)**:
+- **Strict End-to-End E2E Testing Pipeline (`tests/e2e-browser-simulation.mjs` & Playwright E2E)（嚴格端到端 E2E 測試管線）**:
   - Added strict end-to-end multi-locale runtime simulation and Playwright real-browser test suite (`npm run test:e2e`), enforcing 0 Chinese character leakage in English mode and 100% symmetric locale coverage across `zh-Hant`, `zh-Hans`, `en`, and `ja`.
     新增嚴格端到端多語系推論與 Playwright 真實瀏覽器 E2E 測試管線 (`npm run test:e2e`)，驗證英文模式下 0 中文字元殘留，並確保繁中、簡中、英文、日文四國語言字典 100% 完全對稱。
   - Verified 42 Playwright real-browser E2E specs, passing all audio upload, model pipeline, embedded guard, and social sharing scenarios cleanly.
@@ -434,6 +510,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Both fixes together allow iOS Safari and Android Chrome to correctly present the native "Photo Library / Video / Choose File" three-option picker.
     兩項修復合力確保 iOS Safari 與 Android Chrome 能正確彈出「照片圖庫 / 錄影 / 選擇檔案」三選項原生選單。
   - 42 Playwright E2E tests pass.
+    42 項 Playwright E2E 測試通過。
 
 ---
 
